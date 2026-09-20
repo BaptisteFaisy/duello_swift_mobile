@@ -19,6 +19,25 @@ https://duello-api-relay.duello.workers.dev/api
 | Entraînement | Matières du parcours + programme complet en chapitres | `src/screens/SubjectsScreen.tsx`, `src/data/tracks.ts`, `src/data/ecgMathsProgram.ts` |
 | Défis | File d'attente d'appariement, défi trouvé, **joueur de défi complet**, classement matière, XP hebdo | `src/screens/ChallengesScreen.tsx`, `src/utils/matchmaking.ts`, `src/utils/duelJudge.ts`, `src/utils/socialApi.ts` |
 
+## Poursuite du portage (v2)
+
+Deuxième vague : première configuration, messages, suivi de progression et
+écrans annexes du compte.
+
+| Écran | Contenu | Source Expo portée |
+| --- | --- | --- |
+| Première configuration | Après inscription, choix **année → filière → option → récapitulatif** | `src/screens/OnboardingScreen.tsx`, `src/utils/onboardingSteps.ts`, `src/utils/academicPath.ts`, `src/data/tracks.ts` |
+| Messages | Onglets **Direct** (conversations, fil de bulles, composeur) et **Forum** (sujets, réponses) | `src/screens/MessagesScreen.tsx` |
+| Progression | Store local d'activité/maîtrise/ELO + vue par matière (Exercices / Colles / Défis / Heures) | `src/screens/EnhancedProgressScreen.tsx`, `src/utils/activity.ts`, `src/utils/exerciseProgress.ts`, `src/utils/subjectElo.ts` |
+| Compte — écrans annexes | Confidentialité, CGU, avis, utilisateurs bloqués, parcours détaillé, mot de passe oublié | `src/screens/{PrivacyPolicyScreen,TermsOfUseScreen,FeedbackScreen,BlockedUsersScreen,AccountTrackScreen,ForgotPasswordScreen,PasswordResetScreen}.tsx` |
+
+L'onboarding s'affiche à la racine tant que le profil n'a ni année ni filière
+(`RootView`). Les écrans annexes s'ouvrent en **feuille** depuis « Mon compte ».
+Le `ProgressStore` (`final class`, persistance `UserDefaults` + JSON, comme
+`SessionStore`) est injecté dans l'environnement à la racine ; ses méthodes
+`recordExercise` / `recordDuel` sont prêtes à être branchées sur le joueur de
+défi et l'entraînement.
+
 Programmes embarqués : **ECG** (maths approfondies/appliquées, ESH, HGG,
 Lettres, Philosophie, Anglais, LV2), **MPSI**, **MP**, **PSI** — avec les
 identifiants de chapitres identiques à ceux de l'app Expo (même clé
@@ -101,7 +120,14 @@ serif pour la lecture, verts réservés à la maîtrise.
   les réponses se rédigent en texte Unicode (même convention que l'app Expo,
   qui parle aussi Unicode dans ses champs de texte).
 - Face ID non câblé.
-- Notifications push, chat, premium et annales : non inclus.
+- Premium, annales et notifications push : non inclus.
+- **Messages** : l'écran est porté avec ses **données de démonstration**
+  locales (comme `MessagesScreen.tsx`, qui n'appelle aucun backend) ; aucun
+  envoi réel de message.
+- **Progression** : les écrans sont en place mais l'activité n'est pas encore
+  enregistrée automatiquement — il reste à appeler `ProgressStore.recordExercise`
+  et `recordDuel` depuis l'entraînement et le joueur de défi.
+- **Mot de passe oublié / avis** : confirmations locales, sans appel réseau.
 
 ## Connexion Google
 
@@ -148,8 +174,17 @@ duello_swift_app/
                                  (duel.ts, duelCopyPolicy.ts, duelJudge.ts)
     ├── MainTabView.swift      Onglets Mon compte / Entraînement / Défis
     ├── WelcomeView.swift      Accueil + connexion/inscription + bouton Google
-    ├── AccountView.swift      Mon compte
+    ├── OnboardingView.swift   Première configuration (année, filière, option)
+    ├── AccountView.swift      Mon compte (+ menu vers les écrans annexes)
+    ├── AccountDetailViews.swift  Légal, avis, comptes bloqués, parcours, mot de passe
+    ├── MessagesView.swift     Messages (Direct + Forum)
+    ├── ProgressStore.swift    Store local d'activité, maîtrise et ELO
+    ├── ProgressView.swift     Progression par matière
     ├── TrainingView.swift     Entraînement (matières, chapitres)
     ├── ChallengesView.swift   Défis (file, match, classements)
     └── ChallengePlayerView.swift  Joueur de défi (énoncé, copie, verdict)
 ```
+
+Le projet Xcode liste ses sources explicitement ; après avoir ajouté un
+`.swift` dans `Duello/`, lancer `python3 scripts/sync_xcode_sources.py` pour
+l'inscrire au `project.pbxproj`.

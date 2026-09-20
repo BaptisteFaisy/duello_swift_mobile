@@ -6,6 +6,7 @@ struct AccountView: View {
     @EnvironmentObject private var session: SessionStore
 
     @State private var showProfileEditor = false
+    @State private var activeSheet: AccountSheet?
 
     private let tracks = ["ECG", "MPSI", "MP", "PSI"]
     private let years = ["1re année", "2e année"]
@@ -15,6 +16,7 @@ struct AccountView: View {
             ScrollView {
                 VStack(spacing: 14) {
                     profileCard
+                    hubCard
                     programCard
                     goalCard
                     signOutCard
@@ -28,6 +30,17 @@ struct AccountView: View {
             .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $showProfileEditor) {
                 ProfileEditorView()
+            }
+            .sheet(item: $activeSheet) { sheet in
+                switch sheet {
+                case .progress: DuelloProgressView()
+                case .messages: MessagesView()
+                case .track: TrackSettingsView()
+                case .privacy: PrivacyPolicyView()
+                case .terms: TermsOfUseView()
+                case .feedback: FeedbackView()
+                case .blocked: BlockedUsersView()
+                }
             }
         }
     }
@@ -130,6 +143,55 @@ struct AccountView: View {
         .duelloCard()
     }
 
+    /// Entrées annexes : suivi, messages, parcours détaillé, pages légales,
+    /// avis et comptes bloqués. Chacune s'ouvre en feuille, comme les écrans
+    /// secondaires de l'app Expo.
+    private var hubCard: some View {
+        VStack(spacing: 0) {
+            hubRow("Progression", icon: "chart.bar", sheet: .progress)
+            hubSeparator
+            hubRow("Messages", icon: "bubble.left.and.bubble.right", sheet: .messages)
+            hubSeparator
+            hubRow("Mon parcours", icon: "map", sheet: .track)
+            hubSeparator
+            hubRow("Confidentialité", icon: "lock.shield", sheet: .privacy)
+            hubSeparator
+            hubRow("Conditions d'utilisation", icon: "doc.text", sheet: .terms)
+            hubSeparator
+            hubRow("Donner mon avis", icon: "bubble.left", sheet: .feedback)
+            hubSeparator
+            hubRow("Utilisateurs bloqués", icon: "hand.raised", sheet: .blocked)
+        }
+        .duelloCard()
+    }
+
+    private var hubSeparator: some View {
+        Divider().padding(.leading, 40)
+    }
+
+    private func hubRow(_ title: String, icon: String, sheet: AccountSheet) -> some View {
+        Button {
+            activeSheet = sheet
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Theme.inkSoft)
+                    .frame(width: 28)
+                Text(title)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Theme.ink)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(Theme.inkFaint)
+            }
+            .padding(.vertical, 12)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
     private func metric(_ label: String, value: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(label)
@@ -149,6 +211,13 @@ struct AccountView: View {
             .textCase(.uppercase)
             .foregroundStyle(Theme.inkSoft)
     }
+}
+
+/// Écrans secondaires présentés en feuille depuis « Mon compte ».
+private enum AccountSheet: String, Identifiable {
+    case progress, messages, track, privacy, terms, feedback, blocked
+
+    var id: String { rawValue }
 }
 
 /// Édition du prénom affiché.

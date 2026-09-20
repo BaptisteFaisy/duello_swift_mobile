@@ -24,6 +24,11 @@
 		AA000001AAAAAAAAAAAAAA11 /* GoogleAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001AAAAAAAAAAAAAA11 /* GoogleAuth.swift */; };
 		AA000001AAAAAAAAAAAAAA20 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = AE000001AAAAAAAAAAAAAA21 /* GoogleSignIn */; };
 		AA000001AAAAAAAAAAAAAA0C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AB000001AAAAAAAAAAAAAA0C /* Assets.xcassets */; };
+		B197B4F2EA57B80AA2A22560 /* AccountDetailViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = D989DC2B9EE6A375B128AB05 /* AccountDetailViews.swift */; };
+		6A9F9C6BFB13F034755599A1 /* MessagesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD1EAA5159DD5C7B3B6CE628 /* MessagesView.swift */; };
+		EE889E69E94AF6444BD44845 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C29620B927AEC396B51ACC99 /* OnboardingView.swift */; };
+		49C84C2F41F77D3BE1CD6F52 /* ProgressStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB14A8E05E2262DB7E43328B /* ProgressStore.swift */; };
+		1690FD66B1840AB7D0CFA49A /* ProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DF02FF5F73F96C54C3B8178 /* ProgressView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -45,6 +50,11 @@
 		AB000001AAAAAAAAAAAAAA11 /* GoogleAuth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleAuth.swift; sourceTree = "<group>"; };
 		AB000001AAAAAAAAAAAAAA12 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		AB000001AAAAAAAAAAAAAA0C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		D989DC2B9EE6A375B128AB05 /* AccountDetailViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountDetailViews.swift; sourceTree = "<group>"; };
+		BD1EAA5159DD5C7B3B6CE628 /* MessagesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagesView.swift; sourceTree = "<group>"; };
+		C29620B927AEC396B51ACC99 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		CB14A8E05E2262DB7E43328B /* ProgressStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressStore.swift; sourceTree = "<group>"; };
+		2DF02FF5F73F96C54C3B8178 /* ProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -88,6 +98,11 @@
 				AB000001AAAAAAAAAAAAAA11 /* GoogleAuth.swift */,
 				AB000001AAAAAAAAAAAAAA12 /* Info.plist */,
 				AB000001AAAAAAAAAAAAAA0C /* Assets.xcassets */,
+				D989DC2B9EE6A375B128AB05 /* AccountDetailViews.swift */,
+				BD1EAA5159DD5C7B3B6CE628 /* MessagesView.swift */,
+				C29620B927AEC396B51ACC99 /* OnboardingView.swift */,
+				CB14A8E05E2262DB7E43328B /* ProgressStore.swift */,
+				2DF02FF5F73F96C54C3B8178 /* ProgressView.swift */,
 			);
 			path = Duello;
 			sourceTree = "<group>";
@@ -187,6 +202,11 @@
 				AA000001AAAAAAAAAAAAAA0F /* LatexToUnicode.swift in Sources */,
 				AA000001AAAAAAAAAAAAAA10 /* ChallengePlayerView.swift in Sources */,
 				AA000001AAAAAAAAAAAAAA11 /* GoogleAuth.swift in Sources */,
+				B197B4F2EA57B80AA2A22560 /* AccountDetailViews.swift in Sources */,
+				6A9F9C6BFB13F034755599A1 /* MessagesView.swift in Sources */,
+				EE889E69E94AF6444BD44845 /* OnboardingView.swift in Sources */,
+				49C84C2F41F77D3BE1CD6F52 /* ProgressStore.swift in Sources */,
+				1690FD66B1840AB7D0CFA49A /* ProgressView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

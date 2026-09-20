@@ -23,10 +23,20 @@ struct DuelloApp: App {
 struct RootView: View {
     @EnvironmentObject private var session: SessionStore
 
+    /// Vrai tant que le parcours n'a pas été choisi : l'inscription vient
+    /// d'aboutir et l'élève doit passer par la première configuration.
+    private var needsOnboarding: Bool {
+        session.profile.year.isEmpty || session.profile.track.isEmpty
+    }
+
     var body: some View {
         Group {
             if session.isSignedIn {
-                MainTabView()
+                if needsOnboarding {
+                    OnboardingView {}
+                } else {
+                    MainTabView()
+                }
             } else {
                 WelcomeView()
             }
