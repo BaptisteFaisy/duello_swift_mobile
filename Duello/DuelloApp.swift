@@ -3,11 +3,16 @@ import SwiftUI
 @main
 struct DuelloApp: App {
     @StateObject private var session = SessionStore()
+    /// Progression locale partagée : injectée à la racine car plusieurs écrans
+    /// l'exigent en `@EnvironmentObject` (`DuelloProgressView`,
+    /// `TrainingCatalogView`) — sans elle, l'app plante à leur ouverture.
+    @StateObject private var progress = ProgressStore()
 
     var body: some Scene {
         WindowGroup {
             RootView()
                 .environmentObject(session)
+                .environmentObject(progress)
                 // Retour du navigateur Google vers l'app (schéma du client
                 // iOS inversé), comme le handle de lien profond Expo.
                 .onOpenURL { url in

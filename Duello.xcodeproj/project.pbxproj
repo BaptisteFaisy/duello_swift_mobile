@@ -32,6 +32,12 @@
 		272113D7714F8F0BDB406461 /* DuelloUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7703F40172E94E96227F04DD /* DuelloUI.swift */; };
 		0F9A6A8A80455CA3A93AC11D /* NotificationsViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D59CC5E25A86BB88C9785EE /* NotificationsViews.swift */; };
 		8CA3975CDB087C9D63DE7987 /* RankingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 625EAA1D827252D13185E8A2 /* RankingsView.swift */; };
+		0434E588DE3A6AFA12EF6788 /* AnnalesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9CE54C70A555B01176569EE /* AnnalesView.swift */; };
+		66CEA023029C3D2C0304CAC5 /* ExerciseGradingViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B79633EB1702D8BB076DFDD /* ExerciseGradingViews.swift */; };
+		9D7D179A33FFBBF30D00A2E9 /* MathKeyboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E69B73C1DAFFE581DB5085E0 /* MathKeyboardView.swift */; };
+		74B690E7339F40E1E8358010 /* PlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66EEF87F1FE60D0095AD6A2E /* PlanView.swift */; };
+		46DB1A76E5CA05D4451BFF17 /* PremiumView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F78ABF3F0E14A6FC0D0FB7 /* PremiumView.swift */; };
+		41FEAF18E7591A1829A35B9F /* TrainingCatalogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F99CFA5076F9554BD7C07A9D /* TrainingCatalogView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -61,6 +67,12 @@
 		7703F40172E94E96227F04DD /* DuelloUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuelloUI.swift; sourceTree = "<group>"; };
 		8D59CC5E25A86BB88C9785EE /* NotificationsViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsViews.swift; sourceTree = "<group>"; };
 		625EAA1D827252D13185E8A2 /* RankingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingsView.swift; sourceTree = "<group>"; };
+		E9CE54C70A555B01176569EE /* AnnalesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnalesView.swift; sourceTree = "<group>"; };
+		1B79633EB1702D8BB076DFDD /* ExerciseGradingViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseGradingViews.swift; sourceTree = "<group>"; };
+		E69B73C1DAFFE581DB5085E0 /* MathKeyboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathKeyboardView.swift; sourceTree = "<group>"; };
+		66EEF87F1FE60D0095AD6A2E /* PlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanView.swift; sourceTree = "<group>"; };
+		A9F78ABF3F0E14A6FC0D0FB7 /* PremiumView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PremiumView.swift; sourceTree = "<group>"; };
+		F99CFA5076F9554BD7C07A9D /* TrainingCatalogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingCatalogView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -112,6 +124,12 @@
 				7703F40172E94E96227F04DD /* DuelloUI.swift */,
 				8D59CC5E25A86BB88C9785EE /* NotificationsViews.swift */,
 				625EAA1D827252D13185E8A2 /* RankingsView.swift */,
+				E9CE54C70A555B01176569EE /* AnnalesView.swift */,
+				1B79633EB1702D8BB076DFDD /* ExerciseGradingViews.swift */,
+				E69B73C1DAFFE581DB5085E0 /* MathKeyboardView.swift */,
+				66EEF87F1FE60D0095AD6A2E /* PlanView.swift */,
+				A9F78ABF3F0E14A6FC0D0FB7 /* PremiumView.swift */,
+				F99CFA5076F9554BD7C07A9D /* TrainingCatalogView.swift */,
 			);
 			path = Duello;
 			sourceTree = "<group>";
@@ -219,6 +237,12 @@
 				272113D7714F8F0BDB406461 /* DuelloUI.swift in Sources */,
 				0F9A6A8A80455CA3A93AC11D /* NotificationsViews.swift in Sources */,
 				8CA3975CDB087C9D63DE7987 /* RankingsView.swift in Sources */,
+				0434E588DE3A6AFA12EF6788 /* AnnalesView.swift in Sources */,
+				66CEA023029C3D2C0304CAC5 /* ExerciseGradingViews.swift in Sources */,
+				9D7D179A33FFBBF30D00A2E9 /* MathKeyboardView.swift in Sources */,
+				74B690E7339F40E1E8358010 /* PlanView.swift in Sources */,
+				46DB1A76E5CA05D4451BFF17 /* PremiumView.swift in Sources */,
+				41FEAF18E7591A1829A35B9F /* TrainingCatalogView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

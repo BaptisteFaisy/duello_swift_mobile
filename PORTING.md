@@ -43,18 +43,25 @@ chaque lot livré.
 | `RankingsView` | ligues Elo + XP hebdo | `LeaderboardScreen.tsx`, `RankingsScreen.tsx` |
 | `NotificationsViews` | réglages + rappels locaux | `NotificationSettingsCard.tsx` |
 | `DuelloUI` | kit UI partagé | — |
+| `TrainingCatalogView` | catalogue d'une matière : chapitres groupés par domaine, dépliage vers les exercices servis, filtre/tri par difficulté | `SubjectsScreen.tsx`, `data/tracks.ts` |
+| `MathKeyboardView` | clavier mathématique : 7 onglets maths + 73 raccourcis Python, mode indice, outils guidés (matrice, opérateur, intervalle) | `MathKeyboard.tsx`, `utils/mathKeyboardLayout.ts` |
+| `ExerciseGradingViews` | espace de travail d'exercice : bonus XP, appréciations, bilan de révision, célébration, **bilan de correction** | `ChallengeExerciseWorkspace.tsx`, `SuccessSummary.tsx` |
+| `PremiumView` | offres (gratuit / annuel / hebdo), remises, code promo, badge, paywall + feuille réutilisable | `PaywallContent.tsx`, `PremiumOffers.tsx`, `premium-offers/…` |
+| `AnnalesView` | liste filtrable, lecteur (énoncé / barème / commentaires / corrigé), correction de copie + moniteur de fond | `AnnaleViewer.tsx`, `AnnaleCopyCorrectionModal.tsx` |
+| `PlanView` | planning journalier : grille horaire, carrousel de jours, analyseur de tâches local, répartition, persistance | `EnhancedPlanScreen.tsx` |
 | `LatexToUnicode`, `Programs`, `DuelloExerciseCatalog`, `Models`, `DuelloAPI` | socle | `utils/latex.ts`, `data/tracks.ts`… |
 
 ### À porter
 
 | Lot | Fichier cible | Sources Expo | État |
 | --- | --- | --- | --- |
-| Catalogue d'entraînement | `TrainingCatalogView.swift` | `SubjectsScreen.tsx`, `data/tracks.ts` | ⏳ |
-| Espace de travail d'exercice | `ExerciseWorkspaceView.swift` | `ChallengeExerciseWorkspace.tsx`, `SuccessSummary.tsx` | ⏳ |
-| Clavier mathématique | `MathKeyboardView.swift` | `MathKeyboard.tsx` | ⏳ |
+| Catalogue d'entraînement | `TrainingCatalogView.swift` | `SubjectsScreen.tsx`, `data/tracks.ts` | ✅ |
+| Espace de travail d'exercice | `ExerciseGradingViews.swift` | `ChallengeExerciseWorkspace.tsx`, `SuccessSummary.tsx` | ✅ |
+| Clavier mathématique | `MathKeyboardView.swift` | `MathKeyboard.tsx` | ✅ |
 | Cours & TD | `CourseTdView.swift` | `CourseTdPanel.tsx`, `HtmlDocumentView.tsx` | ⏳ |
-| Annales | `AnnalesView.swift` | `AnnaleViewer.tsx`, `AnnaleCopyCorrectionModal.tsx` | ⏳ |
-| Premium / paywall | `PremiumView.swift` | `EnhancedPlanScreen.tsx`, `PaywallContent.tsx` | ⏳ |
+| Annales | `AnnalesView.swift` | `AnnaleViewer.tsx`, `AnnaleCopyCorrectionModal.tsx` | ✅ |
+| Premium / paywall | `PremiumView.swift` | `PaywallContent.tsx`, `PremiumOffers.tsx` | ✅ |
+| Planning journalier | `PlanView.swift` | `EnhancedPlanScreen.tsx` | ✅ |
 | Outils d'étude | `StudyToolsView.swift` | `PythonConsole.tsx`, `Whiteboard.native.tsx`, `PhotoTranscriptionModal.tsx` | ⏳ |
 | Parcours HEC | `HecJourneyView.swift` | `HecJourney.tsx`, `HecJourneyScene.tsx` | ⏳ |
 | Événements | `EventsView.swift` | `EventsList.tsx`, `event/` | ⏳ |

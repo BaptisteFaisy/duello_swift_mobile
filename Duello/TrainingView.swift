@@ -34,7 +34,7 @@ struct TrainingView: View {
             Section {
                 ForEach(subjects) { subject in
                     NavigationLink {
-                        ChapterListView(subject: subject)
+                        TrainingCatalogView(subject: subject)
                     } label: {
                         SubjectRow(subject: subject)
                     }

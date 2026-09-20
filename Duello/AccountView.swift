@@ -34,6 +34,9 @@ struct AccountView: View {
             .sheet(item: $activeSheet) { sheet in
                 switch sheet {
                 case .progress: DuelloProgressView()
+                case .annales: AnnalesView()
+                case .plan: PlanView()
+                case .premium: PremiumView()
                 case .messages: MessagesView()
                 case .track: TrackSettingsView()
                 case .privacy: PrivacyPolicyView()
@@ -150,6 +153,12 @@ struct AccountView: View {
         VStack(spacing: 0) {
             hubRow("Progression", icon: "chart.bar", sheet: .progress)
             hubSeparator
+            hubRow("Annales", icon: "doc.text.magnifyingglass", sheet: .annales)
+            hubSeparator
+            hubRow("Planning", icon: "calendar", sheet: .plan)
+            hubSeparator
+            hubRow("Premium", icon: "star.circle", sheet: .premium)
+            hubSeparator
             hubRow("Messages", icon: "bubble.left.and.bubble.right", sheet: .messages)
             hubSeparator
             hubRow("Mon parcours", icon: "map", sheet: .track)
@@ -215,7 +224,7 @@ struct AccountView: View {
 
 /// Écrans secondaires présentés en feuille depuis « Mon compte ».
 private enum AccountSheet: String, Identifiable {
-    case progress, messages, track, privacy, terms, feedback, blocked
+    case progress, annales, plan, premium, messages, track, privacy, terms, feedback, blocked
 
     var id: String { rawValue }
 }
