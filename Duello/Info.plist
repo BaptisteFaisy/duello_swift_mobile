@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Schéma de retour du navigateur Google : client iOS inversé,
+	     exigé par GoogleSignIn (fusionné avec l'Info.plist généré). -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.283336474401-hbo36u49j767lqknahakr2937mfa6amn</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

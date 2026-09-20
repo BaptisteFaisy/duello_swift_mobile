@@ -1,0 +1,362 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		AA000001AAAAAAAAAAAAAA01 /* DuelloApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001AAAAAAAAAAAAAA01 /* DuelloApp.swift */; };
+		AA000001AAAAAAAAAAAAAA02 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001AAAAAAAAAAAAAA02 /* Theme.swift */; };
+		AA000001AAAAAAAAAAAAAA03 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001AAAAAAAAAAAAAA03 /* Models.swift */; };
+		AA000001AAAAAAAAAAAAAA04 /* Programs.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001AAAAAAAAAAAAAA04 /* Programs.swift */; };
+		AA000001AAAAAAAAAAAAAA05 /* DuelloAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001AAAAAAAAAAAAAA05 /* DuelloAPI.swift */; };
+		AA000001AAAAAAAAAAAAAA06 /* SessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001AAAAAAAAAAAAAA06 /* SessionStore.swift */; };
+		AA000001AAAAAAAAAAAAAA07 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001AAAAAAAAAAAAAA07 /* MainTabView.swift */; };
+		AA000001AAAAAAAAAAAAAA08 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001AAAAAAAAAAAAAA08 /* WelcomeView.swift */; };
+		AA000001AAAAAAAAAAAAAA09 /* AccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001AAAAAAAAAAAAAA09 /* AccountView.swift */; };
+		AA000001AAAAAAAAAAAAAA0A /* TrainingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001AAAAAAAAAAAAAA0A /* TrainingView.swift */; };
+		AA000001AAAAAAAAAAAAAA0B /* ChallengesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001AAAAAAAAAAAAAA0B /* ChallengesView.swift */; };
+		AA000001AAAAAAAAAAAAAA0D /* DuelloExerciseCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001AAAAAAAAAAAAAA0D /* DuelloExerciseCatalog.swift */; };
+		AA000001AAAAAAAAAAAAAA0E /* DuelJudge.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001AAAAAAAAAAAAAA0E /* DuelJudge.swift */; };
+		AA000001AAAAAAAAAAAAAA0F /* LatexToUnicode.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001AAAAAAAAAAAAAA0F /* LatexToUnicode.swift */; };		AA000001AAAAAAAAAAAAAA10 /* ChallengePlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001AAAAAAAAAAAAAA10 /* ChallengePlayerView.swift */; };
+		AA000001AAAAAAAAAAAAAA11 /* GoogleAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001AAAAAAAAAAAAAA11 /* GoogleAuth.swift */; };
+		AA000001AAAAAAAAAAAAAA20 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = AE000001AAAAAAAAAAAAAA21 /* GoogleSignIn */; };
+		AA000001AAAAAAAAAAAAAA0C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AB000001AAAAAAAAAAAAAA0C /* Assets.xcassets */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		AC000001AAAAAAAAAAAAAA01 /* Duello.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Duello.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AB000001AAAAAAAAAAAAAA01 /* DuelloApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuelloApp.swift; sourceTree = "<group>"; };
+		AB000001AAAAAAAAAAAAAA02 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		AB000001AAAAAAAAAAAAAA03 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		AB000001AAAAAAAAAAAAAA04 /* Programs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Programs.swift; sourceTree = "<group>"; };
+		AB000001AAAAAAAAAAAAAA05 /* DuelloAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuelloAPI.swift; sourceTree = "<group>"; };
+		AB000001AAAAAAAAAAAAAA06 /* SessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStore.swift; sourceTree = "<group>"; };
+		AB000001AAAAAAAAAAAAAA07 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
+		AB000001AAAAAAAAAAAAAA08 /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
+		AB000001AAAAAAAAAAAAAA09 /* AccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountView.swift; sourceTree = "<group>"; };
+		AB000001AAAAAAAAAAAAAA0A /* TrainingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingView.swift; sourceTree = "<group>"; };
+		AB000001AAAAAAAAAAAAAA0B /* ChallengesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChallengesView.swift; sourceTree = "<group>"; };
+		AB000001AAAAAAAAAAAAAA0D /* DuelloExerciseCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuelloExerciseCatalog.swift; sourceTree = "<group>"; };
+		AB000001AAAAAAAAAAAAAA0E /* DuelJudge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuelJudge.swift; sourceTree = "<group>"; };
+		AB000001AAAAAAAAAAAAAA0F /* LatexToUnicode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatexToUnicode.swift; sourceTree = "<group>"; };		AB000001AAAAAAAAAAAAAA10 /* ChallengePlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChallengePlayerView.swift; sourceTree = "<group>"; };
+		AB000001AAAAAAAAAAAAAA11 /* GoogleAuth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleAuth.swift; sourceTree = "<group>"; };
+		AB000001AAAAAAAAAAAAAA12 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		AB000001AAAAAAAAAAAAAA0C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		AD000001AAAAAAAAAAAAAA01 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA000001AAAAAAAAAAAAAA20 /* GoogleSignIn in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		AE000001AAAAAAAAAAAAAA01 = {
+			isa = PBXGroup;
+			children = (
+				AE000001AAAAAAAAAAAAAA02 /* Duello */,
+				AE000001AAAAAAAAAAAAAA03 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		AE000001AAAAAAAAAAAAAA02 /* Duello */ = {
+			isa = PBXGroup;
+			children = (
+				AB000001AAAAAAAAAAAAAA01 /* DuelloApp.swift */,
+				AB000001AAAAAAAAAAAAAA02 /* Theme.swift */,
+				AB000001AAAAAAAAAAAAAA03 /* Models.swift */,
+				AB000001AAAAAAAAAAAAAA04 /* Programs.swift */,
+				AB000001AAAAAAAAAAAAAA05 /* DuelloAPI.swift */,
+				AB000001AAAAAAAAAAAAAA06 /* SessionStore.swift */,
+				AB000001AAAAAAAAAAAAAA07 /* MainTabView.swift */,
+				AB000001AAAAAAAAAAAAAA08 /* WelcomeView.swift */,
+				AB000001AAAAAAAAAAAAAA09 /* AccountView.swift */,
+				AB000001AAAAAAAAAAAAAA0A /* TrainingView.swift */,
+				AB000001AAAAAAAAAAAAAA0B /* ChallengesView.swift */,
+				AB000001AAAAAAAAAAAAAA0D /* DuelloExerciseCatalog.swift */,
+				AB000001AAAAAAAAAAAAAA0E /* DuelJudge.swift */,
+				AB000001AAAAAAAAAAAAAA0F /* LatexToUnicode.swift */,
+				AB000001AAAAAAAAAAAAAA10 /* ChallengePlayerView.swift */,
+				AB000001AAAAAAAAAAAAAA11 /* GoogleAuth.swift */,
+				AB000001AAAAAAAAAAAAAA12 /* Info.plist */,
+				AB000001AAAAAAAAAAAAAA0C /* Assets.xcassets */,
+			);
+			path = Duello;
+			sourceTree = "<group>";
+		};
+		AE000001AAAAAAAAAAAAAA03 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				AC000001AAAAAAAAAAAAAA01 /* Duello.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		AF000001AAAAAAAAAAAAAA01 /* Duello */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B1000001AAAAAAAAAAAAAA01 /* Build configuration list for PBXNativeTarget "Duello" */;
+			buildPhases = (
+				AD000002AAAAAAAAAAAAAA01 /* Sources */,
+				AD000001AAAAAAAAAAAAAA01 /* Frameworks */,
+				AD000003AAAAAAAAAAAAAA01 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Duello;
+			productName = Duello;
+			productReference = AC000001AAAAAAAAAAAAAA01 /* Duello.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		AF000001AAAAAAAAAAAAAA02 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					AF000001AAAAAAAAAAAAAA01 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+				};
+			};
+			buildConfigurationList = B1000001AAAAAAAAAAAAAA03 /* Build configuration list for PBXProject "Duello" */;
+			developmentRegion = fr;
+			packageReferences = (
+				AE000001AAAAAAAAAAAAAA22 /* GoogleSignIn-ios */,
+			);
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				fr,
+				Base,
+			);
+			mainGroup = AE000001AAAAAAAAAAAAAA01;
+			productRefGroup = AE000001AAAAAAAAAAAAAA03 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				AF000001AAAAAAAAAAAAAA01 /* Duello */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		AD000003AAAAAAAAAAAAAA01 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA000001AAAAAAAAAAAAAA0C /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		AD000002AAAAAAAAAAAAAA01 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA000001AAAAAAAAAAAAAA01 /* DuelloApp.swift in Sources */,
+				AA000001AAAAAAAAAAAAAA02 /* Theme.swift in Sources */,
+				AA000001AAAAAAAAAAAAAA03 /* Models.swift in Sources */,
+				AA000001AAAAAAAAAAAAAA04 /* Programs.swift in Sources */,
+				AA000001AAAAAAAAAAAAAA05 /* DuelloAPI.swift in Sources */,
+				AA000001AAAAAAAAAAAAAA06 /* SessionStore.swift in Sources */,
+				AA000001AAAAAAAAAAAAAA07 /* MainTabView.swift in Sources */,
+				AA000001AAAAAAAAAAAAAA08 /* WelcomeView.swift in Sources */,
+				AA000001AAAAAAAAAAAAAA09 /* AccountView.swift in Sources */,
+				AA000001AAAAAAAAAAAAAA0A /* TrainingView.swift in Sources */,
+				AA000001AAAAAAAAAAAAAA0B /* ChallengesView.swift in Sources */,
+				AA000001AAAAAAAAAAAAAA0D /* DuelloExerciseCatalog.swift in Sources */,
+				AA000001AAAAAAAAAAAAAA0E /* DuelJudge.swift in Sources */,
+				AA000001AAAAAAAAAAAAAA0F /* LatexToUnicode.swift in Sources */,
+				AA000001AAAAAAAAAAAAAA10 /* ChallengePlayerView.swift in Sources */,
+				AA000001AAAAAAAAAAAAAA11 /* GoogleAuth.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		B1000001AAAAAAAAAAAAAA04 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		B1000001AAAAAAAAAAAAAA05 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 5.0;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		B1000001AAAAAAAAAAAAAA06 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Duello/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Duello;
+				INFOPLIST_KEY_CFBundleShortVersionString = "1.0.0";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleLightContent;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UIUserInterfaceStyle = Light;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.prepapp.mobile.swift;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		B1000001AAAAAAAAAAAAAA07 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Duello/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Duello;
+				INFOPLIST_KEY_CFBundleShortVersionString = "1.0.0";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleLightContent;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UIUserInterfaceStyle = Light;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.prepapp.mobile.swift;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		B1000001AAAAAAAAAAAAAA03 /* Build configuration list for PBXProject "Duello" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B1000001AAAAAAAAAAAAAA04 /* Debug */,
+				B1000001AAAAAAAAAAAAAA05 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B1000001AAAAAAAAAAAAAA01 /* Build configuration list for PBXNativeTarget "Duello" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B1000001AAAAAAAAAAAAAA06 /* Debug */,
+				B1000001AAAAAAAAAAAAAA07 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		AE000001AAAAAAAAAAAAAA22 /* GoogleSignIn-ios */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 7.1.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		AE000001AAAAAAAAAAAAAA21 /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AE000001AAAAAAAAAAAAAA22 /* GoogleSignIn-ios */;
+			productName = GoogleSignIn;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = AF000001AAAAAAAAAAAAAA02 /* Project object */;
+}
