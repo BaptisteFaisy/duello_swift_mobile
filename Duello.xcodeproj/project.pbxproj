@@ -29,6 +29,9 @@
 		EE889E69E94AF6444BD44845 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C29620B927AEC396B51ACC99 /* OnboardingView.swift */; };
 		49C84C2F41F77D3BE1CD6F52 /* ProgressStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB14A8E05E2262DB7E43328B /* ProgressStore.swift */; };
 		1690FD66B1840AB7D0CFA49A /* ProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DF02FF5F73F96C54C3B8178 /* ProgressView.swift */; };
+		272113D7714F8F0BDB406461 /* DuelloUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7703F40172E94E96227F04DD /* DuelloUI.swift */; };
+		0F9A6A8A80455CA3A93AC11D /* NotificationsViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D59CC5E25A86BB88C9785EE /* NotificationsViews.swift */; };
+		8CA3975CDB087C9D63DE7987 /* RankingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 625EAA1D827252D13185E8A2 /* RankingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -55,6 +58,9 @@
 		C29620B927AEC396B51ACC99 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		CB14A8E05E2262DB7E43328B /* ProgressStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressStore.swift; sourceTree = "<group>"; };
 		2DF02FF5F73F96C54C3B8178 /* ProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressView.swift; sourceTree = "<group>"; };
+		7703F40172E94E96227F04DD /* DuelloUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuelloUI.swift; sourceTree = "<group>"; };
+		8D59CC5E25A86BB88C9785EE /* NotificationsViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsViews.swift; sourceTree = "<group>"; };
+		625EAA1D827252D13185E8A2 /* RankingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -103,6 +109,9 @@
 				C29620B927AEC396B51ACC99 /* OnboardingView.swift */,
 				CB14A8E05E2262DB7E43328B /* ProgressStore.swift */,
 				2DF02FF5F73F96C54C3B8178 /* ProgressView.swift */,
+				7703F40172E94E96227F04DD /* DuelloUI.swift */,
+				8D59CC5E25A86BB88C9785EE /* NotificationsViews.swift */,
+				625EAA1D827252D13185E8A2 /* RankingsView.swift */,
 			);
 			path = Duello;
 			sourceTree = "<group>";
@@ -207,6 +216,9 @@
 				EE889E69E94AF6444BD44845 /* OnboardingView.swift in Sources */,
 				49C84C2F41F77D3BE1CD6F52 /* ProgressStore.swift in Sources */,
 				1690FD66B1840AB7D0CFA49A /* ProgressView.swift in Sources */,
+				272113D7714F8F0BDB406461 /* DuelloUI.swift in Sources */,
+				0F9A6A8A80455CA3A93AC11D /* NotificationsViews.swift in Sources */,
+				8CA3975CDB087C9D63DE7987 /* RankingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
