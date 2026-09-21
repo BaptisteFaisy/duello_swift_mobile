@@ -70,6 +70,17 @@ struct TrainingCatalogView: View {
     /// Filtre de difficulté, par identifiant de chapitre ; absence = « Tout ».
     @State var difficultyFilters: [String: Int] = [:]
 
+    /// Mode d'entraînement choisi par l'élève ; `nil` tant qu'il n'a pas touché
+    /// aux onglets, le mode par défaut de la matière s'appliquant alors.
+    @State var modeOverride: SubjTrainingMode? = nil
+    /// Filtre « Classique » du chapitre ouvert. Interface seule : la banque
+    /// servie ne porte pas la marque « Classique ».
+    @State var classicFilter: SubjClassicFilterValue = .all
+    /// Encart explicatif du statut de cours, montré une fois en tête de matière.
+    @State var legendHintVisible = true
+    /// Feuille « Cartes » (flashcards) du sujet.
+    @State var flashcardsOpen = false
+
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
@@ -83,7 +94,35 @@ struct TrainingCatalogView: View {
         .background(Theme.background)
         .navigationTitle(subject.name)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    flashcardsOpen = true
+                } label: {
+                    Image(systemName: "rectangle.on.rectangle.angled")
+                }
+                .accessibilityLabel("Ouvrir les cartes du cours")
+            }
+        }
+        .sheet(isPresented: $flashcardsOpen) { flashcardsSheet }
         .task { await loadManifest() }
+    }
+
+    /// Feuille des cartes du cours (`CourseFlashcardsPanel`), présentée depuis
+    /// la barre de navigation pour ne pas alourdir la liste des chapitres.
+    private var flashcardsSheet: some View {
+        NavigationStack {
+            ScrollView {
+                TrainIntFlashcardsSection(
+                    subjectName: subject.name,
+                    chapterId: subject.chapters.first?.id ?? subject.id,
+                    chapterName: subject.chapters.first?.name ?? subject.name
+                )
+            }
+            .background(Theme.background)
+            .navigationTitle("Cartes")
+            .navigationBarTitleDisplayMode(.inline)
+        }
     }
 
     // MARK: En-tête de matière

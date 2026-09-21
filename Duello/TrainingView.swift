@@ -9,7 +9,9 @@ struct TrainingView: View {
     var body: some View {
         NavigationStack {
             Group {
-                if subjects.isEmpty {
+                if showsHecJourney {
+                    SubjDeferredFeatureFallback(label: "Ouverture du parcours…")
+                } else if subjects.isEmpty {
                     emptyState
                 } else {
                     subjectList
@@ -19,6 +21,18 @@ struct TrainingView: View {
             .navigationTitle("Entraînement")
             .navigationBarTitleDisplayMode(.inline)
         }
+    }
+
+    /// L'onglet Parcours ouvre le parcours HEC guidé des maths dans la variante
+    /// de développement seulement (`shouldOpenJourneyOnLaunch`, entrée
+    /// « training »). La surface du parcours est portée par un autre lot : on
+    /// s'arrête ici sur son repli, et la garde reste inerte en production.
+    private var showsHecJourney: Bool {
+        SubjHecJourneyEntry.shouldOpenJourneyOnLaunch(
+            subjectId: SubjHecJourneyConstants.mathsSubjectId,
+            entryPoint: .training,
+            isDevelopmentApp: SubjAppVariant.isDevelopmentApp
+        )
     }
 
     private var subjects: [TrackSubject] {

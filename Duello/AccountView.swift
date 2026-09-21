@@ -15,7 +15,7 @@ struct AccountView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 14) {
-                    profileCard
+                    AcctIntShowcase()
                     hubCard
                     programCard
                     goalCard
@@ -43,42 +43,11 @@ struct AccountView: View {
                 case .terms: TermsOfUseView()
                 case .feedback: FeedbackView()
                 case .blocked: BlockedUsersView()
+                case .info: AcctIntSettingsSheet()
+                case .directory: AcctIntDirectorySheet()
                 }
             }
         }
-    }
-
-    private var profileCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(Theme.primaryLight)
-                        .frame(width: 52, height: 52)
-                    Text(session.profile.initial)
-                        .font(.system(size: 20, weight: .black))
-                        .foregroundStyle(Theme.inkSoft)
-                }
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(session.profile.displayName.isEmpty ? "Élève" : session.profile.displayName)
-                        .font(.system(size: 17, weight: .heavy))
-                        .foregroundStyle(Theme.ink)
-                    Text(session.profile.email)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Theme.inkFaint)
-                }
-                Spacer()
-            }
-
-            Divider()
-
-            HStack(spacing: 16) {
-                metric("Parcours", value: session.profile.track.isEmpty ? "—" : session.profile.track)
-                metric("Année", value: session.profile.year.isEmpty ? "—" : session.profile.year)
-                metric("Prépa", value: session.profile.prepName.isEmpty ? "—" : session.profile.prepName)
-            }
-        }
-        .duelloCard()
     }
 
     private var programCard: some View {
@@ -170,6 +139,10 @@ struct AccountView: View {
             hubRow("Donner mon avis", icon: "bubble.left", sheet: .feedback)
             hubSeparator
             hubRow("Utilisateurs bloqués", icon: "hand.raised", sheet: .blocked)
+            hubSeparator
+            hubRow("Mes informations", icon: "gearshape", sheet: .info)
+            hubSeparator
+            hubRow("Annuaire", icon: "magnifyingglass", sheet: .directory)
         }
         .duelloCard()
     }
@@ -201,19 +174,6 @@ struct AccountView: View {
         .buttonStyle(.plain)
     }
 
-    private func metric(_ label: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(label)
-                .font(.system(size: 11, weight: .heavy))
-                .textCase(.uppercase)
-                .foregroundStyle(Theme.inkFaint)
-            Text(value)
-                .font(.system(size: 14, weight: .bold))
-                .foregroundStyle(Theme.ink)
-                .lineLimit(1)
-        }
-    }
-
     private func sectionTitle(_ title: String) -> some View {
         Text(title)
             .font(.system(size: 13, weight: .heavy))
@@ -224,7 +184,7 @@ struct AccountView: View {
 
 /// Écrans secondaires présentés en feuille depuis « Mon compte ».
 private enum AccountSheet: String, Identifiable {
-    case progress, annales, plan, premium, messages, track, privacy, terms, feedback, blocked
+    case progress, annales, plan, premium, messages, track, privacy, terms, feedback, blocked, info, directory
 
     var id: String { rawValue }
 }

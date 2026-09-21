@@ -1,0 +1,237 @@
+//
+//  AcctInfoRows.swift
+//  Duello
+//
+//  Lot 10-C « réglages informations » (préfixe `AcctInfo`).
+//  Lignes et cartes réutilisables des quatre pages de réglages.
+//
+//  Fichiers source Expo portés :
+//    - src/screens/AccountScreen.tsx (3590-4132) : lignes des pages
+//      « Mes informations », « Mon compte », « Duello » ;
+//    - src/components/SettingsCategoryRow.tsx → `AcctInfoCategoryRow` ;
+//    - src/components/LogoutControl.tsx → `AcctInfoLogoutRow` ;
+//    - src/components/AiConsentCard.tsx → réutilisé via `ConsentAiCard` (existant).
+//
+//  Les libellés sont repris mot pour mot de la source. Les couleurs et mesures
+//  passent par `Theme` ; aucune valeur ne varie en dur hors des constantes ci-dessous.
+//
+import SwiftUI
+import UIKit
+
+/// Mesures partagées des lignes de réglages.
+enum AcctInfoRowMetrics {
+    /// `INFORMATION_ICON_SIZE` : pictogramme commun des lignes.
+    static let iconSize: CGFloat = 22
+    /// Logo cube Duello, plus large que les pictogrammes (`iconSize={28}`).
+    static let duelloLogoSize: CGFloat = 28
+    /// Largeur de la colonne d'icône, alignée sur les lignes existantes.
+    static let iconColumn: CGFloat = 28
+    /// Retrait des séparateurs, pour qu'ils démarrent après le pictogramme.
+    static let separatorInset: CGFloat = 44
+}
+
+/// Ligne d'accès à une sous-page (`SettingsCategoryRow`) : icône, libellé, chevron.
+struct AcctInfoCategoryRow: View {
+    /// Pictogramme SF Symbol (repli quand `assetIcon` est absent).
+    var icon: String? = nil
+    /// Nom d'asset (logo cube Duello) affiché à la place du pictogramme.
+    var assetIcon: String? = nil
+    var iconSize: CGFloat = AcctInfoRowMetrics.iconSize
+    let label: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                leadingIcon
+                Text(label)
+                    .font(.system(size: 13, weight: .heavy))
+                    .foregroundStyle(Theme.ink)
+                Spacer(minLength: 8)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(Theme.inkFaint)
+            }
+            .frame(minHeight: 60)
+            .padding(.horizontal, 8)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Ouvrir \(label)")
+    }
+
+    /// Icône de tête : asset si présent dans le bundle, sinon SF Symbol.
+    @ViewBuilder private var leadingIcon: some View {
+        Group {
+            if let assetIcon, UIImage(named: assetIcon) != nil {
+                Image(assetIcon).resizable().scaledToFit()
+            } else if let icon {
+                Image(systemName: icon)
+                    .font(.system(size: iconSize, weight: .semibold))
+                    .foregroundStyle(Theme.ink)
+            } else {
+                Color.clear
+            }
+        }
+        .frame(width: 34, height: 34)
+    }
+}
+
+/// Ligne d'action compacte (`feedbackButton` / `passwordToggle`) : pictogramme
+/// teinté, titre, chevron facultatif. Sert aux pages « Duello » et « Compte ».
+struct AcctInfoActionRow: View {
+    let icon: String
+    let title: String
+    var tint: Color = Theme.primary
+    var iconSize: CGFloat = AcctInfoRowMetrics.iconSize
+    var showsChevron: Bool = true
+    var accessibilityLabel: String? = nil
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .font(.system(size: iconSize, weight: .semibold))
+                    .foregroundStyle(tint)
+                    .frame(width: AcctInfoRowMetrics.iconColumn)
+                Text(title)
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(Theme.ink)
+                    .multilineTextAlignment(.leading)
+                Spacer(minLength: 8)
+                if showsChevron {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(Theme.inkFaint)
+                }
+            }
+            .frame(minHeight: 48)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(accessibilityLabel ?? title)
+    }
+}
+
+/// Ligne à interrupteur : pictogramme, titre, description facultative, `Toggle`.
+/// Reprend le motif « icône + titre + description + Switch » de la source.
+struct AcctInfoToggleRow: View {
+    let icon: String
+    let title: String
+    var description: String? = nil
+    var tint: Color = Theme.primary
+    var iconSize: CGFloat = AcctInfoRowMetrics.iconSize
+    @Binding var isOn: Bool
+    var isDisabled: Bool = false
+    var accessibilityLabel: String? = nil
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: iconSize, weight: .semibold))
+                .foregroundStyle(tint)
+                .frame(width: AcctInfoRowMetrics.iconColumn)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(Theme.ink)
+                if let description {
+                    Text(description)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Theme.inkFaint)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            Spacer(minLength: 8)
+            Toggle("", isOn: $isOn)
+                .labelsHidden()
+                .tint(Theme.primary)
+                .disabled(isDisabled)
+                .accessibilityLabel(accessibilityLabel ?? title)
+        }
+        .padding(.vertical, 8)
+    }
+}
+
+/// Ligne de déconnexion (`LogoutControl`) : pictogramme, libellé, et confirmation
+/// avant exécution de l'action.
+struct AcctInfoLogoutRow: View {
+    var actionLabel: String = "Me déconnecter"
+    var description: String = "Ton profil et ta progression resteront associés à ce compte."
+    var iconSize: CGFloat = AcctInfoRowMetrics.iconSize
+    var isBusy: Bool = false
+    let onLogout: () -> Void
+
+    @State private var isConfirming = false
+
+    var body: some View {
+        Button { isConfirming = true } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "rectangle.portrait.and.arrow.right")
+                    .font(.system(size: iconSize, weight: .semibold))
+                    .foregroundStyle(Theme.ink)
+                    .frame(width: AcctInfoRowMetrics.iconColumn)
+                Text(actionLabel)
+                    .font(.system(size: 15, weight: .heavy))
+                    .foregroundStyle(Theme.ink)
+                Spacer(minLength: 8)
+            }
+            .frame(minHeight: 52)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(isBusy)
+        .accessibilityLabel(actionLabel)
+        .alert("\(actionLabel) ?", isPresented: $isConfirming) {
+            Button("Annuler", role: .cancel) {}
+            Button(actionLabel, role: .destructive) { onLogout() }
+        } message: {
+            Text(description)
+        }
+    }
+}
+
+/// Ligne de suppression de compte (action destructive), avec la confirmation
+/// « Supprimer mon compte ? » de la source.
+struct AcctInfoDeleteRow: View {
+    var isBusy: Bool = false
+    var iconSize: CGFloat = AcctInfoRowMetrics.iconSize
+    let onDelete: () -> Void
+
+    @State private var isConfirming = false
+
+    /// `Alert.alert` de la source, titre et message repris mot pour mot.
+    private static let confirmTitle = "Supprimer mon compte ?"
+    private static let confirmMessage = "Cette action supprime définitivement ton compte serveur, ta progression, tes copies, ton profil public et tes appareils associés. Cette action est irréversible."
+
+    var body: some View {
+        Button { isConfirming = true } label: {
+            HStack(spacing: 12) {
+                if isBusy {
+                    ProgressView().frame(width: AcctInfoRowMetrics.iconColumn)
+                } else {
+                    Image(systemName: "trash")
+                        .font(.system(size: iconSize, weight: .semibold))
+                        .foregroundStyle(Theme.like)
+                        .frame(width: AcctInfoRowMetrics.iconColumn)
+                }
+                Text(isBusy ? "Suppression en cours…" : "Supprimer mon compte")
+                    .font(.system(size: 15, weight: .heavy))
+                    .foregroundStyle(Theme.like)
+                Spacer(minLength: 8)
+            }
+            .frame(minHeight: 52)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(isBusy)
+        .accessibilityLabel(isBusy ? "Suppression du compte en cours" : "Supprimer définitivement mon compte")
+        .alert(Self.confirmTitle, isPresented: $isConfirming) {
+            Button("Annuler", role: .cancel) {}
+            Button("Supprimer définitivement", role: .destructive) { onDelete() }
+        } message: {
+            Text(Self.confirmMessage)
+        }
+    }
+}

@@ -199,6 +199,16 @@ struct DuelloWelcomeButton: ButtonStyle {
 }
 
 /// Connexion ou création de compte par e-mail et mot de passe.
+///
+/// `.login` branche l'écran de connexion **sombre** porté au lot 14-A
+/// (`LoginScrScreen`, assemblé par `LoginIntAssembly`), fidèle à
+/// `src/screens/LoginScreen.tsx` : fond `#000`, texte blanc, champ à icône,
+/// œil d'affichage, bordure blanche, mot de passe oublié, lien de retour,
+/// bandeau d'erreur, séparateur « OU », bouton biométrie, en-tête
+/// eyebrow/titre/sous-titre, fournisseurs Google/Apple.
+///
+/// `.register` conserve le formulaire clair historique : l'inscription ne fait
+/// pas partie de `LoginScreen.tsx` (hors périmètre du lot 20).
 struct LoginView: View {
     enum Mode {
         case login
@@ -224,6 +234,16 @@ struct LoginView: View {
     @State private var errorMessage = ""
 
     var body: some View {
+        if mode == .login {
+            LoginIntAssembly()
+        } else {
+            registerForm
+        }
+    }
+
+    // MARK: Inscription
+
+    private var registerForm: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
@@ -232,14 +252,11 @@ struct LoginView: View {
                         .foregroundStyle(Theme.ink)
                         .padding(.top, 18)
 
-                    if mode == .register {
-                        DuelloTextField(
-                            title: "Prénom ou pseudo",
-                            text: $displayName,
-                            textContentType: .name
-                        )
-                    }
-
+                    DuelloTextField(
+                        title: "Prénom ou pseudo",
+                        text: $displayName,
+                        textContentType: .name
+                    )
                     DuelloTextField(
                         title: "Adresse e-mail",
                         text: $email,
@@ -289,7 +306,7 @@ struct LoginView: View {
     private var canSubmit: Bool {
         !email.trimmingCharacters(in: .whitespaces).isEmpty
             && !password.isEmpty
-            && (mode == .login || !displayName.trimmingCharacters(in: .whitespaces).isEmpty)
+            && !displayName.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
     private func submit() {
@@ -302,12 +319,7 @@ struct LoginView: View {
         Task {
             defer { isSubmitting = false }
             do {
-                switch mode {
-                case .login:
-                    try await session.signIn(email: email, password: password)
-                case .register:
-                    try await session.signUp(email: email, password: password, displayName: displayName)
-                }
+                try await session.signUp(email: email, password: password, displayName: displayName)
                 dismiss()
             } catch {
                 errorMessage = error.localizedDescription

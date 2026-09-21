@@ -560,6 +560,102 @@
 		41D62F663D9ECAA2BEA9EB7A /* TrainGridExerciseGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDD41980451563784394DF50 /* TrainGridExerciseGrid.swift */; };
 		437D29E3D036E6638CB385EB /* TrainGridStyles.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2D1B469FCC71D03B4C97703 /* TrainGridStyles.swift */; };
 		A655EFD58A8B4C2939ADF6A7 /* FlippableBadgePresence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E51DE729335D3FDAF3DA904 /* FlippableBadgePresence.swift */; };
+		1E7E5009CC23A7D739A51632 /* AcctBadgeFlippable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39FFF15E225D027D821E8BE6 /* AcctBadgeFlippable.swift */; };
+		C9810914A92365B88A74C720 /* AcctBadgeRoundPhoto.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111F97706D967DC91C381E27 /* AcctBadgeRoundPhoto.swift */; };
+		D0428E18DC6CD53A09820078 /* AcctEvoChartLoading.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABC3C99178C427AC40266783 /* AcctEvoChartLoading.swift */; };
+		F2C2BBBFB46ED3BDAB97BCEE /* AcctEvoConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = B25A62E140FDE5F971D729FF /* AcctEvoConstants.swift */; };
+		E721E92D46A1E6857DA8BA1A /* AcctEvoPill.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1573F595774DE98848D7FED /* AcctEvoPill.swift */; };
+		096C68FA30B2F1A7388D8F46 /* AcctInfoPages.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F256077D1A57F91B661BB55 /* AcctInfoPages.swift */; };
+		3C542027AFB0194E1223784C /* AcctInfoRows.swift in Sources */ = {isa = PBXBuildFile; fileRef = 450B157680E2B1DDBABC502F /* AcctInfoRows.swift */; };
+		6DB1DF5D0FCBBEBE7DB46740 /* AcctInfoSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B7AA6358DF1DECADE8D288F /* AcctInfoSettingsView.swift */; };
+		F540A320B61DD1DF13A60990 /* AcctSearchConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30E086E591F9BEE2836894C8 /* AcctSearchConstants.swift */; };
+		CE710D26B7D17C29D2FE8E35 /* AcctSearchDirectory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C4A8A2DADB885840C4CC03D /* AcctSearchDirectory.swift */; };
+		D1739585DF38CB47430413BF /* AcctSearchMemberViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 312DD17A1C24BF01D409713B /* AcctSearchMemberViews.swift */; };
+		7E541EEE89433F088C7706DB /* AcctSearchModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83935441A9C7E508E783739C /* AcctSearchModel.swift */; };
+		B1C91FF0137A8D4135310933 /* AcctSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9ADE91F4B6265E64BB1BC60 /* AcctSearchView.swift */; };
+		B6EEE8ABF282EA94F18544B0 /* AcctShowChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CBB98BD9EE4007065818588 /* AcctShowChrome.swift */; };
+		2C8B5513D8121C00D74A8771 /* AcctShowLeague.swift in Sources */ = {isa = PBXBuildFile; fileRef = F45D0438FC627137C955889A /* AcctShowLeague.swift */; };
+		D85FB84FEC543BDAAAA00283 /* AcctShowSeries.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D43522AF438DD2F1C708B42 /* AcctShowSeries.swift */; };
+		1A50188D954228D00D294401 /* AcctShowStats.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BBC72B0EA8F9B72B175706D /* AcctShowStats.swift */; };
+		4C7B03C8982294C3D09A0E10 /* ChalHome2Cards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9652462727E9C68E4909DBDC /* ChalHome2Cards.swift */; };
+		74C997D1F00B2898AADC874C /* ChalHome2Queue.swift in Sources */ = {isa = PBXBuildFile; fileRef = D627A8752D7A9E6BB6A0EDC5 /* ChalHome2Queue.swift */; };
+		3FB0ADA0D897D06F6DB72844 /* ChalHome2Sections.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AF9774B50CD4518F82CDB8 /* ChalHome2Sections.swift */; };
+		9FDCFBA889BC7CD66148AD6A /* ChalRunCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91B91B012F5A1F8AB86F5428 /* ChalRunCards.swift */; };
+		058A372BB15DC028F203D34D /* ChalRunModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F40306CF5B9BFA9E6855EA0 /* ChalRunModels.swift */; };
+		A71BB4D95B6CE120B9BEE8A0 /* ChalRunResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 571DF260D987E1AB2D91D586 /* ChalRunResult.swift */; };
+		AD5410ADC046211E748C98BB /* ChalRunReveal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AF3EC0240FC4AD26E27FAAE /* ChalRunReveal.swift */; };
+		4353565739D742AC70596F3C /* ChalRunRounds.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1258DE0713B24B86784FB1F1 /* ChalRunRounds.swift */; };
+		C27F2EDADB89853719B47C38 /* ChalUiCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40EBE7BA5BEA7B5EB9E8F0F1 /* ChalUiCards.swift */; };
+		3D36E8AD3A56F289C41322F6 /* ChalUiChrono.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBEEAE0FA42EDC90A4935D89 /* ChalUiChrono.swift */; };
+		A22F12777B965ECCFCC4ED15 /* ChalUiDeferred.swift in Sources */ = {isa = PBXBuildFile; fileRef = E72B7FE942AF69F1A4608C40 /* ChalUiDeferred.swift */; };
+		42481E5BB22D28D1B2A419EE /* ChalUiSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEF2229F555AEAC98157F91A /* ChalUiSession.swift */; };
+		26F80B3830EACD7827ADB2EE /* LoginScrFields.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4266F05FD320EE64D5C69281 /* LoginScrFields.swift */; };
+		D5DA89B11B2873850B7B0318 /* LoginScrLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8533F4E54DEA801B6B74350 /* LoginScrLayout.swift */; };
+		D4B1D2653684C2E79152782A /* LoginScrLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6C621C04E044A914412C6E2 /* LoginScrLogic.swift */; };
+		6E98FEADEF67D7B8CF3B8A2C /* LoginScrSubmit.swift in Sources */ = {isa = PBXBuildFile; fileRef = C25F81AF31B299A2C587DD63 /* LoginScrSubmit.swift */; };
+		0B34C282FE59F3CDE62D0EDD /* OnbFlowAcademic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DAF25863E3AF6B771FAB303 /* OnbFlowAcademic.swift */; };
+		3709BC07B5F1E2E3BEF5123D /* OnbFlowControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49E25663D919A969DF368CD6 /* OnbFlowControls.swift */; };
+		0DF8D0BD25FE3401BF6E27E8 /* OnbFlowCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9820ECF4AFC05149E84986D0 /* OnbFlowCoordinator.swift */; };
+		D29662F17C91A8C480952872 /* OnbFlowCredentials.swift in Sources */ = {isa = PBXBuildFile; fileRef = C192220A124BFC8E33DED1DC /* OnbFlowCredentials.swift */; };
+		78638D2B24E442FC74741D67 /* OnbFlowHandoff.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3133A865D018AD3CEE17E84A /* OnbFlowHandoff.swift */; };
+		75721819261A8B9B005160EF /* OnbFlowStepContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02AFA1D717F77529617FC4EE /* OnbFlowStepContent.swift */; };
+		C37C87AF265DDF6B80BBD9B6 /* OnbFlowSteps.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFDDE0B9D84A5CD905E610D6 /* OnbFlowSteps.swift */; };
+		A19C2D72CA8DD9C310254B01 /* OnbFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BC4F6941AE216ADE3627D44 /* OnbFlowView.swift */; };
+		1EC7A30B75777C2ED136286D /* OnbUiChoices.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D978F8C626034226B1E55ED /* OnbUiChoices.swift */; };
+		F1B5993077D925D14D2C7428 /* OnbUiConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = A630166D801283378835F58F /* OnbUiConstants.swift */; };
+		E954E3F9270A42DA2E4914C4 /* OnbUiFields.swift in Sources */ = {isa = PBXBuildFile; fileRef = 431E7C5FCAF3C296DC3D361A /* OnbUiFields.swift */; };
+		ACB740A461CB1A879AFB4ACD /* SubjChapterRows.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2F2916D5B0D1706F6A37BFF /* SubjChapterRows.swift */; };
+		8DF5A4368D370A6373C0F811 /* SubjCourseProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0AA09A3DEC9FDCE0ABD877 /* SubjCourseProgress.swift */; };
+		53CA43CE68BD677A0BBE444D /* SubjCourseProgressLegend.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5034B524A826CE76A30E6A73 /* SubjCourseProgressLegend.swift */; };
+		F293AAC66E0A5C38D3BB8990 /* SubjDeferredFallbacks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D9E618621502D0247BF2D30 /* SubjDeferredFallbacks.swift */; };
+		CC2D35692B2EFC64891453BB /* SubjDifficultyViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F1ADEFB3BF2E79E528FD8F1 /* SubjDifficultyViews.swift */; };
+		F403BD04B43064682DAF3048 /* SubjDomainHeading.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0CFAD7D9DD127D83C7F1B6A /* SubjDomainHeading.swift */; };
+		6519221AFD487247072AEC3D /* SubjExerciseItemCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6B2C904E8345D15F8E728B7 /* SubjExerciseItemCard.swift */; };
+		089D5AF21DC7AB4A98B548BC /* SubjFilterDropdownChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18598511871D2B74B05B908A /* SubjFilterDropdownChrome.swift */; };
+		335F669C6980E5824B22EA30 /* SubjFilterDropdowns.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC87AC38BC11DC65F1ECF626 /* SubjFilterDropdowns.swift */; };
+		EFFBE26A79F60BE4A4CA67EE /* SubjFilterTags.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCEDCDCC80A447C8ADF6A505 /* SubjFilterTags.swift */; };
+		73FE9E3284C7C5D599DBA445 /* SubjFilterValues.swift in Sources */ = {isa = PBXBuildFile; fileRef = E17488D19D108782BBFB84CA /* SubjFilterValues.swift */; };
+		CC42C290D7ECDE93298E04C3 /* SubjFlashcardAiWorkflow.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00BDD6591B944227CAD4344 /* SubjFlashcardAiWorkflow.swift */; };
+		0945DEAF06A816AC072AD261 /* SubjFlashcardAnswerComposer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16B68D6371C6D17DA70B6C9A /* SubjFlashcardAnswerComposer.swift */; };
+		A5F7EA6CFF59598EB33B4329 /* SubjFlashcardAnswerField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60D7C35D36A00591BA2440D1 /* SubjFlashcardAnswerField.swift */; };
+		5E70030C8B4ED65D45D625D1 /* SubjFlashcardDropdowns.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F0D4F9D4775D1B5166B5E20 /* SubjFlashcardDropdowns.swift */; };
+		7D36D38C35E37390A6FC324D /* SubjFlashcardEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14E1D0BEC21276AFDD93921D /* SubjFlashcardEditor.swift */; };
+		CB969034EE5A99517C1E0237 /* SubjFlashcardEditorParts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4435DEC925DCA167866631B1 /* SubjFlashcardEditorParts.swift */; };
+		D8F9593B96D407D0E08DF097 /* SubjFlashcardReviewCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 894D692B4402F0DC876E4AB7 /* SubjFlashcardReviewCard.swift */; };
+		77A67E115F19DC800FB38289 /* SubjFlashcardReviewChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = 029192AA3D710E0FF2B203DC /* SubjFlashcardReviewChrome.swift */; };
+		E456FE567D47AED5001FAB9D /* SubjFlashcardReviewModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 650B8958A0614BE868B3318C /* SubjFlashcardReviewModels.swift */; };
+		FF9898BA1A70A4C9317DFFDF /* SubjFlashcardReviewSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = AED1FCA631A88A31AF251A48 /* SubjFlashcardReviewSession.swift */; };
+		92D4F418C611B0B73B733F1A /* SubjFlashcardReviewSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDEA86750A4277496A21AE06 /* SubjFlashcardReviewSummary.swift */; };
+		C27723DAE3782D240DBA10AD /* SubjFlashcardSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2CEB8BD676C16216F39A602 /* SubjFlashcardSelection.swift */; };
+		7AF5C85D4F817DFA3A2C3F22 /* SubjHecCoursePdfReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E993630D0BB5118B8BF6729D /* SubjHecCoursePdfReader.swift */; };
+		7C98D0F4EEF1A2CC6ED0C5B7 /* SubjHecGuidedCopy.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF09333E033F47B91A8E7C3E /* SubjHecGuidedCopy.swift */; };
+		FFB8D05B8376CF3CD67DF0FA /* SubjHecJourney.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6D6E93AC4910E41D7CB6443 /* SubjHecJourney.swift */; };
+		14433CA18B12C63C021ACCE8 /* SubjItemStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62AF9D09A0C43E15F4570934 /* SubjItemStatus.swift */; };
+		99D284DF953AE9D02471220F /* SubjItemTags.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6155CB3C9E3AA44537572DAF /* SubjItemTags.swift */; };
+		046B8AB44E830E8A914B0B69 /* SubjModeCopy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7047043C668B7B402C3E7D21 /* SubjModeCopy.swift */; };
+		19903CCE6BBAF2665C6D381B /* SubjProgramMerge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4180793BFD0840E4850830F /* SubjProgramMerge.swift */; };
+		91645CEADB1E0EAE17DD5491 /* SubjProgressBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8997E0401DE0C42C5C81D81 /* SubjProgressBar.swift */; };
+		991A2F19CD80190487E01730 /* SubjReturnHighlight.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C6838FD066DB2A9F5A7C706 /* SubjReturnHighlight.swift */; };
+		7B828FAC55A18FDBA7D5DE36 /* SubjScopeBundles.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1D136A946A68F9258191682 /* SubjScopeBundles.swift */; };
+		5A3802840F0268FE49F62F5D /* SubjTrainingMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F6958D758A9999B82C8C1E8 /* SubjTrainingMode.swift */; };
+		1084F38569CE99392061C190 /* SubjTrainingWorkflow.swift in Sources */ = {isa = PBXBuildFile; fileRef = D95527EA74C3C6D0578491B5 /* SubjTrainingWorkflow.swift */; };
+		EFEEFFED714EF1280B56D948 /* AcctIntData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7087E3F60062495E91E52332 /* AcctIntData.swift */; };
+		F400C5FDB14238B792C7D8EE /* AcctIntDirectorySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F68149CCB8E8BD1F5CCDDE79 /* AcctIntDirectorySheet.swift */; };
+		3A336419FDAD1337177DF8F5 /* AcctIntSettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3888A9F5DA9A4120C8B908C2 /* AcctIntSettingsSheet.swift */; };
+		DF9744C33443B448459FE06C /* AcctIntShowcase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 162CC80503965BC994174877 /* AcctIntShowcase.swift */; };
+		2FBD7B28BDEC6FB4F28FF548 /* AcctSubBlockedUsersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F745E6CFFE4E8D7729AF0D3A /* AcctSubBlockedUsersView.swift */; };
+		44E28D6C3F136D7ABD10BBF7 /* AcctSubTrackChoice.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5F5E7987A815A3F12527068 /* AcctSubTrackChoice.swift */; };
+		3677A08A59B75E7218BEFD60 /* ChalIntChallengesTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB2540966641D44DC55A35EF /* ChalIntChallengesTab.swift */; };
+		5C713EDF9FC84D1DBFBD3FE7 /* ChalIntDuelFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A29EEE7FE340CED24FD1AF /* ChalIntDuelFlow.swift */; };
+		6201B992B5743CE7F136EE05 /* ChalIntDuelResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46E56AE3AD95C8BD39E3739B /* ChalIntDuelResult.swift */; };
+		B736654664D44D6C5E9745E1 /* ChalIntHomePage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96E3FF143017A81B83504C70 /* ChalIntHomePage.swift */; };
+		5DF9FAFCD22A330812029AD8 /* LoginIntAssembly.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE17CF83120BD7CAC6060A04 /* LoginIntAssembly.swift */; };
+		7DAC9C83ACC32C47502C0CB9 /* LoginIntSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66A02306099EC4C43A301E90 /* LoginIntSession.swift */; };
+		05B405DCC80CDBA048EDFA4F /* TrainIntFilters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98B4F333E87264F3EF31607F /* TrainIntFilters.swift */; };
+		3E1A15E8BDE10C2D71514A15 /* TrainIntFlashcards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 212A4D98A399C79851B45220 /* TrainIntFlashcards.swift */; };
+		DB666384BBEEB5E844B64A1A /* TrainIntItems.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDB0FD1ECB123EFD15379FD9 /* TrainIntItems.swift */; };
+		2C07DFCBD9B16F3B811628C1 /* TrainIntMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5CB17E94807233D26375128 /* TrainIntMode.swift */; };
+		87906700E41FA7356F0ACCF2 /* TrainIntProgram.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6085A3EABBF6CF091B28387 /* TrainIntProgram.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -1117,6 +1213,102 @@
 		FDD41980451563784394DF50 /* TrainGridExerciseGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainGridExerciseGrid.swift; sourceTree = "<group>"; };
 		C2D1B469FCC71D03B4C97703 /* TrainGridStyles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainGridStyles.swift; sourceTree = "<group>"; };
 		0E51DE729335D3FDAF3DA904 /* FlippableBadgePresence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlippableBadgePresence.swift; sourceTree = "<group>"; };
+		39FFF15E225D027D821E8BE6 /* AcctBadgeFlippable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctBadgeFlippable.swift; sourceTree = "<group>"; };
+		111F97706D967DC91C381E27 /* AcctBadgeRoundPhoto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctBadgeRoundPhoto.swift; sourceTree = "<group>"; };
+		ABC3C99178C427AC40266783 /* AcctEvoChartLoading.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctEvoChartLoading.swift; sourceTree = "<group>"; };
+		B25A62E140FDE5F971D729FF /* AcctEvoConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctEvoConstants.swift; sourceTree = "<group>"; };
+		C1573F595774DE98848D7FED /* AcctEvoPill.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctEvoPill.swift; sourceTree = "<group>"; };
+		5F256077D1A57F91B661BB55 /* AcctInfoPages.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctInfoPages.swift; sourceTree = "<group>"; };
+		450B157680E2B1DDBABC502F /* AcctInfoRows.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctInfoRows.swift; sourceTree = "<group>"; };
+		8B7AA6358DF1DECADE8D288F /* AcctInfoSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctInfoSettingsView.swift; sourceTree = "<group>"; };
+		30E086E591F9BEE2836894C8 /* AcctSearchConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctSearchConstants.swift; sourceTree = "<group>"; };
+		8C4A8A2DADB885840C4CC03D /* AcctSearchDirectory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctSearchDirectory.swift; sourceTree = "<group>"; };
+		312DD17A1C24BF01D409713B /* AcctSearchMemberViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctSearchMemberViews.swift; sourceTree = "<group>"; };
+		83935441A9C7E508E783739C /* AcctSearchModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctSearchModel.swift; sourceTree = "<group>"; };
+		E9ADE91F4B6265E64BB1BC60 /* AcctSearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctSearchView.swift; sourceTree = "<group>"; };
+		3CBB98BD9EE4007065818588 /* AcctShowChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctShowChrome.swift; sourceTree = "<group>"; };
+		F45D0438FC627137C955889A /* AcctShowLeague.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctShowLeague.swift; sourceTree = "<group>"; };
+		8D43522AF438DD2F1C708B42 /* AcctShowSeries.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctShowSeries.swift; sourceTree = "<group>"; };
+		1BBC72B0EA8F9B72B175706D /* AcctShowStats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctShowStats.swift; sourceTree = "<group>"; };
+		9652462727E9C68E4909DBDC /* ChalHome2Cards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChalHome2Cards.swift; sourceTree = "<group>"; };
+		D627A8752D7A9E6BB6A0EDC5 /* ChalHome2Queue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChalHome2Queue.swift; sourceTree = "<group>"; };
+		21AF9774B50CD4518F82CDB8 /* ChalHome2Sections.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChalHome2Sections.swift; sourceTree = "<group>"; };
+		91B91B012F5A1F8AB86F5428 /* ChalRunCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChalRunCards.swift; sourceTree = "<group>"; };
+		1F40306CF5B9BFA9E6855EA0 /* ChalRunModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChalRunModels.swift; sourceTree = "<group>"; };
+		571DF260D987E1AB2D91D586 /* ChalRunResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChalRunResult.swift; sourceTree = "<group>"; };
+		0AF3EC0240FC4AD26E27FAAE /* ChalRunReveal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChalRunReveal.swift; sourceTree = "<group>"; };
+		1258DE0713B24B86784FB1F1 /* ChalRunRounds.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChalRunRounds.swift; sourceTree = "<group>"; };
+		40EBE7BA5BEA7B5EB9E8F0F1 /* ChalUiCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChalUiCards.swift; sourceTree = "<group>"; };
+		DBEEAE0FA42EDC90A4935D89 /* ChalUiChrono.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChalUiChrono.swift; sourceTree = "<group>"; };
+		E72B7FE942AF69F1A4608C40 /* ChalUiDeferred.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChalUiDeferred.swift; sourceTree = "<group>"; };
+		EEF2229F555AEAC98157F91A /* ChalUiSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChalUiSession.swift; sourceTree = "<group>"; };
+		4266F05FD320EE64D5C69281 /* LoginScrFields.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginScrFields.swift; sourceTree = "<group>"; };
+		A8533F4E54DEA801B6B74350 /* LoginScrLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginScrLayout.swift; sourceTree = "<group>"; };
+		B6C621C04E044A914412C6E2 /* LoginScrLogic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginScrLogic.swift; sourceTree = "<group>"; };
+		C25F81AF31B299A2C587DD63 /* LoginScrSubmit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginScrSubmit.swift; sourceTree = "<group>"; };
+		9DAF25863E3AF6B771FAB303 /* OnbFlowAcademic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnbFlowAcademic.swift; sourceTree = "<group>"; };
+		49E25663D919A969DF368CD6 /* OnbFlowControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnbFlowControls.swift; sourceTree = "<group>"; };
+		9820ECF4AFC05149E84986D0 /* OnbFlowCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnbFlowCoordinator.swift; sourceTree = "<group>"; };
+		C192220A124BFC8E33DED1DC /* OnbFlowCredentials.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnbFlowCredentials.swift; sourceTree = "<group>"; };
+		3133A865D018AD3CEE17E84A /* OnbFlowHandoff.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnbFlowHandoff.swift; sourceTree = "<group>"; };
+		02AFA1D717F77529617FC4EE /* OnbFlowStepContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnbFlowStepContent.swift; sourceTree = "<group>"; };
+		FFDDE0B9D84A5CD905E610D6 /* OnbFlowSteps.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnbFlowSteps.swift; sourceTree = "<group>"; };
+		8BC4F6941AE216ADE3627D44 /* OnbFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnbFlowView.swift; sourceTree = "<group>"; };
+		8D978F8C626034226B1E55ED /* OnbUiChoices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnbUiChoices.swift; sourceTree = "<group>"; };
+		A630166D801283378835F58F /* OnbUiConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnbUiConstants.swift; sourceTree = "<group>"; };
+		431E7C5FCAF3C296DC3D361A /* OnbUiFields.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnbUiFields.swift; sourceTree = "<group>"; };
+		B2F2916D5B0D1706F6A37BFF /* SubjChapterRows.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjChapterRows.swift; sourceTree = "<group>"; };
+		EE0AA09A3DEC9FDCE0ABD877 /* SubjCourseProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjCourseProgress.swift; sourceTree = "<group>"; };
+		5034B524A826CE76A30E6A73 /* SubjCourseProgressLegend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjCourseProgressLegend.swift; sourceTree = "<group>"; };
+		1D9E618621502D0247BF2D30 /* SubjDeferredFallbacks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjDeferredFallbacks.swift; sourceTree = "<group>"; };
+		8F1ADEFB3BF2E79E528FD8F1 /* SubjDifficultyViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjDifficultyViews.swift; sourceTree = "<group>"; };
+		A0CFAD7D9DD127D83C7F1B6A /* SubjDomainHeading.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjDomainHeading.swift; sourceTree = "<group>"; };
+		F6B2C904E8345D15F8E728B7 /* SubjExerciseItemCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjExerciseItemCard.swift; sourceTree = "<group>"; };
+		18598511871D2B74B05B908A /* SubjFilterDropdownChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjFilterDropdownChrome.swift; sourceTree = "<group>"; };
+		AC87AC38BC11DC65F1ECF626 /* SubjFilterDropdowns.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjFilterDropdowns.swift; sourceTree = "<group>"; };
+		CCEDCDCC80A447C8ADF6A505 /* SubjFilterTags.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjFilterTags.swift; sourceTree = "<group>"; };
+		E17488D19D108782BBFB84CA /* SubjFilterValues.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjFilterValues.swift; sourceTree = "<group>"; };
+		D00BDD6591B944227CAD4344 /* SubjFlashcardAiWorkflow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjFlashcardAiWorkflow.swift; sourceTree = "<group>"; };
+		16B68D6371C6D17DA70B6C9A /* SubjFlashcardAnswerComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjFlashcardAnswerComposer.swift; sourceTree = "<group>"; };
+		60D7C35D36A00591BA2440D1 /* SubjFlashcardAnswerField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjFlashcardAnswerField.swift; sourceTree = "<group>"; };
+		1F0D4F9D4775D1B5166B5E20 /* SubjFlashcardDropdowns.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjFlashcardDropdowns.swift; sourceTree = "<group>"; };
+		14E1D0BEC21276AFDD93921D /* SubjFlashcardEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjFlashcardEditor.swift; sourceTree = "<group>"; };
+		4435DEC925DCA167866631B1 /* SubjFlashcardEditorParts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjFlashcardEditorParts.swift; sourceTree = "<group>"; };
+		894D692B4402F0DC876E4AB7 /* SubjFlashcardReviewCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjFlashcardReviewCard.swift; sourceTree = "<group>"; };
+		029192AA3D710E0FF2B203DC /* SubjFlashcardReviewChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjFlashcardReviewChrome.swift; sourceTree = "<group>"; };
+		650B8958A0614BE868B3318C /* SubjFlashcardReviewModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjFlashcardReviewModels.swift; sourceTree = "<group>"; };
+		AED1FCA631A88A31AF251A48 /* SubjFlashcardReviewSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjFlashcardReviewSession.swift; sourceTree = "<group>"; };
+		EDEA86750A4277496A21AE06 /* SubjFlashcardReviewSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjFlashcardReviewSummary.swift; sourceTree = "<group>"; };
+		C2CEB8BD676C16216F39A602 /* SubjFlashcardSelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjFlashcardSelection.swift; sourceTree = "<group>"; };
+		E993630D0BB5118B8BF6729D /* SubjHecCoursePdfReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjHecCoursePdfReader.swift; sourceTree = "<group>"; };
+		DF09333E033F47B91A8E7C3E /* SubjHecGuidedCopy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjHecGuidedCopy.swift; sourceTree = "<group>"; };
+		D6D6E93AC4910E41D7CB6443 /* SubjHecJourney.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjHecJourney.swift; sourceTree = "<group>"; };
+		62AF9D09A0C43E15F4570934 /* SubjItemStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjItemStatus.swift; sourceTree = "<group>"; };
+		6155CB3C9E3AA44537572DAF /* SubjItemTags.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjItemTags.swift; sourceTree = "<group>"; };
+		7047043C668B7B402C3E7D21 /* SubjModeCopy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjModeCopy.swift; sourceTree = "<group>"; };
+		A4180793BFD0840E4850830F /* SubjProgramMerge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjProgramMerge.swift; sourceTree = "<group>"; };
+		E8997E0401DE0C42C5C81D81 /* SubjProgressBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjProgressBar.swift; sourceTree = "<group>"; };
+		6C6838FD066DB2A9F5A7C706 /* SubjReturnHighlight.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjReturnHighlight.swift; sourceTree = "<group>"; };
+		B1D136A946A68F9258191682 /* SubjScopeBundles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjScopeBundles.swift; sourceTree = "<group>"; };
+		8F6958D758A9999B82C8C1E8 /* SubjTrainingMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjTrainingMode.swift; sourceTree = "<group>"; };
+		D95527EA74C3C6D0578491B5 /* SubjTrainingWorkflow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjTrainingWorkflow.swift; sourceTree = "<group>"; };
+		7087E3F60062495E91E52332 /* AcctIntData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctIntData.swift; sourceTree = "<group>"; };
+		F68149CCB8E8BD1F5CCDDE79 /* AcctIntDirectorySheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctIntDirectorySheet.swift; sourceTree = "<group>"; };
+		3888A9F5DA9A4120C8B908C2 /* AcctIntSettingsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctIntSettingsSheet.swift; sourceTree = "<group>"; };
+		162CC80503965BC994174877 /* AcctIntShowcase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctIntShowcase.swift; sourceTree = "<group>"; };
+		F745E6CFFE4E8D7729AF0D3A /* AcctSubBlockedUsersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctSubBlockedUsersView.swift; sourceTree = "<group>"; };
+		D5F5E7987A815A3F12527068 /* AcctSubTrackChoice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctSubTrackChoice.swift; sourceTree = "<group>"; };
+		FB2540966641D44DC55A35EF /* ChalIntChallengesTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChalIntChallengesTab.swift; sourceTree = "<group>"; };
+		D8A29EEE7FE340CED24FD1AF /* ChalIntDuelFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChalIntDuelFlow.swift; sourceTree = "<group>"; };
+		46E56AE3AD95C8BD39E3739B /* ChalIntDuelResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChalIntDuelResult.swift; sourceTree = "<group>"; };
+		96E3FF143017A81B83504C70 /* ChalIntHomePage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChalIntHomePage.swift; sourceTree = "<group>"; };
+		DE17CF83120BD7CAC6060A04 /* LoginIntAssembly.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginIntAssembly.swift; sourceTree = "<group>"; };
+		66A02306099EC4C43A301E90 /* LoginIntSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginIntSession.swift; sourceTree = "<group>"; };
+		98B4F333E87264F3EF31607F /* TrainIntFilters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainIntFilters.swift; sourceTree = "<group>"; };
+		212A4D98A399C79851B45220 /* TrainIntFlashcards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainIntFlashcards.swift; sourceTree = "<group>"; };
+		DDB0FD1ECB123EFD15379FD9 /* TrainIntItems.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainIntItems.swift; sourceTree = "<group>"; };
+		E5CB17E94807233D26375128 /* TrainIntMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainIntMode.swift; sourceTree = "<group>"; };
+		F6085A3EABBF6CF091B28387 /* TrainIntProgram.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainIntProgram.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1695,6 +1887,102 @@
 				FDD41980451563784394DF50 /* TrainGridExerciseGrid.swift */,
 				C2D1B469FCC71D03B4C97703 /* TrainGridStyles.swift */,
 				0E51DE729335D3FDAF3DA904 /* FlippableBadgePresence.swift */,
+				39FFF15E225D027D821E8BE6 /* AcctBadgeFlippable.swift */,
+				111F97706D967DC91C381E27 /* AcctBadgeRoundPhoto.swift */,
+				ABC3C99178C427AC40266783 /* AcctEvoChartLoading.swift */,
+				B25A62E140FDE5F971D729FF /* AcctEvoConstants.swift */,
+				C1573F595774DE98848D7FED /* AcctEvoPill.swift */,
+				5F256077D1A57F91B661BB55 /* AcctInfoPages.swift */,
+				450B157680E2B1DDBABC502F /* AcctInfoRows.swift */,
+				8B7AA6358DF1DECADE8D288F /* AcctInfoSettingsView.swift */,
+				30E086E591F9BEE2836894C8 /* AcctSearchConstants.swift */,
+				8C4A8A2DADB885840C4CC03D /* AcctSearchDirectory.swift */,
+				312DD17A1C24BF01D409713B /* AcctSearchMemberViews.swift */,
+				83935441A9C7E508E783739C /* AcctSearchModel.swift */,
+				E9ADE91F4B6265E64BB1BC60 /* AcctSearchView.swift */,
+				3CBB98BD9EE4007065818588 /* AcctShowChrome.swift */,
+				F45D0438FC627137C955889A /* AcctShowLeague.swift */,
+				8D43522AF438DD2F1C708B42 /* AcctShowSeries.swift */,
+				1BBC72B0EA8F9B72B175706D /* AcctShowStats.swift */,
+				9652462727E9C68E4909DBDC /* ChalHome2Cards.swift */,
+				D627A8752D7A9E6BB6A0EDC5 /* ChalHome2Queue.swift */,
+				21AF9774B50CD4518F82CDB8 /* ChalHome2Sections.swift */,
+				91B91B012F5A1F8AB86F5428 /* ChalRunCards.swift */,
+				1F40306CF5B9BFA9E6855EA0 /* ChalRunModels.swift */,
+				571DF260D987E1AB2D91D586 /* ChalRunResult.swift */,
+				0AF3EC0240FC4AD26E27FAAE /* ChalRunReveal.swift */,
+				1258DE0713B24B86784FB1F1 /* ChalRunRounds.swift */,
+				40EBE7BA5BEA7B5EB9E8F0F1 /* ChalUiCards.swift */,
+				DBEEAE0FA42EDC90A4935D89 /* ChalUiChrono.swift */,
+				E72B7FE942AF69F1A4608C40 /* ChalUiDeferred.swift */,
+				EEF2229F555AEAC98157F91A /* ChalUiSession.swift */,
+				4266F05FD320EE64D5C69281 /* LoginScrFields.swift */,
+				A8533F4E54DEA801B6B74350 /* LoginScrLayout.swift */,
+				B6C621C04E044A914412C6E2 /* LoginScrLogic.swift */,
+				C25F81AF31B299A2C587DD63 /* LoginScrSubmit.swift */,
+				9DAF25863E3AF6B771FAB303 /* OnbFlowAcademic.swift */,
+				49E25663D919A969DF368CD6 /* OnbFlowControls.swift */,
+				9820ECF4AFC05149E84986D0 /* OnbFlowCoordinator.swift */,
+				C192220A124BFC8E33DED1DC /* OnbFlowCredentials.swift */,
+				3133A865D018AD3CEE17E84A /* OnbFlowHandoff.swift */,
+				02AFA1D717F77529617FC4EE /* OnbFlowStepContent.swift */,
+				FFDDE0B9D84A5CD905E610D6 /* OnbFlowSteps.swift */,
+				8BC4F6941AE216ADE3627D44 /* OnbFlowView.swift */,
+				8D978F8C626034226B1E55ED /* OnbUiChoices.swift */,
+				A630166D801283378835F58F /* OnbUiConstants.swift */,
+				431E7C5FCAF3C296DC3D361A /* OnbUiFields.swift */,
+				B2F2916D5B0D1706F6A37BFF /* SubjChapterRows.swift */,
+				EE0AA09A3DEC9FDCE0ABD877 /* SubjCourseProgress.swift */,
+				5034B524A826CE76A30E6A73 /* SubjCourseProgressLegend.swift */,
+				1D9E618621502D0247BF2D30 /* SubjDeferredFallbacks.swift */,
+				8F1ADEFB3BF2E79E528FD8F1 /* SubjDifficultyViews.swift */,
+				A0CFAD7D9DD127D83C7F1B6A /* SubjDomainHeading.swift */,
+				F6B2C904E8345D15F8E728B7 /* SubjExerciseItemCard.swift */,
+				18598511871D2B74B05B908A /* SubjFilterDropdownChrome.swift */,
+				AC87AC38BC11DC65F1ECF626 /* SubjFilterDropdowns.swift */,
+				CCEDCDCC80A447C8ADF6A505 /* SubjFilterTags.swift */,
+				E17488D19D108782BBFB84CA /* SubjFilterValues.swift */,
+				D00BDD6591B944227CAD4344 /* SubjFlashcardAiWorkflow.swift */,
+				16B68D6371C6D17DA70B6C9A /* SubjFlashcardAnswerComposer.swift */,
+				60D7C35D36A00591BA2440D1 /* SubjFlashcardAnswerField.swift */,
+				1F0D4F9D4775D1B5166B5E20 /* SubjFlashcardDropdowns.swift */,
+				14E1D0BEC21276AFDD93921D /* SubjFlashcardEditor.swift */,
+				4435DEC925DCA167866631B1 /* SubjFlashcardEditorParts.swift */,
+				894D692B4402F0DC876E4AB7 /* SubjFlashcardReviewCard.swift */,
+				029192AA3D710E0FF2B203DC /* SubjFlashcardReviewChrome.swift */,
+				650B8958A0614BE868B3318C /* SubjFlashcardReviewModels.swift */,
+				AED1FCA631A88A31AF251A48 /* SubjFlashcardReviewSession.swift */,
+				EDEA86750A4277496A21AE06 /* SubjFlashcardReviewSummary.swift */,
+				C2CEB8BD676C16216F39A602 /* SubjFlashcardSelection.swift */,
+				E993630D0BB5118B8BF6729D /* SubjHecCoursePdfReader.swift */,
+				DF09333E033F47B91A8E7C3E /* SubjHecGuidedCopy.swift */,
+				D6D6E93AC4910E41D7CB6443 /* SubjHecJourney.swift */,
+				62AF9D09A0C43E15F4570934 /* SubjItemStatus.swift */,
+				6155CB3C9E3AA44537572DAF /* SubjItemTags.swift */,
+				7047043C668B7B402C3E7D21 /* SubjModeCopy.swift */,
+				A4180793BFD0840E4850830F /* SubjProgramMerge.swift */,
+				E8997E0401DE0C42C5C81D81 /* SubjProgressBar.swift */,
+				6C6838FD066DB2A9F5A7C706 /* SubjReturnHighlight.swift */,
+				B1D136A946A68F9258191682 /* SubjScopeBundles.swift */,
+				8F6958D758A9999B82C8C1E8 /* SubjTrainingMode.swift */,
+				D95527EA74C3C6D0578491B5 /* SubjTrainingWorkflow.swift */,
+				7087E3F60062495E91E52332 /* AcctIntData.swift */,
+				F68149CCB8E8BD1F5CCDDE79 /* AcctIntDirectorySheet.swift */,
+				3888A9F5DA9A4120C8B908C2 /* AcctIntSettingsSheet.swift */,
+				162CC80503965BC994174877 /* AcctIntShowcase.swift */,
+				F745E6CFFE4E8D7729AF0D3A /* AcctSubBlockedUsersView.swift */,
+				D5F5E7987A815A3F12527068 /* AcctSubTrackChoice.swift */,
+				FB2540966641D44DC55A35EF /* ChalIntChallengesTab.swift */,
+				D8A29EEE7FE340CED24FD1AF /* ChalIntDuelFlow.swift */,
+				46E56AE3AD95C8BD39E3739B /* ChalIntDuelResult.swift */,
+				96E3FF143017A81B83504C70 /* ChalIntHomePage.swift */,
+				DE17CF83120BD7CAC6060A04 /* LoginIntAssembly.swift */,
+				66A02306099EC4C43A301E90 /* LoginIntSession.swift */,
+				98B4F333E87264F3EF31607F /* TrainIntFilters.swift */,
+				212A4D98A399C79851B45220 /* TrainIntFlashcards.swift */,
+				DDB0FD1ECB123EFD15379FD9 /* TrainIntItems.swift */,
+				E5CB17E94807233D26375128 /* TrainIntMode.swift */,
+				F6085A3EABBF6CF091B28387 /* TrainIntProgram.swift */,
 			);
 			path = Duello;
 			sourceTree = "<group>";
@@ -2329,6 +2617,102 @@
 				41D62F663D9ECAA2BEA9EB7A /* TrainGridExerciseGrid.swift in Sources */,
 				437D29E3D036E6638CB385EB /* TrainGridStyles.swift in Sources */,
 				A655EFD58A8B4C2939ADF6A7 /* FlippableBadgePresence.swift in Sources */,
+				1E7E5009CC23A7D739A51632 /* AcctBadgeFlippable.swift in Sources */,
+				C9810914A92365B88A74C720 /* AcctBadgeRoundPhoto.swift in Sources */,
+				D0428E18DC6CD53A09820078 /* AcctEvoChartLoading.swift in Sources */,
+				F2C2BBBFB46ED3BDAB97BCEE /* AcctEvoConstants.swift in Sources */,
+				E721E92D46A1E6857DA8BA1A /* AcctEvoPill.swift in Sources */,
+				096C68FA30B2F1A7388D8F46 /* AcctInfoPages.swift in Sources */,
+				3C542027AFB0194E1223784C /* AcctInfoRows.swift in Sources */,
+				6DB1DF5D0FCBBEBE7DB46740 /* AcctInfoSettingsView.swift in Sources */,
+				F540A320B61DD1DF13A60990 /* AcctSearchConstants.swift in Sources */,
+				CE710D26B7D17C29D2FE8E35 /* AcctSearchDirectory.swift in Sources */,
+				D1739585DF38CB47430413BF /* AcctSearchMemberViews.swift in Sources */,
+				7E541EEE89433F088C7706DB /* AcctSearchModel.swift in Sources */,
+				B1C91FF0137A8D4135310933 /* AcctSearchView.swift in Sources */,
+				B6EEE8ABF282EA94F18544B0 /* AcctShowChrome.swift in Sources */,
+				2C8B5513D8121C00D74A8771 /* AcctShowLeague.swift in Sources */,
+				D85FB84FEC543BDAAAA00283 /* AcctShowSeries.swift in Sources */,
+				1A50188D954228D00D294401 /* AcctShowStats.swift in Sources */,
+				4C7B03C8982294C3D09A0E10 /* ChalHome2Cards.swift in Sources */,
+				74C997D1F00B2898AADC874C /* ChalHome2Queue.swift in Sources */,
+				3FB0ADA0D897D06F6DB72844 /* ChalHome2Sections.swift in Sources */,
+				9FDCFBA889BC7CD66148AD6A /* ChalRunCards.swift in Sources */,
+				058A372BB15DC028F203D34D /* ChalRunModels.swift in Sources */,
+				A71BB4D95B6CE120B9BEE8A0 /* ChalRunResult.swift in Sources */,
+				AD5410ADC046211E748C98BB /* ChalRunReveal.swift in Sources */,
+				4353565739D742AC70596F3C /* ChalRunRounds.swift in Sources */,
+				C27F2EDADB89853719B47C38 /* ChalUiCards.swift in Sources */,
+				3D36E8AD3A56F289C41322F6 /* ChalUiChrono.swift in Sources */,
+				A22F12777B965ECCFCC4ED15 /* ChalUiDeferred.swift in Sources */,
+				42481E5BB22D28D1B2A419EE /* ChalUiSession.swift in Sources */,
+				26F80B3830EACD7827ADB2EE /* LoginScrFields.swift in Sources */,
+				D5DA89B11B2873850B7B0318 /* LoginScrLayout.swift in Sources */,
+				D4B1D2653684C2E79152782A /* LoginScrLogic.swift in Sources */,
+				6E98FEADEF67D7B8CF3B8A2C /* LoginScrSubmit.swift in Sources */,
+				0B34C282FE59F3CDE62D0EDD /* OnbFlowAcademic.swift in Sources */,
+				3709BC07B5F1E2E3BEF5123D /* OnbFlowControls.swift in Sources */,
+				0DF8D0BD25FE3401BF6E27E8 /* OnbFlowCoordinator.swift in Sources */,
+				D29662F17C91A8C480952872 /* OnbFlowCredentials.swift in Sources */,
+				78638D2B24E442FC74741D67 /* OnbFlowHandoff.swift in Sources */,
+				75721819261A8B9B005160EF /* OnbFlowStepContent.swift in Sources */,
+				C37C87AF265DDF6B80BBD9B6 /* OnbFlowSteps.swift in Sources */,
+				A19C2D72CA8DD9C310254B01 /* OnbFlowView.swift in Sources */,
+				1EC7A30B75777C2ED136286D /* OnbUiChoices.swift in Sources */,
+				F1B5993077D925D14D2C7428 /* OnbUiConstants.swift in Sources */,
+				E954E3F9270A42DA2E4914C4 /* OnbUiFields.swift in Sources */,
+				ACB740A461CB1A879AFB4ACD /* SubjChapterRows.swift in Sources */,
+				8DF5A4368D370A6373C0F811 /* SubjCourseProgress.swift in Sources */,
+				53CA43CE68BD677A0BBE444D /* SubjCourseProgressLegend.swift in Sources */,
+				F293AAC66E0A5C38D3BB8990 /* SubjDeferredFallbacks.swift in Sources */,
+				CC2D35692B2EFC64891453BB /* SubjDifficultyViews.swift in Sources */,
+				F403BD04B43064682DAF3048 /* SubjDomainHeading.swift in Sources */,
+				6519221AFD487247072AEC3D /* SubjExerciseItemCard.swift in Sources */,
+				089D5AF21DC7AB4A98B548BC /* SubjFilterDropdownChrome.swift in Sources */,
+				335F669C6980E5824B22EA30 /* SubjFilterDropdowns.swift in Sources */,
+				EFFBE26A79F60BE4A4CA67EE /* SubjFilterTags.swift in Sources */,
+				73FE9E3284C7C5D599DBA445 /* SubjFilterValues.swift in Sources */,
+				CC42C290D7ECDE93298E04C3 /* SubjFlashcardAiWorkflow.swift in Sources */,
+				0945DEAF06A816AC072AD261 /* SubjFlashcardAnswerComposer.swift in Sources */,
+				A5F7EA6CFF59598EB33B4329 /* SubjFlashcardAnswerField.swift in Sources */,
+				5E70030C8B4ED65D45D625D1 /* SubjFlashcardDropdowns.swift in Sources */,
+				7D36D38C35E37390A6FC324D /* SubjFlashcardEditor.swift in Sources */,
+				CB969034EE5A99517C1E0237 /* SubjFlashcardEditorParts.swift in Sources */,
+				D8F9593B96D407D0E08DF097 /* SubjFlashcardReviewCard.swift in Sources */,
+				77A67E115F19DC800FB38289 /* SubjFlashcardReviewChrome.swift in Sources */,
+				E456FE567D47AED5001FAB9D /* SubjFlashcardReviewModels.swift in Sources */,
+				FF9898BA1A70A4C9317DFFDF /* SubjFlashcardReviewSession.swift in Sources */,
+				92D4F418C611B0B73B733F1A /* SubjFlashcardReviewSummary.swift in Sources */,
+				C27723DAE3782D240DBA10AD /* SubjFlashcardSelection.swift in Sources */,
+				7AF5C85D4F817DFA3A2C3F22 /* SubjHecCoursePdfReader.swift in Sources */,
+				7C98D0F4EEF1A2CC6ED0C5B7 /* SubjHecGuidedCopy.swift in Sources */,
+				FFB8D05B8376CF3CD67DF0FA /* SubjHecJourney.swift in Sources */,
+				14433CA18B12C63C021ACCE8 /* SubjItemStatus.swift in Sources */,
+				99D284DF953AE9D02471220F /* SubjItemTags.swift in Sources */,
+				046B8AB44E830E8A914B0B69 /* SubjModeCopy.swift in Sources */,
+				19903CCE6BBAF2665C6D381B /* SubjProgramMerge.swift in Sources */,
+				91645CEADB1E0EAE17DD5491 /* SubjProgressBar.swift in Sources */,
+				991A2F19CD80190487E01730 /* SubjReturnHighlight.swift in Sources */,
+				7B828FAC55A18FDBA7D5DE36 /* SubjScopeBundles.swift in Sources */,
+				5A3802840F0268FE49F62F5D /* SubjTrainingMode.swift in Sources */,
+				1084F38569CE99392061C190 /* SubjTrainingWorkflow.swift in Sources */,
+				EFEEFFED714EF1280B56D948 /* AcctIntData.swift in Sources */,
+				F400C5FDB14238B792C7D8EE /* AcctIntDirectorySheet.swift in Sources */,
+				3A336419FDAD1337177DF8F5 /* AcctIntSettingsSheet.swift in Sources */,
+				DF9744C33443B448459FE06C /* AcctIntShowcase.swift in Sources */,
+				2FBD7B28BDEC6FB4F28FF548 /* AcctSubBlockedUsersView.swift in Sources */,
+				44E28D6C3F136D7ABD10BBF7 /* AcctSubTrackChoice.swift in Sources */,
+				3677A08A59B75E7218BEFD60 /* ChalIntChallengesTab.swift in Sources */,
+				5C713EDF9FC84D1DBFBD3FE7 /* ChalIntDuelFlow.swift in Sources */,
+				6201B992B5743CE7F136EE05 /* ChalIntDuelResult.swift in Sources */,
+				B736654664D44D6C5E9745E1 /* ChalIntHomePage.swift in Sources */,
+				5DF9FAFCD22A330812029AD8 /* LoginIntAssembly.swift in Sources */,
+				7DAC9C83ACC32C47502C0CB9 /* LoginIntSession.swift in Sources */,
+				05B405DCC80CDBA048EDFA4F /* TrainIntFilters.swift in Sources */,
+				3E1A15E8BDE10C2D71514A15 /* TrainIntFlashcards.swift in Sources */,
+				DB666384BBEEB5E844B64A1A /* TrainIntItems.swift in Sources */,
+				2C07DFCBD9B16F3B811628C1 /* TrainIntMode.swift in Sources */,
+				87906700E41FA7356F0ACCF2 /* TrainIntProgram.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
