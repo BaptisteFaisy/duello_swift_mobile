@@ -221,12 +221,12 @@ enum ChalAPI {
             ),
             challenge: ChalIncomingInvitation.Challenge(
                 subject: subject,
-                chapterKeys: (challenge.chapterKeys ?? []).filter { !$0.isEmpty },
-                chapterNames: (challenge.chapterNames ?? []).filter { !$0.isEmpty },
+                chapterKeys: challenge.chapterKeys ?? [],
+                chapterNames: challenge.chapterNames ?? [],
                 durationMinutes: max(1, challenge.durationMinutes ?? 20)
             ),
-            createdAt: raw.createdAt,
-            expiresAt: raw.expiresAt
+            createdAt: raw.createdAt ?? Self.nowMilliseconds,
+            expiresAt: raw.expiresAt ?? Self.nowMilliseconds
         )
     }
 
@@ -251,4 +251,7 @@ enum ChalAPI {
         let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return trimmed.isEmpty ? nil : trimmed
     }
+
+    /// `Date.now()` de `socialApi.ts` : l'instant courant, en millisecondes.
+    private static var nowMilliseconds: Double { Date().timeIntervalSince1970 * 1000 }
 }

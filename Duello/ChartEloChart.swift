@@ -58,6 +58,7 @@ struct ChartEloChart: View {
             lastAxisLabel: ChartDateFormat.pointDate(last.at, granularity),
             accessibility: "Évolution \(granularity.name) de l’Elo, de \(eloText(points[0].elo)) à \(eloText(last.elo))",
             axisWidth: 32,
+            tooltipLeading: 38,
             showsDateRange: showsDateRange
         )
     }

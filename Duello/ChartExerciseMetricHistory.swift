@@ -76,6 +76,7 @@ struct ChartExerciseMetricHistory: View {
                 HStack(spacing: 10) {
                     Text("Essai \(entry.attemptNumber)")
                         .font(.system(size: 16))
+                        .textCase(.uppercase)
                         .foregroundStyle(Theme.ink)
                     ExGRemarkBadge(score: entry.score)
                     if let improvement = entry.improvementPercentage {
@@ -93,7 +94,7 @@ struct ChartExerciseMetricHistory: View {
             }
             if entry.firstTry {
                 Text("Réussi du premier coup")
-                    .font(.system(size: 11, weight: .heavy))
+                    .font(.system(size: 11, weight: .black))
                     .foregroundStyle(Theme.primary)
             }
         }
@@ -122,5 +123,7 @@ struct ChartExerciseMetricHistory: View {
         .padding(.vertical, 9)
         .background(Theme.surfaceMuted)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(label) : \(value)")
     }
 }

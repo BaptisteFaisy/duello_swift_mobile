@@ -45,17 +45,22 @@ enum AcctSecUsernameAvailability {
             .precomposedStringWithCompatibilityMapping
     }
 
-    /// `isValidUsername` : longueur 3–24 et alphabet `\p{L}\p{N}._-`.
+    /// Motif `^[\p{L}\p{N}._-]+$` de `isValidUsername` (`utils/username.ts`),
+    /// compilé une fois.
+    private static let usernamePattern = try? NSRegularExpression(
+        pattern: #"^[\p{L}\p{N}._-]+$"#
+    )
+
+    /// `isValidUsername` : longueur 3–24 puis alphabet `\p{L}\p{N}._-`. La
+    /// source emploie `\p{N}` (tout nombre, pas seulement les chiffres
+    /// décimaux de `CharacterSet.decimalDigits`) et `\p{L}` (lettres seules,
+    /// sans les marques combinantes que `CharacterSet.letters` ajoute).
     static func isValid(_ value: String) -> Bool {
         let username = normalize(value)
         guard username.count >= minLength, username.count <= maxLength else { return false }
-        return username.unicodeScalars.allSatisfy { scalar in
-            CharacterSet.letters.contains(scalar)
-                || CharacterSet.decimalDigits.contains(scalar)
-                || scalar == "."
-                || scalar == "_"
-                || scalar == "-"
-        }
+        guard let pattern = usernamePattern else { return false }
+        let range = NSRange(username.startIndex..<username.endIndex, in: username)
+        return pattern.firstMatch(in: username, options: [], range: range) != nil
     }
 
     // MARK: Vérification réseau

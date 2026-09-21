@@ -333,7 +333,13 @@ struct AcctSecPasswordResetForm: View {
             body: body
         )
         let payload = try? DuelloAPI.decoder.decode(AcctSecResetResponse.self, from: data)
-        guard let session = payload?.session else {
+        guard let session = payload?.session,
+              let account = payload?.account,
+              AcctSecResetIdentity.matches(
+                  expected: email,
+                  sessionEmail: session.email,
+                  accountEmail: account.email
+              ) else {
             throw DirectoryError(
                 message: "Le mot de passe a changé, mais la nouvelle session Duello est inutilisable."
             )
@@ -348,8 +354,33 @@ private struct AcctSecResetRequestResponse: Decodable {
 }
 
 /// Réponse de `POST /auth/password/reset` : la session ouverte après le
-/// changement de mot de passe, ou `null` si l'identité ne correspond pas.
+/// changement de mot de passe et le compte récupéré, ou `null` si l'identité
+/// ne correspond pas (`PasswordResetResponse` de `passwordResetHttp.ts`).
 private struct AcctSecResetResponse: Decodable {
     var accepted: Bool?
     var session: ServerSession?
+    var account: AcctSecResetAccount?
+}
+
+/// Compte récupéré renvoyé par `POST /auth/password/reset` ; seul l'e-mail est
+/// lu ici, le reste du profil relevant du socle `SessionStore`.
+private struct AcctSecResetAccount: Decodable {
+    var email: String
+}
+
+/// Concordance d'identité de réinitialisation (`passwordResetIdentityMatches`
+/// de `utils/passwordResetIdentity.ts`) : l'adresse demandée doit coïncider
+/// avec celles de la session et du compte renvoyés par le serveur.
+private enum AcctSecResetIdentity {
+    static func matches(expected: String, sessionEmail: String, accountEmail: String) -> Bool {
+        let target = normalize(expected)
+        return !target.isEmpty
+            && normalize(sessionEmail) == target
+            && normalize(accountEmail) == target
+    }
+
+    /// `normalizeEmail` de `utils/accountIdentity.ts`.
+    private static func normalize(_ email: String) -> String {
+        email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
 }

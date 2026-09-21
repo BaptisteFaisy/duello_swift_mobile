@@ -37,6 +37,10 @@ struct ReportPublicProfilePayload: Encodable {
     var isPremium: Bool
     var schedule: [String] = []
     var performance: ReportPublicPerformance
+    /// Journal d'attribution XP par sujet (`xpAwards`), toujours vide côté
+    /// téléphone : le serveur le normalise dans `xp_events` puis le retire du
+    /// profil consultable (voir `publicProfile` de `utils/socialApi.ts`).
+    var xpAwards: [String] = []
     var details: ReportPublicProfileDetails?
 }
 
@@ -109,9 +113,11 @@ enum ReportPublicProfile {
             track: profile.track,
             year: profile.year,
             targetSchool: trimmed(profile.targetSchool),
-            photoUri: profile.photoUri,
+            // Seule la miniature JPEG autonome est transmissible : jamais d'URI locale.
+            photoUri: PhotoPickUri.publicProfilePhotoUri(profile.photoUri),
             isPremium: premium,
             performance: performance,
+            xpAwards: [],
             details: nil
         )
     }

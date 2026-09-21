@@ -42,7 +42,7 @@ enum PhotoPickError: LocalizedError {
         case .tooLarge:
             return "La photo reste trop volumineuse après compression."
         case .incompleteProfile:
-            return "Complète ton nom et ton e-mail pour publier ta photo."
+            return "Complète ton nom pour apparaître dans l’annuaire."
         }
     }
 

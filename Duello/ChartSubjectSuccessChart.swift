@@ -40,7 +40,11 @@ struct ChartSubjectSuccessChart: View {
         let first = entries[0]
         let last = entries[entries.count - 1]
         let linePoints = entries.map { entry in
-            ChartLinePoint(value: entry.percent, tooltip: tooltip(for: entry))
+            ChartLinePoint(
+                value: entry.percent,
+                tooltip: entry.subject,
+                tooltipDetail: tooltipDetail(for: entry)
+            )
         }
         return ChartSmoothLineChart(
             points: linePoints,
@@ -51,13 +55,15 @@ struct ChartSubjectSuccessChart: View {
             firstAxisLabel: first.subject,
             lastAxisLabel: last.subject,
             accessibility: "Réussites par matière, de \(accessibility(first)) à \(accessibility(last))",
-            axisWidth: 32
+            dotSize: 8,
+            axisWidth: 32,
+            showsLastAxisLabel: entries.count > 1
         )
     }
 
-    private func tooltip(for entry: ChartSubjectSuccess) -> String {
-        guard entry.total > 0 else { return "\(entry.subject) — À venir" }
-        return "\(entry.subject) — \(Int(entry.percent)) % · \(entry.succeeded)/\(entry.total) réussis"
+    private func tooltipDetail(for entry: ChartSubjectSuccess) -> String {
+        guard entry.total > 0 else { return "À venir" }
+        return "\(Int(entry.percent)) % · \(entry.succeeded)/\(entry.total) réussis"
     }
 
     private func accessibility(_ entry: ChartSubjectSuccess) -> String {

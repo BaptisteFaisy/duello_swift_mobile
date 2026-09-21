@@ -124,7 +124,7 @@ struct ChartXpLevelCard: View {
                 HStack(spacing: 4) {
                     Image(systemName: "arrow.up").font(.system(size: 10, weight: .heavy))
                     Text("\(ExGFormat.xp(highlightedGain ?? 0)) XP")
-                        .font(.system(size: 10, weight: .heavy))
+                        .font(.system(size: 10, weight: .black))
                 }
                 .foregroundStyle(Theme.ink)
                 .padding(.horizontal, 10)
@@ -137,7 +137,7 @@ struct ChartXpLevelCard: View {
                     Image(systemName: eloDelta < 0 ? "arrow.down" : "arrow.up")
                         .font(.system(size: 10, weight: .heavy))
                     Text("\(eloDelta < 0 ? "" : "+")\(eloDelta) Elo")
-                        .font(.system(size: 10, weight: .heavy))
+                        .font(.system(size: 10, weight: .black))
                 }
                 .foregroundStyle(Color.white)
                 .padding(.horizontal, 10)
@@ -155,19 +155,19 @@ struct ChartXpLevelCard: View {
     private var levelRow: some View {
         HStack(alignment: .bottom, spacing: 0) {
             Text("NIVEAU")
-                .font(.system(size: 9, weight: .heavy))
+                .font(.system(size: 9, weight: .black))
                 .tracking(1.4)
                 .foregroundStyle(Color.white.opacity(0.55))
                 .padding(.bottom, 7)
             Text("\(summary.level)")
-                .font(.system(size: 42, weight: .heavy))
+                .font(.system(size: 42, weight: .black))
                 .tracking(-1.5)
                 .foregroundStyle(Color.white)
                 .padding(.leading, 8)
             Spacer(minLength: 8)
             if showsTotal {
                 Text("\(ExGFormat.xp(summary.total)) XP")
-                    .font(.system(size: 15, weight: .heavy))
+                    .font(.system(size: 15, weight: .black))
                     .foregroundStyle(Color.white)
                     .padding(.bottom, 7)
             }
@@ -194,10 +194,10 @@ struct ChartXpLevelCard: View {
             ForEach(stats) { stat in
                 VStack(spacing: 4) {
                     Image(systemName: stat.icon)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(Color.white.opacity(0.55))
                     Text(stat.value)
-                        .font(.system(size: 13, weight: .heavy))
+                        .font(.system(size: 13, weight: .black))
                         .foregroundStyle(Color.white)
                         .lineLimit(1)
                     Text(stat.label)

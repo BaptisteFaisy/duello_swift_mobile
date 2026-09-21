@@ -31,9 +31,6 @@ struct OnbGiftMathProgressChart: View {
             OnbGiftChartCard()
             OnbGiftPatienceNote()
         }
-        .padding(16)
-        .background(Color.black)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
     }
 }
 

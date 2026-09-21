@@ -63,9 +63,12 @@ enum AcctSecRecoveryCodePolicy {
         }.joined(separator: "-")
     }
 
-    /// Un code se retape sans tiret ni casse : la comparaison passe par cette forme.
+    /// Un code se retape sans tiret ni casse : la comparaison passe par cette
+    /// forme. `normalizeRecoveryCode` ne garde que `[a-z0-9]` (insensible à la
+    /// casse), puis met en majuscules — les lettres et chiffres non ASCII
+    /// tombent.
     static func normalize(_ code: String) -> String {
-        code.uppercased().filter { $0.isLetter || $0.isNumber }
+        code.filter { $0.isASCII && ($0.isLetter || $0.isNumber) }.uppercased()
     }
 
     /// Empreinte locale du code. Le préfixe `recovery$` la distingue de celle

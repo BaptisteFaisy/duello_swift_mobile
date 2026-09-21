@@ -29,7 +29,7 @@ struct OnbGiftPressHand: View {
 
         return hand
             .scaleEffect(CGFloat(1 - press * 0.08))
-            .offset(y: CGFloat((press - 1) * Self.pressDistance))
+            .offset(y: CGFloat((press - 1) * Self.pressDistance) + Self.stageOffset)
             .accessibilityHidden(true)
     }
 
@@ -71,4 +71,10 @@ struct OnbGiftPressHand: View {
     private static let handSize: CGFloat = 52
     private static let pressDistance: Double = 16
     private static let cycle = 1.79
+    /// La source pose la main en absolu dans la scène
+    /// (`top: GIFT_STAGE_HEIGHT / 2 − HAND_SIZE`, soit un centre à
+    /// `GIFT_STAGE_HEIGHT / 2 − HAND_SIZE / 2`) : le `ZStack` de
+    /// `OnbGiftStepView` la centrerait au milieu de la scène, on rétablit donc
+    /// l'écart de `HAND_SIZE / 2` = 26 pt vers le haut.
+    private static let stageOffset: CGFloat = -26
 }

@@ -48,7 +48,8 @@ struct ChartXpChart: View {
             lastAxisLabel: ChartDateFormat.pointDate(last.at, granularity),
             accessibility: "Évolution \(granularity.name) de l’XP, de \(ExGFormat.xp(points[0].xp)) à \(ExGFormat.xp(last.xp)) XP",
             axisWidth: 40,
-            showsDateRange: showsDateRange
+            showsDateRange: showsDateRange,
+            tooltipLeading: 46
         )
     }
 }

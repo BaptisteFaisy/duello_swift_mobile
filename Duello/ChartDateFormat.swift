@@ -48,7 +48,7 @@ enum ChartDateFormat {
     static func historyDate(_ raw: String) -> String {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, let parsed = parse(trimmed) else { return trimmed }
-        return formatter("d MMMM yyyy 'à' HH:mm").string(from: parsed)
+        return formatter("dd MMMM yyyy 'à' HH:mm").string(from: parsed)
     }
 
     /// `monthYear` : « juil. 2026 ».

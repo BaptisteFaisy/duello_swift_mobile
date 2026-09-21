@@ -56,8 +56,8 @@ enum RemPhotoProtocol {
         guard let statusRaw = dict["status"] as? String,
               let status = RemPhotoCaptureRequestStatus(rawValue: statusRaw)
         else { return nil }
-        let photoId = dict["photoId"]
-        if let photoId, !(photoId is NSNull), !(photoId is String) { return nil }
+        guard let photoId = dict["photoId"] else { return nil }
+        if !(photoId is NSNull), !(photoId is String) { return nil }
         return RemPhotoCaptureRequest(
             id: id,
             createdAt: createdAt,
@@ -114,7 +114,8 @@ enum RemPhotoProtocol {
               let status = RemPhotoSessionState(rawValue: statusRaw),
               let rawPhotos = dict["photos"] as? [Any]
         else { return nil }
-        if let connectedAt = dict["connectedAt"], !(connectedAt is NSNull), number(connectedAt) == nil {
+        guard let connectedAtValue = dict["connectedAt"] else { return nil }
+        if !(connectedAtValue is NSNull), number(connectedAtValue) == nil {
             return nil
         }
         var photos: [RemPhotoMetadata] = []
