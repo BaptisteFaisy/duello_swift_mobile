@@ -22,20 +22,16 @@ extension TrainingCatalogView {
                 )
                 .padding(.top, 24)
             } else {
-                chapterCatalogue
+                catalogueSection
             }
         }
     }
 
+    /// Chargement du manifeste, porté comme repli plein écran
+    /// (`DeferredFeatureFallback` de l'écran Expo).
     private var loadingBlock: some View {
-        HStack(spacing: 10) {
-            ProgressView()
-            Text("Chargement…")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Theme.inkSoft)
-        }
-        .frame(maxWidth: .infinity, alignment: .center)
-        .padding(.vertical, 40)
+        SubjDeferredFeatureFallback(label: "Ouverture du catalogue…")
+            .frame(minHeight: 220)
     }
 
     private var errorBlock: some View {
@@ -57,14 +53,16 @@ extension TrainingCatalogView {
     }
 
     /// Programme de la matière, groupé par domaine puis chapitre par chapitre.
-    private var chapterCatalogue: some View {
+    /// Le titre de domaine est celui de l'écran Matières (`DomainHeading`), pas
+    /// l'en-tête de section du kit partagé.
+    @ViewBuilder
+    var chapterCatalogue: some View {
         VStack(alignment: .leading, spacing: 0) {
             if subject.id != "maths" && subjectTotals.available > 0 {
                 availabilityBanner
             }
             ForEach(TrainChapterGroup.grouped(subject.chapters)) { group in
-                DuelloSectionHeader(title: group.title ?? "Autres chapitres")
-                    .padding(.top, 18)
+                SubjDomainHeading(label: group.title ?? "Autres chapitres")
                 ForEach(group.chapters) { chapter in
                     chapterBlock(chapter)
                 }
@@ -97,19 +95,18 @@ extension TrainingCatalogView {
         .padding(.top, 14)
     }
 
-    /// Sujets servis, chapitres pourvus et corrigés disponibles de la matière.
-    /// Les corrigés ne sont connus qu'après chargement d'un chapitre : le compte
-    /// augmente au fil des dépliages, jamais à rebours.
-    private var subjectTotals: (available: Int, chapters: Int, withSolution: Int) {
-        var available = 0
-        var chapters = 0
-        var withSolution = 0
+    /// Sujets servis, chapitres pourvus et corrigés disponibles de la matière
+    /// (`ModeAvailability` de l'écran Expo). Les corrigés ne sont connus
+    /// qu'après chargement d'un chapitre : le compte augmente au fil des
+    /// dépliages, jamais à rebours.
+    private var subjectTotals: SubjModeAvailability {
+        var totals = SubjModeAvailability.empty
         for chapter in subject.chapters {
             guard let descriptor = descriptors[chapter.id] else { continue }
-            available += descriptor.count
-            chapters += 1
-            withSolution += (loadedExercises[chapter.id] ?? []).filter { $0.hasSolution }.count
+            totals.available += descriptor.count
+            totals.chapters += 1
+            totals.withSolution += (loadedExercises[chapter.id] ?? []).filter { $0.hasSolution }.count
         }
-        return (available, chapters, withSolution)
+        return totals
     }
 }
