@@ -1,0 +1,226 @@
+name: hermes-pr-no-close-guard
+
+# ─── PORT HERMES / ZENBOOK ────────────────────────────────────────────────────
+# Ce workflow est le portage du gate Hermes du dépôt `duello` vers ce dépôt, avec
+# pour unique runner le Zenbook de Baptiste (`[self-hosted, zenbook]`) — les
+# runners duello (VPS azure-duello, pc-fixe) étant hors ligne depuis le
+# 20/09/2026, le gate d'origine ne tournait plus.
+#
+# Sémantique inchangée (délibérément) :
+#   Règle 1 : la PR doit être basée sur la DERNIÈRE version de sa base (main).
+#             fraîche -> check vert + revue IA + merge auto (rebase)
+#             en retard -> check rouge + label + sous-agent de résolution des conflits
+#   Règle 2 : la batterie (`Batterie`, cf. .github/workflows/ci.yml) doit être verte
+#             sur le SHA de tête. Pending -> merge suspendu ; fail -> retour à l'agent.
+#   Règle 3 : une PR ne meurt jamais — le gardien rouvre toute fermeture sans merge
+#             dont le contenu n'est pas dans la base.
+#
+# Spécificité Zenbook :
+#   - les clés d'API (AGNES_API_KEY, HERMES_PUSH_TOKEN) viennent de l'environnement
+#     du runner (unité systemd `hermes-runner@.service` + ~/hermes/env), PAS des
+#     secrets du dépôt : rien à déposer dans GitHub, et ça survit aux rebuilds ;
+#   - la veille est garantie deux fois : le cron GitHub (peu fiable, mesuré 19/751
+#     livraisons sur `duello`) ET une timer systemd locale sur le Zenbook qui
+#     dispatche `hermes.yml` toutes les 10 min via `gh` ;
+#   - kill-switch auto-merge : `HERMES_AUTO_MERGE=0` dans ~/hermes/env.
+# ──────────────────────────────────────────────────────────────────────────────
+
+# [HERMES-NO-CLOSE] Regle permanente (2026-09-21) — demande explicite de
+# l'utilisateur : « je ne veux pas qu'une PR soit fermee si elle n'est pas
+# implementee ». Vaut pour TOUS les agents Hermes.
+#
+# Une pull request ne doit jamais etre fermee, ni voir sa branche de tete
+# supprimee, tant que son contenu n'est pas REELLEMENT present dans la base.
+# « Fermee » implique « implementee ».
+#
+# Deux surfaces :
+#   1. `pull_request: closed` — reaction immediate. Si la PR est fermee SANS
+#      merge et que son contenu n'est pas dans la base, elle est rouverte et sa
+#      branche de tete est restauree depuis son SHA de head (`refs/pull/<n>/head`
+#      survit a la suppression de branche).
+#   2. `schedule` / `workflow_dispatch` — balayage de rattrapage : rattrape les
+#      fermetures faites sans merge recemment, y compris par un autre chemin.
+#
+# Seule exception : le label `hermes/fermeture-assumee`, pose a la main, qui
+# autorise une fermeture volontaire sans merge.
+#
+# Ce workflow ne fait qu'une chose : rouvrir ce qui ne devait pas etre ferme.
+# Il ne merge rien et ne supprime jamais de branche.
+
+on:
+  pull_request:
+    types: [closed]
+  schedule:
+    - cron: "7,37 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: hermes-pr-no-close-guard
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  guard:
+    name: garde-fou anti-fermeture sans merge
+    runs-on: [self-hosted, zenbook]
+    steps:
+      - name: Rouvrir les PR fermees sans merge dont le contenu n'est pas dans la base
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PYEOF'
+          import json, os, urllib.error, urllib.parse, urllib.request
+
+          TOKEN = os.environ.get("GH_TOKEN", "")
+          REPO = os.environ["GITHUB_REPOSITORY"]
+          API = "https://api.github.com"
+          EVENT = os.environ.get("GITHUB_EVENT_NAME", "")
+          EVENT_PATH = os.environ.get("GITHUB_EVENT_PATH", "")
+          LABEL_ASSUMEE = "hermes/fermeture-assumee"
+          LABEL_GUARD = "hermes/rouverte-par-gardien"
+          PROTECTED_REFS = ("main", "master", "production", "develop", "development")
+          # Rattrapage borne : on ne rouvre pas tout l'historique du depot, on
+          # s'en tient aux fermetures posterieures a la mise en service du garde.
+          CUTOFF = "2026-09-21T00:00:00Z"
+          MAX_REOPEN = 20
+          MARKER = "<!-- hermes:no-close-guard -->"
+
+          def api(method, path, body=None):
+              req = urllib.request.Request(API + path, method=method)
+              req.add_header("Authorization", "Bearer " + TOKEN)
+              req.add_header("Accept", "application/vnd.github+json")
+              req.add_header("X-GitHub-Api-Version", "2022-11-28")
+              data = None
+              if body is not None:
+                  data = json.dumps(body).encode()
+                  req.add_header("Content-Type", "application/json")
+              try:
+                  with urllib.request.urlopen(req, data, timeout=60) as r:
+                      raw = r.read()
+                      return json.loads(raw) if raw else {}
+              except urllib.error.HTTPError as e:
+                  return {"_error": e.code, "_body": e.read().decode()[:600]}
+              except Exception as e:  # jamais d'exception non geree dans ce garde
+                  return {"_error": 0, "_body": repr(e)}
+
+          def content_in_base(pr):
+              """Le contenu du head est-il REELLEMENT dans la base ?
+
+              Preuve serveur uniquement : jamais deduite d'un corps HTTP vide,
+              jamais d'un simple 2xx. En cas de doute : False (on rouvre).
+              """
+              head = pr.get("head") or {}
+              head_sha = head.get("sha") or ""
+              base_ref = (pr.get("base") or {}).get("ref") or "main"
+              if not head_sha:
+                  return True
+              if pr.get("merged") and pr.get("merged_at"):
+                  return True
+              cmp_ = api("GET", "/repos/%s/compare/%s...%s" % (REPO, base_ref, head_sha))
+              if isinstance(cmp_, dict) and not cmp_.get("_error"):
+                  if cmp_.get("status") in ("identical", "behind"):
+                      return True
+                  if cmp_.get("ahead_by") == 0:
+                      return True
+              return False
+
+          def restore_branch(pr):
+              """Recree la branche de tete si elle a disparu.
+
+              Le SHA de head reste disponible meme apres suppression de branche
+              (l'objet est retenu par `refs/pull/<n>/head`).
+              """
+              head = pr.get("head") or {}
+              ref = head.get("ref") or ""
+              sha = head.get("sha") or ""
+              head_repo = (head.get("repo") or {}).get("full_name") or ""
+              if not ref or not sha:
+                  return "branche inconnue"
+              if head_repo and head_repo != REPO:
+                  return "PR de fork (%s) : branche non restaurable" % head_repo
+              if ref in PROTECTED_REFS:
+                  return "ref protegee `%s` : non touchee" % ref
+              cur = api("GET", "/repos/%s/git/ref/heads/%s" % (REPO, urllib.parse.quote(ref, safe="")))
+              if isinstance(cur, dict) and not cur.get("_error"):
+                  obj = cur.get("object") or {}
+                  if obj.get("sha"):
+                      return "branche deja presente"
+              created = api("POST", "/repos/%s/git/refs" % REPO,
+                            {"ref": "refs/heads/" + ref, "sha": sha})
+              if isinstance(created, dict) and created.get("_error"):
+                  return "restauration refusee (HTTP %s)" % created.get("_error")
+              return "branche restauree depuis %s" % sha[:8]
+
+          def reopen(pr, reason):
+              num = pr["number"]
+              note = restore_branch(pr)
+              r = api("PATCH", "/repos/%s/pulls/%s" % (REPO, num), {"state": "open"})
+              if isinstance(r, dict) and r.get("_error"):
+                  print("[garde-fou] PR #%s : reouverture refusee (HTTP %s)" % (num, r.get("_error")))
+                  return False
+              api("POST", "/repos/%s/issues/%s/labels" % (REPO, num), {"labels": [LABEL_GUARD]})
+              body = ("## 🛡️ Garde-fou anti-fermeture (`hermes-pr-no-close-guard`)\n\n"
+                      "Cette pull request a ete **fermee sans merge** alors que son contenu "
+                      "n'est **pas** present dans `%s`. Regle permanente : une PR ne se ferme "
+                      "jamais tant qu'elle n'est pas implementee.\n\n"
+                      "- Fermeture detectee : %s\n"
+                      "- Branche de tete : %s\n\n"
+                      "Elle est rouverte automatiquement et reprise par Hermes "
+                      "(rebase puis merge si la CI est verte). Pour fermer volontairement "
+                      "cette PR sans merge, poser le label `%s` puis la fermer.\n\n%s\n"
+                      % ((pr.get("base") or {}).get("ref") or "main", reason, note,
+                         LABEL_ASSUMEE, MARKER))
+              api("POST", "/repos/%s/issues/%s/comments" % (REPO, num), {"body": body})
+              print("[garde-fou] PR #%s rouverte (%s)" % (num, note))
+              return True
+
+          def candidates():
+              """PR a examiner : celle de l'evenement, ou un balayage des PR fermees."""
+              if EVENT == "pull_request" and EVENT_PATH and os.path.exists(EVENT_PATH):
+                  with open(EVENT_PATH, encoding="utf-8") as fh:
+                      payload = json.load(fh)
+                  pr = payload.get("pull_request")
+                  return [pr] if isinstance(pr, dict) else []
+              out = []
+              for page in range(1, 6):
+                  batch = api("GET", "/repos/%s/pulls?state=closed&sort=updated"
+                                     "&direction=desc&per_page=100&page=%d" % (REPO, page))
+                  if not isinstance(batch, list) or not batch:
+                      break
+                  out.extend(batch)
+                  if len(batch) < 100:
+                      break
+              return out
+
+          done = 0
+          for pr in candidates():
+              if not isinstance(pr, dict):
+                  continue
+              if pr.get("merged") or pr.get("merged_at"):
+                  continue
+              labels = [l.get("name") for l in (pr.get("labels") or []) if isinstance(l, dict)]
+              if LABEL_ASSUMEE in labels:
+                  print("[garde-fou] PR #%s : fermeture assumee (label) — ignoree" % pr.get("number"))
+                  continue
+              if (pr.get("closed_at") or "") < CUTOFF:
+                  continue
+              if content_in_base(pr):
+                  continue
+              print("[garde-fou] PR #%s fermee sans merge le %s — contenu absent de la base"
+                    % (pr.get("number"), pr.get("closed_at")))
+              if reopen(pr, "fermee le %s" % (pr.get("closed_at") or "?")):
+                  done += 1
+              if done >= MAX_REOPEN:
+                  print("[garde-fou] plafond de %d reouvertures atteint — suite au prochain passage"
+                        % MAX_REOPEN)
+                  break
+          print("[garde-fou] termine : %d PR rouverte(s)" % done)
+          PYEOF

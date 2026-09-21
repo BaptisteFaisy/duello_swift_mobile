@@ -1,0 +1,76 @@
+name: batterie
+
+# Batterie de tests de duello_swift_mobile, portée par le Zenbook.
+#
+# Ce qui est vérifié (déterministe, 100 % exécutable sous Linux) :
+#   1. Syntaxe : `swiftc -parse` sur les 150 fichiers .swift. Parse seul — pas de
+#      SDK iOS sous Linux — donc ça attrape toute régression de syntaxe, pas les
+#      erreurs de types.
+#   2. Intégrité du projet Xcode : `scripts/sync_xcode_sources.py --check`.
+#      C'est LA classe de régression la plus dangereuse ici : le pbxproj liste
+#      chaque source explicitement, un .swift ajouté au portage sans entrée dans
+#      le pbxproj compile sur la machine de l'auteur et casse au moment de
+#      l'archive App Store.
+#   3. Limites de complexité de l'AGENTS.md Duello (50 lignes/fonction,
+#      10 fonctions/fichier, 500 lignes/fichier) en mode ratchet : seules les
+#      NOUVELLES violations bloquent (baseline .github/hermes-baseline.txt).
+#
+# Ce qui n'est PAS vérifié ici, et ne peut pas l'être sur le Zenbook :
+#   compilation iOS réelle (xcodebuild), liaisons de types, SwiftUI, tests UI.
+#   Il faut un runner macOS pour ça. Hermes le dit dans ses revues : un check
+#   vert ici vaut « syntaxe + projet cohérent + complexité », pas « l'app build ».
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: batterie-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  batterie:
+    name: Batterie
+    runs-on: [self-hosted, zenbook]
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain (garde-fou d'environnement)
+        run: |
+          set -euo pipefail
+          command -v swiftc >/dev/null || { echo "::error::swiftc introuvable dans le PATH du runner (déposer ~/.local/bin dans Environment/PATH de l'unité systemd)"; exit 1; }
+          command -v python3 >/dev/null || { echo "::error::python3 introuvable"; exit 1; }
+          swiftc --version | head -1
+
+      - name: Syntaxe Swift (swiftc -parse)
+        run: |
+          set -euo pipefail
+          if [ ! -d Duello.xcodeproj ]; then
+            echo "Aucun projet Xcode sur cette révision (dépôt encore amorphe) — batterie vide, pas un échec."
+            exit 0
+          fi
+          # -parse = analyse syntaxique uniquement (aucun SDK requis, donc viable
+          # sous Linux). Les fichiers sont passés par paquets pour que la sortie
+          # reste lisible et pour ne pas dépendre d'ARG_MAX.
+          find Duello -name '*.swift' -print0 | xargs -0 -n 25 swiftc -parse
+          echo "OK : $(find Duello -name '*.swift' | wc -l) fichiers .swift analysés"
+
+      - name: Projet Xcode cohérent avec Duello/ (pbxproj)
+        run: |
+          set -euo pipefail
+          if [ ! -d Duello.xcodeproj ]; then echo "pas de projet Xcode sur cette révision — ignoré"; exit 0; fi
+          python3 scripts/sync_xcode_sources.py --check
+
+      - name: Limites de complexité (ratchet, AGENTS.md)
+        run: python3 scripts/hermes-lint-complexity.py --lang swift

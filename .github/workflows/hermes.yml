@@ -1,0 +1,599 @@
+name: hermes
+
+# ─── PORT HERMES / ZENBOOK ────────────────────────────────────────────────────
+# Ce workflow est le portage du gate Hermes du dépôt `duello` vers ce dépôt, avec
+# pour unique runner le Zenbook de Baptiste (`[self-hosted, zenbook]`) — les
+# runners duello (VPS azure-duello, pc-fixe) étant hors ligne depuis le
+# 20/09/2026, le gate d'origine ne tournait plus.
+#
+# Sémantique inchangée (délibérément) :
+#   Règle 1 : la PR doit être basée sur la DERNIÈRE version de sa base (main).
+#             fraîche -> check vert + revue IA + merge auto (rebase)
+#             en retard -> check rouge + label + sous-agent de résolution des conflits
+#   Règle 2 : la batterie (`Batterie`, cf. .github/workflows/ci.yml) doit être verte
+#             sur le SHA de tête. Pending -> merge suspendu ; fail -> retour à l'agent.
+#   Règle 3 : une PR ne meurt jamais — le gardien rouvre toute fermeture sans merge
+#             dont le contenu n'est pas dans la base.
+#
+# Spécificité Zenbook :
+#   - les clés d'API (AGNES_API_KEY, HERMES_PUSH_TOKEN) viennent de l'environnement
+#     du runner (unité systemd `hermes-runner@.service` + ~/hermes/env), PAS des
+#     secrets du dépôt : rien à déposer dans GitHub, et ça survit aux rebuilds ;
+#   - la veille est garantie deux fois : le cron GitHub (peu fiable, mesuré 19/751
+#     livraisons sur `duello`) ET une timer systemd locale sur le Zenbook qui
+#     dispatche `hermes.yml` toutes les 10 min via `gh` ;
+#   - kill-switch auto-merge : `HERMES_AUTO_MERGE=0` dans ~/hermes/env.
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Hermes - agent de controle des PR Duello, connecte a Agnes (agnes-3.0-flash).
+# Runners : 100 % self-hosted duello (0 minute GitHub facturée) — 4 runners au
+# 18/09/2026. Le gate tourne sur le runner RESERVE `hermes-gate` (duello-vps-02)
+# pour ne plus attendre derriere la file CI ; les jobs CI (Typecheck/Batterie)
+# utilisent le label `duello` (vps-01, vps-03, pc-01).
+# Regle 1, intensite max : la PR doit etre BASEE SUR LA DERNIERE VERSION DE SA BRANCHE DE BASE
+# (main en general). Si oui -> check vert "Hermes (agnes)" + revue IA + MERGE AUTOMATIQUE (rebase).
+# Sinon -> check rouge + label + DISPATCH D'UN SOUS-AGENT (hermes-conflict-resolver.yml)
+# qui rebase la branche sur la base et RESOUT LES CONFLITS automatiquement (agnes),
+# puis pousse (force-with-lease). Hermes re-evalue ensuite automatiquement
+# (evenement synchronize + veille) et merge si tout est vert.
+# Veille : assuree EXCLUSIVEMENT par hermes-watchdog.yml (cron */5, groupe de
+# concurrence PROPRE, re-dispatch de ce workflow par l'API toutes les 10 min au
+# besoin). Le cron interne hermes.yml a ete SUPPRIME : dans hermes-gate, un run
+# schedule en attente est remplace par le run suivant du groupe (annulation
+# silencieuse — cf. runs schedule #337/#465 du 17/09), donc il ne fiabilisait
+# rien.
+# Regle 2 : la batterie CI doit etre VERTE sur le SHA de la PR (checks "Batterie"
+# et "Batterie de tests (npm test)", definis dans ci.yml). En attente -> merge
+# suspendu ; en echec -> retour a l'agent (corriger les tests avant de merger).
+# Actif 24/7 : chaque evenement PR + balayage cron toutes les 15 min.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  # PAS de trigger schedule ici : un cron vivant DANS hermes-gate est annulé par
+  # le run en attente suivant du même groupe (GitHub ne garde qu'UN run pending
+  # par groupe, même avec cancel-in-progress: false — les crons tombant sur
+  # :00/:15/:30/:45 étaient quasi systématiquement remplacés : runs schedule
+  # #337 et #465 annulés après 8 s et 66 s, sans exécuter une ligne de code).
+  # La veille est assurée par hermes-watchdog.yml (cron */5, groupe PROPRE,
+  # dispatch API toutes les 10 min au besoin).
+  workflow_dispatch:
+
+# Sérialisation des runs : les PR en rafale s'empilent au lieu de courir en
+# parallèle. Sans ceci, deux runs simultanés peuvent merger chacun une PR,
+# faisant bouger main sous les pieds de l'autre (behind_by > 0 → renvoi à
+# l'agent alors que la PR était à jour à l'ouverture). La veille cron 15 min
+# rattrape toute PR éventuellement annulée pendant l'attente.
+concurrency:
+  group: hermes-gate
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: write
+  issues: write
+  actions: write   # requis pour dispatcher le sous-agent hermes-conflict-resolver.yml
+
+# Shell bash partout : sur le runner Windows (Git Bash inclus) les scripts
+# `run:` (python heredoc, grep/sed, npm) exigent bash, pas PowerShell.
+# Sur Linux c'est déjà le défaut — aucun changement côté VPS.
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  gate:
+    name: gate
+    # [GATE-DEDIE] Le gate tourne sur le runner reserve `hermes-gate`
+    # (duello-vps-02, label `duello` retire) : il ne fait plus la queue derriere
+    # la file CI Typecheck/Batterie. Consequence : ne PAS retirer le label
+    # `hermes-gate` de duello-vps-02 et ne PAS le remettre sur `duello` seul.
+    runs-on: [self-hosted, zenbook]
+    steps:
+      - name: Hermes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          # AGNES_API_KEY : heredite de l'environnement du runner
+          # (~/hermes/env declare par l'unite systemd hermes-runner@.service).
+          # Volontairement pas un secret du depot : une cle, les deux depots,
+          # et rien a reconfigurer si le depot est recree.
+          # [HERMES-UTF8] Le label `hermes-gate` est porte par duello-vps-02 (Linux)
+          # ET par duello-pc-gate (Windows) : le job peut donc atterrir sur l'un ou
+          # l'autre. Sur Windows, Python ouvre fichiers et stdio en cp1252, ce qui
+          # faisait planter le gate sur TOUTE PR dont le titre ou le corps contient
+          # un accent (UnicodeDecodeError sur le payload d'evenement) et aurait
+          # plante a l'impression des revues (→, ✅, ⚠️ absents de cp1252).
+          # UTF-8 mode (PEP 540) rend le script identique sur les deux runners.
+          PYTHONUTF8: "1"
+          PYTHONIOENCODING: utf-8
+        run: |
+          python3 - <<'PYEOF'
+          # -*- coding: utf-8 -*-
+          import json, os, re, sys, time, urllib.request, urllib.error, urllib.parse, datetime, http.client
+
+          GH = os.environ["GH_TOKEN"]
+          KEY = os.environ.get("AGNES_API_KEY", "")
+          AUTO_MERGE = (os.environ.get("HERMES_AUTO_MERGE", "1").strip().lower()
+                        not in ("0", "false", "no", "off"))
+          REPO = os.environ["GITHUB_REPOSITORY"]
+          API = "https://api.github.com"
+          EVENT = os.environ.get("GITHUB_EVENT_NAME", "workflow_dispatch")
+          MARKER = "<!-- hermes:v1 -->"
+          CHECK_NAME = "Hermes"
+          LABEL_OK = "hermes/approuvee"
+          LABEL_RETOUR = "hermes/retour-agent"
+
+          def now():
+              return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+          def api(method, path, body=None, accept=True):
+              req = urllib.request.Request(API + path, method=method)
+              req.add_header("Authorization", "Bearer " + GH)
+              req.add_header("Accept", "application/vnd.github+json")
+              req.add_header("X-GitHub-Api-Version", "2022-11-28")
+              data = None
+              if body is not None:
+                  data = json.dumps(body).encode()
+                  req.add_header("Content-Type", "application/json")
+              # [RESEAU] Les coupures transitoires (RemoteDisconnected, timeout,
+              # DNS, reset TCP) ne sont PAS des HTTPError : sans ce catch, une
+              # seule micro-coupure faisait echouer tout le gate (constat 18/09,
+              # run 35299243010 sur le runner Windows/reseau captif Wifirst).
+              # 4 tentatives avec backoff, puis on rend une erreur geree (jamais
+              # d'exception non rattrapee).
+              last = None
+              for attempt in range(4):
+                  try:
+                      with urllib.request.urlopen(req, data, timeout=60) as r:
+                          raw = r.read()
+                          return json.loads(raw) if raw else {}
+                  except urllib.error.HTTPError as e:
+                      return {"_error": e.code, "_body": e.read().decode()[:600]}
+                  except (urllib.error.URLError, OSError, http.client.HTTPException) as e:
+                      last = e
+                      print("[api] reseau KO (%s) %s %s — tentative %d/4" % (
+                          type(e).__name__, method, path, attempt + 1))
+                      time.sleep(2 * (attempt + 1))
+              return {"_error": 0, "_body": "reseau: %r" % last}
+
+          def ai_review(title, body_text, diff_text):
+              if not KEY:
+                  print("[agnes] pas de cle AGNES_API_KEY — revue ignoree")
+                  return None
+              sysmsg = (
+                  "Tu es Hermes, agent reviewer automatique du projet Duello, en intensite MAXIMALE. "
+                  "Tu recois une pull request : titre, description, diff. "
+                  "Rédige en français une revue technique complète et exigeante (8 à 20 lignes) : "
+                  "1) ce que la PR change réellement, 2) risques de régression et fichiers sensibles touchés, "
+                  "3) cohérence titre/description vs diff (si le titre annonce X et le diff fait Y, signale-le fortement), "
+                  "4) points de vigilance pour les autres agents. "
+                  "Tu ne statues PAS sur la fraîcheur de la base (calculée séparément de façon déterministe). "
+                  "Pas de markdown de niveau 1, pas de salutation. Sois dense et factuel."
+              )
+              user = "TITRE: %s\n\nDESCRIPTION:\n%s\n\nDIFF (tronqué):\n%s" % (
+                  title, (body_text or "")[:4000], diff_text)
+              payload = {
+                  "model": "agnes-3.0-flash",
+                  "messages": [{"role": "system", "content": sysmsg},
+                               {"role": "user", "content": user}],
+                  "max_tokens": 1600,
+                  "temperature": 0.2,
+              }
+              req = urllib.request.Request("https://apihub.agnes-ai.com/v1/chat/completions",
+                                           data=json.dumps(payload).encode(), method="POST")
+              req.add_header("Authorization", "Bearer " + KEY)
+              req.add_header("Content-Type", "application/json")
+              try:
+                  with urllib.request.urlopen(req, data=None, timeout=120) as r:
+                      d = json.loads(r.read())
+                  msg = d["choices"][0]["message"]
+                  return (msg.get("content") or msg.get("reasoning_content") or "").strip()
+              except urllib.error.HTTPError as e:
+                  print("[agnes] erreur HTTP %s: %s" % (e.code, e.read().decode()[:500]))
+                  return None
+              except Exception as e:
+                  print("[agnes] erreur: %s" % e)
+                  return None
+
+          def ensure_label(name, color, desc):
+              r = api("POST", "/repos/%s/labels" % REPO,
+                      {"name": name, "color": color, "description": desc})
+              if r.get("_error") not in (None, 422):
+                  print("[label] %s" % r["_body"])
+
+          def set_label(pr, name, add):
+              if add:
+                  api("POST", "/repos/%s/issues/%s/labels" % (REPO, pr["number"]), {"labels": [name]})
+              else:
+                  api("DELETE", "/repos/%s/issues/%s/labels/%s" % (REPO, pr["number"], name.replace("/", "%2F")))
+
+          def post_comment(pr, fresh, behind, review, base_ref, head_sha):
+              if fresh:
+                  head = ("## 🤖 Hermes (agnes · agnes-3.0-flash) — ✅ **AUTORISÉE**\n\n"
+                          "La PR est bien basée sur la dernière version de `%s`. Merge automatique en cours.\n\n"
+                          % base_ref)
+              else:
+                  head = ("## 🤖 Hermes (agnes · agnes-3.0-flash) — ❌ **RETOUR À L'AGENT @%s**\n\n"
+                          "Ta branche est **en retard de %s commit(s) sur `%s`** — la modification n'est PAS sur la dernière version de la base.\n\n"
+                          "**Action requise** (à refaire toi-même, ne force pas le merge) :\n"
+                          "```bash\ngit fetch origin\ngit rebase origin/%s\ngit push --force-with-lease\n```\n"
+                          "Hermes ré-évaluera automatiquement après le push.\n\n"
+                          % (pr["user"]["login"], behind, base_ref, base_ref))
+              if review:
+                  body = head + "---\n\n### Revue technique (intensité max)\n\n" + review + "\n\n" + MARKER + "\n"
+              else:
+                  body = head + "\n_(Revue IA indisponible — verdict basé sur la règle de fraîcheur seule.)_\n" + MARKER + "\n"
+              sig = "sha=%s fresh=%s" % (head_sha[:8], fresh)
+              page = 1
+              while page <= 5:
+                  comments = api("GET", "/repos/%s/issues/%s/comments?per_page=100&page=%d" % (REPO, pr["number"], page))
+                  if isinstance(comments, dict):
+                      comments = []
+                  for c in comments:
+                      if MARKER in (c.get("body") or ""):
+                          if sig in c["body"]:
+                              return False
+                          api("PATCH", "/repos/%s/issues/comments/%s" % (REPO, c["id"]),
+                              {"body": body + "\n" + sig})
+                          return True
+                  if len(comments) < 100:
+                      break
+                  page += 1
+              api("POST", "/repos/%s/issues/%s/comments" % (REPO, pr["number"]), {"body": body + "\n" + sig})
+              return True
+
+          def create_check_obj(head_sha, concl, title, summary, text):
+              out = {"title": title, "summary": (summary or "Aucune revue.")[:60000], "text": text}
+              r = api("POST", "/repos/%s/check-runs" % REPO, {
+                  "name": CHECK_NAME, "head_sha": head_sha,
+                  "status": "completed", "conclusion": concl,
+                  "started_at": now(), "completed_at": now(), "output": out})
+              if r.get("_error"):
+                  print("[check] erreur %s: %s" % (r["_error"], r["_body"]))
+
+          def create_check(pr, fresh, behind, review, base_ref):
+              if fresh:
+                  concl, title = "success", "Base à jour sur %s — PR autorisée (merge auto)" % base_ref
+              else:
+                  concl, title = "failure", "En retard de %s commit(s) sur %s — retour à l'agent" % (behind, base_ref)
+              summary = review or ("Avis IA indisponible ; règle déterministe seule." if not KEY else "Aucune revue.")
+              create_check_obj(pr["head"]["sha"], concl, title, summary,
+                               "Contrôle Hermes 24/7 — agnes/agnes-3.0-flash — base: %s" % base_ref)
+
+          def has_success_check(sha):
+              r = api("GET", "/repos/%s/commits/%s/check-runs?per_page=100" % (REPO, sha))
+              for chk in r.get("check_runs", []):
+                  if chk.get("name") == CHECK_NAME and chk.get("status") == "completed" and chk.get("conclusion") == "success":
+                      return True
+              return False
+
+          def stamp_main_tip():
+              for attempt in range(6):
+                  if attempt:
+                      time.sleep(5 * attempt)
+                  r = api("GET", "/repos/%s/commits/main" % REPO)
+                  if r.get("_error") or not r.get("sha"):
+                      return
+                  tip = r["sha"]
+                  if has_success_check(tip):
+                      return
+                  links = api("GET", "/repos/%s/commits/%s/pulls" % (REPO, tip))
+                  if not isinstance(links, list):
+                      links = []
+                  for p in links:
+                      if p.get("merged_at") and p.get("state") == "closed":
+                          pr_head = (p.get("head") or {}).get("sha")
+                          if pr_head and has_success_check(pr_head):
+                              create_check_obj(tip, "success",
+                                               "Pointe de main issue d'une PR autorisee par Hermes",
+                                               "Tampon retrospectif : cette pointe provient de la PR #%s fusionnee par Hermes (merge rebase)." % p.get("number"),
+                                               "Hermes 24/7 — tampon de pointe pour la porte OTA")
+                              print("[stamp] pointe main %s tamponnee (PR #%s)" % (tip[:8], p.get("number")))
+                              return
+                  if attempt == 5:
+                      print("[stamp] pointe main %s sans autorisation Hermes trouvable — pas de tampon" % tip[:8])
+
+          def battery_status(head_sha, touches_desktop=False):
+              # Verdict de la CI sur ce SHA de PR :
+              # - "Batterie" (ci.yml) toujours requis sur PR ;
+              # - "Desktop CI" (desktop-ci.yml) requis EN PLUS quand la PR touche
+              #   desktop-app/** (le workflow est filtre par paths : le check
+              #   n'existe pas pour une PR mobile/tablette).
+              names = ("Batterie",)
+              if touches_desktop:
+                  names = names + ("Desktop CI",)
+              r = api("GET", "/repos/%s/commits/%s/check-runs?per_page=100" % (REPO, head_sha))
+              runs = r.get("check_runs", []) if isinstance(r, dict) else []
+              runs = [c for c in runs if c.get("name") in names and c.get("status") == "completed"]
+              if any(c.get("conclusion") == "failure" for c in runs):
+                  return "fail"
+              if all(any(c.get("name") == n and c.get("conclusion") == "success" for c in runs) for n in names):
+                  return "ok"
+              return "pending"
+
+          # [HERMES-NO-CLOSE] Regle permanente (2026-09-21, demande utilisateur) :
+          # une PR ne se ferme jamais si elle n'est pas implementee. Consequence
+          # directe ici : on ne supprime la branche de tete d'une PR QUE si son
+          # contenu est REELLEMENT dans la base, prouve par relecture serveur.
+          PROTECTED_REFS = ("main", "master", "production", "develop", "development")
+
+          def content_in_base(pr, head_sha, base_ref):
+              """Vrai si le head de la PR est effectivement integre a la base.
+
+              Double preuve serveur — jamais deduite d'un corps HTTP vide (cf.
+              api() : `json.loads(raw) if raw else {}`, qui transforme un 2xx sans
+              corps en `{}`) :
+                1. la PR est `merged` avec un `merged_at` non nul ;
+                2. le compare base...head dit que le head est deja contenu
+                   (`identical`/`behind`, ou `ahead_by == 0`).
+              En cas de doute (erreur reseau, reponse vide, statut inconnu) : False.
+              """
+              if not head_sha:
+                  return False
+              live = api("GET", "/repos/%s/pulls/%s" % (REPO, pr["number"]))
+              if not isinstance(live, dict) or live.get("_error"):
+                  return False
+              if not (live.get("merged") and live.get("merged_at")):
+                  return False
+              cmp_ = api("GET", "/repos/%s/compare/%s...%s" % (REPO, base_ref, head_sha))
+              if not isinstance(cmp_, dict) or cmp_.get("_error"):
+                  return False
+              return cmp_.get("status") in ("identical", "behind") or cmp_.get("ahead_by") == 0
+
+          def delete_head_branch_if_merged(pr):
+              """Supprime la branche de tete d'une PR, uniquement dans les cas surs.
+
+              Jamais pour une PR de fork (le DELETE viserait une branche homonyme du
+              depot de base), jamais pour une ref protegee.
+              """
+              head = pr.get("head") or {}
+              ref = head.get("ref") or ""
+              head_repo = ((head.get("repo") or {}).get("full_name") or "")
+              if not ref:
+                  return
+              if head_repo and head_repo != REPO:
+                  print("[garde-fou] PR #%s issue d'un fork (%s) — branche NON supprimee"
+                        % (pr["number"], head_repo))
+                  return
+              if ref in PROTECTED_REFS:
+                  print("[garde-fou] ref protegee `%s` — branche NON supprimee" % ref)
+                  return
+              api("DELETE", "/repos/%s/git/refs/heads/%s" % (REPO, urllib.parse.quote(ref, safe="")))
+
+          def try_merge(pr, head_sha, base_ref, touches_desktop=False):
+              st = battery_status(head_sha, touches_desktop)
+              if st == "fail":
+                  print("[merge] PR #%s : batterie CI en echec sur ce SHA - merge refuse" % pr["number"])
+                  return False
+              if st != "ok":
+                  print("[merge] PR #%s : batterie CI pas encore verte (%s) - merge suspendu, la veille re-evaluera" % (pr["number"], st))
+                  return False
+              msg = None
+              for delay in (0, 5, 10, 20):
+                  if delay:
+                      time.sleep(delay)
+                  c2 = api("GET", "/repos/%s/compare/%s...%s" % (REPO, base_ref, head_sha))
+                  if isinstance(c2.get("behind_by"), int) and c2["behind_by"] > 0:
+                      print("[merge] PR #%s re-devenue en retard (main a bouge) — abandon, renvoi au prochain cycle" % pr["number"])
+                      return False
+                  r = api("PUT", "/repos/%s/pulls/%s/merge" % (REPO, pr["number"]),
+                          {"sha": head_sha, "merge_method": "rebase",
+                           "commit_message": "Rebase requis avant merge automatique Hermes."})
+                  # [HERMES-NO-CLOSE] Un corps HTTP vide (`{}`) n'est PAS une preuve de
+                  # merge : `api()` rend `{}` pour tout 2xx sans corps (proxy, 204,
+                  # lecture tronquee). Avant, `or (r == {})` faisait passer cette
+                  # reponse vide pour une fusion reussie, et on supprimait la branche
+                  # de tete juste apres : GitHub ferme alors la PR (`merged: false`) —
+                  # travail perdu et PR non reouvrable. Desormais, quand la reponse du
+                  # PUT n'est pas concluante, le merge est prouve par relecture serveur
+                  # (content_in_base), et la branche n'est supprimee qu'apres.
+                  if r.get("merged") or content_in_base(pr, head_sha, base_ref):
+                      delete_head_branch_if_merged(pr)
+                      print("[merge] PR #%s mergée (%s)" % (pr["number"], (r.get("sha") or "deja-fusionnee")[:8]))
+                      return True
+                  msg = (r.get("_body") or "?")[:300]
+                  if r.get("_error") == 404 or "not open" in (msg or ""):
+                      return False
+                  if "Review is required" in msg or "required reviews" in msg.lower():
+                      break
+              print("[merge] échec PR #%s: %s" % (pr["number"], msg))
+              return False
+          # Bloc dispatch du sous-agent, a inserer dans hermes.yml (indentation 10 espaces,
+          # niveau python du heredoc) juste apres la fonction try_merge.
+          RESOLVER_WORKFLOW = "hermes-conflict-resolver.yml"
+          LABEL_RESOLVER = "hermes/sous-agent-conflits"
+          LABEL_FAILED = "hermes/resolution-echouee"
+          LABEL_ESCALADE = "hermes/intervention-humaine"
+          RESOLVER_CHECK = "Hermes sous-agent (conflits)"
+          # [HERMES-ESCALADE] Nombre de tentatives automatiques avant de passer la main
+          # a un humain. Doit rester coherent avec MAX_ATTEMPTS du resolver.
+          MAX_RESOLVER_ATTEMPTS = 3
+          # Compteur de tentatives tenu par le resolver dans son rapport.
+          ATTEMPT_RE = re.compile(r"<!-- hermes-resolver:attempts=(\d+) -->")
+
+          def resolver_check_running(sha):
+              """Vrai si un sous-agent est deja en cours (check ouvert) sur ce SHA.
+              Un check ouvert depuis plus de 30 min est considere comme perime."""
+              r = api("GET", "/repos/%s/commits/%s/check-runs?per_page=100" % (REPO, sha))
+              for chk in (r.get("check_runs", []) if isinstance(r, dict) else []):
+                  if chk.get("name") != RESOLVER_CHECK or chk.get("status") == "completed":
+                      continue
+                  started = chk.get("started_at") or ""
+                  if started:
+                      try:
+                          t0 = datetime.datetime.strptime(started, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
+                          if (datetime.datetime.now(datetime.timezone.utc) - t0).total_seconds() < 1800:
+                              return chk
+                      except ValueError:
+                          return chk
+              return None
+
+          def resolver_attempts(num):
+              """Tentatives reelles deja consommees par le sous-agent (compteur range
+              dans son rapport par hermes-conflict-resolver.yml). Aucun etat externe."""
+              comments = api("GET", "/repos/%s/issues/%s/comments?per_page=100" % (REPO, num))
+              best = 0
+              for c in (comments if isinstance(comments, list) else []):
+                  m = ATTEMPT_RE.search(c.get("body") or "")
+                  if m:
+                      best = max(best, int(m.group(1)))
+              return best
+
+          def has_check_named(sha, name):
+              r = api("GET", "/repos/%s/commits/%s/check-runs?per_page=100" % (REPO, sha))
+              return any(c.get("name") == name
+                         for c in (r.get("check_runs", []) if isinstance(r, dict) else []))
+
+          def ensure_typecheck_dispatched(pr, head_sha):
+              """[HERMES-SELFHEAL] Un head sans check `Typecheck` ne peut JAMAIS satisfaire
+              les checks requis : la PR reste bloqueable indefiniment (cas de la PR #187,
+              head pousse par un bot, zero check-run, etat `pending` definitif). On re-arme
+              ci.yml nous-memes. Idempotent : des que le check existe, plus de dispatch."""
+              if has_check_named(head_sha, "Batterie"):
+                  return
+              r = api("POST", "/repos/%s/actions/workflows/ci.yml/dispatches" % REPO,
+                      {"ref": pr["head"]["ref"]})
+              if r.get("_error"):
+                  print("[selfheal] #%s : dispatch ci.yml refuse %s %s"
+                        % (pr["number"], r.get("_error"), r.get("_body")))
+              else:
+                  print("[selfheal] #%s : ci.yml re-armee sur %s (aucun check Typecheck sur %s)"
+                        % (pr["number"], pr["head"]["ref"], head_sha[:8]))
+
+          def post_escalade(num, attempts, base_ref):
+              """[HERMES-ESCALADE] Apres MAX_RESOLVER_ATTEMPTS echecs, on le dit
+              explicitement au lieu de rester muet : l'ancien comportement laissait la PR
+              bloquee sans que personne ne soit prevenu."""
+              marker = "<!-- hermes:escalade:v1 -->"
+              body = ("## 🛑 Hermes — escalade : intervention humaine requise\n\n"
+                      "Le sous-agent de résolution de conflits a échoué **%d fois** sur cette PR. "
+                      "Les tentatives automatiques sont arrêtées pour ne pas boucler indéfiniment.\n\n"
+                      "**Ce qui est demandé** — rebaser la branche à la main et corriger ce que le "
+                      "sous-agent n'a pas su résoudre :\n"
+                      "```bash\ngit fetch origin\ngit rebase origin/%s\ngit push --force-with-lease\n```\n\n"
+                      "Le label `%s` sera retiré automatiquement dès qu'un rebase réussi sera détecté.\n\n%s\n"
+                      % (attempts, base_ref, LABEL_ESCALADE, marker))
+              comments = api("GET", "/repos/%s/issues/%s/comments?per_page=100" % (REPO, num))
+              for c in (comments if isinstance(comments, list) else []):
+                  if marker in (c.get("body") or ""):
+                      api("PATCH", "/repos/%s/issues/comments/%s" % (REPO, c["id"]), {"body": body})
+                      return
+              api("POST", "/repos/%s/issues/%s/comments" % (REPO, num), {"body": body})
+
+          def dispatch_resolver(pr):
+              """Dispatche le sous-agent (hermes-conflict-resolver.yml) : rebase de la
+              branche sur sa base + resolution des conflits par agnes + push."""
+              num = pr["number"]
+              head_ref = pr["head"]["ref"]
+              head_sha = pr["head"]["sha"]
+              labels = api("GET", "/repos/%s/issues/%s/labels" % (REPO, num))
+              names = {l.get("name") for l in (labels if isinstance(labels, list) else [])}
+              # [HERMES-ESCALADE] Avant, un SEUL echec posait `hermes/resolution-echouee` et
+              # ce test refusait alors TOUT re-dispatch automatique : la PR restait bloquee
+              # jusqu'a une intervention manuelle (12 PR ouvertes dans cet etat le 20/09).
+              # On borne desormais les tentatives automatiques, puis on escalade EXPLICITEMENT.
+              if LABEL_ESCALADE in names:
+                  print("[resolver] PR #%s : escalade humaine deja posee — plus de re-dispatch automatique" % num)
+                  return False
+              attempts = resolver_attempts(num)
+              if attempts >= MAX_RESOLVER_ATTEMPTS:
+                  print("[resolver] PR #%s : %d/%d tentatives epuisees — escalade" % (num, attempts, MAX_RESOLVER_ATTEMPTS))
+                  set_label(pr, LABEL_ESCALADE, True)
+                  post_escalade(num, attempts, pr["base"]["ref"])
+                  return False
+              if attempts:
+                  print("[resolver] PR #%s : tentative %d/%d apres echec precedent"
+                        % (num, attempts + 1, MAX_RESOLVER_ATTEMPTS))
+              running = resolver_check_running(head_sha)
+              if running:
+                  print("[resolver] PR #%s : sous-agent deja en cours (check %s) — pas de doublon" % (num, running.get("id")))
+                  return False
+              ensure_label(LABEL_RESOLVER, "8250df", "Sous-agent Hermes : rebase + resolution de conflits en cours")
+              set_label(pr, LABEL_RESOLVER, True)
+              # Check ouvert = verrou anti-doublon, complete par le sous-agent a la fin.
+              api("POST", "/repos/%s/check-runs" % REPO, {
+                  "name": RESOLVER_CHECK, "head_sha": head_sha, "status": "in_progress",
+                  "started_at": now(),
+                  "output": {"title": "Sous-agent dispatche : rebase + resolution des conflits",
+                             "summary": "Le sous-agent rebase la branche sur %s, resout les conflits (agnes), verifie le typecheck puis pousse." % pr["base"]["ref"]}})
+              d = api("POST", "/repos/%s/actions/workflows/%s/dispatches" % (REPO, RESOLVER_WORKFLOW),
+                      {"ref": "main", "inputs": {"pr_number": str(num), "head_ref": head_ref,
+                                                 "base_ref": pr["base"]["ref"], "head_sha": head_sha}})
+              if d.get("_error"):
+                  print("[resolver] PR #%s : echec dispatch %s: %s" % (num, d.get("_error"), d.get("_body")))
+                  set_label(pr, LABEL_RESOLVER, False)
+                  return False
+              print("[resolver] PR #%s : sous-agent dispatche (base %s, head %s)" % (num, pr["base"]["ref"], head_ref))
+              return True
+
+          def handle(pr):
+              if pr.get("draft"):
+                  print("[hermes] #%s draft — ignorée" % pr["number"])
+                  return
+              # La PR touche-t-elle la version ordinateur ? (desktop-ci.yml requis)
+              base_ref = pr["base"]["ref"]
+              head_sha = pr["head"]["sha"]
+              cmp = api("GET", "/repos/%s/compare/%s...%s" % (REPO, base_ref, head_sha))
+              if cmp.get("_error"):
+                  print("[hermes] #%s compare impossible: %s" % (pr["number"], cmp.get("_body")))
+                  return
+              behind = cmp.get("behind_by")
+              behind = behind if isinstance(behind, int) else (0 if cmp.get("status") in ("identical", "ahead") else -1)
+              fresh = behind == 0
+              files = api("GET", "/repos/%s/pulls/%s/files?per_page=100" % (REPO, pr["number"]))
+              if not isinstance(files, list):
+                  files = []
+              touches_desktop = any((f.get("filename") or "").startswith("desktop-app/") for f in files)
+              diff = "\n".join("// %s (+%s -%s)\n%s" % (f["filename"], f["additions"], f["deletions"],
+                                                        (f.get("patch") or "")[:6000]) for f in files)[:150000]
+              stats = "%s fichier(s), +%s/-%s lignes" % (len(files), sum(f["additions"] for f in files),
+                                                          sum(f["deletions"] for f in files)) if files else "diff indisponible"
+              review = ai_review(pr["title"], pr.get("body") or "", diff)
+              create_check(pr, fresh, max(behind, 0), (review + "\n\n(%s)" % stats) if review else stats, base_ref)
+              set_label(pr, LABEL_OK, fresh)
+              set_label(pr, LABEL_RETOUR, not fresh)
+              # [HERMES-SELFHEAL] Garantit qu'un head porte bien le check `Typecheck` :
+              # sans lui, les checks requis ne sont jamais rapportes et la PR reste
+              # immergeable, meme correctement rebasee (panne de la PR #187).
+              ensure_typecheck_dispatched(pr, head_sha)
+              if fresh:
+                  # Un rebase reussi leve tous les verrous et l'escalade.
+                  set_label(pr, LABEL_RESOLVER, False)
+                  set_label(pr, LABEL_FAILED, False)
+                  set_label(pr, LABEL_ESCALADE, False)
+              posted = post_comment(pr, fresh, max(behind, 0), (review or "") + "\n\n*" + stats + "*", base_ref, head_sha)
+              if not fresh:
+                  print("[hermes] PR #%s : base en retard (%s commit(s)) - dispatch du sous-agent de resolution" % (pr["number"], max(behind, 0)))
+                  dispatch_resolver(pr)
+              if fresh:
+                  # [PORT-ZENBOOK] kill-switch d'auto-merge : HERMES_AUTO_MERGE
+                  # dans l'environnement du runner (~/hermes/env). Hermes verifie,
+                  # rebase, signale — mais ne merge plus rien tant que la valeur
+                  # n'est pas remise a 1. Aucun edition de workflow necessaire.
+                  if not AUTO_MERGE:
+                      print("[hermes] PR #%s : fraiche mais HERMES_AUTO_MERGE=0 — merge laisse a l'humain"
+                            % pr["number"])
+                  elif try_merge(pr, head_sha, base_ref, touches_desktop):
+                      stamp_main_tip()
+
+          ensure_label(LABEL_OK, "0e8a16", "PR vérifiée par Hermes : base à jour")
+          ensure_label(LABEL_RETOUR, "d73a4a", "PR renvoyée par Hermes : rebase requis")
+
+          if EVENT == "pull_request":
+              # [HERMES-UTF8] encoding explicite : ne depend pas de la locale du runner
+              # (Windows = cp1252, qui echoue sur les accents des titres/corps de PR).
+              with open(os.environ["GITHUB_EVENT_PATH"], encoding="utf-8") as fh:
+                  handle(json.load(fh)["pull_request"])
+          else:
+              prs = api("GET", "/repos/%s/pulls?state=open&per_page=100" % REPO)
+              print("[veille] %d PR ouvertes" % len(prs) if isinstance(prs, list) else prs)
+              if isinstance(prs, list):
+                  for pr in prs:
+                      try:
+                          handle(pr)
+                      except Exception as e:
+                          print("[veille] PR #%s KO: %r" % (pr.get("number"), e))
+          stamp_main_tip()
+          print("[hermes] cycle terminé")
+          PYEOF

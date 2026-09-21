@@ -1,0 +1,871 @@
+name: hermes-conflict-resolver
+
+# ─── PORT HERMES / ZENBOOK ────────────────────────────────────────────────────
+# Ce workflow est le portage du gate Hermes du dépôt `duello` vers ce dépôt, avec
+# pour unique runner le Zenbook de Baptiste (`[self-hosted, zenbook]`) — les
+# runners duello (VPS azure-duello, pc-fixe) étant hors ligne depuis le
+# 20/09/2026, le gate d'origine ne tournait plus.
+#
+# Sémantique inchangée (délibérément) :
+#   Règle 1 : la PR doit être basée sur la DERNIÈRE version de sa base (main).
+#             fraîche -> check vert + revue IA + merge auto (rebase)
+#             en retard -> check rouge + label + sous-agent de résolution des conflits
+#   Règle 2 : la batterie (`Batterie`, cf. .github/workflows/ci.yml) doit être verte
+#             sur le SHA de tête. Pending -> merge suspendu ; fail -> retour à l'agent.
+#   Règle 3 : une PR ne meurt jamais — le gardien rouvre toute fermeture sans merge
+#             dont le contenu n'est pas dans la base.
+#
+# Spécificité Zenbook :
+#   - les clés d'API (AGNES_API_KEY, HERMES_PUSH_TOKEN) viennent de l'environnement
+#     du runner (unité systemd `hermes-runner@.service` + ~/hermes/env), PAS des
+#     secrets du dépôt : rien à déposer dans GitHub, et ça survit aux rebuilds ;
+#   - la veille est garantie deux fois : le cron GitHub (peu fiable, mesuré 19/751
+#     livraisons sur `duello`) ET une timer systemd locale sur le Zenbook qui
+#     dispatche `hermes.yml` toutes les 10 min via `gh` ;
+#   - kill-switch auto-merge : `HERMES_AUTO_MERGE=0` dans ~/hermes/env.
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Sous-agent de Hermes : rebase et RESOLUTION AUTOMATIQUE DES CONFLITS des PR
+# renvoyees par Hermes (branche en retard / en conflit sur sa base).
+# Dispatche par hermes.yml (workflow_dispatch, un run par PR).
+# Etapes :
+#   1. rebase de la branche de la PR sur origin/<base_ref> ;
+#   2. resolution des conflits fichier par fichier par agnes-3.0-flash
+#      (base + les 2 versions ; reponse rangee en bloc de code) ;
+#   3. repli heuristique sans IA pour les fichiers non critiques
+#      (baselines en union, binaires -> cote base) ; echec clair sinon ;
+#   4. typecheck reel quand l'arbre le permet (npm ci + npm run typecheck) ;
+#   5. push --force-with-lease (jamais si le head a bouge depuis le dispatch)
+#      + rapport sur la PR.
+#
+# ==== Correctif du 20/09/2026 : trois pannes de fond, trois reparations ====
+#
+# [HERMES-REARM] Le push ne declenche PAS l'evenement synchronize.
+#   L'ancien commentaire ici affirmait le contraire : « le push declenche
+#   l'evenement synchronize : la batterie (ci.yml) et hermes.yml tournent pour
+#   de vrai ». C'etait FAUX. Le push est fait avec le GITHUB_TOKEN, et GitHub ne
+#   declenche AUCUN workflow pour un evenement genere par ce token (regle
+#   anti-recursion). Resultat observe sur la PR #187 : head pousse par le bot,
+#   ZERO check-run, etat `pending` definitif — les checks requis par la protection
+#   de branche n'etaient jamais rapportes, donc PR IMMERGEABLE alors que le rebase
+#   avait parfaitement reussi. Mesures : commit de tete `3be45b73` committe par
+#   `hermes-resolver`, `check-runs` sur ce SHA = 0, statut de commit `pending`, et
+#   runs recents en `action_required` avec 0 job et acteur `github-actions[bot]`
+#   (signature d'un evenement genere par un jeton, pas par un push humain). Reparation : apres chaque push, les workflows dont
+#   les checks sont requis sont re-armes explicitement par l'API (rearm_checks),
+#   sauf si un PAT est configure (secrets.HERMES_PUSH_TOKEN), auquel cas les vrais
+#   evenements se declenchent et le re-armement est inutile.
+#
+# [HERMES-DERIVES] L'IA ne reecrit plus les fichiers derives.
+#   agnes recevait les fichiers GENERES du depot tronques a 40 000 caracteres par
+#   cote (mpExercises.floor.generated.ts = 89 Ko, trainingCards.mp-2.summary
+#   .generated.ts = 101 Ko). Une troncature au milieu d'une chaine litterale
+#   produit forcement du code invalide : le typecheck echouait sur l'arbre rebase
+#   (TS1002 'Unterminated string literal'), le push etait bloque, et la PR partait
+#   en `hermes/resolution-echouee` — 12 PR ouvertes bloquees de la sorte.
+#   Reparation : un fichier derive (ou trop gros pour tenir sans troncature) n'est
+#   JAMAIS soumis a l'IA ; il se resout de facon deterministe (cote base) et est
+#   signale comme « a regenerer » dans le rapport.
+#
+# [HERMES-SELFHEAL] Un typecheck rouge n'est plus une impasse.
+#   Si l'arbre produit AVEC l'IA ne passe pas le typecheck, la resolution est
+#   refaite SANS IA (mode deterministe) au lieu d'abandonner : une corruption d'IA
+#   ne doit jamais devenir un blocage definitif.
+#
+# Securites :
+#   - push UNIQUEMENT sur la branche de la PR, jamais sur la base ;
+#   - abandon si refs/SHA ont change depuis le dispatch (anti-course) ;
+#   - PR de fork refusee ; typecheck rouge => PAS de push ;
+#   - le check "Hermes sous-agent (conflits)" cree au dispatch par Hermes est
+#     complete ici (succes/echec) : il sert aussi de verrou anti-doublon ;
+#   - echec = compteur de tentatives dans le rapport (pas de blocage muet) :
+#     hermes.yml re-dispatch jusqu'a MAX_RESOLVER_ATTEMPTS, puis escalade
+#     explicitement avec le label `hermes/intervention-humaine` ;
+#   - aucun secret n'est journalise (scrub() masque jetons et cles) ;
+#   - runner self-hosted (workspace persistant) : tout le travail se fait dans
+#     un dossier temporaire jetable, jamais dans le workspace du runner.
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "Numero de la pull request a rebaser"
+        required: true
+        type: string
+      head_ref:
+        description: "Branche de la PR (celle qui sera rebasée et poussée)"
+        required: true
+        type: string
+      base_ref:
+        description: "Branche de base (main en general)"
+        required: true
+        type: string
+      head_sha:
+        description: "SHA head au moment du dispatch (protection anti-course)"
+        required: false
+        type: string
+
+concurrency:
+  group: hermes-resolver-${{ inputs.pr_number }}
+  cancel-in-progress: false
+
+# Shell bash partout : sur le runner Windows (Git Bash inclus) les scripts
+# `run:` (python heredoc, npm) exigent bash, pas PowerShell.
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: write
+  # [HERMES-REARM] Requis pour re-armer ci.yml / stale-base-guard.yml / hermes.yml
+  # sur le nouveau head apres un push fait avec le GITHUB_TOKEN.
+  actions: write
+
+jobs:
+  resolver:
+    name: resolver
+    runs-on: [self-hosted, zenbook]
+    timeout-minutes: 60
+    steps:
+      - name: Rebase + resolution des conflits (sous-agent Hermes)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          # [HERMES-UTF8] Le label `duello` est porte par les runners Linux du VPS ET
+          # par duello-pc-01 (Windows) : ce job peut atterrir sur Windows, ou Python
+          # ouvre fichiers et stdio en cp1252. Sans UTF-8 mode, l'ecriture des rapports
+          # accentues et l'impression des lignes contenant → / ✅ / ⚠️ (absents de
+          # cp1252) feraient echouer le sous-agent apres un rebase reussi.
+          PYTHONUTF8: "1"
+          PYTHONIOENCODING: utf-8
+          # [HERMES-REARM] Optionnel. Si ce secret existe (PAT fine-grained avec
+          # `contents: write`), le push declenche les vrais evenements GitHub et le
+          # re-armement par dispatch devient inutile (plus leger : evite de lancer
+          # la batterie CI complete a chaque rebase). Absent => le re-armement par
+          # dispatch prend le relais, les checks sont quand meme rapportes.
+          # HERMES_PUSH_TOKEN : heredite de l'environnement du runner
+          # (~/hermes/env). Optionnel : sans lui, le re-armement par dispatch
+          # prend le relais (chemin historique, eprouve).
+          # AGNES_API_KEY : heredite de l'environnement du runner (~/hermes/env).
+          PR_NUMBER: ${{ inputs.pr_number }}
+          HEAD_REF: ${{ inputs.head_ref }}
+          BASE_REF: ${{ inputs.base_ref }}
+          HEAD_SHA: ${{ inputs.head_sha }}
+        run: |
+          python3 - <<'PYEOF'
+          # -*- coding: utf-8 -*-
+          import atexit, base64, json, os, re, shutil, subprocess, sys, tempfile, urllib.request, urllib.error, datetime
+
+          GH = os.environ["GH_TOKEN"]
+          KEY = os.environ.get("AGNES_API_KEY", "")
+          REPO = os.environ["GITHUB_REPOSITORY"]
+          API = "https://api.github.com"
+          PR_NUMBER = os.environ["PR_NUMBER"]
+          HEAD_REF = os.environ["HEAD_REF"]
+          BASE_REF = os.environ["BASE_REF"]
+          EXPECTED_SHA = (os.environ.get("HEAD_SHA") or "").strip()
+          MARKER = "<!-- hermes-resolver:v1 -->"
+          LABEL_RESOLVER = "hermes/sous-agent-conflits"
+          LABEL_FAILED = "hermes/resolution-echouee"
+          LABEL_ESCALADE = "hermes/intervention-humaine"
+          CHECK_NAME = "Hermes sous-agent (conflits)"
+          PUSH_TOKEN = (os.environ.get("PUSH_TOKEN") or "").strip()
+          # Compteur de tentatives range dans le rapport (aucun etat externe a gerer).
+          ATTEMPT_MARKER = "<!-- hermes-resolver:attempts=%d -->"
+          ATTEMPT_RE = re.compile(r"<!-- hermes-resolver:attempts=(\d+) -->")
+          # Borne des tentatives automatiques avant escalade (voir hermes.yml).
+          MAX_ATTEMPTS = 3
+
+          # [HERMES-DERIVES] Un fichier est "derive" quand il est produit par un
+          # script du depot (579 fichiers `.generated.*` recenses). Une IA ne doit
+          # jamais le reecrire : il se regenere. Voir l'en-tete du workflow.
+          GENERATED_MARKERS = (".generated.", "-generated.", ".generated-")
+          # Au-dela de cette taille par cote, le prompt est tronque : la corruption
+          # est garantie. 12 000 car. laisse une marge confortable sous l'ancien
+          # plafond de 40 000 qui a produit le TS1002 en production.
+          LLM_MAX_SIDE = 12000
+
+          # Masquage des secrets dans les logs (un PAT fuit sinon en clair).
+          REDACT = [s for s in (GH, PUSH_TOKEN, KEY) if s]
+          REDACT += [base64.b64encode(("x-access-token:%s" % s).encode()).decode()
+                     for s in (GH, PUSH_TOKEN) if s]
+
+          def scrub(text):
+              for s in REDACT:
+                  if s:
+                      text = text.replace(s, "***")
+              return text
+
+          def now():
+              return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+          def api(method, path, body=None):
+              req = urllib.request.Request(API + path, method=method)
+              req.add_header("Authorization", "Bearer " + GH)
+              req.add_header("Accept", "application/vnd.github+json")
+              req.add_header("X-GitHub-Api-Version", "2022-11-28")
+              data = json.dumps(body).encode() if body is not None else None
+              if data is not None:
+                  req.add_header("Content-Type", "application/json")
+              try:
+                  with urllib.request.urlopen(req, data, timeout=60) as r:
+                      raw = r.read()
+                      return json.loads(raw) if raw else {}
+              except urllib.error.HTTPError as e:
+                  return {"_error": e.code, "_body": e.read().decode()[:600]}
+
+          def run(cmd, timeout=900, cwd=None):
+              print("+ " + scrub(" ".join(cmd)))
+              try:
+                  p = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, cwd=cwd,
+                                     env={**os.environ, "GIT_EDITOR": "true", "GIT_PAGER": "cat"})
+              except subprocess.TimeoutExpired:
+                  print("!! timeout apres %ss" % timeout)
+                  return None
+              if p.stdout and p.stdout.strip():
+                  print(scrub(p.stdout[-2500:]))
+              if p.returncode != 0 and p.stderr and p.stderr.strip():
+                  print(scrub(p.stderr[-2500:]))
+              return p
+
+          def native_battery(work):
+              # Batterie native du depot, dans le clone jetable, AVANT push.
+              # Retourne (statut, processus) : statut in ('ok','fail','na').
+              # Swift  : parse de la syntaxe + coherence du projet Xcode.
+              # Kotlin : :app:assembleDebug (compilation reelle + ressources).
+              if os.path.exists(os.path.join(work, "Duello.xcodeproj")):
+                  r = run(["bash", "-c",
+                           "find Duello -name '*.swift' -print0 | xargs -0 -n 25 swiftc -parse"],
+                          timeout=1200, cwd=work)
+                  if r is None or r.returncode != 0:
+                      return ("fail", r)
+                  r = run(["python3", "scripts/sync_xcode_sources.py", "--check"],
+                          timeout=300, cwd=work)
+                  return ("fail", r) if (r is None or r.returncode != 0) else ("ok", r)
+              if os.path.exists(os.path.join(work, "gradlew")):
+                  r = run(["bash", "./gradlew", "--no-daemon", ":app:assembleDebug"],
+                          timeout=2700, cwd=work)
+                  return ("fail", r) if (r is None or r.returncode != 0) else ("ok", r)
+              print("[batterie] ni projet Xcode ni Gradle : rien a verifier localement")
+              return ("na", None)
+
+          def gi(*args, **kw):
+              return run(["git"] + list(args), **kw)
+
+          def find_dispatch_check(sha):
+              if not sha:
+                  return None
+              r = api("GET", "/repos/%s/commits/%s/check-runs?per_page=100" % (REPO, sha))
+              for chk in (r.get("check_runs", []) if isinstance(r, dict) else []):
+                  if chk.get("name") == CHECK_NAME:
+                      return chk
+              return None
+
+          def complete_dispatch_check(sha, ok, title, summary):
+              chk = find_dispatch_check(sha)
+              if not chk or chk.get("status") == "completed":
+                  return
+              api("PATCH", "/repos/%s/check-runs/%s" % (REPO, chk["id"]), {
+                  "status": "completed",
+                  "conclusion": "success" if ok else "failure",
+                  "completed_at": now(),
+                  "output": {"title": title, "summary": (summary or "")[:60000]}})
+
+          def post_report(pr, ok, lines, attempts=0):
+              if ok:
+                  head = "## 🤖 Hermes sous-agent — ✅ **Conflits résolus automatiquement**\n\n"
+              else:
+                  head = ("## 🤖 Hermes sous-agent — ❌ **Résolution impossible automatiquement**\n\n"
+                          "_Tentative %d/%d. Hermes re-dispatchera automatiquement tant que la limite n'est pas atteinte, "
+                          "puis escaladera avec le label `%s`._\n\n" % (attempts, MAX_ATTEMPTS, LABEL_ESCALADE))
+              body = (head + "\n".join(lines) + "\n\n"
+                      + (ATTEMPT_MARKER % attempts) + "\n" + MARKER + "\n")
+              comments = api("GET", "/repos/%s/issues/%s/comments?per_page=50" % (REPO, pr["number"]))
+              for c in (comments if isinstance(comments, list) else []):
+                  if MARKER in (c.get("body") or ""):
+                      api("PATCH", "/repos/%s/issues/comments/%s" % (REPO, c["id"]), {"body": body})
+                      return
+              api("POST", "/repos/%s/issues/%s/comments" % (REPO, pr["number"]), {"body": body})
+
+          def set_label(pr, name, add):
+              if add:
+                  api("POST", "/repos/%s/issues/%s/labels" % (REPO, pr["number"]), {"labels": [name]})
+              else:
+                  api("DELETE", "/repos/%s/issues/%s/labels/%s" % (REPO, pr["number"], name.replace("/", "%2F")))
+
+          def abort(pr, ok, title, lines):
+              complete_dispatch_check(EXPECTED_SHA or (pr.get("head") or {}).get("sha", ""), ok, title, "\n".join(lines))
+              # Un echec REEL incremente le compteur de tentatives ; un abandon
+              # transitoire (anti-course) ne le consomme pas.
+              post_report(pr, ok, lines, read_attempts(pr) if ok else read_attempts(pr) + 1)
+              print("[resolver] " + title + " :: " + " | ".join(lines))
+              # Fix v9 : un echec reel doit etre un echec GitHub. Avant, abort()
+              # sortait TOUJOURS en 0 : un push refuse, un typecheck rouge ou un
+              # rebase impossible etait marque 'success' par Actions (cf. run #35
+              # du 17/09, 'success'... sans push). On distingue desormais :
+              #   - conditions transitoires/anticourse (head bouge, refs changees,
+              #     PR fermee, fork) -> exit 0 : Hermes re-dispatchera sur le
+              #     nouveau head, ce n'est pas une panne du sous-agent ;
+              #   - pannes reelles (clone impossible, rebase non resoluble,
+              #     typecheck rouge, push refuse) -> exit 1 : le run s'affiche
+              #     en echec et declenche les alertes.
+              sys.exit(0 if ok else 1)
+
+          def agnes_resolve(path, base_t, ours_t, theirs_t):
+              if not KEY:
+                  return None
+              # [HERMES-DERIVES] Defense en profondeur : meme appelee par erreur, l'IA
+              # ne touche ni un fichier derive ni un cote trop gros pour tenir sans
+              # troncature. C'est exactement ce qui produisait le TS1002 en production.
+              if is_generated(path):
+                  print("[agnes] %s : fichier derive — IA refusee (regeneration, pas reecriture)" % path)
+                  return None
+              if max(len(base_t or ""), len(ours_t or ""), len(theirs_t or "")) > LLM_MAX_SIDE:
+                  print("[agnes] %s : cote > %d car. — IA refusee (la troncature garantit la corruption)"
+                        % (path, LLM_MAX_SIDE))
+                  return None
+              sysmsg = ("Tu es le sous-agent de Hermes (projet Duello) specialise dans la resolution "
+                        "de conflits de rebase. On te donne un fichier en conflit : version BASE "
+                        "(ancetre commun), version A (branche de base, a conserver par defaut) et "
+                        "version B (la PR). Produit le contenu final du fichier qui fusionne les "
+                        "intentions de A et B sans regression et SANS marqueurs de conflit. "
+                        "Reponds UNIQUEMENT avec le contenu complet du fichier dans un seul bloc de "
+                        "code, sans aucun commentaire ni explication.")
+              user = ("FICHIER: %s\n\n===== BASE (ancetre) =====\n%s\n===== A (base de la PR) =====\n%s"
+                      "\n===== B (PR) =====\n%s") % (path, base_t[:40000], ours_t[:40000], theirs_t[:40000])
+              payload = {"model": "agnes-3.0-flash",
+                         "messages": [{"role": "system", "content": sysmsg},
+                                      {"role": "user", "content": user}],
+                         "max_tokens": 8000, "temperature": 0.0}
+              req = urllib.request.Request("https://apihub.agnes-ai.com/v1/chat/completions",
+                                           data=json.dumps(payload).encode(), method="POST")
+              req.add_header("Authorization", "Bearer " + KEY)
+              req.add_header("Content-Type", "application/json")
+              try:
+                  with urllib.request.urlopen(req, timeout=180) as r:
+                      d = json.loads(r.read())
+                  msg = d["choices"][0]["message"]
+                  out = (msg.get("content") or msg.get("reasoning_content") or "").strip()
+              except Exception as e:
+                  print("[agnes] %s: %s" % (path, e))
+                  return None
+              if out.startswith("```"):
+                  parts = out.split("```")
+                  out = parts[1] if len(parts) >= 2 else out
+                  out = out.split("\n", 1)[1] if "\n" in out else out
+              if not out.strip() or any(m in out for m in ("<<<<<<<", ">>>>>>>")) or "\n=======" in out:
+                  return None
+              return out if not out.endswith("\n") else out[:-1]
+
+          CRITICAL_HINTS = (".github/", "package.json", "package-lock.json", "server/",
+                            "api-relay/", "src/", "scripts/", "app.config.", "eas.json")
+
+          def heuristic_resolve(path):
+              low = path.lower()
+              # [HERMES-DERIVES] Un fichier derive se resout TOUJOURS de facon
+              # deterministe, cote base : il est produit par un script du depot et
+              # se regenere. Jamais d'IA dessus (voir GENERATED_MARKERS).
+              if is_generated(path):
+                  return "ours"
+              if low.endswith(("package-lock.json", ".lock")):
+                  return None
+              if "test-baseline" in low:
+                  return "union"
+              if any(h in path for h in CRITICAL_HINTS):
+                  return None
+              if low.endswith((".png", ".jpg", ".jpeg", ".gif", ".webp", ".pdf", ".mp4", ".mp3", ".ttf", ".otf", ".woff", ".woff2")):
+                  return "ours"
+              if low.endswith((".md", ".txt", ".csv")):
+                  return "union"
+              return None
+
+          def _git_ok(*args):
+              # gi() peut rendre None sur timeout : ne jamais dereferencer .returncode.
+              r = gi(*args, cwd=WORK)
+              return r is not None and r.returncode == 0
+
+          def apply_mode(path, mode):
+              # Rappel : pendant un rebase, --ours = la BASE (HEAD) et --theirs = la PR.
+              if mode == "ours":
+                  return _git_ok("checkout", "--ours", "--", path)
+              if mode == "theirs":
+                  return _git_ok("checkout", "--theirs", "--", path)
+              if mode == "union":
+                  ours = run(["git", "show", "HEAD:" + path], timeout=60, cwd=WORK)
+                  theirs = run(["git", "show", "REBASE_HEAD:" + path], timeout=60, cwd=WORK)
+                  if ours is None or theirs is None:
+                      return False
+                  merged = sorted({l.rstrip("\r") for l in (ours.stdout + "\n" + theirs.stdout).splitlines() if l.strip()})
+                  with open(os.path.join(WORK, path), "w", encoding="utf-8", newline="\n") as fh:
+                      fh.write("\n".join(merged) + "\n")
+                  return True
+              return False
+
+          def file_content(rev, path):
+              p = run(["git", "show", "%s:%s" % (rev, path)], timeout=60, cwd=WORK)
+              return p.stdout if p and p.returncode == 0 else ""
+
+          # ==================== Politique « fichiers derives » ====================
+          # [HERMES-DERIVES] Voir l'en-tete du workflow. Resume : une IA ne reecrit
+          # JAMAIS un fichier produit par un script du depot, ni un fichier trop gros
+          # pour tenir dans le prompt sans troncature.
+
+          def is_generated(path):
+              low = path.lower()
+              if any(m in low for m in GENERATED_MARKERS):
+                  return True
+              if low.startswith("database/") or "/generated/" in low:
+                  return True
+              return low.endswith(".generated") or low.endswith(".generated.json") or low.endswith(".generated.jsonl")
+
+          def llm_skip_reason(path, *sides):
+              """Raison d'ecarter l'IA pour ce fichier, ou None si l'IA peut intervenir."""
+              if is_generated(path):
+                  return "fichier derive — regeneration, pas reecriture d'IA"
+              biggest = max([len(s or "") for s in sides] or [0])
+              if biggest > LLM_MAX_SIDE:
+                  return "%d car. > %d : l'IA tronquerait et produirait du code invalide" % (biggest, LLM_MAX_SIDE)
+              return None
+
+          def valid_llm_output(path, content, *sides):
+              """Raison de REFUSER une sortie d'IA, ou None si elle est utilisable.
+
+              Controles volontairement PRECIS (aucun faux positif) : marqueurs de
+              conflit residuels, troncature grossiere, JSON reellement parsable,
+              syntaxe JS reellement analysee par Node. Les .ts ne sont pas analyses
+              ici (Node --experimental-strip-types --check ne detecte PAS un litteral
+              de chaine non termine, verifie le 20/09) : le typecheck reel de l'arbre
+              reste le juge, et son echec declenche le rattrapage deterministe.
+              """
+              if not content or not content.strip():
+                  return "sortie vide"
+              if any(m in content for m in ("<<<<<<<", ">>>>>>>")) or "\n=======" in content:
+                  return "marqueurs de conflit residuels"
+              floor = int(min([len(s or "") for s in sides] or [0]) * 0.5)
+              if floor > 0 and len(content) < floor:
+                  return "sortie tronquee (%d car., minimum attendu %d)" % (len(content), floor)
+              low = path.lower()
+              if low.endswith((".json", ".jsonl")):
+                  for n, line in enumerate(content.splitlines(), 1):
+                      if not line.strip():
+                          continue
+                      try:
+                          json.loads(line)
+                      except Exception as exc:
+                          return "JSON invalide ligne %d (%s)" % (n, exc)
+              elif low.endswith((".js", ".jsx", ".mjs", ".cjs")):
+                  node = shutil.which("node") or "node"
+                  cand_dir = os.path.join(WORK, ".hermes-syntax-check")
+                  try:
+                      os.makedirs(cand_dir, exist_ok=True)
+                      cand = os.path.join(cand_dir, "cand.mjs")
+                      with open(cand, "w", encoding="utf-8", newline="\n") as fh:
+                          fh.write(content)
+                      pr_ = subprocess.run([node, "--check", cand], capture_output=True, text=True, timeout=120)
+                      if pr_.returncode != 0:
+                          last = ((pr_.stderr or "").strip().splitlines() or ["?"])[-1]
+                          return "syntaxe JS invalide (%s)" % last
+                  except Exception as exc:
+                      print("[check] %s : controle de syntaxe impossible (%s)" % (path, exc))
+                  finally:
+                      shutil.rmtree(cand_dir, ignore_errors=True)
+              return None
+
+          def read_attempts(pr):
+              """Nombre de tentatives reelles deja consommees (compteur range dans le
+              rapport). Aucun etat externe : le commentaire marque fait foi."""
+              comments = api("GET", "/repos/%s/issues/%s/comments?per_page=50" % (REPO, pr["number"]))
+              best = 0
+              for c in (comments if isinstance(comments, list) else []):
+                  m = ATTEMPT_RE.search(c.get("body") or "")
+                  if m:
+                      best = max(best, int(m.group(1)))
+              return best
+
+          def pr_touches_desktop(pr):
+              files = api("GET", "/repos/%s/pulls/%s/files?per_page=100" % (REPO, pr["number"]))
+              return any((f.get("filename") or "").startswith("desktop-app/")
+                         for f in (files if isinstance(files, list) else []))
+
+          # ==================== Re-armement des checks ====================
+          # [HERMES-REARM] Voir l'en-tete du workflow. Un push fait avec le
+          # GITHUB_TOKEN ne declenche AUCUN workflow : sans ce re-armement, le head
+          # pousse n'a aucun check, les checks REQUIS ne sont jamais rapportes et la
+          # PR reste IMMERGEABLE (panne de la PR #187).
+
+          def rearm_checks(pr, head_ref, head_sha, touches_desktop):
+              if PUSH_TOKEN:
+                  print("[rearm] PAT present : le push a declenche les vrais evenements, re-armement inutile")
+                  return []
+              # [PORT-ZENBOOK] stale-base-guard.yml n'existe pas ici : la
+              # protection « base en retard » est assuree par le gate lui-meme.
+              targets = [("ci.yml", {"ref": head_ref}),
+                         ("hermes.yml", {"ref": BASE_REF})]
+              if touches_desktop:
+                  # [PORT-ZENBOOK] inertie : pas de desktop-app/ dans ce depot.
+                  pass
+              done = []
+              for wf, body in targets:
+                  r = api("POST", "/repos/%s/actions/workflows/%s/dispatches" % (REPO, wf), body)
+                  if r.get("_error"):
+                      print("[rearm] %s : echec %s %s" % (wf, r.get("_error"), r.get("_body")))
+                  else:
+                      done.append(wf)
+                      print("[rearm] %s dispatche sur %s" % (wf, head_ref))
+              return done
+
+          # ---------- 0. Verrous ----------
+          pr = api("GET", "/repos/%s/pulls/%s" % (REPO, PR_NUMBER))
+          if pr.get("_error") or pr.get("state") != "open":
+              print("[resolver] PR introuvable ou fermee — abandon (condition transitoire, pas une panne)")
+              sys.exit(0)  # rien a faire : la PR n'est plus mergable, pas un echec du resoudre
+          if (pr.get("head") or {}).get("repo") and (pr["head"]["repo"].get("full_name") != REPO):
+              # Fork : cas non supporte, sans re-dispatch utile -> echec reel explicite.
+              abort(pr, False, "Fork non supporte",
+                    ["PR issue d'un fork : le sous-agent ne pousse que sur les branches du depot principal."])
+          if (pr.get("base") or {}).get("ref") != BASE_REF or (pr.get("head") or {}).get("ref") != HEAD_REF:
+              # Anti-course transitoire : le gate re-dispatchera sur le nouveau head.
+              abort(pr, True, "Refs modifiées",
+                    ["Les refs de la PR ont change depuis le dispatch — abandon par prudence."])
+          if EXPECTED_SHA and (pr.get("head") or {}).get("sha") != EXPECTED_SHA:
+              # Anti-course transitoire : idem.
+              abort(pr, True, "Head modifié",
+                    ["Le head de la PR a change depuis le dispatch — abandon par prudence.",
+                     "Hermes re-dispatchera un sous-agent sur le nouveau head."])
+
+          # ---------- 1. Clone (dossier temporaire jetable) + rebase ----------
+          # Fix v7 "Duplicate header: Authorization" : sur un runner avec credentials
+          # ambiants (GCM / runner), ajouter `-c extraheader` fait partir DEUX headers
+          # Authorization -> HTTP 400. On tente SANS auth explicite d'abord (credentials
+          # ambiants), puis on retente AVEC extraheader seulement si le clone echoue.
+          AUTH_ENV = "AUTHORIZATION: basic " + base64.b64encode(("x-access-token:%s" % GH).encode()).decode()
+          AUTH_CFG = "http.https://github.com/.extraheader=" + AUTH_ENV
+          WORK = tempfile.mkdtemp(prefix="hermes-resolver-")
+          # Fix v10 : le dossier jetable doit TOUJOURS etre supprime. Avant, seul le
+          # chemin de retry clone faisait un rmtree -> chaque job laissait un clone
+          # complet (~2.4 Go) dans /tmp du runner, saturant le disque du VPS.
+          # atexit s'execute meme via les sys.exit() d'abort() (SystemExit).
+          atexit.register(shutil.rmtree, WORK, ignore_errors=True)
+          print("[resolver] workspace temporaire: %s" % WORK)
+          # gi() prefixe toujours par "git" (run() seul executerait "-c" -> WinError 2 sur Windows)
+          r = gi("clone", "--no-tags",
+                 "-c", "user.name=hermes-resolver", "-c", "user.email=hermes-resolver@duello.local",
+                 "https://github.com/%s.git" % REPO, WORK, timeout=1800)
+          if r is None or r.returncode != 0:
+              print("[resolver] clone sans auth ambiante echoue, nouvelle tentative avec extraheader")
+              shutil.rmtree(WORK, ignore_errors=True)
+              r = gi("-c", AUTH_CFG, "clone", "--no-tags",
+                     "-c", "user.name=hermes-resolver", "-c", "user.email=hermes-resolver@duello.local",
+                     "https://github.com/%s.git" % REPO, WORK, timeout=1800)
+          if r is None or r.returncode != 0:
+              abort(pr, False, "Clone impossible", ["Le clone du depot a echoue (voir logs du run).", "(tentative avec et sans credentials explicites)"])
+          if gi("checkout", "-B", HEAD_REF, "origin/" + HEAD_REF, cwd=WORK).returncode != 0:
+              abort(pr, False, "Branche introuvable", ["Branche %s introuvable — abandon." % HEAD_REF])
+          before = run(["git", "rev-parse", "HEAD"], cwd=WORK).stdout.strip()
+          # ---------- 1bis. Rebase + resolution (rejouable) ----------
+          # [HERMES-SELFHEAL] La resolution est encapsulee dans une fonction pour
+          # pouvoir etre REJOUEE sans IA si l'arbre produit avec l'IA ne passe pas le
+          # typecheck. Avant, un typecheck rouge etait une impasse definitive : la PR
+          # partait en `hermes/resolution-echouee` et n'etait plus jamais retentee.
+          ia_ok, heur_ok, failed_files, regen_required = [], [], [], []
+          # SHA de origin/<base_ref> effectivement utilise par le dernier rebase.
+          rebased_onto = ""
+
+          def fetch_base():
+              """[HERMES-FRESH] Ramene origin/<base_ref> au plus recent et rend son SHA.
+
+              Sans ce fetch, le rebase s'appuyait sur l'etat du CLONE. Or le clone
+              complet de ce depot prend des minutes (workspace de plusieurs Go) : le
+              head pousse etait deja `behind` au moment du push, Hermes le voyait
+              toujours « en retard » et re-dispatcheait un sous-agent — un tapis
+              roulant constate sur la PR #386 (rebase pousse sur une base `0f75b6fe`
+              alors que `main` etait deja a `89b77b62`).
+              """
+              gi("fetch", "--no-tags", "origin", BASE_REF, HEAD_REF, cwd=WORK, timeout=900)
+              r = run(["git", "rev-parse", "origin/" + BASE_REF], timeout=60, cwd=WORK)
+              return r.stdout.strip() if r is not None and r.returncode == 0 else ""
+
+          def do_rebase(use_llm, llm_blacklist=None):
+              """Reinitialise la branche sur origin/<head_ref> puis la rebase sur
+              origin/<base_ref>, en resolvant les conflits.
+
+              use_llm=False : resolution 100 % deterministe (aucune IA).
+              llm_blacklist : chemins pour lesquels l'IA est INTERDITE sur cette passe.
+              Utilise au rattrapage : les fichiers que l'IA vient de reecrire et qui ne
+              passent pas le typecheck sont les suspects ; on les resout autrement au lieu
+              de rejouer la meme corruption a l'identique.
+              """
+              global ia_ok, heur_ok, failed_files, regen_required, rebased_onto
+              blacklist = set(llm_blacklist or ())
+              ia_ok, heur_ok, failed_files, regen_required = [], [], [], []
+              if os.path.isdir(os.path.join(WORK, ".git", "rebase-merge")) or \
+                 os.path.isdir(os.path.join(WORK, ".git", "rebase-apply")):
+                  gi("rebase", "--abort", cwd=WORK)
+              # [HERMES-FRESH] Toujours rebaser sur la base la PLUS RECENTE.
+              rebased_onto = fetch_base()
+              if not _git_ok("checkout", "-B", HEAD_REF, "origin/" + HEAD_REF):
+                  print("[resolver] checkout -B %s impossible" % HEAD_REF)
+                  return None
+              p = gi("rebase", "--empty=drop", "origin/" + BASE_REF, cwd=WORK)
+              rounds = 0
+              while p is not None and p.returncode != 0 and rounds < 12:
+                  rounds += 1
+                  u = run(["git", "diff", "--name-only", "--diff-filter=U"], timeout=60, cwd=WORK)
+                  conflicts = [l.strip() for l in (u.stdout or "").splitlines() if l.strip()] if u and u.returncode == 0 else []
+                  if not conflicts:
+                      break
+                  base_sha = run(["git", "merge-base", "REBASE_HEAD", "origin/" + BASE_REF], timeout=60, cwd=WORK)
+                  base_rev = base_sha.stdout.strip() if base_sha and base_sha.returncode == 0 and base_sha.stdout.strip() else "origin/" + BASE_REF
+                  for f in conflicts:
+                      base_t = file_content(base_rev, f)
+                      ours_t = file_content("HEAD", f)
+                      theirs_t = file_content("REBASE_HEAD", f)
+                      out = None
+                      if f in blacklist:
+                          print("[resolver] conflit: %s — IA interdite sur cette passe (suspect du typecheck rouge)" % f)
+                      elif use_llm:
+                          skip = llm_skip_reason(f, base_t, ours_t, theirs_t)
+                          if skip:
+                              print("[resolver] conflit: %s — IA ecartee (%s)" % (f, skip))
+                          else:
+                              print("[resolver] conflit: %s — resolution par agnes" % f)
+                              out = agnes_resolve(f, base_t, ours_t, theirs_t)
+                              if out is not None:
+                                  bad = valid_llm_output(f, out, ours_t, theirs_t)
+                                  if bad:
+                                      print("[resolver] sortie agnes REFUSEE pour %s : %s" % (f, bad))
+                                      out = None
+                      else:
+                          print("[resolver] conflit: %s — mode deterministe (sans IA)" % f)
+                      if out is not None:
+                          with open(os.path.join(WORK, f), "w", encoding="utf-8", newline="\n") as fh:
+                              fh.write(out)
+                          ia_ok.append(f)
+                          continue
+                      mode = heuristic_resolve(f)
+                      if mode and apply_mode(f, mode):
+                          heur_ok.append("%s (repli: %s)" % (f, mode))
+                          if is_generated(f):
+                              regen_required.append(f)
+                      else:
+                          failed_files.append(f)
+                  if failed_files:
+                      break
+                  run(["git", "add", "--"] + conflicts, cwd=WORK)
+                  p = gi("rebase", "--continue", cwd=WORK)
+              return p
+
+          # [HERMES-FRESH] `main` bouge en permanence (Hermes y merge d'autres PR
+          # pendant que ce job tourne). Un rebase sur une base deja perimee donne un
+          # head « behind » des la seconde suivante : on rebase donc jusqu'a obtenir
+          # une base stable, au lieu de pousser un resultat condamne.
+          fresh_passes = 0
+          while True:
+              p = do_rebase(True)
+              if p is None or p.returncode != 0:
+                  gi("rebase", "--abort", cwd=WORK)
+                  set_label(pr, LABEL_RESOLVER, False)
+                  set_label(pr, LABEL_FAILED, True)
+                  abort(pr, False, "Rebase non resoluble",
+                        ["Fichiers non resolus : %s" % ", ".join("`%s`" % f for f in failed_files) if failed_files
+                         else "Le rebase n'a pas abouti (voir logs du run).",
+                         "Aucun push effectue."])
+              moved = fetch_base()
+              if not moved or moved == rebased_onto or fresh_passes >= 3:
+                  break
+              fresh_passes += 1
+              print("[resolver] base %s -> %s pendant le rebase : nouveau rebase sur la base a jour"
+                    % (rebased_onto[:8], moved[:8]))
+
+          # ---------- 2. Typecheck reel (+ rattrapage deterministe) ----------
+          notes = []
+          pkg_path = os.path.join(WORK, "package.json")
+          has_typecheck = False
+          if os.path.exists(pkg_path):
+              with open(pkg_path, "r", encoding="utf-8") as fh:
+                  has_typecheck = '"typecheck"' in fh.read()
+          if has_typecheck:
+              npm_exe = shutil.which("npm") or "npm"   # npm.cmd sur Windows
+              ci = run([npm_exe, "ci", "--no-audit", "--no-fund"], timeout=1800, cwd=WORK)
+              if ci is not None and ci.returncode == 0:
+                  tc = run([npm_exe, "run", "typecheck"], timeout=1800, cwd=WORK)
+                  if (tc is None or tc.returncode != 0) and ia_ok:
+                      # [HERMES-SELFHEAL] L'arbre produit AVEC l'IA ne passe pas le
+                      # typecheck : on refait la resolution SANS IA au lieu d'abandonner.
+                      ia_first = list(ia_ok)
+                      print("[resolver] typecheck rouge apres resolution IA — rattrapage cible")
+                      notes.append("**Rattrapage automatique** : l'arbre produit avec l'IA ne passait pas le typecheck — "
+                                   "resolution refaite en interdisant l'IA sur les fichiers suspects : "
+                                   + ", ".join("`%s`" % f for f in ia_first))
+                      p2 = do_rebase(True, llm_blacklist=ia_first)
+                      if p2 is None or p2.returncode != 0:
+                          gi("rebase", "--abort", cwd=WORK)
+                          set_label(pr, LABEL_RESOLVER, False)
+                          set_label(pr, LABEL_FAILED, True)
+                          abort(pr, False, "Rebase non resoluble (rattrapage)",
+                                notes + ["Le rattrapage cible n'a pas abouti — aucun push effectue.",
+                                         "Un fichier source non derive ne se resout jamais en prenant un cote "
+                                         "au hasard : la main revient a un humain plutot que de risquer une "
+                                         "regression silencieuse."])
+                      tc = run([npm_exe, "run", "typecheck"], timeout=1800, cwd=WORK)
+                  if tc is None or tc.returncode != 0:
+                      tail = (tc.stdout or "")[-3000:] if tc else "timeout"
+                      set_label(pr, LABEL_RESOLVER, False)
+                      set_label(pr, LABEL_FAILED, True)
+                      abort(pr, False, "Typecheck en échec après rebase",
+                            notes + ["Rebase OK mais **typecheck en échec sur l'arbre rebasé** — push bloqué par prudence :",
+                                     "```", tail, "```",
+                                     "Le rebase local est perdu (dossier jetable)."])
+                  else:
+                      notes.append("Typecheck : ✅ vert sur l'arbre rebasé.")
+              else:
+                  notes.append("Typecheck non exécuté (npm ci indisponible) — la CI tranchera après push.")
+          else:
+              notes.append("Typecheck non applicable (pas de script typecheck).")
+
+          # ---------- 2bis. Rapport de resolution ----------
+          after = run(["git", "rev-parse", "HEAD"], cwd=WORK).stdout.strip()
+          lines = ["Branche `%s` rebasée sur `%s` (ancien head `%s` → nouveau head `%s`)."
+                   % (HEAD_REF, BASE_REF, before[:8], after[:8])]
+          if ia_ok:
+              lines.append("**Conflits résolus par agnes** : " + ", ".join("`%s`" % f for f in ia_ok))
+          if heur_ok:
+              lines.append("**Conflits résolus sans IA (déterministe)** : " + ", ".join("`%s`" % f for f in heur_ok))
+          if not (ia_ok or heur_ok):
+              lines.append("Aucun conflit de contenu : rebase simple.")
+          if regen_required:
+              lines.append("")
+              lines.append("⚠️ **%d fichier(s) dérivé(s) à régénérer** — en cas de conflit, le côté base a été conservé "
+                           "(jamais une réécriture d'IA). Relancer le script de génération correspondant avant de merger :"
+                           % len(regen_required))
+              for f in regen_required[:20]:
+                  lines.append("- `%s`" % f)
+              if len(regen_required) > 20:
+                  lines.append("- … et %d autre(s)" % (len(regen_required) - 20))
+          lines.extend(notes)
+
+          # ---------- 2ter. Garde-fou anti-perte (HERMES-NO-LOSS) ----------
+          # Regle permanente (2026-09-21, demande utilisateur) : « une PR ne se
+          # ferme jamais si elle n'est pas implementee ». Ce sous-agent ne pousse
+          # donc JAMAIS un rebase qui viderait la PR ou supprimerait un commit de
+          # la PR dont le contenu n'est pas dans la base.
+          # Pourquoi c'est necessaire : `--empty=drop` (l.560) supprime
+          # SILENCIEUSEMENT les commits devenus vides, et le push ci-dessous est un
+          # `--force-with-lease` : combine, cela effacait du travail de la branche
+          # (PR ouverte mais sans diff, donc immergeable et non reouvrable).
+          # Un refus ici est SANS danger : rien n'a encore ete pousse, la branche
+          # distante reste intacte et la PR reste ouverte.
+          def _capture(args, timeout=900):
+              try:
+                  return subprocess.run(["git"] + args, capture_output=True, text=True,
+                                        timeout=timeout, cwd=WORK)
+              except subprocess.TimeoutExpired:
+                  print("!! timeout apres %ss" % timeout)
+                  return None
+
+          def _patch_ids(revrange):
+              """{patch-id} des commits non-merges de la plage, ou None si indeterminable."""
+              log = _capture(["log", "-p", "--no-merges", "--pretty=format:commit %H"] + revrange)
+              if log is None or log.returncode != 0:
+                  return None
+              pid = subprocess.run(["git", "patch-id", "--stable"], input=log.stdout,
+                                   capture_output=True, text=True, cwd=WORK)
+              if pid.returncode != 0:
+                  return None
+              return set(l.split()[0] for l in pid.stdout.splitlines() if l.strip())
+
+          def _rev(*args):
+              r = _capture(["rev-parse"] + list(args), timeout=120)
+              return r.stdout.strip() if r is not None and r.returncode == 0 else ""
+
+          head_now = _rev("HEAD")
+          orig_head = _rev("origin/" + HEAD_REF)
+          mb_run = _capture(["merge-base", "origin/" + BASE_REF, "origin/" + HEAD_REF], timeout=300)
+          merge_base = mb_run.stdout.strip() if mb_run is not None and mb_run.returncode == 0 else ""
+          had_diff = bool(orig_head) and not _git_ok("diff", "--quiet", "origin/" + BASE_REF, orig_head)
+          has_diff = bool(head_now) and not _git_ok("diff", "--quiet", "origin/" + BASE_REF, head_now)
+          conflits_resolus = bool(ia_ok or heur_ok)
+          pertes = []
+          # Regle 1 (bloquante) : un rebase ne doit JAMAIS vider une PR qui avait du
+          # contenu. Si le head original differait de la base et que le head rebase
+          # n'en differe plus, du contenu a disparu (un contenu deja present dans la
+          # base aurait donne un diff nul AVANT le rebase).
+          if had_diff and not has_diff:
+              pertes.append("le rebase viderait integralement la PR (diff nul contre `%s`)" % BASE_REF)
+          # Regle 2 : sur un rebase PUR (aucun conflit resolu), aucun commit de la PR
+          # ne doit disparaitre. Si un patch n'est ni dans le nouveau head ni dans la
+          # base, c'est une perte reelle -> refus. Quand des conflits ont ete resolus,
+          # la reecriture des patch-ids est attendue (c'est le travail du sous-agent,
+          # deja rapporte plus haut) : on se contente de la signaler dans le rapport.
+          if orig_head and head_now and merge_base:
+              orig_pids = _patch_ids(["origin/%s..%s" % (BASE_REF, orig_head)])
+              new_pids = _patch_ids(["origin/%s..%s" % (BASE_REF, head_now)])
+              base_pids = _patch_ids(["%s..origin/%s" % (merge_base, BASE_REF)])
+              if orig_pids is None or new_pids is None or base_pids is None:
+                  if not conflits_resolus:
+                      pertes.append("verification des patch-ids impossible (log ou patch-id en echec)")
+              else:
+                  manquants = sorted(orig_pids - new_pids - base_pids)
+                  if manquants and not conflits_resolus:
+                      for pid in manquants:
+                          pertes.append("commit dont le patch (`%s`) n'est ni dans le nouveau head "
+                                        "ni dans la base" % pid[:12])
+                  elif manquants:
+                      lines.append("ℹ️ %d commit(s) de la PR ont ete reecrits par la resolution de "
+                                   "conflits (patch-ids differents, aucun drop silencieux) : %s"
+                                   % (len(manquants), ", ".join("`%s`" % p[:12] for p in manquants[:5])))
+          if pertes:
+              set_label(pr, LABEL_RESOLVER, False)
+              set_label(pr, LABEL_FAILED, True)
+              abort(pr, False, "Perte de commits detectee - push refuse",
+                    ["**Garde-fou `HERMES-NO-LOSS`** : le rebase aurait supprime du contenu de la PR.",
+                     "La branche `%s` est **intacte** : aucun push n'a ete effectue, la PR reste ouverte."
+                     % HEAD_REF,
+                     ""] + ["- " + x for x in pertes[:10]] + [
+                     "",
+                     "Corriger le rebase (ou regulariser la base) puis relancer. "
+                     "Aucune branche n'est supprimee et aucune PR n'est fermee par ce garde-fou."])
+
+          # ---------- 3. Push ----------
+          # [HERMES-PAT] Si un PAT est configure, on pousse AVEC lui : un push fait
+          # avec le GITHUB_TOKEN ne declenche aucun workflow (anti-recursion), ce qui
+          # privait le nouveau head de tout check. Sinon repli sur les credentials
+          # ambiants du runner, puis sur un extraheader explicite.
+          lease = "--force-with-lease=refs/heads/%s:%s" % (HEAD_REF, EXPECTED_SHA) if EXPECTED_SHA else "--force-with-lease"
+          refspec = "%s:%s" % (HEAD_REF, HEAD_REF)
+          pp = None
+          if PUSH_TOKEN:
+              hdr = "AUTHORIZATION: basic " + base64.b64encode(("x-access-token:%s" % PUSH_TOKEN).encode()).decode()
+              pp = gi("-c", "http.https://github.com/.extraheader=" + hdr, "push", lease, "origin", refspec, timeout=600, cwd=WORK)
+              if pp is not None and pp.returncode != 0:
+                  print("[resolver] push via PAT echoue — repli sur les credentials ambiants")
+          if pp is None or pp.returncode != 0:
+              pp = gi("push", lease, "origin", refspec, timeout=600, cwd=WORK)
+          if pp is not None and pp.returncode != 0:
+              print("[resolver] push sans auth explicite echoue — nouvelle tentative avec extraheader")
+              pp = gi("-c", AUTH_CFG, "push", lease, "origin", refspec, timeout=600, cwd=WORK)
+          if pp is None or pp.returncode != 0:
+              set_label(pr, LABEL_RESOLVER, False)
+              set_label(pr, LABEL_FAILED, True)
+              abort(pr, False, "Push refusé",
+                    lines + ["", "Push refusé (head distant modifié entre-temps ou droits)."])
+
+          # ---------- 4. Re-armement des checks sur le nouveau head ----------
+          # [HERMES-REARM] Sans ceci, un head pousse par le bot n'a AUCUN check et la
+          # PR reste immergeable (panne de la PR #187).
+          rearmed = rearm_checks(pr, HEAD_REF, after, pr_touches_desktop(pr))
+
+          set_label(pr, LABEL_RESOLVER, False)
+          set_label(pr, LABEL_FAILED, False)
+          set_label(pr, LABEL_ESCALADE, False)
+          lines.append("")
+          if rearmed:
+              lines.append("Checks re-armés sur le nouveau head (un push par bot n'en déclenche aucun) : "
+                           + ", ".join("`%s`" % w for w in rearmed) + ".")
+          lines.append("Push effectué — la batterie (ci.yml) et le gate hermes tournent sur le nouveau head, "
+                       "puis Hermes ré-évalue la PR (merge si tout est vert).")
+          complete_dispatch_check(EXPECTED_SHA, True, "Conflits resolus + push (%s)" % after[:8], "\n".join(lines))
+          post_report(pr, True, lines, read_attempts(pr))
+          print("[resolver] PR #%s : rebase + resolution termines, push OK (%s)" % (PR_NUMBER, after[:8]))
+          PYEOF

@@ -1,0 +1,174 @@
+name: hermes-watchdog
+
+# ─── PORT HERMES / ZENBOOK ────────────────────────────────────────────────────
+# Ce workflow est le portage du gate Hermes du dépôt `duello` vers ce dépôt, avec
+# pour unique runner le Zenbook de Baptiste (`[self-hosted, zenbook]`) — les
+# runners duello (VPS azure-duello, pc-fixe) étant hors ligne depuis le
+# 20/09/2026, le gate d'origine ne tournait plus.
+#
+# Sémantique inchangée (délibérément) :
+#   Règle 1 : la PR doit être basée sur la DERNIÈRE version de sa base (main).
+#             fraîche -> check vert + revue IA + merge auto (rebase)
+#             en retard -> check rouge + label + sous-agent de résolution des conflits
+#   Règle 2 : la batterie (`Batterie`, cf. .github/workflows/ci.yml) doit être verte
+#             sur le SHA de tête. Pending -> merge suspendu ; fail -> retour à l'agent.
+#   Règle 3 : une PR ne meurt jamais — le gardien rouvre toute fermeture sans merge
+#             dont le contenu n'est pas dans la base.
+#
+# Spécificité Zenbook :
+#   - les clés d'API (AGNES_API_KEY, HERMES_PUSH_TOKEN) viennent de l'environnement
+#     du runner (unité systemd `hermes-runner@.service` + ~/hermes/env), PAS des
+#     secrets du dépôt : rien à déposer dans GitHub, et ça survit aux rebuilds ;
+#   - la veille est garantie deux fois : le cron GitHub (peu fiable, mesuré 19/751
+#     livraisons sur `duello`) ET une timer systemd locale sur le Zenbook qui
+#     dispatche `hermes.yml` toutes les 10 min via `gh` ;
+#   - kill-switch auto-merge : `HERMES_AUTO_MERGE=0` dans ~/hermes/env.
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Chien de garde de la veille Hermes : un mini-workflow planifié TOUTES LES 5 MIN
+# qui déclenche le balayage hermes.yml via l'API de dispatch (workflow_dispatch).
+#
+# Pourquoi ce workflow existe :
+#   Le cron */15 interne à hermes.yml vit DANS le groupe de concurrence
+#   hermes-gate. En rafale de PR (ou après un NameError qui tue le balayage
+#   avant la veille), les runs planifiés en attente sont annulés/empilés et la
+#   veille peut rester morte des heures (constaté le 17/09 : morte de 14:38 à
+#   19:06, 7 PRs en retard sans re-dispatch). Ce chien de garde tourne sur SON
+#   PROPRE groupe de concurrence (jamais annulé par hermes-gate) et réveille
+#   le gate par l'API — le run dispatché porte lui l'événement
+#   workflow_dispatch, pas schedule, donc il s'empile sagement dans
+#   hermes-gate au lieu d'être annulé.
+#
+# Comportement :
+#   - par sécurité : rate-limit 1 dispatch / 10 min (état daté persisté dans
+#     la cache d'actions du runner self-hosted), sauf si FORCER_DISPATCH=1 ;
+#   - si un run hermes.yml est déjà en cours/attente : ne fait rien ;
+#   - échoue bruyamment si le dispatch est refusé (visible dans l'onglet Actions).
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  # [WD-EVENT] Le planificateur de GitHub ne livre PAS ce cron. Mesure sur les
+  # runs `schedule` des 18-20/09/2026 : 19 executions au lieu des 751 attendues
+  # sur la fenetre (2,5 %), intervalles de 113 a 312 min, et jusqu'a +5 h de
+  # retard sur un simple cron 2x/jour (channel-runtime-audit). La doc GitHub
+  # l'assume : « some queued jobs may be dropped ». Aucune attente de runner
+  # n'explique ces trous (les jobs demarrent 1-2 s apres la creation du run) :
+  # c'est bien l'evenement qui manque.
+  # Consequence constatee : une PR approuvee dont le gate s'etait suspendu sur
+  # une CI encore `pending` restait bloquee des heures (dispatch manuel requis).
+  # On ne depend donc plus du planificateur : des que la CI `batterie` se
+  # termine, on reveille la veille. Ce chemin est evenementiel, pas planifie.
+  workflow_run:
+    workflows: ["batterie"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      forcer:
+        description: "Forcer le dispatch même si un balayage est récent/en cours"
+        required: false
+        type: boolean
+        default: false
+
+# [WD-PERMS] Le dispatch (POST .../workflows/hermes.yml/dispatches) EXIGE la
+# permission `actions: write` sur le GITHUB_TOKEN. Avec `permissions: {}` le
+# token n'a AUCUN droit -> HTTP 403 -> watchdog en echec a CHAQUE cron
+# (constat 18/09 : runs 35289783037 et 35307845207) et veille Hermes morte.
+# Ne JAMAIS remettre `permissions: {}` ici.
+permissions:
+  actions: write
+
+# Consequence clé : groupe PROPRE, jamais en concurrence avec hermes-gate.
+concurrency:
+  group: hermes-watchdog
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  watchdog:
+    name: watchdog
+    runs-on: [self-hosted, zenbook]
+    timeout-minutes: 5
+    steps:
+      - name: Réveiller la veille Hermes (dispatch hermes.yml)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          # Fin de CI : le gate precedent a pu se suspendre JUSTE avant (il voyait
+          # la CI `pending`), donc le rate-limit de 10 min ne doit pas nous faire
+          # patienter — on force le dispatch. Le cron, lui, garde le rate-limit.
+          FORCER: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' || inputs.forcer }}
+          # [HERMES-UTF8] Meme correctif que hermes.yml : le label `duello` est aussi
+          # porte par duello-pc-01 (Windows), ou Python lit/ecrit en cp1252.
+          PYTHONUTF8: "1"
+          PYTHONIOENCODING: utf-8
+        run: |
+          python3 - <<'PYEOF'
+          # -*- coding: utf-8 -*-
+          import json, os, time, urllib.request, urllib.error, urllib.parse, http.client
+
+          GH = os.environ["GH_TOKEN"]
+          REPO = os.environ["GITHUB_REPOSITORY"]
+          API = "https://api.github.com"
+          FORCER = (os.environ.get("FORCER") or "").lower() in ("true", "1", "yes")
+          RATE_MIN = 10            # minutes entre deux dispatchs du watchdog
+          STAMP = os.path.join(
+              os.environ.get("RUNNER_TEMP", "."),
+              "hermes-watchdog-last-dispatch.txt")
+
+          def api(method, path, body=None):
+              req = urllib.request.Request(API + path, method=method)
+              req.add_header("Authorization", "Bearer " + GH)
+              req.add_header("Accept", "application/vnd.github+json")
+              req.add_header("X-GitHub-Api-Version", "2022-11-28")
+              data = json.dumps(body).encode() if body is not None else None
+              if data is not None:
+                  req.add_header("Content-Type", "application/json")
+              # [WD-RESEAU] Coupures transitoires rattrapees (meme correctif que
+              # hermes.yml) : jamais d'exception non geree qui tue le watchdog.
+              last = None
+              for attempt in range(4):
+                  try:
+                      with urllib.request.urlopen(req, data, timeout=60) as r:
+                          raw = r.read()
+                          return {"code": r.status, "json": json.loads(raw) if raw else {}}
+                  except urllib.error.HTTPError as e:
+                      return {"code": e.code, "json": {}, "body": e.read().decode()[:300]}
+                  except (urllib.error.URLError, OSError, http.client.HTTPException) as e:
+                      last = e
+                      print("[api] reseau KO (%s) %s %s — tentative %d/4" % (
+                          type(e).__name__, method, path, attempt + 1))
+                      time.sleep(2 * (attempt + 1))
+              return {"code": 0, "json": {}, "body": "reseau: %r" % last}
+
+          # 1. Un run hermes.yml est-il déjà en cours ou en attente ?
+          r = api("GET", "/repos/%s/actions/workflows/hermes.yml/runs?per_page=6" % REPO)
+          runs = (r.get("json") or {}).get("workflow_runs") or []
+          if not FORCER:
+              if any(x.get("status") in ("in_progress", "queued", "pending", "waiting") for x in runs):
+                  print("[watchdog] un balayage hermes est deja actif/en attente — rien a faire")
+                  raise SystemExit(0)
+              # Rate-limit : pas plus d'un dispatch par RATE_MIN minutes
+              try:
+                  with open(STAMP, encoding="utf-8") as fh:
+                      last = float(fh.read().strip())
+                  if time.time() - last < RATE_MIN * 60:
+                      print("[watchdog] dispatch recent (< %d min) — rien a faire" % RATE_MIN)
+                      raise SystemExit(0)
+              except FileNotFoundError:
+                  pass
+          else:
+              print("[watchdog] mode FORCER : dispatch malgre tout")
+
+          # 2. Dispatch (une seuleiteration : le gate est serialise par hermes-gate)
+          d = api("POST", "/repos/%s/actions/workflows/hermes.yml/dispatches" % REPO,
+                  {"ref": "main"})
+          if d.get("code") != 204:
+              print("[watchdog] ECHEC dispatch: HTTP %s %s" % (d.get("code"), d.get("body", "")))
+              raise SystemExit(1)
+          with open(STAMP, "w", encoding="utf-8") as fh:
+              fh.write(str(time.time()))
+          print("[watchdog] balayage hermes dispatche a", time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
+          PYEOF
