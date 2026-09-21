@@ -243,6 +243,10 @@ struct ExGCorrectionActions: View {
         Button(action: action) {
             Text(label)
                 .font(.system(size: 14, weight: .bold))
+                // Sur un téléphone étroit, chaque libellé se resserre au lieu
+                // de passer sur deux lignes (PR #424, `adjustsFontSizeToFit`).
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
                 .foregroundStyle(Theme.surface)
                 .frame(maxWidth: .infinity, minHeight: 48)
                 .background(Theme.ink)

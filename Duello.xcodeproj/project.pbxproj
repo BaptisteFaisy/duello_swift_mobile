@@ -559,6 +559,7 @@
 		A65C6CBE4FE1FB720C68AB5E /* DuelloApiError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 906ED1F3E26A2EF0401F8923 /* DuelloApiError.swift */; };
 		41D62F663D9ECAA2BEA9EB7A /* TrainGridExerciseGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDD41980451563784394DF50 /* TrainGridExerciseGrid.swift */; };
 		437D29E3D036E6638CB385EB /* TrainGridStyles.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2D1B469FCC71D03B4C97703 /* TrainGridStyles.swift */; };
+		A655EFD58A8B4C2939ADF6A7 /* FlippableBadgePresence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E51DE729335D3FDAF3DA904 /* FlippableBadgePresence.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -1115,6 +1116,7 @@
 		906ED1F3E26A2EF0401F8923 /* DuelloApiError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuelloApiError.swift; sourceTree = "<group>"; };
 		FDD41980451563784394DF50 /* TrainGridExerciseGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainGridExerciseGrid.swift; sourceTree = "<group>"; };
 		C2D1B469FCC71D03B4C97703 /* TrainGridStyles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainGridStyles.swift; sourceTree = "<group>"; };
+		0E51DE729335D3FDAF3DA904 /* FlippableBadgePresence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlippableBadgePresence.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1692,6 +1694,7 @@
 				906ED1F3E26A2EF0401F8923 /* DuelloApiError.swift */,
 				FDD41980451563784394DF50 /* TrainGridExerciseGrid.swift */,
 				C2D1B469FCC71D03B4C97703 /* TrainGridStyles.swift */,
+				0E51DE729335D3FDAF3DA904 /* FlippableBadgePresence.swift */,
 			);
 			path = Duello;
 			sourceTree = "<group>";
@@ -2325,6 +2328,7 @@
 				A65C6CBE4FE1FB720C68AB5E /* DuelloApiError.swift in Sources */,
 				41D62F663D9ECAA2BEA9EB7A /* TrainGridExerciseGrid.swift in Sources */,
 				437D29E3D036E6638CB385EB /* TrainGridStyles.swift in Sources */,
+				A655EFD58A8B4C2939ADF6A7 /* FlippableBadgePresence.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
