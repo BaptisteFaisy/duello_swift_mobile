@@ -70,9 +70,44 @@ chaque lot livré.
 | Affiliation | `AffiliateView.swift` | `features/affiliate/` | ✅ |
 | Administration | `AdminView.swift` | `admin/` | ✅ |
 
-**Roadmap terminée** : tous les lots prévus sont portés. Reste l'intégration
-native (montage des écrans dans `MainTabView`/`AccountView`, `Info.plist`,
-`project.pbxproj`) et la **compilation sur le Mac**.
+**Roadmap v1 terminée** (lots 1 à 5) : tous les lots prévus sont portés.
+
+### Lot 6 — surfaces restantes (fan-out, 2026-09-21)
+
+163 fichiers neufs, écrits par 14 sous-agents (préfixe de types réservé par lot,
+cf. `PORTING_BATCH6.md`). Le lot 6 couvre les surfaces Expo encore **absentes**
+du port après le lot 5.
+
+| Lot | Préfixe | Fich. | Sources Expo |
+| --- | --- | --- | --- |
+| A | `AppleAuth` | 5 | `AppleAuthButton`, `appleAuth/appleIdentity/appleAccount`, `SocialAuthFallbackButton` |
+| B | `PushNotif` | 10 | `pushNotifications`, `notificationPolicy`, `pushNotification*`, `PushNotificationCoordinator/TapHandler`, `NotificationBadgeSync` |
+| C | `AcctSec` | 8 | `AccountEmailScreen`, `AccountPasswordScreen`, `PasswordResetForm`, `RecoveryCodeModal`, `passwordReset*`, `recoveryCodePolicy`, `biometricPolicy`, `usernameAvailability`, `loginAccountSelection` |
+| D | `Chart` | 20 | `XpChart/XpLevelCard/XpProgressBar/XpGainProgress`, `GradeChart`, `EloChart`, `MasteryPie`, `SubjectSuccessChart`, `SubjectTimeTrendChart`, `CorrectionGradeChart`, `GradeEvolutionBadge`, `ExerciseMetricHistory`, `PerformanceOverviewBar`, `xpSeries/gradeChart/smoothChartPath/subjectTimeSeries/accountMetricEvolution/xpLevelProgress` |
+| E | `League` | 7 | `eloLeaguePromotion`, `leagueBadges`, `EloLeaguePromotionCard/Celebration`, `LeagueBadgeOutline`, `BadgeFlipHint` |
+| F | `Report` | 9 | `UserReportModal`, `QuestionCorrectionReportModal`, `ExerciseReportButton`, `ProfileSafetyMenu`, `question-report/`, `PublicProfilePublisher`, `publicProfileSnapshot/socialVisibility` |
+| G | `PremCode` | 10 | `PremiumCodeRedemptionCard`, `PremiumUnlockCelebration`, `SubscriptionPaymentSync`, `premiumCodeRedemption*`, `subscription*`, `remoteSubscription`, `purchaserIdentity` |
+| H | `PhotoPick` | 5 | `profile-photo/`, `profilePhoto`, `profilePhotoUri` |
+| I | `Dict` | 17 | `speechMath`, `mathDictation`, `dictationAccess/Language`, `realtimeAsr`, `useDictationAppState` |
+| J | `Chal` | 12 | `ChallengeHomeOverview`, `IncomingChallengeModal`, `ChallengeInvitationCoordinator`, `useChallengeQueue`, `challengeSeries/Timer/ExerciseProgress` |
+| K | `OnbGift` | 12 | `OnboardingPremiumGift*`, `OnboardingLegalNotice`, `OnboardingMathProgressChart`, `OnboardingStepTransition`, `onboardingStepTransition`, `progressiveReveal` |
+| L | `Offl` | 18 | `contentDownload*`, `contentStore/Cache/Sync/Bootstrap/InteractionGate`, `resumableExercisePrefetch`, `OfflineDownloadProgress`, `useContentDownload/useOfflineContentCache/useContentRevision` |
+| M | `Coll` | 18 | `ColleCompletionPanel`, `CourseChapterSidebar`, `ExercisePageEmptyState`, `ProgressiveList`, `colleCompletion/Banks/Exercises`, `courseDocumentData/Flashcards/KnowledgeIndex`, `trainingStartupSummary/ItemTitle/Time/SubmissionSummary` |
+| N | `RemPhoto` | 12 | `remote-photo-connection/*`, `remotePhoto*` |
+
+**État après lot 6** : **459** fichiers `Duello/*.swift`, 65 864 lignes — tous
+≤ 500 lignes, 0 collision de type top-level, 0 `TODO`/`print`/`fatalError` dans
+les fichiers du lot, en-têtes citant les sources Expo (163/163).
+Pré-contrôle Linux : **vert** (syntaxe : tous les fichiers ; types : 221 fichiers
+portables ; 1 « hors couverture » structurel — `ChartXpSeries.swift` cite
+`ExGXp`, déclaré dans un fichier non portable). `project.pbxproj` resynchronisé
+(459 sources).
+
+Reste l'intégration native (montage des écrans dans `MainTabView`/`AccountView`,
+`Info.plist` — `NSCameraUsageDescription`, `NSPhotoLibraryUsageDescription`,
+`NSUserTrackingUsageDescription`, `UIBackgroundModes remote-notification` —
+entitlements *Sign in with Apple* et *Push Notifications*) et la **compilation
+sur le Mac**.
 
 ## Conformité aux règles de complexité Duello
 
