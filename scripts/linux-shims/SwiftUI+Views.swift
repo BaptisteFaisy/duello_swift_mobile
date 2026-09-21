@@ -600,18 +600,46 @@ public struct ShareLink<Data: RandomAccessCollection, Preview: View, Label: View
     public nonisolated init(items: Data, @ViewBuilder label: () -> Label) {}
 }
 
-public struct Canvas<Symbols, Renderer>: _ShimLeaf {
-    public nonisolated init(opaque: Bool = false, colorMode: ColorRenderingMode = .nonLinear, rendersAsynchronously: Bool = false, renderer: @escaping (inout GraphicsContext, CGSize) -> Void) {}
+/// `Symbols`/`Renderer` sont des paramètres du TYPE, comme dans le SDK : sans
+/// contrainte, `Canvas { … }` ne pouvait pas les inférer.
+public struct Canvas<Symbols: View, Renderer: View>: _ShimLeaf {
+    public nonisolated init(
+        opaque: Bool = false,
+        colorMode: ColorRenderingMode = .nonLinear,
+        rendersAsynchronously: Bool = false,
+        renderer: @escaping (inout GraphicsContext, CGSize) -> Void,
+        @ViewBuilder symbols: () -> Symbols
+    ) {}
+}
+
+public extension Canvas where Symbols == EmptyView, Renderer == EmptyView {
+    nonisolated init(
+        opaque: Bool = false,
+        colorMode: ColorRenderingMode = .nonLinear,
+        rendersAsynchronously: Bool = false,
+        renderer: @escaping (inout GraphicsContext, CGSize) -> Void
+    ) {}
 }
 
 public struct GraphicsContext {
-    public struct Shading { public static let color = Shading() }
+    public struct Shading {
+        public static func color(_ color: Color) -> Shading { Shading() }
+        public static func linearGradient(_ gradient: Gradient) -> Shading { Shading() }
+        public static func radialGradient(_ gradient: Gradient) -> Shading { Shading() }
+        public static func style<S: ShapeStyle>(_ style: S) -> Shading { Shading() }
+    }
     public var fillStyle: FillStyle
     public var strokeStyle: StrokeStyle
     public func fill(_ path: Path, with shading: Shading, style: FillStyle = FillStyle()) {}
     public func stroke(_ path: Path, with shading: Shading, lineWidth: CGFloat = 1) {}
     public func stroke(_ path: Path, with shading: Shading, style: StrokeStyle) {}
     public func clip(to path: Path) {}
+    // Transformations du contexte (`translateBy`, `scaleBy`, `rotate`).
+    public mutating func translateBy(x: CGFloat, y: CGFloat) {}
+    public mutating func scaleBy(x: CGFloat, y: CGFloat) {}
+    public mutating func rotate(by angle: Angle) {}
+    public func draw(_ image: Image, at point: CGPoint, anchor: UnitPoint = .center) {}
+    public func draw(_ text: Text, at point: CGPoint, anchor: UnitPoint = .center) {}
 }
 
 public enum ColorRenderingMode: Hashable, Sendable { case nonLinear, linear, extendedLinear }
@@ -785,4 +813,16 @@ extension AttributeScopes {
     }
 
     public var swiftUI: SwiftUIAttributes { SwiftUIAttributes() }
+}
+
+
+/// Foundation résout `attributedString.foregroundColor` par une recherche
+/// dynamique : déclarer la portée `SwiftUIAttributes` ne suffit pas, il faut
+/// aussi le `subscript` correspondant sur `AttributeDynamicLookup`.
+extension AttributeDynamicLookup {
+    public subscript<T: AttributedStringKey>(
+        dynamicMember keyPath: KeyPath<AttributeScopes.SwiftUIAttributes, T>
+    ) -> T {
+        self[T.self]
+    }
 }

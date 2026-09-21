@@ -5,6 +5,7 @@
 // SwiftUI (iOS 16).
 
 import Foundation
+import PhotosUI
 import UniformTypeIdentifiers
 import UIKit
 
@@ -749,6 +750,13 @@ public extension View {
     func badge<S: StringProtocol>(_ label: S) -> some View { _ShimView() }
     func badge(_ key: LocalizedStringKey) -> some View { _ShimView() }
     func refreshable(action: @escaping @Sendable () async -> Void) -> some View { _ShimView() }
+    /// `PhotosUI` : sélecteur de photos SwiftUI (iOS 16).
+    func photosPicker<S: RandomAccessCollection>(
+        isPresented: Binding<Bool>,
+        selection: Binding<S>,
+        maxSelectionCount: Int? = nil,
+        matching filter: PHPickerFilter? = nil
+    ) -> some View { _ShimView() }
     func fileImporter(isPresented: Binding<Bool>, allowedContentTypes: [UTType], allowsMultipleSelection: Bool = false, onCompletion: @escaping (Result<[URL], Error>) -> Void) -> some View { _ShimView() }
     func fileImporter(isPresented: Binding<Bool>, allowedContentTypes: [UTType], onCompletion: @escaping (Result<URL, Error>) -> Void) -> some View { _ShimView() }
 }

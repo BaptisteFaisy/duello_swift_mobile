@@ -23,11 +23,11 @@ enum PlanDateEngine {
     }
 
     /// `longDateFormatter` (EnhancedPlanScreen ligne 18) : « 21 septembre 2026 ».
-    private static let longFormatter = makeFormatter("d MMMM yyyy")
+    static let longFormatter = makeFormatter("d MMMM yyyy")
     /// `monthDayFormatter` (date.ts ligne 11) : « 21 septembre ».
-    private static let monthDayFormatter = makeFormatter("d MMMM")
+    static let monthDayFormatter = makeFormatter("d MMMM")
     /// `shortWeekdayFormatter` (date.ts ligne 7) : « lun. » → « lun ».
-    private static let shortWeekdayFormatter = makeFormatter("EEE")
+    static let shortWeekdayFormatter = makeFormatter("EEE")
     /// `toLocalDateKey` (date.ts ligne 71) : AAAA-MM-JJ.
     private static let keyFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -38,7 +38,7 @@ enum PlanDateEngine {
         return formatter
     }()
     /// `formatDateInput` (EnhancedPlanScreen lignes 467-471).
-    private static let inputFormatter = makeFormatter("dd/MM/yyyy")
+    static let inputFormatter = makeFormatter("dd/MM/yyyy")
 
     static var gregorian: Calendar {
         var calendar = Calendar(identifier: .gregorian)

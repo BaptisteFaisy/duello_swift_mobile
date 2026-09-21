@@ -19,7 +19,11 @@ enum StmtLayoutDocument {
             .trimmingCharacters(in: .whitespacesAndNewlines)
         guard let match = StmtRegex.firstMatch(danglingSectionHeading, in: normalized) else { return normalized }
         let source = normalized as NSString
-        let candidate = source.substring(with: match.range(at: 1)).trimmingCharacters(in: .whitespaces)
+        // Le titre est capturé dans le groupe 1 du motif ; `StmtRegex.firstMatch`
+        // ne renvoie que le couple (match entier, source) — les groupes se
+        // lisent avec `StmtRegex.groups`.
+        let candidate = (StmtRegex.groups(danglingSectionHeading, in: normalized)?[1] ?? "")
+            .trimmingCharacters(in: .whitespaces)
         let wordCount = candidate.split(separator: " ").filter { !$0.isEmpty }.count
         if wordCount > 8
             || StmtRegex.contains(instructionOpening, in: candidate, options: [.caseInsensitive])
