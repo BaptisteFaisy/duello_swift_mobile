@@ -54,9 +54,9 @@ func chapterItemAsDuelExercise(_ item: ChallengeExerciseEntry, _ subject: String
         context: (item.statement?.trimmingCharacters(in: .whitespacesAndNewlines)).map { $0.isEmpty ? item.title : $0 } ?? item.title,
         questions: {
             if let questions = item.questions, !questions.isEmpty {
-                return questions.map { DuelExercise.Question(id: $0.id, label: $0.label, prompt: nil) }
+                return questions.map { DuelExercise.Question(id: $0.id, prompt: nil, label: $0.label) }
             }
-            return [DuelExercise.Question(id: "resolution", label: nil, prompt: nil)]
+            return [DuelExercise.Question(id: "resolution", prompt: nil, label: nil)]
         }(),
         solution: (item.solution?.trimmingCharacters(in: .whitespacesAndNewlines)).map { $0.isEmpty ? nil : $0 } ?? nil
     )

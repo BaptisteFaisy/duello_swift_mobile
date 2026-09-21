@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 import UIKit
 
 // MARK: - État du formulaire de code promo

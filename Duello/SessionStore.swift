@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 import Security
 
 /// Session serveur, alignée sur `ServerSession` de `src/utils/serverSession.ts`.

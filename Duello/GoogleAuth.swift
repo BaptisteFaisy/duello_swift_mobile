@@ -83,7 +83,10 @@ func googleAuthErrorMessage(_ error: Error) -> String? {
     if nsError.domain == "com.google.GIDSignIn", nsError.code == -3 {
         return nil
     }
-    if nsError.code == NSUserCancelledErrorCode {
+    // Annulation au niveau Cocoa (`NSUserCancelledError`, code 3072 du domaine
+    // `NSCocoaErrorDomain`). Le domaine est testé explicitement : le code 3072
+    // seul provoquerait un faux positif pour une erreur étrangère.
+    if nsError.domain == NSCocoaErrorDomain, nsError.code == CocoaError.Code.userCancelled.rawValue {
         return nil
     }
     let message = error.localizedDescription.trimmingCharacters(in: .whitespacesAndNewlines)
