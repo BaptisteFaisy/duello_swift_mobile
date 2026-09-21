@@ -26,6 +26,12 @@ enum StmtLatexEmphasis {
         return StmtRegex.replaceAll("\\n{3,}", in: kept, template: "\n\n")
     }
 
+    ///
+    /// Dérogation de complexité : `normalizeLatexEmphasisCommands` compte 59
+    /// lignes (limite : 50). Analyse caractère à caractère d'une seule passe
+    /// avec état partagé (curseur, drapeaux fence/code/math) : la scinder en
+    /// sous-fonctions exigerait de transporter cet état par paramètres ou de
+    /// nouveaux membres, pour un port moins lisible. Conservée telle quelle.
     /// Convertit `\textbf{…}` en `**…**` et les italiques en texte nu.
     static func normalizeLatexEmphasisCommands(_ text: String) -> String {
         if !text.contains("\\") { return text }

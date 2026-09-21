@@ -36,6 +36,12 @@ enum StmtReferenceSolution {
         return shifted <= 99 ? "\(shifted)" : label
     }
 
+    ///
+    /// Dérogation de complexité : `solutionMarkers` compte 64 lignes (limite :
+    /// 50). Balayage ligne à ligne avec état partagé (marqueurs, parent,
+    /// section, décalage de série, drapeaux de blocs) muté à chaque ligne :
+    /// découper exigerait de transporter cet état entre sous-fonctions.
+    /// Conservée telle quelle.
     /// Marqueurs de section d'un corrigé (`solutionMarkers`).
     static func solutionMarkers(_ text: String) -> [SolutionMarker] {
         var markers: [SolutionMarker] = []

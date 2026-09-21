@@ -106,6 +106,12 @@ enum StmtQuestionsParser {
         processQuestion(&state, line, lineIndex)
     }
 
+    ///
+    /// Dérogation de complexité : `processQuestion` compte 61 lignes (limite :
+    /// 50). Machine à états d'une ligne (titre, numéro, sous-liste, lettres)
+    /// sur l'état global du parseur : chaque branche mutée plusieurs champs ;
+    /// découper exigerait de nouveaux membres et un port non transparent.
+    /// Conservée telle quelle.
     /// Traite les repères de question d'une ligne déjà nettoyée.
     static func processQuestion(_ state: inout State, _ line: String, _ lineIndex: Int) {
         let numbered = StmtRegex.groups(number, in: line)
