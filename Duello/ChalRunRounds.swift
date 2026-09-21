@@ -108,7 +108,10 @@ struct ChalRunRounds: View {
     @State private var waitingDeadline: Double?
     @State private var gradeTask: Task<Void, Never>?
 
-    private var timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    // `let` et non `var` : une propriété stockée `private var` dotée d'une valeur
+    // initiale entre dans l'initialiseur membre-à-membre, ce qui rend celui-ci
+    // `private` — donc inaccessible depuis `ChalIntDuelFlow`, qui construit la vue.
+    private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     private var totalSeconds: Double { Double(match.durationMinutes * 60) }
 

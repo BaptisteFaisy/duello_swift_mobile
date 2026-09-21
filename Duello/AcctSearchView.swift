@@ -359,7 +359,12 @@ struct AcctSearchView: View {
             await model.runSearch(token: session.token)
         }
         .task(id: model.selectedProfileTaskId) {
-            guard model.selectedMemberId != nil else { return }
+            // `selectedMemberId` est isolé au fil principal (`@MainActor` sur
+            // `AcctSearchModel`) : `.task` forme une fermeture `@Sendable`, qui
+            // n'hérite pas de l'isolation du `body`. Sans `await`, la lecture
+            // ne compile pas.
+            let memberId = await model.selectedMemberId
+            guard memberId != nil else { return }
             await model.refreshSelectedProfile(token: session.token)
             // La fiche reste resynchronisée tant qu'elle est ouverte.
             while !Task.isCancelled {

@@ -86,7 +86,7 @@ private struct ExGXpCounter: View, Animatable {
         HStack(spacing: 12) {
             Image(systemName: "star.fill")
                 .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(levelUp ? Theme.gradingPerfectHex.color : Theme.ink)
+                .foregroundStyle(levelUp ? Theme.gradingPerfect : Theme.ink)
                 .frame(width: 44, height: 44)
                 .background(levelUp ? Theme.progressLight : Theme.surfaceMuted)
                 .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
@@ -170,7 +170,7 @@ private struct ExGBonusLine: View {
                 Text("+\(ExGFormat.xp(xp)) XP")
                     .font(.system(size: 13, weight: .bold))
                     .monospacedDigit()
-                    .foregroundStyle(Theme.gradingPerfectHex.color)
+                    .foregroundStyle(Theme.gradingPerfect)
             }
         }
     }
@@ -222,7 +222,7 @@ struct ExGBonusStatus: View {
                 Button(action: onRetry) {
                     Text("Réessayer")
                         .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(Theme.gradingPerfectHex.color)
+                        .foregroundStyle(Theme.gradingPerfect)
                         .frame(maxWidth: .infinity, minHeight: 44)
                 }
                 .buttonStyle(.plain)

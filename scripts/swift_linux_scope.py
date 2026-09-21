@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Périmètre du pré-contrôle Swift sous Linux.
 
-Sous Linux, SwiftUI, Charts, PDFKit, PhotosUI… n'existent pas : `swiftc` ne
-peut contrôler les TYPES que des fichiers « portables » — ceux qui n'importent
-que Foundation / UIKit / Security / Combine / GoogleSignIn. Les autres ne sont
-contrôlés qu'en syntaxe (`-parse`).
+Sous Linux, Charts, PDFKit, PhotosUI… n'existent pas : `swiftc` ne peut
+contrôler les TYPES que des fichiers « portables » — ceux qui n'importent que
+Foundation / UIKit / Security / Combine / GoogleSignIn / SwiftUI. Les autres ne
+sont contrôlés qu'en syntaxe (`-parse`). SwiftUI est couvert par le shim
+`scripts/linux-shims/SwiftUI*.swift` (faux module, jamais livré).
 
 Il reste un faux positif structurel : un fichier portable peut citer un type
 déclaré dans un fichier non portable (un modèle qui utilise un type dont la
@@ -24,7 +25,7 @@ import re
 import sys
 
 PORTABLE_IMPORTS = re.compile(
-    r"^import (Foundation|UIKit|Security|Combine|GoogleSignIn)$"
+    r"^import (Foundation|UIKit|Security|Combine|GoogleSignIn|SwiftUI)$"
 )
 IMPORTS = re.compile(r"^import .*$", re.M)
 # Déclaration de type en tête de ligne : [modificateurs] struct|class|enum|…

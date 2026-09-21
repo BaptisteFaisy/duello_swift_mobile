@@ -131,9 +131,9 @@ enum ExGRemarkTone {
 
     var foreground: Color {
         switch self {
-        case .excellent: return Theme.gradingPerfectHex.color
+        case .excellent: return Theme.gradingPerfect
         case .good: return Theme.progress
-        case .fair: return Theme.gradingPartialHex.color
+        case .fair: return Theme.gradingPartial
         case .failing: return Theme.like
         case .ungraded: return Theme.inkSoft
         }
@@ -141,9 +141,9 @@ enum ExGRemarkTone {
 
     var background: Color {
         switch self {
-        case .excellent: return Theme.gradingPerfectLightHex.color
+        case .excellent: return Theme.gradingPerfectLight
         case .good: return Theme.progressLight
-        case .fair: return Theme.gradingPartialLightHex.color
+        case .fair: return Theme.gradingPartialLight
         case .failing: return exgLikeLight
         case .ungraded: return Theme.surfaceMuted
         }

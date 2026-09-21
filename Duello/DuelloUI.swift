@@ -41,8 +41,8 @@ enum DuelloPillTone {
         switch self {
         case .neutral: return Theme.inkSoft
         case .ink: return Theme.ink
-        case .success: return Theme.gradingPerfectHex.color
-        case .warning: return Theme.gradingPartialHex.color
+        case .success: return Theme.gradingPerfect
+        case .warning: return Theme.gradingPartial
         case .danger: return Theme.like
         }
     }
@@ -51,8 +51,8 @@ enum DuelloPillTone {
         switch self {
         case .neutral: return Theme.surfaceMuted
         case .ink: return Theme.primaryLight
-        case .success: return Theme.gradingPerfectLightHex.color
-        case .warning: return Theme.gradingPartialLightHex.color
+        case .success: return Theme.gradingPerfectLight
+        case .warning: return Theme.gradingPartialLight
         case .danger: return Theme.like.opacity(0.12)
         }
     }

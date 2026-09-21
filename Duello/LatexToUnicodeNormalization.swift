@@ -46,7 +46,9 @@ extension LatexToUnicode {
 
     static func normaliserGlyphesPrivesPdf(_ texte: String) -> String {
         guard texte.contains(where: { glyphesPrivesPdf[$0] != nil }) else { return texte }
-        return String(texte.map { glyphesPrivesPdf[$0] ?? String($0) })
+        // `map` produit des `String` (le remplacement peut en compter
+        // plusieurs) : il faut les recoller, `String([String])` n'existe pas.
+        return texte.map { glyphesPrivesPdf[$0] ?? String($0) }.joined()
     }
 
     /// Les espaces alignant une matrice multiligne sont significatifs ; pour

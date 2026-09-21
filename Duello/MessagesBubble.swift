@@ -50,13 +50,13 @@ struct MessageBubbleRow: View {
         .overlay(bubbleBorder)
     }
 
-    private var bubbleShape: UnevenRoundedRectangle {
-        UnevenRoundedRectangle(
-            topLeadingRadius: 17,
-            bottomLeadingRadius: isMine ? 17 : 5,
-            bottomTrailingRadius: isMine ? 5 : 17,
-            topTrailingRadius: 17
-        )
+    /// Trois coins à 17, un à 5 du côté de l'émetteur.
+    ///
+    /// La source Expo utilise `borderBottomLeftRadius`/`borderBottomRightRadius`
+    /// inégaux, que SwiftUI ne sait exprimer avant iOS 17 qu'avec une forme
+    /// dessinée à la main : voir `MsgBubbleShape`.
+    private var bubbleShape: MsgBubbleShape {
+        MsgBubbleShape(radius: 17, tightRadius: 5, isMine: isMine)
     }
 
     @ViewBuilder

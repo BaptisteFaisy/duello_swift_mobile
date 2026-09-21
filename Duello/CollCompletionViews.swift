@@ -233,7 +233,7 @@ struct CollGradeCard: View {
 
     private var background: Color {
         switch grade.verdict {
-        case .perfect: return Theme.gradingPerfectLightHex.color
+        case .perfect: return Theme.gradingPerfectLight
         case .correct: return Color(hex: 0xDDF5E7)
         case .partial: return Color(hex: 0xFFF0C7)
         case .incorrect: return Color(hex: 0xFCE0E0)

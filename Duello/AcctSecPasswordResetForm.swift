@@ -58,7 +58,10 @@ struct AcctSecPasswordResetForm: View {
             .frame(maxWidth: .infinity)
         }
         .background(Theme.background)
-        .task { prime() }
+        // `prime()` est isolée au fil principal (la vue conforme à `View` l'est) ;
+        // `.task` forme une fermeture `@Sendable`, qui n'hérite pas de cette
+        // isolation : l'appel est donc implicitement asynchrone.
+        .task { await prime() }
     }
 
     // MARK: En-tête
