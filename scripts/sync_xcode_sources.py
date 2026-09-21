@@ -2,16 +2,20 @@
 """Synchronise `Duello.xcodeproj/project.pbxproj` avec le dossier `Duello/`.
 
 Le projet Xcode de Duello liste explicitement chaque fichier source (pas de
-groupe synchronisé du système de fichiers). Ajouter un `.swift` à la main dans
-les quatre sections du pbxproj est fastidieux et source d'erreurs ; ce script
-le fait de façon déterministe et idempotente :
+groupe synchronisé du système de fichiers). Ajouter ou retirer un `.swift` à la
+main dans les quatre sections du pbxproj est fastidieux et source d'erreurs ;
+ce script le fait de façon déterministe et idempotente :
 
 - PBXBuildFile      (l'entrée de compilation)
 - PBXFileReference  (la référence de fichier)
 - PBXGroup « Duello » (l'arborescence)
 - PBXSourcesBuildPhase (la phase de compilation)
 
-Usage : `python3 scripts/sync_xcode_sources.py`
+Il **ajoute** les fichiers présents sur disque et **retire** les références des
+fichiers supprimés (nécessaire quand un gros fichier est découpé en modules).
+
+Usage : `python3 scripts/sync_xcode_sources.py [--check]`
+  --check : n'écrit rien, sort en code 1 si une resynchronisation est requise.
 """
 from __future__ import annotations
 
@@ -24,6 +28,10 @@ ROOT = Path(__file__).resolve().parent.parent
 PBX = ROOT / "Duello.xcodeproj" / "project.pbxproj"
 SRC_DIR = ROOT / "Duello"
 
+# Sections du pbxproj : (marqueur de fin, gabarit d'une ligne)
+BUILD_SECTION = "/* End PBXBuildFile section */"
+REF_SECTION = "/* End PBXFileReference section */"
+
 
 def stable_id(name: str, kind: str) -> str:
     """Identifiant 24 caractères hexadécimaux, dérivé du nom (déterministe)."""
@@ -31,47 +39,38 @@ def stable_id(name: str, kind: str) -> str:
     return digest[:24]
 
 
-def main() -> int:
-    if not PBX.exists():
-        print(f"pbxproj introuvable : {PBX}", file=sys.stderr)
-        return 1
+def referenced_names(text: str) -> set[str]:
+    """Noms de fichiers .swift déjà présents dans le pbxproj.
 
-    text = PBX.read_text(encoding="utf-8")
-    swift_files = sorted(p.name for p in SRC_DIR.glob("*.swift"))
-    missing = [name for name in swift_files if f"/* {name} */" not in text]
+    Couvre les deux formes de commentaire Xcode et les noms contenant `+`
+    (`TrainingCatalogView+Entry.swift`) ou `-`.
+    """
+    pattern = r"/\* ([A-Za-z0-9_+-]+\.swift)(?: in Sources)? \*/"
+    return set(re.findall(pattern, text))
 
-    if not missing:
-        print(f"Rien à ajouter : {len(swift_files)} fichiers .swift déjà référencés.")
-        return 0
 
-    build_block = "".join(
-        f"\t\t{stable_id(n, 'build')} /* {n} in Sources */ = "
-        f"{{isa = PBXBuildFile; fileRef = {stable_id(n, 'ref')} /* {n} */; }};\n"
-        for n in missing
-    )
-    ref_block = "".join(
-        f"\t\t{stable_id(n, 'ref')} /* {n} */ = {{isa = PBXFileReference; "
-        f'lastKnownFileType = sourcecode.swift; path = {n}; sourceTree = "<group>"; }};\n'
-        for n in missing
-    )
-    children_block = "".join(
-        f"\t\t\t\t{stable_id(n, 'ref')} /* {n} */,\n" for n in missing
-    )
-    sources_block = "".join(
-        f"\t\t\t\t{stable_id(n, 'build')} /* {n} in Sources */,\n" for n in missing
-    )
+def prune(text: str, stale: set[str]) -> str:
+    """Retire du pbxproj toute ligne citant un fichier supprimé.
 
-    # 1) Sections PBXBuildFile / PBXFileReference : insertion avant la fin.
-    text = text.replace(
-        "/* End PBXBuildFile section */", build_block + "/* End PBXBuildFile section */", 1
-    )
-    text = text.replace(
-        "/* End PBXFileReference section */",
-        ref_block + "/* End PBXFileReference section */",
-        1,
-    )
+    Les références apparaissent sous deux formes : `/* X.swift */` (référence
+    de fichier, enfant de groupe) et `/* X.swift in Sources */` (phase de
+    compilation). Les deux doivent disparaître.
+    """
+    if not stale:
+        return text
+    needles = []
+    for name in stale:
+        needles.append(f"/* {name} */")
+        needles.append(f"/* {name} in Sources */")
+    kept = []
+    for line in text.splitlines(keepends=True):
+        if any(needle in line for needle in needles):
+            continue
+        kept.append(line)
+    return "".join(kept)
 
-    # 2) Enfants du groupe « Duello ».
+
+def insert_children(text: str, block: str) -> str:
     group_re = re.compile(
         r"(\t\tAE000001AAAAAAAAAAAAAA02 /\* Duello \*/ = \{\n"
         r"\t\t\tisa = PBXGroup;\n"
@@ -80,11 +79,11 @@ def main() -> int:
     )
     match = group_re.search(text)
     if not match:
-        print("Groupe « Duello » introuvable dans le pbxproj.", file=sys.stderr)
-        return 1
-    text = text[: match.end(2)] + children_block + text[match.end(2) :]
+        raise SystemExit("Groupe « Duello » introuvable dans le pbxproj.")
+    return text[: match.end(2)] + block + text[match.end(2) :]
 
-    # 3) Phase de compilation « Sources ».
+
+def insert_sources(text: str, block: str) -> str:
     sources_re = re.compile(
         r"(\t\tAD000002AAAAAAAAAAAAAA01 /\* Sources \*/ = \{\n"
         r"\t\t\tisa = PBXSourcesBuildPhase;\n"
@@ -94,18 +93,78 @@ def main() -> int:
     )
     match = sources_re.search(text)
     if not match:
-        print("Phase « Sources » introuvable dans le pbxproj.", file=sys.stderr)
+        raise SystemExit("Phase « Sources » introuvable dans le pbxproj.")
+    return text[: match.end(2)] + block + text[match.end(2) :]
+
+
+def main() -> int:
+    check = "--check" in sys.argv[1:]
+    if not PBX.exists():
+        print(f"pbxproj introuvable : {PBX}", file=sys.stderr)
         return 1
-    text = text[: match.end(2)] + sources_block + text[match.end(2) :]
+
+    text = PBX.read_text(encoding="utf-8")
+    on_disk = sorted(p.name for p in SRC_DIR.glob("*.swift"))
+    known = referenced_names(text)
+
+    stale = known - set(on_disk)
+    missing = [name for name in on_disk if name not in known]
+
+    if not stale and not missing:
+        print(f"Rien à faire : {len(on_disk)} fichiers .swift synchronisés.")
+        return 0
+    if check:
+        print(f"Désynchronisé : {len(missing)} à ajouter, {len(stale)} à retirer.")
+        return 1
+
+    text = prune(text, stale)
+
+    if missing:
+        text = text.replace(
+            BUILD_SECTION,
+            "".join(
+                f"\t\t{stable_id(n, 'build')} /* {n} in Sources */ = "
+                f"{{isa = PBXBuildFile; fileRef = {stable_id(n, 'ref')} /* {n} */; }};\n"
+                for n in missing
+            )
+            + BUILD_SECTION,
+            1,
+        )
+        text = text.replace(
+            REF_SECTION,
+            "".join(
+                f"\t\t{stable_id(n, 'ref')} /* {n} */ = {{isa = PBXFileReference; "
+                f'lastKnownFileType = sourcecode.swift; path = {n}; sourceTree = "<group>"; }};\n'
+                for n in missing
+            )
+            + REF_SECTION,
+            1,
+        )
+        text = insert_children(
+            text,
+            "".join(f"\t\t\t\t{stable_id(n, 'ref')} /* {n} */,\n" for n in missing),
+        )
+        text = insert_sources(
+            text,
+            "".join(
+                f"\t\t\t\t{stable_id(n, 'build')} /* {n} in Sources */,\n"
+                for n in missing
+            ),
+        )
 
     if text.count("{") != text.count("}"):
         print("Déséquilibre des accolades, écriture annulée.", file=sys.stderr)
         return 1
 
     PBX.write_text(text, encoding="utf-8")
-    print(f"{len(missing)} fichier(s) ajouté(s) au projet :")
-    for name in missing:
-        print(f"  - {name}")
+    if missing:
+        print(f"{len(missing)} fichier(s) ajouté(s) :")
+        for name in missing:
+            print(f"  + {name}")
+    if stale:
+        print(f"{len(stale)} fichier(s) retiré(s) :")
+        for name in sorted(stale):
+            print(f"  - {name}")
     return 0
 
 
