@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 /// Machine à états de la feuille « NOUVEAU BLOC » et de la suppression d'un
 /// emplacement neutre.

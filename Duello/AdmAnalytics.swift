@@ -129,12 +129,17 @@ private struct AdmAnalyticsAggregate {
 
     /// `users.filter(...).length` : comptes ayant au moins une journée active.
     func activeUsers(_ users: [AdmUserRecord], wanted: Set<String>) -> Int {
-        users.filter { user in
-            (user.usage?.daily ?? []).contains { day in
-                wanted.contains(day.date)
-                    && (day.activeSeconds > 0 || day.sessions > 0 || day.actions.exerciseCompleted > 0)
+        users.filter { isActive(user: $0, wanted: wanted) }.count
+    }
+
+    /// Vrai si le compte a au moins une journée active dans la période.
+    private func isActive(user: AdmUserRecord, wanted: Set<String>) -> Bool {
+        for day in user.usage?.daily ?? [] where wanted.contains(day.date) {
+            if day.activeSeconds > 0 || day.sessions > 0 || day.actions.exerciseCompleted > 0 {
+                return true
             }
-        }.count
+        }
+        return false
     }
 
     /// `topUsers.sort(...).slice(0, 8)`.

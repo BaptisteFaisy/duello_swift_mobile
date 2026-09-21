@@ -18,6 +18,7 @@
 //  Cible : iOS 16.
 //
 import Foundation
+import Combine
 
 /// Rythme de rafraîchissement du décompte et des états serveur.
 private enum EvEventPolling {

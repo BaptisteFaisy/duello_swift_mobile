@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 // MARK: - Avancement item par item
 

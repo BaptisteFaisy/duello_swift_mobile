@@ -303,6 +303,7 @@
 		C76BA1E7D96455619A520D1A /* SocialInviteModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B204367A4065788CB0B5D1D1 /* SocialInviteModel.swift */; };
 		BA2206615CF1C0BB1A0D3A69 /* SocialInviteModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD955BA1654B87B7DEDEE245 /* SocialInviteModels.swift */; };
 		4B4477103857874098491D0E /* SocialInviteSearchResults.swift in Sources */ = {isa = PBXBuildFile; fileRef = E15A5AA9761ECE48D762EAA3 /* SocialInviteSearchResults.swift */; };
+		2601683C08345554A3580B14 /* DuelEloResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39FF4B57B3641483AC8C2C84 /* DuelEloResult.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -603,6 +604,7 @@
 		B204367A4065788CB0B5D1D1 /* SocialInviteModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SocialInviteModel.swift; sourceTree = "<group>"; };
 		CD955BA1654B87B7DEDEE245 /* SocialInviteModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SocialInviteModels.swift; sourceTree = "<group>"; };
 		E15A5AA9761ECE48D762EAA3 /* SocialInviteSearchResults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SocialInviteSearchResults.swift; sourceTree = "<group>"; };
+		39FF4B57B3641483AC8C2C84 /* DuelEloResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuelEloResult.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -925,6 +927,7 @@
 				B204367A4065788CB0B5D1D1 /* SocialInviteModel.swift */,
 				CD955BA1654B87B7DEDEE245 /* SocialInviteModels.swift */,
 				E15A5AA9761ECE48D762EAA3 /* SocialInviteSearchResults.swift */,
+				39FF4B57B3641483AC8C2C84 /* DuelEloResult.swift */,
 			);
 			path = Duello;
 			sourceTree = "<group>";
@@ -1303,6 +1306,7 @@
 				C76BA1E7D96455619A520D1A /* SocialInviteModel.swift in Sources */,
 				BA2206615CF1C0BB1A0D3A69 /* SocialInviteModels.swift in Sources */,
 				4B4477103857874098491D0E /* SocialInviteSearchResults.swift in Sources */,
+				2601683C08345554A3580B14 /* DuelEloResult.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
