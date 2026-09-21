@@ -39,9 +39,11 @@ erreurs. Trois décisions ont été prises pour rester fidèle :
   initialiseur `@MainActor`. Les initialiseurs **du shim** sont `nonisolated` :
   ils apparaissent en valeur par défaut des signatures, expressions évaluées
   hors contexte isolé.
-- **Les API iOS 17 ne sont pas déclarées** (`UnevenRoundedRectangle`,
-  `ContentUnavailableView`, `@Observable`…) : la cible est iOS 16, et leur
-  absence fait échouer leur usage — c'est ce qu'on veut.
+- **Les API postérieures à iOS 16 ne sont pas déclarées** (`UnevenRoundedRectangle`,
+  `ContentUnavailableView`, `topBarTrailing`, `onChange(of:initial:)`,
+  `@Observable`…) : leur absence fait échouer leur usage.
+  ⚠️ Cette règle a d'abord été **mal appliquée** — la première version du shim
+  déclarait bel et bien une vingtaine d'API iOS 17/18. Voir « La leçon ».
 - **`ViewBuilder` s'arrête à dix enfants**, comme le vrai. Au-delà, SwiftUI
   échoue ; le shim doit échouer pareil.
 
@@ -52,6 +54,59 @@ erreurs. Trois décisions ont été prises pour rester fidèle :
   `some View`, volontairement) ;
 - les API absentes du shim : un symbole manquant produit une erreur « cannot
   find in scope » qu'il faut d'abord attribuer au shim, pas au projet.
+
+## La cible iOS 16
+
+Deux mécanismes, indépendants l'un de l'autre :
+
+1. **`scripts/check-ios16.sh`** — garde-fou qui ne dépend d'aucun shim : il
+   vérifie que `IPHONEOS_DEPLOYMENT_TARGET` reste en 16.x, puis refuse toute
+   citation d'API postérieure à iOS 16 dans `Duello/` (~55 motifs, commentaires
+   exclus). Validé en y injectant cinq violations volontaires — dont le
+   `.onChange(of:)` à **deux** paramètres, forme iOS 17 facile à confondre avec
+   la forme iOS 16 à un paramètre : les cinq sont détectées.
+2. **L'absence des API dans les shims** — complémentaire : ce que le shim ne
+   déclare pas ne compile pas.
+
+`verify-swift-linux.sh` lance le garde-fou avant le contrôle de types.
+
+### La leçon : un oracle doit être audité
+
+La première version de ce document affirmait « les API iOS 17 ne sont pas
+déclarées ». **C'était faux.** Le shim déclarait, entre autres :
+`UnevenRoundedRectangle`, `ToolbarItemPlacement.topBarTrailing` /
+`topBarLeading`, `onChange(of:initial:)`, `containerRelativeFrame`,
+`contentMargins`, `geometryGroup`, `scrollTargetLayout`, `defaultScrollAnchor`,
+`safeAreaPadding`, `scrollClipDisabled`, `listRowSpacing`, `focusEffectDisabled`,
+`defaultFocus`, `NamedCoordinateSpace`, `PalettePickerStyle`,
+`Animation.spring(duration:bounce:)`, `MaterialActiveAppearance` (iOS 18)…
+
+Conséquence : le contrôle de types passait **sans rien voir**, et ne prouvait
+donc pas la compatibilité iOS 16 — il ne *pouvait pas* la prouver. Les 20
+déclarations ont été retirées, puis le contrôle relancé : **0 erreur**. Le
+verdict « le code est iOS 16 » est établi *après* avoir rendu l'oracle strict,
+pas avant.
+
+Règle générale : **un test dont on n'a pas vérifié qu'il peut échouer ne vaut
+rien.** D'où le garde-fou n° 1, qui part de la liste des API et non d'un shim.
+
+### Cible de déploiement
+
+`IPHONEOS_DEPLOYMENT_TARGET` est passé de **16.4 à 16.0**. Rien dans `Duello/`
+n'exige plus de 16.0 : les seules API 16.1+ candidates (`fontDesign`,
+`fontWidth`, `presentationBackground`, `presentationCornerRadius`,
+`scrollBounceBehavior`, `scrollIndicatorsFlash`) sont **inutilisées**. 16.0
+couvre donc tous les appareils iOS 16, pas seulement 16.4 et au-delà.
+
+### Ce qui reste hors de portée
+
+- **Les SF Symbols** : un symbole introduit après iOS 16
+  (`Image(systemName:)`) n'est pas détectable à la compilation — il s'affiche
+  vide à l'exécution. À recouper avec l'app SF Symbols sur la cible réelle.
+- **Le comportement** : une API disponible en 16 dont le comportement a changé
+  en 17 reste compilable, et silencieuse.
+- **Xcode** : seul juge final. Le shim reproduit la surface Apple, pas la
+  sémantique complète.
 
 ## Usage
 

@@ -26,6 +26,12 @@ passe enfin un contrôle de types. Détail et mode d'emploi : `TYPE_CHECK.md`.
 Ce contrôle a trouvé **12 erreurs de compilation réelles** que ni la syntaxe ni
 le lot portable ne voyaient (voir `TYPE_CHECK.md` et les commits `e95880a`+).
 
+**Cible iOS 16 garantie** par deux mécanismes indépendants : l'absence des API
+postérieures à iOS 16 dans les shims, et `scripts/check-ios16.sh` (qui ne dépend
+d'aucun shim : il vérifie la cible de déploiement et refuse toute citation d'API
+trop récente). `IPHONEOS_DEPLOYMENT_TARGET` est passé de 16.4 à **16.0**, rien
+n'exigeant plus. Détail : `TYPE_CHECK.md` § *La cible iOS 16*.
+
 ## Fidélité, mesurée
 
 ⚠️ **Le chiffre annoncé au lot 7 était faux.** La « couverture 100 % » mesurait

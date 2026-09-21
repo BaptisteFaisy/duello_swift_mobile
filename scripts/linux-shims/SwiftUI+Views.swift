@@ -183,14 +183,6 @@ public struct Ellipse: InsettableShape {
     public func inset(by amount: CGFloat) -> some InsettableShape { self }
 }
 
-public struct UnevenRoundedRectangle: InsettableShape {
-    public struct CornerRadii: Hashable, Sendable {
-        public nonisolated init(topLeading: CGFloat = 0, bottomLeading: CGFloat = 0, bottomTrailing: CGFloat = 0, topTrailing: CGFloat = 0) {}
-    }
-    public nonisolated init(cornerRadii: CornerRadii, style: RoundedRectangle.Style = .circular) {}
-    public func path(in rect: CGRect) -> Path { Path() }
-    public func inset(by amount: CGFloat) -> some InsettableShape { self }
-}
 
 // MARK: - Conteneurs
 

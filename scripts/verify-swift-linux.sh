@@ -37,7 +37,10 @@ if ! command -v swiftc >/dev/null 2>&1; then
     exit 2
 fi
 
-echo "1/3  Shims Linux — 19 modules factices (hors cible Xcode)…"
+echo "1/4  Cible iOS 16 — garde-fou indépendant des shims…"
+sh "$ROOT/scripts/check-ios16.sh"
+
+echo "2/4  Shims Linux — 19 modules factices (hors cible Xcode)…"
 # Ordre de dépendance : CoreGraphics/UIKit/Combine d'abord, puis les modules
 # feuilles, puis SwiftUI (qui importe Photos, PhotosUI, UIKit, Combine,
 # UniformTypeIdentifiers), puis Charts (qui importe SwiftUI).
@@ -59,10 +62,10 @@ for m in $MODS; do
     fi
 done
 
-echo "2/3  Syntaxe — tous les fichiers .swift…"
+echo "3/4  Syntaxe — tous les fichiers .swift…"
 swiftc -parse "$DUELO"/*.swift
 
-echo "3/3  Types — les 649 fichiers, en lot…"
+echo "4/4  Types — les 649 fichiers, en lot…"
 mkdir -p "$WORK/src"
 for f in "$DUELO"/*.swift; do
     sed 's/^import Foundation$/import Foundation\nimport FoundationNetworking/' \

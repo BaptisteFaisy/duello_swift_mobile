@@ -263,11 +263,6 @@ public struct CoordinateSpace: Hashable, Sendable {
     public static func named(_ name: AnyHashable) -> CoordinateSpace { CoordinateSpace(.named(name)) }
 }
 
-public struct NamedCoordinateSpace: Hashable, Sendable {
-    public static let global = NamedCoordinateSpace()
-    public static let local = NamedCoordinateSpace()
-    public static func named(_ name: AnyHashable) -> NamedCoordinateSpace { NamedCoordinateSpace() }
-}
 
 public struct Transaction {
     public nonisolated init() {}
@@ -519,7 +514,6 @@ public struct Animation: Equatable, Sendable {
     public static func easeOut(duration: Double) -> Animation { Animation() }
     public static func easeInOut(duration: Double) -> Animation { Animation() }
     public static func spring(response: Double = 0.55, dampingFraction: Double = 0.825, blendDuration: Double = 0) -> Animation { Animation() }
-    public static func spring(duration: Double, bounce: Double, blendDuration: Double = 0) -> Animation { Animation() }
     public static func interactiveSpring(response: Double = 0.15, dampingFraction: Double = 0.86, blendDuration: Double = 0.25) -> Animation { Animation() }
     public static func interpolatingSpring(stiffness: Double, damping: Double, initialVelocity: Double = 0) -> Animation { Animation() }
     public static func interpolatingSpring(mass: Double, stiffness: Double, damping: Double, initialVelocity: Double = 0) -> Animation { Animation() }
@@ -1050,8 +1044,6 @@ public struct ToolbarItemPlacement: Sendable {
     public static let navigation = ToolbarItemPlacement()
     public static let navigationBarLeading = ToolbarItemPlacement()
     public static let navigationBarTrailing = ToolbarItemPlacement()
-    public static let topBarLeading = ToolbarItemPlacement()
-    public static let topBarTrailing = ToolbarItemPlacement()
     public static let bottomBar = ToolbarItemPlacement()
     public static let cancellationAction = ToolbarItemPlacement()
     public static let confirmationAction = ToolbarItemPlacement()
