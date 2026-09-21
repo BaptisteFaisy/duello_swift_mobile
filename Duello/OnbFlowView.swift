@@ -68,7 +68,7 @@ struct OnbFlowView: View {
                 bloomLayer
                 if handoff.isSurfaceVisible {
                     OnbFlowTrainingHandoffView(
-                        programYear: EvEventAudience.programYear(of: coordinator.profile.year),
+                        programYear: EvEventAudienceFilter.programYear(of: coordinator.profile.year),
                         revealProgress: handoff.revealProgress
                     )
                     .transition(.opacity)

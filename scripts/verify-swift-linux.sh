@@ -1,15 +1,16 @@
 #!/usr/bin/env sh
 # Pré-contrôle Swift sous Linux — COMPLÈTE Xcode, ne le remplace pas.
 #
-#   1. Shims      : modules factices (Security, UIKit, Combine, GoogleSignIn),
-#                   frameworks Apple absents sous Linux. Jamais livrés : ils
-#                   vivent dans scripts/linux-shims/, hors de la cible Xcode.
+#   1. Shims      : modules factices (Security, UIKit, Combine, GoogleSignIn,
+#                   SwiftUI), frameworks Apple absents sous Linux. Jamais
+#                   livrés : ils vivent dans scripts/linux-shims/, hors de la
+#                   cible Xcode.
 #   2. -parse     : syntaxe de TOUS les fichiers (SwiftUI inclus : le parsing
 #                   ne résout pas les imports).
 #   3. -typecheck : TYPES des fichiers « portables » (n'important que
-#                   Foundation / UIKit / Security / Combine / GoogleSignIn).
-#                   SwiftUI, Charts, PhotosUI, PDFKit… n'existent pas sous
-#                   Linux : les vues ne sont donc PAS vérifiées ici.
+#                   Foundation / UIKit / Security / Combine / GoogleSignIn /
+#                   SwiftUI). Charts, PhotosUI, PDFKit… n'existent pas sous
+#                   Linux : leurs fichiers ne sont PAS vérifiés en types ici.
 #
 # Les échecs du lot portable sont triés par scripts/swift_linux_scope.py : ceux
 # qui viennent d'un type déclaré dans un fichier non portable (le lot ne peut
@@ -38,20 +39,31 @@ if ! command -v swiftc >/dev/null 2>&1; then
     exit 2
 fi
 
-echo "1/4  Shims Linux (Security, UIKit, Combine, GoogleSignIn)…"
-swiftc -emit-module -module-name Security "$SHIMS/Security.swift" \
-    -emit-module-path "$WORK/Security.swiftmodule"
-swiftc -emit-module -module-name UIKit "$SHIMS/UIKit.swift" \
-    -emit-module-path "$WORK/UIKit.swiftmodule"
-swiftc -emit-module -module-name Combine "$SHIMS/Combine.swift" \
-    -emit-module-path "$WORK/Combine.swiftmodule"
-swiftc -emit-module -module-name GoogleSignIn "$SHIMS/GoogleSignIn.swift" \
-    -I "$WORK" -emit-module-path "$WORK/GoogleSignIn.swiftmodule"
+echo "1/4  Shims Linux (19 modules factices, hors cible Xcode)…"
+# Ordre de dépendance : CoreGraphics/UIKit/Combine d'abord, SwiftUI ensuite
+# (il les importe), UniformTypeIdentifiers avant SwiftUI (`fileImporter`).
+MODS="CoreGraphics Security UIKit Combine GoogleSignIn Photos \
+UniformTypeIdentifiers SwiftUI Charts PhotosUI AVFoundation LocalAuthentication \
+UserNotifications MessageUI AuthenticationServices WebKit PDFKit Speech CryptoKit"
+for m in $MODS; do
+    files=""
+    for f in "$SHIMS/$m.swift" "$SHIMS/$m"+*.swift; do
+        [ -f "$f" ] && files="$files $f"
+    done
+    [ -z "$files" ] && continue
+    # shellcheck disable=SC2086
+    if ! swiftc -emit-module -module-name "$m" $files -I "$WORK" \
+            -emit-module-path "$WORK/$m.swiftmodule" 2>"$WORK/shim-$m.txt"; then
+        echo "erreur : le shim $m ne compile pas" >&2
+        head -20 "$WORK/shim-$m.txt" >&2
+        exit 1
+    fi
+done
 
 echo "2/4  Syntaxe — tous les fichiers .swift…"
 swiftc -parse "$DUELO"/*.swift
 
-echo "3/4  Types — lot portable (Foundation/UIKit/Security/Combine/GoogleSignIn)…"
+echo "3/4  Types — lot portable (Foundation/UIKit/Security/Combine/GoogleSignIn/SwiftUI)…"
 mkdir -p "$WORK/src"
 python3 "$SCOPE" list > "$WORK/portable.txt"
 while IFS= read -r f; do
@@ -60,8 +72,11 @@ while IFS= read -r f; do
 done < "$WORK/portable.txt"
 
 echo "4/4  Tri des échecs…"
+# `-enable-batch-mode` : sans lui, `swiftc` s'arrête au PREMIER fichier en
+# erreur et masque toutes les suivantes. Avec, chaque fichier du lot est
+# contrôlé et l'ensemble des diagnostics remonte.
 # `swiftc` échoue sur les faux positifs du lot : seul le tri fait foi.
-if ! swiftc -typecheck -I "$WORK" "$WORK"/src/*.swift 2>&1 | python3 "$SCOPE" triage; then
+if ! swiftc -typecheck -enable-batch-mode -I "$WORK" "$WORK"/src/*.swift 2>&1 | python3 "$SCOPE" triage; then
     exit 1
 fi
 

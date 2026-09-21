@@ -5,7 +5,14 @@
 // fichiers portables avec `swiftc`. Aucune de ces fonctions n'est exécutée :
 // elles ne servent qu'à satisfaire le vérificateur de types.
 import Foundation
-import CoreFoundation
+
+/// Sur Apple, `Security` réexporte CoreFoundation. Sous Linux, corelibs expose
+/// bien `CFString`/`CFDictionary`, mais sans le pont implicite vers
+/// `String`/`[String: Any]` — et `CFString` n'y accepte pas de littéral. Le shim
+/// les ramène donc à leurs équivalents Swift, ce que le code de Duello attend
+/// (il construit des dictionnaires `[String: Any]`).
+public typealias CFString = String
+public typealias CFDictionary = [String: Any]
 
 public typealias OSStatus = Int32
 
@@ -17,6 +24,10 @@ public let kSecValueData: String = "v_Data"
 public let kSecReturnData: String = "r_Data"
 public let kSecMatchLimit: String = "m_Limit"
 public let kSecMatchLimitOne: String = "m_LimitOne"
+
+public let kSecAttrAccessible: CFString = "accessible"
+public let kSecAttrAccessibleWhenUnlockedThisDeviceOnly: CFString = "accessible-when-unlocked-this-device-only"
+public let kSecAttrAccessibleAfterFirstUnlock: CFString = "accessible-after-first-unlock"
 
 public let errSecSuccess: OSStatus = 0
 public let errSecItemNotFound: OSStatus = -25300

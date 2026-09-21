@@ -101,7 +101,7 @@ struct ForgotPasswordView: View {
 
     private func submit() {
         let normalized = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard isPlausibleEmail(normalized) else {
+        guard AcctSecEmailValidation.isPlausibleEmail(normalized) else {
             sent = false
             errorMessage = "Saisis une adresse e-mail valide."
             return

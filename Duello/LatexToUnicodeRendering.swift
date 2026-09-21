@@ -253,7 +253,9 @@ extension LatexToUnicode {
             }
 
             if caractere == "{" || caractere == "}" {
-                if preserverAccoladesLitterales { rendu += caractere }
+                // `+=` n'existe que pour `String` : un `Character` s'ajoute avec
+                // `append`.
+                if preserverAccoladesLitterales { rendu.append(caractere) }
                 index += 1
                 continue
             }
@@ -268,7 +270,7 @@ extension LatexToUnicode {
                 continue
             }
 
-            rendu += caractere
+            rendu.append(caractere)
             index += 1
         }
 

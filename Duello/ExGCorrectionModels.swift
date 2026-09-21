@@ -40,8 +40,8 @@ enum ExGQuestionStatus: String, CaseIterable, Identifiable {
 
     var foreground: Color {
         switch self {
-        case .perfect, .correct: return Theme.gradingPerfectHex.color
-        case .partial: return Theme.gradingPartialHex.color
+        case .perfect, .correct: return Theme.gradingPerfect
+        case .partial: return Theme.gradingPartial
         case .incorrect: return Theme.like
         case .pending, .error, .unanswered: return Theme.inkSoft
         }
@@ -49,9 +49,9 @@ enum ExGQuestionStatus: String, CaseIterable, Identifiable {
 
     var background: Color {
         switch self {
-        case .perfect: return Theme.gradingPerfectLightHex.color
+        case .perfect: return Theme.gradingPerfectLight
         case .correct: return Theme.progressLight
-        case .partial: return Theme.gradingPartialLightHex.color
+        case .partial: return Theme.gradingPartialLight
         case .incorrect: return exgLikeLight
         case .pending, .error, .unanswered: return Theme.surfaceMuted
         }

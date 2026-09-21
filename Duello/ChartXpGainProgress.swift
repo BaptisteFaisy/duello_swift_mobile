@@ -43,7 +43,7 @@ struct ChartXpGainProgress: View {
                     .frame(width: 44, height: 44)
                 Image(systemName: "star.fill")
                     .font(.system(size: 17, weight: .bold))
-                    .foregroundStyle(levelUp ? Theme.gradingPerfectHex.color : Theme.ink)
+                    .foregroundStyle(levelUp ? Theme.gradingPerfect : Theme.ink)
             }
             VStack(alignment: .leading, spacing: 3) {
                 Text(levelUp ? "NOUVEAU NIVEAU !" : "TON NIVEAU ACTUEL")

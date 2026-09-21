@@ -127,8 +127,8 @@ enum SubjFlashcardReviewPalette {
     static let wrongFill = Color(hex: 0xFCE0E0)
 
     // Teintes du résultat IA (`flashcardAiPerfect|Correct|Partial|Incorrect`).
-    static let aiPerfectBorder = Theme.gradingPerfectHex.color
-    static let aiPerfectFill = Theme.gradingPerfectLightHex.color
+    static let aiPerfectBorder = Theme.gradingPerfect
+    static let aiPerfectFill = Theme.gradingPerfectLight
     static let aiCorrectBorder = Color(hex: 0x82C9A1)
     static let aiCorrectFill = Color(hex: 0xF0FBF5)
     static let aiPartialBorder = Color(hex: 0xE6C66A)

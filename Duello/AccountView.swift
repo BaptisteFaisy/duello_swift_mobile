@@ -115,34 +115,45 @@ struct AccountView: View {
         .duelloCard()
     }
 
+    /// Une entrée de la carte d'accès : libellé, icône SF Symbol, feuille.
+    private struct HubEntry: Identifiable {
+        let title: String
+        let icon: String
+        let sheet: AccountSheet
+        var id: String { title }
+    }
+
+    /// Les douze entrées annexes, dans l'ordre de la source Expo.
+    ///
+    /// Décrites en données plutôt qu'énumérées dans le corps de la vue : un
+    /// `ViewBuilder` ne construit pas plus de dix enfants, et la carte en
+    /// compte douze plus onze séparateurs.
+    private static let hubEntries: [HubEntry] = [
+        HubEntry(title: "Progression", icon: "chart.bar", sheet: .progress),
+        HubEntry(title: "Annales", icon: "doc.text.magnifyingglass", sheet: .annales),
+        HubEntry(title: "Planning", icon: "calendar", sheet: .plan),
+        HubEntry(title: "Premium", icon: "star.circle", sheet: .premium),
+        HubEntry(title: "Messages", icon: "bubble.left.and.bubble.right", sheet: .messages),
+        HubEntry(title: "Mon parcours", icon: "map", sheet: .track),
+        HubEntry(title: "Confidentialité", icon: "lock.shield", sheet: .privacy),
+        HubEntry(title: "Conditions d'utilisation", icon: "doc.text", sheet: .terms),
+        HubEntry(title: "Donner mon avis", icon: "bubble.left", sheet: .feedback),
+        HubEntry(title: "Utilisateurs bloqués", icon: "hand.raised", sheet: .blocked),
+        HubEntry(title: "Mes informations", icon: "gearshape", sheet: .info),
+        HubEntry(title: "Annuaire", icon: "magnifyingglass", sheet: .directory),
+    ]
+
     /// Entrées annexes : suivi, messages, parcours détaillé, pages légales,
     /// avis et comptes bloqués. Chacune s'ouvre en feuille, comme les écrans
     /// secondaires de l'app Expo.
     private var hubCard: some View {
         VStack(spacing: 0) {
-            hubRow("Progression", icon: "chart.bar", sheet: .progress)
-            hubSeparator
-            hubRow("Annales", icon: "doc.text.magnifyingglass", sheet: .annales)
-            hubSeparator
-            hubRow("Planning", icon: "calendar", sheet: .plan)
-            hubSeparator
-            hubRow("Premium", icon: "star.circle", sheet: .premium)
-            hubSeparator
-            hubRow("Messages", icon: "bubble.left.and.bubble.right", sheet: .messages)
-            hubSeparator
-            hubRow("Mon parcours", icon: "map", sheet: .track)
-            hubSeparator
-            hubRow("Confidentialité", icon: "lock.shield", sheet: .privacy)
-            hubSeparator
-            hubRow("Conditions d'utilisation", icon: "doc.text", sheet: .terms)
-            hubSeparator
-            hubRow("Donner mon avis", icon: "bubble.left", sheet: .feedback)
-            hubSeparator
-            hubRow("Utilisateurs bloqués", icon: "hand.raised", sheet: .blocked)
-            hubSeparator
-            hubRow("Mes informations", icon: "gearshape", sheet: .info)
-            hubSeparator
-            hubRow("Annuaire", icon: "magnifyingglass", sheet: .directory)
+            ForEach(Array(Self.hubEntries.enumerated()), id: \.element.id) { index, entry in
+                if index > 0 {
+                    hubSeparator
+                }
+                hubRow(entry.title, icon: entry.icon, sheet: entry.sheet)
+            }
         }
         .duelloCard()
     }

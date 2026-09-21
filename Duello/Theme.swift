@@ -38,6 +38,10 @@ enum Theme {
     static var progressLight: Color { Color(hex: progressLightHex) }
     static var like: Color { Color(hex: likeHex) }
     static var premium: Color { Color(hex: premiumHex) }
+    static var gradingPerfect: Color { Color(hex: gradingPerfectHex) }
+    static var gradingPerfectLight: Color { Color(hex: gradingPerfectLightHex) }
+    static var gradingPartial: Color { Color(hex: gradingPartialHex) }
+    static var gradingPartialLight: Color { Color(hex: gradingPartialLightHex) }
 
     // MARK: Mesures
 

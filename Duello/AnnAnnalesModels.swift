@@ -65,9 +65,9 @@ enum AnnVerdict: String, Codable, CaseIterable, Identifiable {
     /// Couleur du verdict (`questionVerdictColor`).
     var color: Color {
         switch self {
-        case .perfect: return Theme.gradingPerfectHex.color
+        case .perfect: return Theme.gradingPerfect
         case .correct: return Theme.progress
-        case .partial: return Theme.gradingPartialHex.color
+        case .partial: return Theme.gradingPartial
         case .incorrect: return Theme.like
         }
     }

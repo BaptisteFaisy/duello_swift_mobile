@@ -45,10 +45,10 @@ enum StmtQuestionsParser {
     /// Analyse complète d'un énoncé (`parseStatementQuestionsWithPrompts`).
     static func parse(_ rawStatement: String) -> [StmtQuestion] {
         var state = State()
-        let statement = StmtQuestionSupport.effectiveStatement(rawStatement)
+        let statement = StmtQuestionsParser.effectiveStatement(rawStatement)
         state.bulletsCarryNumbers = statement.contains("\\setcounter{enumi}")
         let statementLines = statement.components(separatedBy: "\n").map { $0.trimmingCharacters(in: .whitespaces) }
-        state.followingLines = StmtQuestionSupport.followingLines(statementLines)
+        state.followingLines = StmtQuestionsParser.followingLines(statementLines)
         let unambiguous = statementLines.flatMap { line in
             StmtQuestionLetters.inlineLetterMarkers(line).filter { !StmtQuestionLetters.isFunctionArgumentMarker(line, $0) }
         }
@@ -56,7 +56,7 @@ enum StmtQuestionsParser {
         for (lineIndex, rawLine) in statementLines.enumerated() where !rawLine.isEmpty {
             processLine(&state, rawLine, lineIndex)
         }
-        return StmtQuestionSupport.finalize(state)
+        return StmtQuestionsParser.finalize(state)
     }
 
     /// Traite une ligne : puces, en-têtes de portée, puis questions.
@@ -133,7 +133,7 @@ enum StmtQuestionsParser {
             state.nextNumericSub = 1
             let following = lineIndex < state.followingLines.count ? state.followingLines[lineIndex] : ""
             let headingPrompt = rest.isEmpty ? following : rest
-            state.letterScopeParent = StmtQuestionSupport.addLabel(
+            state.letterScopeParent = StmtQuestionsParser.addLabel(
                 &state,
                 headingLabel,
                 StmtRegex.replaceAll("\\.+\\s*$", in: headingPrompt, options: [.caseInsensitive], template: "")
@@ -151,7 +151,7 @@ enum StmtQuestionsParser {
             state.letterScopeParent = nil
         }
 
-        if StmtQuestionSupport.isColonIntroducer(line), state.currentNumber != nil {
+        if StmtQuestionsParser.isColonIntroducer(line), state.currentNumber != nil {
             state.numericSubParent = state.currentNumber
             state.nextNumericSub = 1
         }
@@ -161,10 +161,10 @@ enum StmtQuestionsParser {
         if let numbered {
             let inlinePrompt = (line as NSString).substring(from: (numbered[0] as NSString).length)
                 .trimmingCharacters(in: .whitespaces)
-            if StmtQuestionSupport.hasQuestionContent(line, numbered[0]) {
-                _ = StmtQuestionSupport.addLabel(&state, numbered[1], inlinePrompt)
+            if StmtQuestionsParser.hasQuestionContent(line, numbered[0]) {
+                _ = StmtQuestionsParser.addLabel(&state, numbered[1], inlinePrompt)
             } else if inlinePrompt.isEmpty, lineIndex < state.followingLines.count, !state.followingLines[lineIndex].isEmpty {
-                _ = StmtQuestionSupport.addLabel(&state, numbered[1], state.followingLines[lineIndex])
+                _ = StmtQuestionsParser.addLabel(&state, numbered[1], state.followingLines[lineIndex])
             }
         }
     }
@@ -180,9 +180,9 @@ enum StmtQuestionsParser {
             let following = lineIndex < state.followingLines.count ? state.followingLines[lineIndex] : ""
             let prompt = !inlinePrompt.isEmpty ? inlinePrompt : following
             if !prompt.isEmpty, !StmtRegex.contains("^[.,;:!?…]+$", in: prompt) {
-                _ = StmtQuestionSupport.addLabel(&state, "\(parent).\(numbered[1])", prompt)
-            } else if StmtQuestionSupport.hasQuestionContent(line, numbered[0]) {
-                _ = StmtQuestionSupport.addLabel(&state, "\(parent).\(numbered[1])", inlinePrompt)
+                _ = StmtQuestionsParser.addLabel(&state, "\(parent).\(numbered[1])", prompt)
+            } else if StmtQuestionsParser.hasQuestionContent(line, numbered[0]) {
+                _ = StmtQuestionsParser.addLabel(&state, "\(parent).\(numbered[1])", inlinePrompt)
             }
             state.nextNumericSub += 1
             return true
@@ -223,7 +223,7 @@ enum StmtQuestionsParser {
         } else {
             selected = [first]
         }
-        StmtQuestionSupport.addInlineLetters(
+        StmtQuestionsParser.addInlineLetters(
             &state,
             line,
             selected,

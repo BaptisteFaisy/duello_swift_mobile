@@ -58,8 +58,11 @@ struct ChartEloChart: View {
             lastAxisLabel: ChartDateFormat.pointDate(last.at, granularity),
             accessibility: "Évolution \(granularity.name) de l’Elo, de \(eloText(points[0].elo)) à \(eloText(last.elo))",
             axisWidth: 32,
-            tooltipLeading: 38,
-            showsDateRange: showsDateRange
+            // Ordre de déclaration de `ChartSmoothLineChart` : `showsDateRange`
+            // (l. 44) précède `tooltipLeading` (l. 46) dans l'initialiseur
+            // membre-à-membre.
+            showsDateRange: showsDateRange,
+            tooltipLeading: 38
         )
     }
 
