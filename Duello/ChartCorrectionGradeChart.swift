@@ -73,7 +73,11 @@ struct ChartCorrectionGradeChart: View {
         let first = visible[0]
         let last = visible[visible.count - 1]
         let linePoints = visible.map { point in
-            ChartLinePoint(value: point.score, tooltip: tooltip(for: point))
+            ChartLinePoint(
+                value: point.score,
+                tooltip: tooltipTitle(for: point),
+                tooltipDetail: tooltipDetail(for: point)
+            )
         }
         return ChartSmoothLineChart(
             points: linePoints,
@@ -85,15 +89,18 @@ struct ChartCorrectionGradeChart: View {
             lastAxisLabel: ChartDateFormat.periodDate(last.at, granularity),
             accessibility: "Évolution \(granularity.name) des notes de correction sur 20, de \(ExGFormat.xp(first.score)) à \(ExGFormat.xp(last.score))",
             axisWidth: 32,
-            showsDateRange: showsDateRange
+            showsDateRange: showsDateRange,
+            middleAxisLabel: "10"
         )
     }
 
-    private func tooltip(for point: ChartCorrectionPeriodPoint) -> String {
-        let title = point.entries.count == 1
+    private func tooltipTitle(for point: ChartCorrectionPeriodPoint) -> String {
+        point.entries.count == 1
             ? (point.entries[0].title ?? point.entries[0].activity.label)
             : "Moyenne de \(point.entries.count) corrections"
-        let score = "\(ExGFormat.xp(point.score))/20"
-        return "\(title) — \(score) · \(ChartDateFormat.periodDate(point.at, granularity))"
+    }
+
+    private func tooltipDetail(for point: ChartCorrectionPeriodPoint) -> String {
+        "\(ExGFormat.xp(point.score))/20 · \(ChartDateFormat.periodDate(point.at, granularity))"
     }
 }

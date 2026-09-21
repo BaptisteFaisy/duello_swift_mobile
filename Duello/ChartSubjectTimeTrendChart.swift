@@ -13,6 +13,7 @@
 //  pagination du kit (`ChartTimeNavigation`) et par `DuelloBarChart`
 //  (`DuelloUI.swift`, Swift Charts). Cible iOS 16.
 //
+import Charts
 import SwiftUI
 
 /// `SubjectTimeTrendChart` : temps d'entraînement par période, avec pagination
@@ -31,10 +32,40 @@ struct ChartSubjectTimeTrendChart: View {
     private var maximum: Double {
         ChartTimeNavigation.minuteAxisMaximum(visible.map(\.minutes).max() ?? 0)
     }
-    private var chartPoints: [DuelloChartPoint] {
-        visible.map {
-            DuelloChartPoint(label: ChartTimeSeries.axisLabel($0.start, granularity), value: $0.minutes)
+    /// Barres de la fenêtre : la dernière période passe en `colors.ink` quand la
+    /// page courante est affichée (`currentBar` de `SubjectTimeTrendChart.tsx`).
+    private var bars: some View {
+        Chart(visible.indices, id: \.self) { index in
+            BarMark(
+                x: .value("Période", ChartTimeSeries.axisLabel(visible[index].start, granularity)),
+                y: .value("Minutes", visible[index].minutes)
+            )
+            .foregroundStyle(isCurrent(index) ? Theme.ink : Theme.inkSoft)
+            .cornerRadius(4)
         }
+        .chartXAxis(.hidden)
+        .chartYAxis(.hidden)
+        .frame(height: 138)
+    }
+
+    /// Libellés de période, le dernier en gras quand la page courante est affichée.
+    private var xAxis: some View {
+        HStack(spacing: 2) {
+            ForEach(visible.indices, id: \.self) { index in
+                Text(ChartTimeSeries.axisLabel(visible[index].start, granularity))
+                    .font(.system(size: 8, weight: isCurrent(index) ? .black : .bold))
+                    .foregroundStyle(isCurrent(index) ? Theme.ink : Theme.inkFaint)
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity)
+            }
+        }
+        .padding(.top, 7)
+        .padding(.leading, 38)
+    }
+
+    /// `pageIndex == 0` : la page courante ; seule la dernière barre s'y distingue.
+    private func isCurrent(_ index: Int) -> Bool {
+        pageIndex == 0 && index == visible.count - 1
     }
     private var accessibilityText: String {
         let values = visible.map {
@@ -46,9 +77,12 @@ struct ChartSubjectTimeTrendChart: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             navigationRow
-            HStack(alignment: .bottom, spacing: 8) {
-                minuteAxis
-                DuelloBarChart(points: chartPoints, tint: Theme.inkSoft)
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(alignment: .bottom, spacing: 8) {
+                    minuteAxis
+                    bars
+                }
+                xAxis
             }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(accessibilityText)
@@ -87,7 +121,7 @@ struct ChartSubjectTimeTrendChart: View {
             Text("0").font(.system(size: 9, weight: .bold))
         }
         .foregroundStyle(Theme.inkFaint)
-        .frame(width: 32, height: 180, alignment: .trailing)
+        .frame(width: 38, height: 151, alignment: .trailing)
     }
 
     private func arrow(

@@ -105,7 +105,7 @@ struct ChartXpGainProgress: View {
         return "\(head) · \(ExGFormat.xp(animatedTotal)) XP au total"
     }
 
-    /// Anime le total, puis fixe la valeur finale (compte montant linéaire).
+    /// Anime le total, puis fixe la valeur finale (`Easing.inOut(Easing.cubic)`).
     private func runAnimation() async {
         animatedTotal = progress.totalBefore
         guard !reduceMotion else {
@@ -115,11 +115,19 @@ struct ChartXpGainProgress: View {
         try? await Task.sleep(nanoseconds: 350_000_000)
         let steps = 60
         for step in 1...steps {
-            let fraction = Double(step) / Double(steps)
+            let fraction = easeInOutCubic(Double(step) / Double(steps))
             animatedTotal = progress.totalBefore
                 + (progress.totalAfter - progress.totalBefore) * fraction
             try? await Task.sleep(nanoseconds: UInt64(1_800_000_000 / steps))
         }
         animatedTotal = progress.totalAfter
+    }
+
+    /// `Easing.inOut(Easing.cubic)` de `XpGainProgress.tsx` : `4t³` sur la
+    /// première moitié, `1 − (−2t+2)³/2` ensuite.
+    private func easeInOutCubic(_ t: Double) -> Double {
+        if t < 0.5 { return 4 * t * t * t }
+        let u = -2 * t + 2
+        return 1 - u * u * u / 2
     }
 }

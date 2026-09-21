@@ -83,13 +83,11 @@ final class ChalInvitationCoordinator: ObservableObject {
         pollTask = nil
     }
 
-    /// Relève les invitations ; une relève manquée sera retentée au prochain
-    /// passage, un popup déjà visible restant utilisable.
+    /// Relève les invitations ; `busy` est transmis au serveur, qui décide de ne
+    /// rien proposer, puis la relève est vidée localement. Une relève manquée
+    /// sera retentée au prochain passage, un popup déjà visible restant
+    /// utilisable.
     func refresh() async {
-        if busy {
-            invitation = nil
-            return
-        }
         guard let token else { return }
         let gen = generation
         do {
@@ -99,6 +97,10 @@ final class ChalInvitationCoordinator: ObservableObject {
                 token: token
             )
             guard gen == generation else { return }
+            if busy {
+                invitation = nil
+                return
+            }
             invitation = Self.reconcile(current: invitation, incoming: incoming)
         } catch {
             // Une relève manquée sera retentée au prochain passage.

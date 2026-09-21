@@ -45,8 +45,8 @@ let exgCardShadow = Color(hex: 0x0A0D0C).opacity(0.04)
 enum ExGFormat {
     private static let posix = Locale(identifier: "en_US_POSIX")
 
-    /// `formatXp` — arrondi au dixième, milliers séparés par une espace
-    /// insécable (U+00A0), décimale virgule. `1250.5` → `« 1 250,5 »`.
+    /// `formatXp` — arrondi au dixième, milliers séparés par une espace fine
+    /// insécable (U+202F), décimale virgule. `1250.5` → `« 1 250,5 »`.
     static func xp(_ value: Double) -> String {
         let safe = value.isFinite ? value : 0
         let rounded = (safe * 10).rounded() / 10
@@ -54,7 +54,7 @@ enum ExGFormat {
         formatter.locale = Locale(identifier: "fr_FR")
         formatter.numberStyle = .decimal
         formatter.usesGroupingSeparator = true
-        formatter.groupingSeparator = "\u{00A0}"
+        formatter.groupingSeparator = "\u{202F}"
         formatter.decimalSeparator = ","
         formatter.minimumFractionDigits = 0
         formatter.maximumFractionDigits = 1

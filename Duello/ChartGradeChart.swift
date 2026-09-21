@@ -111,6 +111,8 @@ struct ChartGradeChart: View {
             .frame(width: width, height: plotHeight, alignment: .topLeading)
         }
         .frame(height: plotHeight)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Évolution de \(points.count) note\(points.count > 1 ? "s" : "") sur 20, répartie en \(series.count) courbe\(series.count > 1 ? "s" : "") par type")
     }
 
     private var xAxis: some View {

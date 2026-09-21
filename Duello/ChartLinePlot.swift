@@ -21,6 +21,9 @@ struct ChartLinePoint: Identifiable, Hashable {
     let id = UUID()
     var value: Double
     var tooltip: String
+    /// Seconde ligne de l'infobulle (`tooltipDate`, `tooltipCount`…), quand la
+    /// source empile deux lignes au lieu de les joindre.
+    var tooltipDetail: String? = nil
 }
 
 /// Courbe lissée réutilisable : repères, tracé, points et lecture d'une période.
@@ -39,6 +42,14 @@ struct ChartSmoothLineChart: View {
     var tooltipHeight: CGFloat = 28
     var tint: Color = Theme.ink
     var showsDateRange: Bool = true
+    /// Retrait de la bande d'infobulle ; par défaut celui de l'axe.
+    var tooltipLeading: CGFloat? = nil
+    /// `MAX_VISIBLE_DOTS` : au-delà, seuls le dernier point et la sélection restent.
+    var maxVisibleDots: Int = 24
+    /// Repère médian de l'axe (ex. « 10 »), absent de la plupart des sources.
+    var middleAxisLabel: String? = nil
+    /// Le libellé de fin n'apparaît que si la source le conditionne (`length > 1`).
+    var showsLastAxisLabel: Bool = true
 
     @State private var selectedIndex: Int?
 
@@ -53,7 +64,9 @@ struct ChartSmoothLineChart: View {
                 HStack {
                     Text(firstAxisLabel)
                     Spacer(minLength: 8)
-                    Text(lastAxisLabel)
+                    if showsLastAxisLabel {
+                        Text(lastAxisLabel)
+                    }
                 }
                 .font(.system(size: 9, weight: .bold))
                 .foregroundStyle(Theme.inkFaint)
@@ -69,24 +82,35 @@ struct ChartSmoothLineChart: View {
     private var tooltipBand: some View {
         ZStack {
             if let index = selectedIndex, points.indices.contains(index) {
-                Text(points[index].tooltip)
-                    .font(.system(size: 11, weight: .heavy))
-                    .foregroundStyle(Theme.surface)
-                    .lineLimit(1)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Theme.ink)
-                    .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
+                VStack(spacing: 1) {
+                    Text(points[index].tooltip)
+                        .font(.system(size: 11, weight: .black))
+                    if let detail = points[index].tooltipDetail {
+                        Text(detail)
+                            .font(.system(size: 10, weight: .bold))
+                            .opacity(0.65)
+                    }
+                }
+                .foregroundStyle(Theme.surface)
+                .lineLimit(1)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Theme.ink)
+                .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
             }
         }
         .frame(maxWidth: .infinity, minHeight: tooltipHeight, alignment: .center)
-        .padding(.leading, axisWidth)
+        .padding(.leading, tooltipLeading ?? axisWidth)
     }
 
     private var axisColumn: some View {
         VStack {
             Text(topAxisLabel)
             Spacer(minLength: 0)
+            if let middleAxisLabel {
+                Text(middleAxisLabel)
+                Spacer(minLength: 0)
+            }
             Text(bottomAxisLabel)
         }
         .font(.system(size: 9, weight: .bold))
@@ -133,15 +157,17 @@ struct ChartSmoothLineChart: View {
     private func dots(innerWidth: CGFloat, innerHeight: CGFloat) -> some View {
         ForEach(Array(points.enumerated()), id: \.element.id) { index, point in
             let isSelected = index == selectedIndex
-            Circle()
-                .fill(tint)
-                .frame(width: dotSize, height: dotSize)
-                .overlay(Circle().stroke(Theme.surface, lineWidth: isSelected ? 2 : 0))
-                .scaleEffect(isSelected ? 1.5 : 1)
-                .offset(
-                    x: xAt(index, innerWidth) - dotSize / 2,
-                    y: yAt(point.value, innerHeight) - dotSize / 2
-                )
+            if points.count <= maxVisibleDots || index == points.count - 1 || isSelected {
+                Circle()
+                    .fill(tint)
+                    .frame(width: dotSize, height: dotSize)
+                    .overlay(Circle().stroke(Theme.surface, lineWidth: isSelected ? 2 : 0))
+                    .scaleEffect(isSelected ? 1.5 : 1)
+                    .offset(
+                        x: xAt(index, innerWidth) - dotSize / 2,
+                        y: yAt(point.value, innerHeight) - dotSize / 2
+                    )
+            }
         }
     }
 
