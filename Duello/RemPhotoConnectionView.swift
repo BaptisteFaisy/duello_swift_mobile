@@ -25,7 +25,7 @@ struct RemPhotoConnectionView: View {
                     Task { @MainActor in
                         guard await RemPhotoCameraAccess.ensure() else {
                             controller.report(RemPhotoError(
-                                message: "Autorise l’appareil photo pour envoyer ta copie.",
+                                message: "Autorise l'appareil photo pour envoyer ta copie.",
                                 status: 403,
                                 code: "camera-permission-denied"
                             ))

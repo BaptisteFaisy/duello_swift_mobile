@@ -62,14 +62,14 @@ enum CollFlashcardErrors {
             if sort != .recent {
                 if sort == .recurrence {
                     let gap = (counts[right.deck] ?? 0) - (counts[left.deck] ?? 0)
-                    if gap != 0 { return gap > 0 }
+                    if gap != 0 { return gap < 0 }
                 }
                 let rankGap = deckRank(left.deck, order: deckOrder) - deckRank(right.deck, order: deckOrder)
                 if rankGap != 0 { return rankGap < 0 }
                 if left.deck != right.deck { return left.deck < right.deck }
             }
             let dateGap = (right.seenAt ?? 0) - (left.seenAt ?? 0)
-            if dateGap != 0 { return dateGap > 0 }
+            if dateGap != 0 { return dateGap < 0 }
             return (positions[left.id] ?? 0) < (positions[right.id] ?? 0)
         }
     }
