@@ -87,11 +87,26 @@ Les gros écrans ont été découpés en modules à responsabilité claire — d
 | `TrainingCatalogView.swift` | 1 066 | 15 fichiers `Train*` |
 | `PremiumView.swift` (paywall) | 1 018 | 12 fichiers `Prem*` |
 
-**Reste à découper** (vague v1–v3, encore > 500 lignes) : `AccountDetailViews`
-(963), `RankingsView` (855), `MessagesView` (845), `NotificationsViews` (724),
-`LatexToUnicode` (712), `Programs` (668), `DuelJudge` (635),
-`AnnCopyCorrectionSheet` (624), `AnnReaderView` (607), `DuelloAPI` (571),
-`ProgressView` (558).
+**Conformité atteinte** : tous les fichiers `Duello/*.swift` sont désormais
+**≤ 500 lignes**. Vague v1–v3 découpée (batch 2) :
+
+| Fichier d'origine | Lignes | Modules |
+| --- | --- | --- |
+| `AccountDetailViews.swift` | 963 | 7 fichiers `Account*` |
+| `RankingsView.swift` | 855 | 9 fichiers `Ranking*` |
+| `MessagesView.swift` | 845 | 9 fichiers `Messages*` |
+| `NotificationsViews.swift` | 724 | 4 fichiers `Notification*` |
+| `LatexToUnicode.swift` | 712 | 7 fichiers `LatexToUnicode*` |
+| `Programs.swift` | 668 | 8 fichiers `Program*` |
+| `DuelJudge.swift` | 635 | 5 fichiers `Duel*` |
+| `AnnCopyCorrectionSheet.swift` | 624 | 5 fichiers `AnnCopyCorrection*` |
+| `AnnReaderView.swift` | 607 | 4 fichiers `AnnReader*` |
+| `DuelloAPI.swift` | 571 | 8 fichiers `DuelloAPI*` (extensions) |
+| `ProgressView.swift` | 558 | 7 fichiers `Progress*` |
+
+**Total : 211 fichiers Swift**, tous ≤ 500 lignes, ≤ 10 fonctions, ≤ 50 lignes
+par fonction (sauf dérogations documentées en en-tête : grandes fonctions
+héritées non découpables sans réécriture, et données statiques volumineuses).
 
 > ⚠️ **Concurrence** : plusieurs sessions `agent -a a` travaillant dans le
 > **même** arbre git se sont écrasées mutuellement (le paywall `PremiumView` a
