@@ -120,7 +120,17 @@ public protocol UIImagePickerControllerDelegate: NSObjectProtocol {
     func imagePickerControllerDidCancel(_ picker: UIImagePickerController)
 }
 
+open class UIActivityViewController: UIViewController {
+    public nonisolated init(activityItems: [Any], applicationActivities: [UIActivity]?) { super.init() }
+}
+
+/// Classe de base des activités partagées (`UIActivity`).
+open class UIActivity: NSObject {}
+
 open class UIImagePickerController: UIViewController {
+    public enum CameraDevice: Int { case rear, front }
+    public var allowsEditing: Bool = false
+    public var cameraDevice: CameraDevice = .rear
     public enum SourceType: Int {
         case photoLibrary, camera, savedPhotosAlbum
     }

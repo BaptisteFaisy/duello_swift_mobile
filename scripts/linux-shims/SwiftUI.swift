@@ -12,6 +12,11 @@
 //   SwiftUI+Modifiers.swift surface `extension View`
 
 @_exported import Foundation
+// Sous Linux, `URLSession`/`URLSessionWebSocketTask` vivent dans
+// `FoundationNetworking`, que `Foundation` ne réexporte pas — contrairement à
+// ce qui se passe sur Apple. Les fichiers de Duello n'important que SwiftUI,
+// c'est ici que le réexport doit avoir lieu.
+@_exported import FoundationNetworking
 @_exported import Combine
 // `@_exported` : en iOS, `import SwiftUI` rend les types UIKit visibles
 // (`UIPasteboard`, `UIImage`…). Sans le réexport, le shim refusait à tort du
@@ -412,6 +417,7 @@ public struct Gradient: Hashable, Sendable {
 public struct LinearGradient: View, ShapeStyle, Sendable {
     public nonisolated init(colors: [Color], startPoint: UnitPoint, endPoint: UnitPoint) {}
     public nonisolated init(gradient: Gradient, startPoint: UnitPoint, endPoint: UnitPoint) {}
+    public nonisolated init(stops: [Gradient.Stop], startPoint: UnitPoint, endPoint: UnitPoint) {}
     public var body: _ShimView { _ShimView() }
 }
 
@@ -516,6 +522,7 @@ public struct Animation: Equatable, Sendable {
     public static func spring(duration: Double, bounce: Double, blendDuration: Double = 0) -> Animation { Animation() }
     public static func interactiveSpring(response: Double = 0.15, dampingFraction: Double = 0.86, blendDuration: Double = 0.25) -> Animation { Animation() }
     public static func interpolatingSpring(stiffness: Double, damping: Double, initialVelocity: Double = 0) -> Animation { Animation() }
+    public static func interpolatingSpring(mass: Double, stiffness: Double, damping: Double, initialVelocity: Double = 0) -> Animation { Animation() }
     public static func timingCurve(_ p0: Double, _ p1: Double, _ p2: Double, _ p3: Double, duration: Double) -> Animation { Animation() }
     public func speed(_ speed: Double) -> Animation { self }
     public func delay(_ delay: Double) -> Animation { self }

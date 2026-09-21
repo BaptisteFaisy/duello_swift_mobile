@@ -12,24 +12,24 @@ extension PlanView {
     // MARK: Navigation interne
 
     /// `selectDay` (lignes 107-113) : le champ de date suit le jour affiché.
-    private func goToDay(_ offset: Int) {
+    func goToDay(_ offset: Int) {
         selectedDayOffset = max(0, min(max(0, days.count - 1), offset))
     }
 
-    private func goToToday() {
+    func goToToday() {
         dateInput = PlanDateEngine.longDate(day(for: 0).date)
         dateError = nil
         goToDay(0)
     }
 
-    private func startEditingDate() {
+    func startEditingDate() {
         dateInput = PlanDateEngine.inputDate(selectedDay.date)
         isEditingDate = true
     }
 
     /// `handleDateInput` (lignes 120-128) : masque la saisie, et dès qu'une date
     /// du programme est reconnue, y conduit.
-    private func handleDateInput(_ value: String) {
+    func handleDateInput(_ value: String) {
         guard isEditingDate else { return }
         let masked = PlanDateEngine.maskInput(value)
         if masked != value {
@@ -44,7 +44,7 @@ extension PlanView {
 
     /// `submitDateInput` (lignes 136-150) : seule la validation explicite signale
     /// une saisie inutilisable.
-    private func submitDateInput() {
+    func submitDateInput() {
         isEditingDate = false
         if let target = PlanDateEngine.findDay(for: dateInput, in: days) {
             dateError = nil

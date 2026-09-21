@@ -17,10 +17,14 @@ Port **SwiftUI natif** (iOS 16) de l'application Expo / React Native Duello.
 | Collisions de type top-level | 0 |
 | Sources `Sources` du `project.pbxproj` | 647 (toutes) |
 
-Le pré-contrôle `scripts/verify-swift-linux.sh` est **vert** : syntaxe sur les
-647 fichiers, contrôle de types sur les 303 fichiers portables, 1 « hors
-couverture » structurel (`AcctIntData.swift`, qui cite `ChartXpSummary` d'un lot
-non portable).
+Le pré-contrôle `scripts/verify-swift-linux.sh` est **vert** : syntaxe **et
+types** sur les **649 fichiers**, 0 erreur. Il ne se contente plus du « lot
+portable » (303 fichiers) : les 19 modules factices de `scripts/linux-shims/`
+couvrent SwiftUI et les autres frameworks Apple, si bien que le cœur de l'app
+passe enfin un contrôle de types. Détail et mode d'emploi : `TYPE_CHECK.md`.
+
+Ce contrôle a trouvé **12 erreurs de compilation réelles** que ni la syntaxe ni
+le lot portable ne voyaient (voir `TYPE_CHECK.md` et les commits `e95880a`+).
 
 ## Fidélité, mesurée
 

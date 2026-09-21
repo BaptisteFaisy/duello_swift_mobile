@@ -47,20 +47,20 @@ import SwiftUI
 struct PlanView: View {
     @EnvironmentObject private var session: SessionStore
 
-    @State private var selectedDayOffset = 0
-    @State private var days: [PlanDay] = [PlanDateEngine.firstDay()]
-    @State private var tasks: [PlanTask] = PlanTask.starters
+    @State var selectedDayOffset = 0
+    @State var days: [PlanDay] = [PlanDateEngine.firstDay()]
+    @State var tasks: [PlanTask] = PlanTask.starters
     @State private var schedule: [PlanScheduleSlot] = []
     @State private var hasLoaded = false
-    @State private var lastAddedCount = 0
-    @State private var isAnalyzing = false
-    @State private var ollamaFallbackNotice = false
-    @State private var ollamaSettings = PlanOllamaSettings()
+    @State var lastAddedCount = 0
+    @State var isAnalyzing = false
+    @State var ollamaFallbackNotice = false
+    @State var ollamaSettings = PlanOllamaSettings()
     @State private var selectedSession: PlanSession?
-    @State private var dateInput: String = PlanDateEngine.longDate(Date())
-    @State private var dateError: String?
-    @State private var isEditingDate = false
-    @State private var composerText = ""
+    @State var dateInput: String = PlanDateEngine.longDate(Date())
+    @State var dateError: String?
+    @State var isEditingDate = false
+    @State var composerText = ""
     @FocusState private var dateFieldFocused: Bool
 
     private let routine = PlanRoutine()
@@ -72,11 +72,11 @@ struct PlanView: View {
         return email.isEmpty ? "local" : DuelloAPI.publicProfileId(email: email)
     }
 
-    private var selectedDay: PlanDay {
+    var selectedDay: PlanDay {
         day(for: selectedDayOffset)
     }
 
-    private func day(for offset: Int) -> PlanDay {
+    func day(for offset: Int) -> PlanDay {
         if let match = days.first(where: { $0.dayOffset == offset }) { return match }
         if let first = days.first { return first }
         return PlanDateEngine.firstDay()
@@ -335,7 +335,7 @@ struct PlanView: View {
         if selectedDayOffset >= days.count { selectedDayOffset = max(0, days.count - 1) }
     }
 
-    private func persistTasks(_ value: [PlanTask]) {
+    func persistTasks(_ value: [PlanTask]) {
         guard hasLoaded else { return }
         PlanStorage.saveTasks(value, accountKey: accountKey)
     }

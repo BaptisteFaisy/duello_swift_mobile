@@ -13,7 +13,7 @@ extension PlanView {
 
     /// `handleTranscript` (lignes 158-183) : analyse IA locale si elle est
     /// réglée, repli sur l'analyseur standard, tri par urgence décroissante.
-    private func addTasks(from transcript: String) {
+    func addTasks(from transcript: String) {
         let clean = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !clean.isEmpty else { return }
 
@@ -71,7 +71,7 @@ extension PlanView {
     }
 
     /// Coche locale : la tâche faite sort de l'avancement et s'affiche en grisé.
-    private func toggle(_ task: PlanTask) {
+    func toggle(_ task: PlanTask) {
         updateTasks { items in
             guard let index = items.firstIndex(where: { $0.id == task.id }) else { return }
             items[index].isDone.toggle()
@@ -79,7 +79,7 @@ extension PlanView {
     }
 
     /// Report local d'un jour : l'échéance glisse, la tâche redevient à faire.
-    private func report(_ task: PlanTask) {
+    func report(_ task: PlanTask) {
         updateTasks { items in
             guard let index = items.firstIndex(where: { $0.id == task.id }) else { return }
             items[index].postponedDays += 1

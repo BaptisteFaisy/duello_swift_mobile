@@ -122,29 +122,42 @@ struct Ui2AddGradeSheet: View {
 
     private var form: some View {
         VStack(alignment: .leading, spacing: 0) {
-            fieldLabel("MATIÈRE *")
-            chipRow(subjects, selected: subject) { subject = $0 }
-
-            fieldLabel("TYPE *")
-            chipRow(Self.gradeTypes.map(\.rawValue), selected: type.rawValue) { value in
-                if let parsed = ChartGradeType(rawValue: value) { type = parsed }
+            Group {
+                fieldLabel("MATIÈRE *")
+                chipRow(subjects, selected: subject) { subject = $0 }
             }
 
-            fieldLabel("NOTE *")
-            gradeRow
+            Group {
+                fieldLabel("TYPE *")
+                chipRow(Self.gradeTypes.map(\.rawValue), selected: type.rawValue) { value in
+                    if let parsed = ChartGradeType(rawValue: value) { type = parsed }
+                }
+            }
 
-            fieldLabel("MOYENNE DE CLASSE (optionnel)")
-            inputField("11.5", text: $classAverage)
+            Group {
+                fieldLabel("NOTE *")
+                gradeRow
+            }
 
-            fieldLabel("COEFFICIENT")
-            inputField("1", text: $coefficient)
+            Group {
+                fieldLabel("MOYENNE DE CLASSE (optionnel)")
+                inputField("11.5", text: $classAverage)
+            }
 
-            fieldLabel("COMMENTAIRES (optionnel)")
-            commentField
+            Group {
+                fieldLabel("COEFFICIENT")
+                inputField("1", text: $coefficient)
+            }
 
-            if let formError { errorText(formError) }
+            Group {
+                fieldLabel("COMMENTAIRES (optionnel)")
+                commentField
+            }
 
-            infoCard
+            Group {
+                if let formError { errorText(formError) }
+                infoCard
+            }
         }
         .padding(20)
     }
