@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 /// Store local du parcours HEC : la frise d'une année, l'admission finale et
 /// le jour d'inscription, persistés dans `UserDefaults`.

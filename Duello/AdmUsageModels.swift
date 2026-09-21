@@ -118,13 +118,14 @@ struct AdmUsageDay: Decodable, Identifiable, Equatable {
     var date: String = ""
     var activeSeconds: Double = 0
     var sessions: Int = 0
+    var actions: AdmUsageActions = AdmUsageActions()
     var pageSeconds: AdmPageCounters = AdmPageCounters()
     var pageVisits: AdmPageCounters = AdmPageCounters()
 
     var id: String { date }
 
     enum CodingKeys: String, CodingKey {
-        case date, activeSeconds, sessions, pageSeconds, pageVisits
+        case date, activeSeconds, sessions, actions, pageSeconds, pageVisits
     }
 
     init(from decoder: Decoder) throws {
@@ -132,6 +133,7 @@ struct AdmUsageDay: Decodable, Identifiable, Equatable {
         date = (try? c.decode(String.self, forKey: .date)) ?? ""
         activeSeconds = (try? c.decode(Double.self, forKey: .activeSeconds)) ?? 0
         sessions = (try? c.decode(Int.self, forKey: .sessions)) ?? 0
+        actions = (try? c.decode(AdmUsageActions.self, forKey: .actions)) ?? AdmUsageActions()
         pageSeconds = AdmUsageDay.counters(c, .pageSeconds)
         pageVisits = AdmUsageDay.counters(c, .pageVisits)
     }
@@ -143,7 +145,7 @@ struct AdmUsageDay: Decodable, Identifiable, Equatable {
         guard let value = try? c.decodeIfPresent(AdmPageCounters.self, forKey: key) else {
             return AdmPageCounters()
         }
-        return value ?? AdmPageCounters()
+        return value
     }
 }
 
@@ -184,7 +186,7 @@ struct AdmUsageAnalytics: Decodable, Equatable {
         guard let value = try? c.decodeIfPresent(AdmPageCounters.self, forKey: key) else {
             return AdmPageCounters()
         }
-        return value ?? AdmPageCounters()
+        return value
     }
 
     private static func actions(
@@ -194,6 +196,6 @@ struct AdmUsageAnalytics: Decodable, Equatable {
         guard let value = try? c.decodeIfPresent(AdmUsageActions.self, forKey: key) else {
             return AdmUsageActions()
         }
-        return value ?? AdmUsageActions()
+        return value
     }
 }

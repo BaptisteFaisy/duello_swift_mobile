@@ -116,3 +116,33 @@ héritées non découpables sans réécriture, et données statiques volumineuse
 > **même** arbre git se sont écrasées mutuellement (le paywall `PremiumView` a
 > été perdu avant `e4c9f2b`, puis reconstruit). **Une seule session à la fois
 > sur ce dépôt**, ou des clones / worktrees séparés.
+
+## Pré-contrôle Swift sans Xcode (Linux)
+
+Une toolchain **Swift 6.1.2 pour Linux** est installée sur le poste de
+développement (`~/.local/bin/swiftc`) : elle ne remplace pas Xcode, mais elle
+attrape déjà une classe entière de défauts avant d'ouvrir le Mac.
+
+```sh
+scripts/verify-swift-linux.sh     # exit 0 = vert
+```
+
+1. **Syntaxe** — `swiftc -parse` sur **tous** les fichiers (SwiftUI inclus).
+2. **Types** — `swiftc -typecheck` sur le **lot portable** : les fichiers qui
+   n'importent que Foundation / UIKit / Security / Combine / GoogleSignIn.
+   SwiftUI, Charts, PDFKit… n'existent pas sous Linux : les vues ne sont pas
+   typées ici.
+3. **Tri** — `scripts/swift_linux_scope.py` sépare les échecs réels des faux
+   positifs structurels : un fichier portable qui cite un type déclaré dans un
+   fichier non portable est rapporté « hors couverture », sans faire échouer le
+   contrôle. Tout le reste est un vrai défaut.
+
+`scripts/linux-shims/` fournit des modules factices (`Security`, `UIKit`,
+`Combine`, `GoogleSignIn`) **jamais livrés** : ils sont hors de la cible Xcode,
+et `scripts/sync_xcode_sources.py` ne scanne que `Duello/`.
+
+**Ce que ce contrôle a déjà attrapé** : `NSUserCancelledErrorCode` (symbole
+inventé au portage, absent des en-têtes de Foundation du SDK iOS 16.4 — il
+aurait cassé le build sur le Mac) et six `@Published` sans `import Combine`.
+Il ne voit **pas** les erreurs de vue (layout, modificateurs, SF Symbols) :
+la compilation sur Mac reste le seul juge final.
