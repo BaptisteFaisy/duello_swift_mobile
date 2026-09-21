@@ -10,8 +10,6 @@
 		AA000001AAAAAAAAAAAAAA01 /* DuelloApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001AAAAAAAAAAAAAA01 /* DuelloApp.swift */; };
 		AA000001AAAAAAAAAAAAAA02 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001AAAAAAAAAAAAAA02 /* Theme.swift */; };
 		AA000001AAAAAAAAAAAAAA03 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001AAAAAAAAAAAAAA03 /* Models.swift */; };
-		AA000001AAAAAAAAAAAAAA04 /* Programs.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001AAAAAAAAAAAAAA04 /* Programs.swift */; };
-		AA000001AAAAAAAAAAAAAA05 /* DuelloAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001AAAAAAAAAAAAAA05 /* DuelloAPI.swift */; };
 		AA000001AAAAAAAAAAAAAA06 /* SessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001AAAAAAAAAAAAAA06 /* SessionStore.swift */; };
 		AA000001AAAAAAAAAAAAAA07 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001AAAAAAAAAAAAAA07 /* MainTabView.swift */; };
 		AA000001AAAAAAAAAAAAAA08 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001AAAAAAAAAAAAAA08 /* WelcomeView.swift */; };
@@ -19,24 +17,16 @@
 		AA000001AAAAAAAAAAAAAA0A /* TrainingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001AAAAAAAAAAAAAA0A /* TrainingView.swift */; };
 		AA000001AAAAAAAAAAAAAA0B /* ChallengesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001AAAAAAAAAAAAAA0B /* ChallengesView.swift */; };
 		AA000001AAAAAAAAAAAAAA0D /* DuelloExerciseCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001AAAAAAAAAAAAAA0D /* DuelloExerciseCatalog.swift */; };
-		AA000001AAAAAAAAAAAAAA0E /* DuelJudge.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001AAAAAAAAAAAAAA0E /* DuelJudge.swift */; };
-		AA000001AAAAAAAAAAAAAA0F /* LatexToUnicode.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001AAAAAAAAAAAAAA0F /* LatexToUnicode.swift */; };		AA000001AAAAAAAAAAAAAA10 /* ChallengePlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001AAAAAAAAAAAAAA10 /* ChallengePlayerView.swift */; };
 		AA000001AAAAAAAAAAAAAA11 /* GoogleAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001AAAAAAAAAAAAAA11 /* GoogleAuth.swift */; };
 		AA000001AAAAAAAAAAAAAA20 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = AE000001AAAAAAAAAAAAAA21 /* GoogleSignIn */; };
 		AA000001AAAAAAAAAAAAAA0C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AB000001AAAAAAAAAAAAAA0C /* Assets.xcassets */; };
-		B197B4F2EA57B80AA2A22560 /* AccountDetailViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = D989DC2B9EE6A375B128AB05 /* AccountDetailViews.swift */; };
-		6A9F9C6BFB13F034755599A1 /* MessagesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD1EAA5159DD5C7B3B6CE628 /* MessagesView.swift */; };
 		EE889E69E94AF6444BD44845 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C29620B927AEC396B51ACC99 /* OnboardingView.swift */; };
 		49C84C2F41F77D3BE1CD6F52 /* ProgressStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB14A8E05E2262DB7E43328B /* ProgressStore.swift */; };
-		1690FD66B1840AB7D0CFA49A /* ProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DF02FF5F73F96C54C3B8178 /* ProgressView.swift */; };
 		272113D7714F8F0BDB406461 /* DuelloUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7703F40172E94E96227F04DD /* DuelloUI.swift */; };
-		0F9A6A8A80455CA3A93AC11D /* NotificationsViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D59CC5E25A86BB88C9785EE /* NotificationsViews.swift */; };
-		8CA3975CDB087C9D63DE7987 /* RankingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 625EAA1D827252D13185E8A2 /* RankingsView.swift */; };
 		46DB1A76E5CA05D4451BFF17 /* PremiumView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F78ABF3F0E14A6FC0D0FB7 /* PremiumView.swift */; };
 		8482043904F6D7C736D33D02 /* AnnAnnalesFilters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B7CFDD117CD8BC150826CAE /* AnnAnnalesFilters.swift */; };
 		CEC117414ECB0BC21E7F87CB /* AnnAnnalesModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3E97D8D5FAAB7E2C56C203A /* AnnAnnalesModels.swift */; };
 		B83AC28CD2AB51D1DBA7BAE5 /* AnnCameraPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF16B386F83E146C4E2E5384 /* AnnCameraPicker.swift */; };
-		8540BBC06DF26D1858A0B0DD /* AnnCopyCorrectionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B18524A27AADD0D1E55D8E67 /* AnnCopyCorrectionSheet.swift */; };
 		985EE7578BB88976D2063DCA /* AnnCopyModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCC481CCC231BE6117A8DE0D /* AnnCopyModels.swift */; };
 		93D89B491C54374F03754591 /* AnnCopyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7B5BB67961762DA92676AC1 /* AnnCopyService.swift */; };
 		3C046D0788184DD25DEAC73B /* AnnCorrectionMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C74A004D0E4AA19B524ABB6 /* AnnCorrectionMonitor.swift */; };
@@ -44,7 +34,6 @@
 		6EFFA05E90265B73A0BD7A2A /* AnnPhotoLibraryPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE11E33FF434AC0DF39C9EAA /* AnnPhotoLibraryPicker.swift */; };
 		8A8BAA87D01F1F6E4E23A8DA /* AnnPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F478C3B18340F78E581F0DE1 /* AnnPickerSheet.swift */; };
 		FD64DE574FA7B3EA6607EA3A /* AnnReaderControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71B19BDF0C8A27FCDA649F99 /* AnnReaderControls.swift */; };
-		194E400717E3F61F6321F54C /* AnnReaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09F75DA5028706729C73CD87 /* AnnReaderView.swift */; };
 		B8CC2870410242233BE20655 /* AnnRelay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1251684F1B59B94745EA7F5A /* AnnRelay.swift */; };
 		52C2D5250A9F202EB32CF1B3 /* AnnalesScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95FAE9A07CCA019AE5720FC5 /* AnnalesScreen.swift */; };
 		B65F14E1E39FDEFCF4F39C3B /* CourseDocumentHtmlView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFFC8A74566E4967504B1D51 /* CourseDocumentHtmlView.swift */; };
@@ -157,6 +146,79 @@
 		40C35520774709D396729B76 /* TrainingCatalogView+Entry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B2F24F2488F1809A47D4F7 /* TrainingCatalogView+Entry.swift */; };
 		51BFDE2FED7675E2293B1B19 /* TrainingCatalogView+Loading.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D94F64F136B935C372E27DB /* TrainingCatalogView+Loading.swift */; };
 		B1743605516D0CD9B809A5A2 /* WhiteboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D77DA542C95A11619013E32 /* WhiteboardView.swift */; };
+		E40A018522AFA11A759FB707 /* AccountBlockedUsersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41338FE41BECCD4FDC131A38 /* AccountBlockedUsersView.swift */; };
+		A23532E8CBA2D116F0477827 /* AccountFeedbackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D68F870AAA0E9A684C960C21 /* AccountFeedbackView.swift */; };
+		A6E79C0C179D35AF89846590 /* AccountForgotPasswordView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B43212B9D4F8F51B527CA79 /* AccountForgotPasswordView.swift */; };
+		BBBA1A1A9CCE8829405B8D64 /* AccountLegalContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFC10DBA8BC712250BAA682B /* AccountLegalContent.swift */; };
+		7AAF433F6A043EBA6AAF4EA1 /* AccountLegalViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5A9B1028BD228EFDBCEE5E /* AccountLegalViews.swift */; };
+		D7F63C39FD7AF8CAE9F68AE4 /* AccountPasswordResetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6843DA2327904063DC57D49 /* AccountPasswordResetView.swift */; };
+		AFCABFB2298624CBEECE05E5 /* AccountTrackSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0FFB4E7C9B603328599BFBE /* AccountTrackSettingsView.swift */; };
+		E5799A9E57F4C46C6C2E6655 /* AnnCopyCorrectionDeposit.swift in Sources */ = {isa = PBXBuildFile; fileRef = EABEE6F1D527FBA39A6E0C34 /* AnnCopyCorrectionDeposit.swift */; };
+		FC225957F24E28B7B71814DB /* AnnCopyCorrectionPageCollection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13E80A5EA71E015A2215C231 /* AnnCopyCorrectionPageCollection.swift */; };
+		3CB46617EE9D59B90FCEDA53 /* AnnCopyCorrectionProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 097E61117DC2B6013FD2897A /* AnnCopyCorrectionProgress.swift */; };
+		F77EAEA58BECA76614154BFA /* AnnCopyCorrectionReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = A67747918A9492B17BC45081 /* AnnCopyCorrectionReport.swift */; };
+		54D3BEF6BD52DB184B4F429F /* AnnCopyCorrectionSheetCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FE4C445AC07D667B292C306 /* AnnCopyCorrectionSheetCore.swift */; };
+		6CC44631806B04F0E36AEFCA /* AnnReaderContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = C78EDA38A150E446D96281FE /* AnnReaderContent.swift */; };
+		3AAF4C69C5E4289661CBC9FB /* AnnReaderCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F2E151E09E1A87C8BED7CDD /* AnnReaderCore.swift */; };
+		98B84E0028D494C8F1B2EAA9 /* AnnReaderFooter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE91884B994D1315D5FB456 /* AnnReaderFooter.swift */; };
+		22EA947D618B33322FA4D821 /* AnnReaderHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C63EEAC5757A3C26428FE96 /* AnnReaderHeader.swift */; };
+		DB4F2B5C9EFCCC3BC1C70C34 /* DuelCopyPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = D76F5ED45831C35D629A82CF /* DuelCopyPolicy.swift */; };
+		E7D0B02B6FBBF92AD9DDEA67 /* DuelExerciseModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1B2BFC377787DF20188A06B /* DuelExerciseModels.swift */; };
+		DDF34C405B3A2E1C07D1ED57 /* DuelGrading.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDD3F16628790FB681A6E4CD /* DuelGrading.swift */; };
+		4D43E408C0B079A9ECDB831D /* DuelLocalRubric.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CFDAA53B9828E09C1A1AABF /* DuelLocalRubric.swift */; };
+		C6B29014B2A652489E8E46AA /* DuelVerdict.swift in Sources */ = {isa = PBXBuildFile; fileRef = D39692B4152DF22DBA04D499 /* DuelVerdict.swift */; };
+		93CE42D3D9E2DCEFED2C9148 /* DuelloAPIAccount.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7ADB38F524676544A574F253 /* DuelloAPIAccount.swift */; };
+		7CC20E9D0DEC6583EA94F29F /* DuelloAPIContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = B21B2ADC6A99FF5C17C4CA65 /* DuelloAPIContent.swift */; };
+		D53158E488651947988CE6C2 /* DuelloAPIDuel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 849ABFC893C00F40272ED3BA /* DuelloAPIDuel.swift */; };
+		F59C923F3B63ACFEE880978C /* DuelloAPIGoogleAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4641700649B9DB9326412D59 /* DuelloAPIGoogleAuth.swift */; };
+		497EE79F63E04F5E8E612A68 /* DuelloAPIGrading.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A8ED57C636B149AA6D7119C /* DuelloAPIGrading.swift */; };
+		7A4240EBBACE0F27774D0838 /* DuelloAPILeaderboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9956987DF716C30F6EACCCEB /* DuelloAPILeaderboard.swift */; };
+		2170FD165144DA2D0A8E2178 /* DuelloAPIQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6194634F95B5CE5620BC068 /* DuelloAPIQueue.swift */; };
+		BC5466C67592BD7E37766FAD /* DuelloAPITransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3163DBA84C2941AB631E1F78 /* DuelloAPITransport.swift */; };
+		3136E0E11A9F552931ABE179 /* LatexToUnicodeCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D8B03356E439167A94A08F9 /* LatexToUnicodeCore.swift */; };
+		B266E4280E86FF8C73A1342C /* LatexToUnicodeMatrix.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA1F1FEBE5CE81CB8C1544EC /* LatexToUnicodeMatrix.swift */; };
+		666DE501D1BFAB9DA471A004 /* LatexToUnicodeNormalization.swift in Sources */ = {isa = PBXBuildFile; fileRef = B02FED3E3282F71B8E0667F1 /* LatexToUnicodeNormalization.swift */; };
+		8A4C9FB8081A42AB22E03DC6 /* LatexToUnicodeParsing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02D4A0D5B711064667A37C34 /* LatexToUnicodeParsing.swift */; };
+		F3C89598960FF55890CE3044 /* LatexToUnicodeRendering.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7522F61F9A6D24BBBFC4C74A /* LatexToUnicodeRendering.swift */; };
+		24055312F72ADBC19A1854D9 /* LatexToUnicodeScripts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EC0785F48919CB548E0B561 /* LatexToUnicodeScripts.swift */; };
+		F4CFDB3204D5D99CF2A8D043 /* LatexToUnicodeTables.swift in Sources */ = {isa = PBXBuildFile; fileRef = C088861005B4F3068BC495CF /* LatexToUnicodeTables.swift */; };
+		511851E9D90C9FB575DFB7B7 /* MessagesActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10009BC3265C658EE9F689A /* MessagesActions.swift */; };
+		752D2896029F33F3E59AED8C /* MessagesBubble.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D837B77BF318F411BED247B /* MessagesBubble.swift */; };
+		AEC919BD982F6ED4833BE3D8 /* MessagesComposer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59AEC03C654AB1BDD6560E36 /* MessagesComposer.swift */; };
+		F6A02B1DDFCC399106A41DC2 /* MessagesDetailHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E49E44A1371290B18711B04D /* MessagesDetailHeader.swift */; };
+		7ECC35C5071BAACE6DE84624 /* MessagesDetailViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = B729082B72F78DFE191FC3E2 /* MessagesDetailViews.swift */; };
+		797B059379462B0955E641EA /* MessagesDirectTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 806393DE211CA866AE4F1C83 /* MessagesDirectTab.swift */; };
+		5560FF1D4E034E39A2B74719 /* MessagesForumTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BF29A1C60FAD40AD0BBF547 /* MessagesForumTab.swift */; };
+		8F6EC54BEDFF134F705B6F79 /* MessagesModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96BC834A7AB20347678FD8B2 /* MessagesModels.swift */; };
+		91D4F5334723B80AD10BCBC0 /* MessagesViewCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 921733CAFF851B6B8B35ADB5 /* MessagesViewCore.swift */; };
+		8339844AC24CE98299FE4EEE /* NotificationInstalledPager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2E275BFA4D14C2873F639F4 /* NotificationInstalledPager.swift */; };
+		943D65592EE7AEE78D20CDAF /* NotificationPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83CC5492D1424863F42BEE9B /* NotificationPreferences.swift */; };
+		9785BC92633ADE2290BCC7E2 /* NotificationScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AA08795D8181BA054098EC9 /* NotificationScheduler.swift */; };
+		E13377C1C1F9A2093E9B5E33 /* NotificationSettingsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 030ABF7347A70C0BEFA65043 /* NotificationSettingsCard.swift */; };
+		9D5F0D33815A7A94BB132ED8 /* ProgramCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC47A8063E7D31EE7BE46CEF /* ProgramCatalog.swift */; };
+		5285D956E98452157F2DA883 /* ProgramECG.swift in Sources */ = {isa = PBXBuildFile; fileRef = 709F1592C7FAC1032C59FAAE /* ProgramECG.swift */; };
+		6BBA330446973A2DF49FC8B8 /* ProgramECGCultureGenerale.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FFDA226D387CCDCB65BD45D /* ProgramECGCultureGenerale.swift */; };
+		DD13142A8C71AC2F3EE73570 /* ProgramECGHumanites.swift in Sources */ = {isa = PBXBuildFile; fileRef = E055788DA46EF9A9E1A9B8E5 /* ProgramECGHumanites.swift */; };
+		F244CC9624DA7F9E94F2D3F3 /* ProgramECGLangues.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D7475FA213A18AA65F530CD /* ProgramECGLangues.swift */; };
+		CDA355FF1CBBF7847FCB7358 /* ProgramMP.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4E92416358F9C018520F0A4 /* ProgramMP.swift */; };
+		D09B9592EE9AA128870FAE8E /* ProgramMPSI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 954FB3BBC49DC18E5AFD5FB8 /* ProgramMPSI.swift */; };
+		EFDBC50F355DA69D31EC6A33 /* ProgramPSI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 234D4F0DCC3203F1A54656B6 /* ProgramPSI.swift */; };
+		DE2BF247B72847EABD736A2E /* ProgressComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEB6D4604042B3C45949B695 /* ProgressComponents.swift */; };
+		265E9DA16C19773E1B9CD0E5 /* ProgressData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 947DCD160E9EFDF42F7ADFEB /* ProgressData.swift */; };
+		D3EF66D7E3A09F57885A50FA /* ProgressDuelSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB5752F43004D124924653D9 /* ProgressDuelSection.swift */; };
+		F30DCAF7DEC573DE0B2B6A01 /* ProgressHoursSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4DE3BD0DCC0E88CAFE7BEB3 /* ProgressHoursSection.swift */; };
+		43994F651597FD499C9FB092 /* ProgressScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FF44A1F4D8F4BFAEDE65051 /* ProgressScreen.swift */; };
+		EA4B4A2B0389CD391B56FBD7 /* ProgressSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68767347C1F892AFAA88C99E /* ProgressSummary.swift */; };
+		C777153AB6DA424F721B2E01 /* ProgressTrainingSections.swift in Sources */ = {isa = PBXBuildFile; fileRef = C170226FB4EB529981D950DD /* ProgressTrainingSections.swift */; };
+		D2753E8AEF15D617914DC84A /* RankingEloLeagues.swift in Sources */ = {isa = PBXBuildFile; fileRef = 230331A4B9604BC9A51A5F51 /* RankingEloLeagues.swift */; };
+		6FDF94270AB541A4D514D299 /* RankingLoadStateViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39130CFF5B2EAA3899CB6CB8 /* RankingLoadStateViews.swift */; };
+		C7FC33DAC2048D3A63EA70C2 /* RankingModalSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = D07ECBB8B01E23D93A3CDD5D /* RankingModalSheet.swift */; };
+		33421E45B6018E33B701B950 /* RankingRowBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB4C31F4E01D0AC53C838877 /* RankingRowBuilder.swift */; };
+		B4A380AA3137272E484B96FF /* RankingRowViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BC7D5C2D54733DBA554DE11 /* RankingRowViews.swift */; };
+		85E18D591679ED5EC6E511F0 /* RankingScreenTabs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FBEC64DBF4CAEB0DAE25653 /* RankingScreenTabs.swift */; };
+		5DF175FB98EE12F224781D9A /* RankingSubjectLeaderboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = D659181E281E7FEB19FD43FD /* RankingSubjectLeaderboard.swift */; };
+		A234059C6C4536748398EE78 /* RankingWeeklyXp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55A1DFF3A28AA76F71F3913B /* RankingWeeklyXp.swift */; };
+		ACFCA9F8D1490980B3DB76F9 /* RankingWeeklyXpLeagues.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFC8DE2B6DCDC595A853FB7E /* RankingWeeklyXpLeagues.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -164,8 +226,6 @@
 		AB000001AAAAAAAAAAAAAA01 /* DuelloApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuelloApp.swift; sourceTree = "<group>"; };
 		AB000001AAAAAAAAAAAAAA02 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		AB000001AAAAAAAAAAAAAA03 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
-		AB000001AAAAAAAAAAAAAA04 /* Programs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Programs.swift; sourceTree = "<group>"; };
-		AB000001AAAAAAAAAAAAAA05 /* DuelloAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuelloAPI.swift; sourceTree = "<group>"; };
 		AB000001AAAAAAAAAAAAAA06 /* SessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStore.swift; sourceTree = "<group>"; };
 		AB000001AAAAAAAAAAAAAA07 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		AB000001AAAAAAAAAAAAAA08 /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
@@ -173,24 +233,16 @@
 		AB000001AAAAAAAAAAAAAA0A /* TrainingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingView.swift; sourceTree = "<group>"; };
 		AB000001AAAAAAAAAAAAAA0B /* ChallengesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChallengesView.swift; sourceTree = "<group>"; };
 		AB000001AAAAAAAAAAAAAA0D /* DuelloExerciseCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuelloExerciseCatalog.swift; sourceTree = "<group>"; };
-		AB000001AAAAAAAAAAAAAA0E /* DuelJudge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuelJudge.swift; sourceTree = "<group>"; };
-		AB000001AAAAAAAAAAAAAA0F /* LatexToUnicode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatexToUnicode.swift; sourceTree = "<group>"; };		AB000001AAAAAAAAAAAAAA10 /* ChallengePlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChallengePlayerView.swift; sourceTree = "<group>"; };
 		AB000001AAAAAAAAAAAAAA11 /* GoogleAuth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleAuth.swift; sourceTree = "<group>"; };
 		AB000001AAAAAAAAAAAAAA12 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		AB000001AAAAAAAAAAAAAA0C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		D989DC2B9EE6A375B128AB05 /* AccountDetailViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountDetailViews.swift; sourceTree = "<group>"; };
-		BD1EAA5159DD5C7B3B6CE628 /* MessagesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagesView.swift; sourceTree = "<group>"; };
 		C29620B927AEC396B51ACC99 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		CB14A8E05E2262DB7E43328B /* ProgressStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressStore.swift; sourceTree = "<group>"; };
-		2DF02FF5F73F96C54C3B8178 /* ProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressView.swift; sourceTree = "<group>"; };
 		7703F40172E94E96227F04DD /* DuelloUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuelloUI.swift; sourceTree = "<group>"; };
-		8D59CC5E25A86BB88C9785EE /* NotificationsViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsViews.swift; sourceTree = "<group>"; };
-		625EAA1D827252D13185E8A2 /* RankingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingsView.swift; sourceTree = "<group>"; };
 		A9F78ABF3F0E14A6FC0D0FB7 /* PremiumView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PremiumView.swift; sourceTree = "<group>"; };
 		5B7CFDD117CD8BC150826CAE /* AnnAnnalesFilters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnAnnalesFilters.swift; sourceTree = "<group>"; };
 		E3E97D8D5FAAB7E2C56C203A /* AnnAnnalesModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnAnnalesModels.swift; sourceTree = "<group>"; };
 		BF16B386F83E146C4E2E5384 /* AnnCameraPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnCameraPicker.swift; sourceTree = "<group>"; };
-		B18524A27AADD0D1E55D8E67 /* AnnCopyCorrectionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnCopyCorrectionSheet.swift; sourceTree = "<group>"; };
 		CCC481CCC231BE6117A8DE0D /* AnnCopyModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnCopyModels.swift; sourceTree = "<group>"; };
 		D7B5BB67961762DA92676AC1 /* AnnCopyService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnCopyService.swift; sourceTree = "<group>"; };
 		4C74A004D0E4AA19B524ABB6 /* AnnCorrectionMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnCorrectionMonitor.swift; sourceTree = "<group>"; };
@@ -198,7 +250,6 @@
 		EE11E33FF434AC0DF39C9EAA /* AnnPhotoLibraryPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnPhotoLibraryPicker.swift; sourceTree = "<group>"; };
 		F478C3B18340F78E581F0DE1 /* AnnPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnPickerSheet.swift; sourceTree = "<group>"; };
 		71B19BDF0C8A27FCDA649F99 /* AnnReaderControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnReaderControls.swift; sourceTree = "<group>"; };
-		09F75DA5028706729C73CD87 /* AnnReaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnReaderView.swift; sourceTree = "<group>"; };
 		1251684F1B59B94745EA7F5A /* AnnRelay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnRelay.swift; sourceTree = "<group>"; };
 		95FAE9A07CCA019AE5720FC5 /* AnnalesScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnalesScreen.swift; sourceTree = "<group>"; };
 		AFFC8A74566E4967504B1D51 /* CourseDocumentHtmlView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CourseDocumentHtmlView.swift; sourceTree = "<group>"; };
@@ -311,6 +362,79 @@
 		87B2F24F2488F1809A47D4F7 /* TrainingCatalogView+Entry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingCatalogView+Entry.swift; sourceTree = "<group>"; };
 		5D94F64F136B935C372E27DB /* TrainingCatalogView+Loading.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingCatalogView+Loading.swift; sourceTree = "<group>"; };
 		4D77DA542C95A11619013E32 /* WhiteboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhiteboardView.swift; sourceTree = "<group>"; };
+		41338FE41BECCD4FDC131A38 /* AccountBlockedUsersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountBlockedUsersView.swift; sourceTree = "<group>"; };
+		D68F870AAA0E9A684C960C21 /* AccountFeedbackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountFeedbackView.swift; sourceTree = "<group>"; };
+		6B43212B9D4F8F51B527CA79 /* AccountForgotPasswordView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountForgotPasswordView.swift; sourceTree = "<group>"; };
+		DFC10DBA8BC712250BAA682B /* AccountLegalContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountLegalContent.swift; sourceTree = "<group>"; };
+		6E5A9B1028BD228EFDBCEE5E /* AccountLegalViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountLegalViews.swift; sourceTree = "<group>"; };
+		A6843DA2327904063DC57D49 /* AccountPasswordResetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountPasswordResetView.swift; sourceTree = "<group>"; };
+		E0FFB4E7C9B603328599BFBE /* AccountTrackSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountTrackSettingsView.swift; sourceTree = "<group>"; };
+		EABEE6F1D527FBA39A6E0C34 /* AnnCopyCorrectionDeposit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnCopyCorrectionDeposit.swift; sourceTree = "<group>"; };
+		13E80A5EA71E015A2215C231 /* AnnCopyCorrectionPageCollection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnCopyCorrectionPageCollection.swift; sourceTree = "<group>"; };
+		097E61117DC2B6013FD2897A /* AnnCopyCorrectionProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnCopyCorrectionProgress.swift; sourceTree = "<group>"; };
+		A67747918A9492B17BC45081 /* AnnCopyCorrectionReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnCopyCorrectionReport.swift; sourceTree = "<group>"; };
+		4FE4C445AC07D667B292C306 /* AnnCopyCorrectionSheetCore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnCopyCorrectionSheetCore.swift; sourceTree = "<group>"; };
+		C78EDA38A150E446D96281FE /* AnnReaderContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnReaderContent.swift; sourceTree = "<group>"; };
+		0F2E151E09E1A87C8BED7CDD /* AnnReaderCore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnReaderCore.swift; sourceTree = "<group>"; };
+		7AE91884B994D1315D5FB456 /* AnnReaderFooter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnReaderFooter.swift; sourceTree = "<group>"; };
+		2C63EEAC5757A3C26428FE96 /* AnnReaderHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnReaderHeader.swift; sourceTree = "<group>"; };
+		D76F5ED45831C35D629A82CF /* DuelCopyPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuelCopyPolicy.swift; sourceTree = "<group>"; };
+		D1B2BFC377787DF20188A06B /* DuelExerciseModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuelExerciseModels.swift; sourceTree = "<group>"; };
+		BDD3F16628790FB681A6E4CD /* DuelGrading.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuelGrading.swift; sourceTree = "<group>"; };
+		7CFDAA53B9828E09C1A1AABF /* DuelLocalRubric.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuelLocalRubric.swift; sourceTree = "<group>"; };
+		D39692B4152DF22DBA04D499 /* DuelVerdict.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuelVerdict.swift; sourceTree = "<group>"; };
+		7ADB38F524676544A574F253 /* DuelloAPIAccount.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuelloAPIAccount.swift; sourceTree = "<group>"; };
+		B21B2ADC6A99FF5C17C4CA65 /* DuelloAPIContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuelloAPIContent.swift; sourceTree = "<group>"; };
+		849ABFC893C00F40272ED3BA /* DuelloAPIDuel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuelloAPIDuel.swift; sourceTree = "<group>"; };
+		4641700649B9DB9326412D59 /* DuelloAPIGoogleAuth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuelloAPIGoogleAuth.swift; sourceTree = "<group>"; };
+		3A8ED57C636B149AA6D7119C /* DuelloAPIGrading.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuelloAPIGrading.swift; sourceTree = "<group>"; };
+		9956987DF716C30F6EACCCEB /* DuelloAPILeaderboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuelloAPILeaderboard.swift; sourceTree = "<group>"; };
+		A6194634F95B5CE5620BC068 /* DuelloAPIQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuelloAPIQueue.swift; sourceTree = "<group>"; };
+		3163DBA84C2941AB631E1F78 /* DuelloAPITransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuelloAPITransport.swift; sourceTree = "<group>"; };
+		9D8B03356E439167A94A08F9 /* LatexToUnicodeCore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatexToUnicodeCore.swift; sourceTree = "<group>"; };
+		EA1F1FEBE5CE81CB8C1544EC /* LatexToUnicodeMatrix.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatexToUnicodeMatrix.swift; sourceTree = "<group>"; };
+		B02FED3E3282F71B8E0667F1 /* LatexToUnicodeNormalization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatexToUnicodeNormalization.swift; sourceTree = "<group>"; };
+		02D4A0D5B711064667A37C34 /* LatexToUnicodeParsing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatexToUnicodeParsing.swift; sourceTree = "<group>"; };
+		7522F61F9A6D24BBBFC4C74A /* LatexToUnicodeRendering.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatexToUnicodeRendering.swift; sourceTree = "<group>"; };
+		1EC0785F48919CB548E0B561 /* LatexToUnicodeScripts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatexToUnicodeScripts.swift; sourceTree = "<group>"; };
+		C088861005B4F3068BC495CF /* LatexToUnicodeTables.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatexToUnicodeTables.swift; sourceTree = "<group>"; };
+		C10009BC3265C658EE9F689A /* MessagesActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagesActions.swift; sourceTree = "<group>"; };
+		8D837B77BF318F411BED247B /* MessagesBubble.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagesBubble.swift; sourceTree = "<group>"; };
+		59AEC03C654AB1BDD6560E36 /* MessagesComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagesComposer.swift; sourceTree = "<group>"; };
+		E49E44A1371290B18711B04D /* MessagesDetailHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagesDetailHeader.swift; sourceTree = "<group>"; };
+		B729082B72F78DFE191FC3E2 /* MessagesDetailViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagesDetailViews.swift; sourceTree = "<group>"; };
+		806393DE211CA866AE4F1C83 /* MessagesDirectTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagesDirectTab.swift; sourceTree = "<group>"; };
+		8BF29A1C60FAD40AD0BBF547 /* MessagesForumTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagesForumTab.swift; sourceTree = "<group>"; };
+		96BC834A7AB20347678FD8B2 /* MessagesModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagesModels.swift; sourceTree = "<group>"; };
+		921733CAFF851B6B8B35ADB5 /* MessagesViewCore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagesViewCore.swift; sourceTree = "<group>"; };
+		D2E275BFA4D14C2873F639F4 /* NotificationInstalledPager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationInstalledPager.swift; sourceTree = "<group>"; };
+		83CC5492D1424863F42BEE9B /* NotificationPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationPreferences.swift; sourceTree = "<group>"; };
+		9AA08795D8181BA054098EC9 /* NotificationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationScheduler.swift; sourceTree = "<group>"; };
+		030ABF7347A70C0BEFA65043 /* NotificationSettingsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationSettingsCard.swift; sourceTree = "<group>"; };
+		EC47A8063E7D31EE7BE46CEF /* ProgramCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgramCatalog.swift; sourceTree = "<group>"; };
+		709F1592C7FAC1032C59FAAE /* ProgramECG.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgramECG.swift; sourceTree = "<group>"; };
+		8FFDA226D387CCDCB65BD45D /* ProgramECGCultureGenerale.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgramECGCultureGenerale.swift; sourceTree = "<group>"; };
+		E055788DA46EF9A9E1A9B8E5 /* ProgramECGHumanites.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgramECGHumanites.swift; sourceTree = "<group>"; };
+		2D7475FA213A18AA65F530CD /* ProgramECGLangues.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgramECGLangues.swift; sourceTree = "<group>"; };
+		C4E92416358F9C018520F0A4 /* ProgramMP.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgramMP.swift; sourceTree = "<group>"; };
+		954FB3BBC49DC18E5AFD5FB8 /* ProgramMPSI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgramMPSI.swift; sourceTree = "<group>"; };
+		234D4F0DCC3203F1A54656B6 /* ProgramPSI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgramPSI.swift; sourceTree = "<group>"; };
+		EEB6D4604042B3C45949B695 /* ProgressComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressComponents.swift; sourceTree = "<group>"; };
+		947DCD160E9EFDF42F7ADFEB /* ProgressData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressData.swift; sourceTree = "<group>"; };
+		DB5752F43004D124924653D9 /* ProgressDuelSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressDuelSection.swift; sourceTree = "<group>"; };
+		E4DE3BD0DCC0E88CAFE7BEB3 /* ProgressHoursSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressHoursSection.swift; sourceTree = "<group>"; };
+		1FF44A1F4D8F4BFAEDE65051 /* ProgressScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressScreen.swift; sourceTree = "<group>"; };
+		68767347C1F892AFAA88C99E /* ProgressSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressSummary.swift; sourceTree = "<group>"; };
+		C170226FB4EB529981D950DD /* ProgressTrainingSections.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressTrainingSections.swift; sourceTree = "<group>"; };
+		230331A4B9604BC9A51A5F51 /* RankingEloLeagues.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingEloLeagues.swift; sourceTree = "<group>"; };
+		39130CFF5B2EAA3899CB6CB8 /* RankingLoadStateViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingLoadStateViews.swift; sourceTree = "<group>"; };
+		D07ECBB8B01E23D93A3CDD5D /* RankingModalSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingModalSheet.swift; sourceTree = "<group>"; };
+		CB4C31F4E01D0AC53C838877 /* RankingRowBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingRowBuilder.swift; sourceTree = "<group>"; };
+		1BC7D5C2D54733DBA554DE11 /* RankingRowViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingRowViews.swift; sourceTree = "<group>"; };
+		7FBEC64DBF4CAEB0DAE25653 /* RankingScreenTabs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingScreenTabs.swift; sourceTree = "<group>"; };
+		D659181E281E7FEB19FD43FD /* RankingSubjectLeaderboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingSubjectLeaderboard.swift; sourceTree = "<group>"; };
+		55A1DFF3A28AA76F71F3913B /* RankingWeeklyXp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingWeeklyXp.swift; sourceTree = "<group>"; };
+		DFC8DE2B6DCDC595A853FB7E /* RankingWeeklyXpLeagues.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingWeeklyXpLeagues.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -339,8 +463,6 @@
 				AB000001AAAAAAAAAAAAAA01 /* DuelloApp.swift */,
 				AB000001AAAAAAAAAAAAAA02 /* Theme.swift */,
 				AB000001AAAAAAAAAAAAAA03 /* Models.swift */,
-				AB000001AAAAAAAAAAAAAA04 /* Programs.swift */,
-				AB000001AAAAAAAAAAAAAA05 /* DuelloAPI.swift */,
 				AB000001AAAAAAAAAAAAAA06 /* SessionStore.swift */,
 				AB000001AAAAAAAAAAAAAA07 /* MainTabView.swift */,
 				AB000001AAAAAAAAAAAAAA08 /* WelcomeView.swift */,
@@ -348,25 +470,17 @@
 				AB000001AAAAAAAAAAAAAA0A /* TrainingView.swift */,
 				AB000001AAAAAAAAAAAAAA0B /* ChallengesView.swift */,
 				AB000001AAAAAAAAAAAAAA0D /* DuelloExerciseCatalog.swift */,
-				AB000001AAAAAAAAAAAAAA0E /* DuelJudge.swift */,
-				AB000001AAAAAAAAAAAAAA0F /* LatexToUnicode.swift */,
 				AB000001AAAAAAAAAAAAAA10 /* ChallengePlayerView.swift */,
 				AB000001AAAAAAAAAAAAAA11 /* GoogleAuth.swift */,
 				AB000001AAAAAAAAAAAAAA12 /* Info.plist */,
 				AB000001AAAAAAAAAAAAAA0C /* Assets.xcassets */,
-				D989DC2B9EE6A375B128AB05 /* AccountDetailViews.swift */,
-				BD1EAA5159DD5C7B3B6CE628 /* MessagesView.swift */,
 				C29620B927AEC396B51ACC99 /* OnboardingView.swift */,
 				CB14A8E05E2262DB7E43328B /* ProgressStore.swift */,
-				2DF02FF5F73F96C54C3B8178 /* ProgressView.swift */,
 				7703F40172E94E96227F04DD /* DuelloUI.swift */,
-				8D59CC5E25A86BB88C9785EE /* NotificationsViews.swift */,
-				625EAA1D827252D13185E8A2 /* RankingsView.swift */,
 				A9F78ABF3F0E14A6FC0D0FB7 /* PremiumView.swift */,
 				5B7CFDD117CD8BC150826CAE /* AnnAnnalesFilters.swift */,
 				E3E97D8D5FAAB7E2C56C203A /* AnnAnnalesModels.swift */,
 				BF16B386F83E146C4E2E5384 /* AnnCameraPicker.swift */,
-				B18524A27AADD0D1E55D8E67 /* AnnCopyCorrectionSheet.swift */,
 				CCC481CCC231BE6117A8DE0D /* AnnCopyModels.swift */,
 				D7B5BB67961762DA92676AC1 /* AnnCopyService.swift */,
 				4C74A004D0E4AA19B524ABB6 /* AnnCorrectionMonitor.swift */,
@@ -374,7 +488,6 @@
 				EE11E33FF434AC0DF39C9EAA /* AnnPhotoLibraryPicker.swift */,
 				F478C3B18340F78E581F0DE1 /* AnnPickerSheet.swift */,
 				71B19BDF0C8A27FCDA649F99 /* AnnReaderControls.swift */,
-				09F75DA5028706729C73CD87 /* AnnReaderView.swift */,
 				1251684F1B59B94745EA7F5A /* AnnRelay.swift */,
 				95FAE9A07CCA019AE5720FC5 /* AnnalesScreen.swift */,
 				AFFC8A74566E4967504B1D51 /* CourseDocumentHtmlView.swift */,
@@ -487,6 +600,79 @@
 				87B2F24F2488F1809A47D4F7 /* TrainingCatalogView+Entry.swift */,
 				5D94F64F136B935C372E27DB /* TrainingCatalogView+Loading.swift */,
 				4D77DA542C95A11619013E32 /* WhiteboardView.swift */,
+				41338FE41BECCD4FDC131A38 /* AccountBlockedUsersView.swift */,
+				D68F870AAA0E9A684C960C21 /* AccountFeedbackView.swift */,
+				6B43212B9D4F8F51B527CA79 /* AccountForgotPasswordView.swift */,
+				DFC10DBA8BC712250BAA682B /* AccountLegalContent.swift */,
+				6E5A9B1028BD228EFDBCEE5E /* AccountLegalViews.swift */,
+				A6843DA2327904063DC57D49 /* AccountPasswordResetView.swift */,
+				E0FFB4E7C9B603328599BFBE /* AccountTrackSettingsView.swift */,
+				EABEE6F1D527FBA39A6E0C34 /* AnnCopyCorrectionDeposit.swift */,
+				13E80A5EA71E015A2215C231 /* AnnCopyCorrectionPageCollection.swift */,
+				097E61117DC2B6013FD2897A /* AnnCopyCorrectionProgress.swift */,
+				A67747918A9492B17BC45081 /* AnnCopyCorrectionReport.swift */,
+				4FE4C445AC07D667B292C306 /* AnnCopyCorrectionSheetCore.swift */,
+				C78EDA38A150E446D96281FE /* AnnReaderContent.swift */,
+				0F2E151E09E1A87C8BED7CDD /* AnnReaderCore.swift */,
+				7AE91884B994D1315D5FB456 /* AnnReaderFooter.swift */,
+				2C63EEAC5757A3C26428FE96 /* AnnReaderHeader.swift */,
+				D76F5ED45831C35D629A82CF /* DuelCopyPolicy.swift */,
+				D1B2BFC377787DF20188A06B /* DuelExerciseModels.swift */,
+				BDD3F16628790FB681A6E4CD /* DuelGrading.swift */,
+				7CFDAA53B9828E09C1A1AABF /* DuelLocalRubric.swift */,
+				D39692B4152DF22DBA04D499 /* DuelVerdict.swift */,
+				7ADB38F524676544A574F253 /* DuelloAPIAccount.swift */,
+				B21B2ADC6A99FF5C17C4CA65 /* DuelloAPIContent.swift */,
+				849ABFC893C00F40272ED3BA /* DuelloAPIDuel.swift */,
+				4641700649B9DB9326412D59 /* DuelloAPIGoogleAuth.swift */,
+				3A8ED57C636B149AA6D7119C /* DuelloAPIGrading.swift */,
+				9956987DF716C30F6EACCCEB /* DuelloAPILeaderboard.swift */,
+				A6194634F95B5CE5620BC068 /* DuelloAPIQueue.swift */,
+				3163DBA84C2941AB631E1F78 /* DuelloAPITransport.swift */,
+				9D8B03356E439167A94A08F9 /* LatexToUnicodeCore.swift */,
+				EA1F1FEBE5CE81CB8C1544EC /* LatexToUnicodeMatrix.swift */,
+				B02FED3E3282F71B8E0667F1 /* LatexToUnicodeNormalization.swift */,
+				02D4A0D5B711064667A37C34 /* LatexToUnicodeParsing.swift */,
+				7522F61F9A6D24BBBFC4C74A /* LatexToUnicodeRendering.swift */,
+				1EC0785F48919CB548E0B561 /* LatexToUnicodeScripts.swift */,
+				C088861005B4F3068BC495CF /* LatexToUnicodeTables.swift */,
+				C10009BC3265C658EE9F689A /* MessagesActions.swift */,
+				8D837B77BF318F411BED247B /* MessagesBubble.swift */,
+				59AEC03C654AB1BDD6560E36 /* MessagesComposer.swift */,
+				E49E44A1371290B18711B04D /* MessagesDetailHeader.swift */,
+				B729082B72F78DFE191FC3E2 /* MessagesDetailViews.swift */,
+				806393DE211CA866AE4F1C83 /* MessagesDirectTab.swift */,
+				8BF29A1C60FAD40AD0BBF547 /* MessagesForumTab.swift */,
+				96BC834A7AB20347678FD8B2 /* MessagesModels.swift */,
+				921733CAFF851B6B8B35ADB5 /* MessagesViewCore.swift */,
+				D2E275BFA4D14C2873F639F4 /* NotificationInstalledPager.swift */,
+				83CC5492D1424863F42BEE9B /* NotificationPreferences.swift */,
+				9AA08795D8181BA054098EC9 /* NotificationScheduler.swift */,
+				030ABF7347A70C0BEFA65043 /* NotificationSettingsCard.swift */,
+				EC47A8063E7D31EE7BE46CEF /* ProgramCatalog.swift */,
+				709F1592C7FAC1032C59FAAE /* ProgramECG.swift */,
+				8FFDA226D387CCDCB65BD45D /* ProgramECGCultureGenerale.swift */,
+				E055788DA46EF9A9E1A9B8E5 /* ProgramECGHumanites.swift */,
+				2D7475FA213A18AA65F530CD /* ProgramECGLangues.swift */,
+				C4E92416358F9C018520F0A4 /* ProgramMP.swift */,
+				954FB3BBC49DC18E5AFD5FB8 /* ProgramMPSI.swift */,
+				234D4F0DCC3203F1A54656B6 /* ProgramPSI.swift */,
+				EEB6D4604042B3C45949B695 /* ProgressComponents.swift */,
+				947DCD160E9EFDF42F7ADFEB /* ProgressData.swift */,
+				DB5752F43004D124924653D9 /* ProgressDuelSection.swift */,
+				E4DE3BD0DCC0E88CAFE7BEB3 /* ProgressHoursSection.swift */,
+				1FF44A1F4D8F4BFAEDE65051 /* ProgressScreen.swift */,
+				68767347C1F892AFAA88C99E /* ProgressSummary.swift */,
+				C170226FB4EB529981D950DD /* ProgressTrainingSections.swift */,
+				230331A4B9604BC9A51A5F51 /* RankingEloLeagues.swift */,
+				39130CFF5B2EAA3899CB6CB8 /* RankingLoadStateViews.swift */,
+				D07ECBB8B01E23D93A3CDD5D /* RankingModalSheet.swift */,
+				CB4C31F4E01D0AC53C838877 /* RankingRowBuilder.swift */,
+				1BC7D5C2D54733DBA554DE11 /* RankingRowViews.swift */,
+				7FBEC64DBF4CAEB0DAE25653 /* RankingScreenTabs.swift */,
+				D659181E281E7FEB19FD43FD /* RankingSubjectLeaderboard.swift */,
+				55A1DFF3A28AA76F71F3913B /* RankingWeeklyXp.swift */,
+				DFC8DE2B6DCDC595A853FB7E /* RankingWeeklyXpLeagues.swift */,
 			);
 			path = Duello;
 			sourceTree = "<group>";
@@ -573,8 +759,6 @@
 				AA000001AAAAAAAAAAAAAA01 /* DuelloApp.swift in Sources */,
 				AA000001AAAAAAAAAAAAAA02 /* Theme.swift in Sources */,
 				AA000001AAAAAAAAAAAAAA03 /* Models.swift in Sources */,
-				AA000001AAAAAAAAAAAAAA04 /* Programs.swift in Sources */,
-				AA000001AAAAAAAAAAAAAA05 /* DuelloAPI.swift in Sources */,
 				AA000001AAAAAAAAAAAAAA06 /* SessionStore.swift in Sources */,
 				AA000001AAAAAAAAAAAAAA07 /* MainTabView.swift in Sources */,
 				AA000001AAAAAAAAAAAAAA08 /* WelcomeView.swift in Sources */,
@@ -582,23 +766,15 @@
 				AA000001AAAAAAAAAAAAAA0A /* TrainingView.swift in Sources */,
 				AA000001AAAAAAAAAAAAAA0B /* ChallengesView.swift in Sources */,
 				AA000001AAAAAAAAAAAAAA0D /* DuelloExerciseCatalog.swift in Sources */,
-				AA000001AAAAAAAAAAAAAA0E /* DuelJudge.swift in Sources */,
-				AA000001AAAAAAAAAAAAAA0F /* LatexToUnicode.swift in Sources */,
 				AA000001AAAAAAAAAAAAAA10 /* ChallengePlayerView.swift in Sources */,
 				AA000001AAAAAAAAAAAAAA11 /* GoogleAuth.swift in Sources */,
-				B197B4F2EA57B80AA2A22560 /* AccountDetailViews.swift in Sources */,
-				6A9F9C6BFB13F034755599A1 /* MessagesView.swift in Sources */,
 				EE889E69E94AF6444BD44845 /* OnboardingView.swift in Sources */,
 				49C84C2F41F77D3BE1CD6F52 /* ProgressStore.swift in Sources */,
-				1690FD66B1840AB7D0CFA49A /* ProgressView.swift in Sources */,
 				272113D7714F8F0BDB406461 /* DuelloUI.swift in Sources */,
-				0F9A6A8A80455CA3A93AC11D /* NotificationsViews.swift in Sources */,
-				8CA3975CDB087C9D63DE7987 /* RankingsView.swift in Sources */,
 				46DB1A76E5CA05D4451BFF17 /* PremiumView.swift in Sources */,
 				8482043904F6D7C736D33D02 /* AnnAnnalesFilters.swift in Sources */,
 				CEC117414ECB0BC21E7F87CB /* AnnAnnalesModels.swift in Sources */,
 				B83AC28CD2AB51D1DBA7BAE5 /* AnnCameraPicker.swift in Sources */,
-				8540BBC06DF26D1858A0B0DD /* AnnCopyCorrectionSheet.swift in Sources */,
 				985EE7578BB88976D2063DCA /* AnnCopyModels.swift in Sources */,
 				93D89B491C54374F03754591 /* AnnCopyService.swift in Sources */,
 				3C046D0788184DD25DEAC73B /* AnnCorrectionMonitor.swift in Sources */,
@@ -606,7 +782,6 @@
 				6EFFA05E90265B73A0BD7A2A /* AnnPhotoLibraryPicker.swift in Sources */,
 				8A8BAA87D01F1F6E4E23A8DA /* AnnPickerSheet.swift in Sources */,
 				FD64DE574FA7B3EA6607EA3A /* AnnReaderControls.swift in Sources */,
-				194E400717E3F61F6321F54C /* AnnReaderView.swift in Sources */,
 				B8CC2870410242233BE20655 /* AnnRelay.swift in Sources */,
 				52C2D5250A9F202EB32CF1B3 /* AnnalesScreen.swift in Sources */,
 				B65F14E1E39FDEFCF4F39C3B /* CourseDocumentHtmlView.swift in Sources */,
@@ -719,6 +894,79 @@
 				40C35520774709D396729B76 /* TrainingCatalogView+Entry.swift in Sources */,
 				51BFDE2FED7675E2293B1B19 /* TrainingCatalogView+Loading.swift in Sources */,
 				B1743605516D0CD9B809A5A2 /* WhiteboardView.swift in Sources */,
+				E40A018522AFA11A759FB707 /* AccountBlockedUsersView.swift in Sources */,
+				A23532E8CBA2D116F0477827 /* AccountFeedbackView.swift in Sources */,
+				A6E79C0C179D35AF89846590 /* AccountForgotPasswordView.swift in Sources */,
+				BBBA1A1A9CCE8829405B8D64 /* AccountLegalContent.swift in Sources */,
+				7AAF433F6A043EBA6AAF4EA1 /* AccountLegalViews.swift in Sources */,
+				D7F63C39FD7AF8CAE9F68AE4 /* AccountPasswordResetView.swift in Sources */,
+				AFCABFB2298624CBEECE05E5 /* AccountTrackSettingsView.swift in Sources */,
+				E5799A9E57F4C46C6C2E6655 /* AnnCopyCorrectionDeposit.swift in Sources */,
+				FC225957F24E28B7B71814DB /* AnnCopyCorrectionPageCollection.swift in Sources */,
+				3CB46617EE9D59B90FCEDA53 /* AnnCopyCorrectionProgress.swift in Sources */,
+				F77EAEA58BECA76614154BFA /* AnnCopyCorrectionReport.swift in Sources */,
+				54D3BEF6BD52DB184B4F429F /* AnnCopyCorrectionSheetCore.swift in Sources */,
+				6CC44631806B04F0E36AEFCA /* AnnReaderContent.swift in Sources */,
+				3AAF4C69C5E4289661CBC9FB /* AnnReaderCore.swift in Sources */,
+				98B84E0028D494C8F1B2EAA9 /* AnnReaderFooter.swift in Sources */,
+				22EA947D618B33322FA4D821 /* AnnReaderHeader.swift in Sources */,
+				DB4F2B5C9EFCCC3BC1C70C34 /* DuelCopyPolicy.swift in Sources */,
+				E7D0B02B6FBBF92AD9DDEA67 /* DuelExerciseModels.swift in Sources */,
+				DDF34C405B3A2E1C07D1ED57 /* DuelGrading.swift in Sources */,
+				4D43E408C0B079A9ECDB831D /* DuelLocalRubric.swift in Sources */,
+				C6B29014B2A652489E8E46AA /* DuelVerdict.swift in Sources */,
+				93CE42D3D9E2DCEFED2C9148 /* DuelloAPIAccount.swift in Sources */,
+				7CC20E9D0DEC6583EA94F29F /* DuelloAPIContent.swift in Sources */,
+				D53158E488651947988CE6C2 /* DuelloAPIDuel.swift in Sources */,
+				F59C923F3B63ACFEE880978C /* DuelloAPIGoogleAuth.swift in Sources */,
+				497EE79F63E04F5E8E612A68 /* DuelloAPIGrading.swift in Sources */,
+				7A4240EBBACE0F27774D0838 /* DuelloAPILeaderboard.swift in Sources */,
+				2170FD165144DA2D0A8E2178 /* DuelloAPIQueue.swift in Sources */,
+				BC5466C67592BD7E37766FAD /* DuelloAPITransport.swift in Sources */,
+				3136E0E11A9F552931ABE179 /* LatexToUnicodeCore.swift in Sources */,
+				B266E4280E86FF8C73A1342C /* LatexToUnicodeMatrix.swift in Sources */,
+				666DE501D1BFAB9DA471A004 /* LatexToUnicodeNormalization.swift in Sources */,
+				8A4C9FB8081A42AB22E03DC6 /* LatexToUnicodeParsing.swift in Sources */,
+				F3C89598960FF55890CE3044 /* LatexToUnicodeRendering.swift in Sources */,
+				24055312F72ADBC19A1854D9 /* LatexToUnicodeScripts.swift in Sources */,
+				F4CFDB3204D5D99CF2A8D043 /* LatexToUnicodeTables.swift in Sources */,
+				511851E9D90C9FB575DFB7B7 /* MessagesActions.swift in Sources */,
+				752D2896029F33F3E59AED8C /* MessagesBubble.swift in Sources */,
+				AEC919BD982F6ED4833BE3D8 /* MessagesComposer.swift in Sources */,
+				F6A02B1DDFCC399106A41DC2 /* MessagesDetailHeader.swift in Sources */,
+				7ECC35C5071BAACE6DE84624 /* MessagesDetailViews.swift in Sources */,
+				797B059379462B0955E641EA /* MessagesDirectTab.swift in Sources */,
+				5560FF1D4E034E39A2B74719 /* MessagesForumTab.swift in Sources */,
+				8F6EC54BEDFF134F705B6F79 /* MessagesModels.swift in Sources */,
+				91D4F5334723B80AD10BCBC0 /* MessagesViewCore.swift in Sources */,
+				8339844AC24CE98299FE4EEE /* NotificationInstalledPager.swift in Sources */,
+				943D65592EE7AEE78D20CDAF /* NotificationPreferences.swift in Sources */,
+				9785BC92633ADE2290BCC7E2 /* NotificationScheduler.swift in Sources */,
+				E13377C1C1F9A2093E9B5E33 /* NotificationSettingsCard.swift in Sources */,
+				9D5F0D33815A7A94BB132ED8 /* ProgramCatalog.swift in Sources */,
+				5285D956E98452157F2DA883 /* ProgramECG.swift in Sources */,
+				6BBA330446973A2DF49FC8B8 /* ProgramECGCultureGenerale.swift in Sources */,
+				DD13142A8C71AC2F3EE73570 /* ProgramECGHumanites.swift in Sources */,
+				F244CC9624DA7F9E94F2D3F3 /* ProgramECGLangues.swift in Sources */,
+				CDA355FF1CBBF7847FCB7358 /* ProgramMP.swift in Sources */,
+				D09B9592EE9AA128870FAE8E /* ProgramMPSI.swift in Sources */,
+				EFDBC50F355DA69D31EC6A33 /* ProgramPSI.swift in Sources */,
+				DE2BF247B72847EABD736A2E /* ProgressComponents.swift in Sources */,
+				265E9DA16C19773E1B9CD0E5 /* ProgressData.swift in Sources */,
+				D3EF66D7E3A09F57885A50FA /* ProgressDuelSection.swift in Sources */,
+				F30DCAF7DEC573DE0B2B6A01 /* ProgressHoursSection.swift in Sources */,
+				43994F651597FD499C9FB092 /* ProgressScreen.swift in Sources */,
+				EA4B4A2B0389CD391B56FBD7 /* ProgressSummary.swift in Sources */,
+				C777153AB6DA424F721B2E01 /* ProgressTrainingSections.swift in Sources */,
+				D2753E8AEF15D617914DC84A /* RankingEloLeagues.swift in Sources */,
+				6FDF94270AB541A4D514D299 /* RankingLoadStateViews.swift in Sources */,
+				C7FC33DAC2048D3A63EA70C2 /* RankingModalSheet.swift in Sources */,
+				33421E45B6018E33B701B950 /* RankingRowBuilder.swift in Sources */,
+				B4A380AA3137272E484B96FF /* RankingRowViews.swift in Sources */,
+				85E18D591679ED5EC6E511F0 /* RankingScreenTabs.swift in Sources */,
+				5DF175FB98EE12F224781D9A /* RankingSubjectLeaderboard.swift in Sources */,
+				A234059C6C4536748398EE78 /* RankingWeeklyXp.swift in Sources */,
+				ACFCA9F8D1490980B3DB76F9 /* RankingWeeklyXpLeagues.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
