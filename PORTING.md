@@ -64,11 +64,15 @@ chaque lot livré.
 | Planning journalier | `PlanView.swift` | `EnhancedPlanScreen.tsx` | ✅ |
 | Outils d'étude | `PythonConsoleView.swift`, `WhiteboardView.swift`, `PhotoTranscriptionView.swift` | `PythonConsole.tsx`, `Whiteboard.native.tsx`, `PhotoTranscriptionModal.tsx` | ✅ |
 | Parcours HEC | `HecJourneyView.swift` | `HecJourney.tsx`, `HecJourneyScene.tsx` | ✅ |
-| Événements | `EventsView.swift` | `EventsList.tsx`, `event/` | ⏳ |
-| Social (invitations, présence, profil public) | `SocialViews.swift` | `ChallengeInviteModal.tsx`, `PresenceProvider.tsx` | ⏳ |
-| Réglages annexes & planification | `SettingsExtraViews.swift` | `FeedbackScreen.tsx`, `ScheduleEditor.tsx` | ⏳ |
-| Affiliation | `AffiliateView.swift` | `features/affiliate/` | ⏳ |
-| Administration | `AdminView.swift` | `admin/` | ⏳ |
+| Événements | `EventsView.swift` | `EventsList.tsx`, `event/` | ✅ |
+| Social (invitations, présence, profil public) | `SocialInviteModal.swift`, `PresenceViews.swift` | `ChallengeInviteModal.tsx`, `PresenceProvider.tsx` | ✅ |
+| Réglages annexes & planification | `SettingsExtraViews.swift`, `ScheduleEditorView.swift` | `FeedbackScreen.tsx`, `ScheduleEditor.tsx` | ✅ |
+| Affiliation | `AffiliateView.swift` | `features/affiliate/` | ✅ |
+| Administration | `AdminView.swift` | `admin/` | ✅ |
+
+**Roadmap terminée** : tous les lots prévus sont portés. Reste l'intégration
+native (montage des écrans dans `MainTabView`/`AccountView`, `Info.plist`,
+`project.pbxproj`) et la **compilation sur le Mac**.
 
 ## Conformité aux règles de complexité Duello
 
