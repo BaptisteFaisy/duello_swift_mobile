@@ -58,14 +58,42 @@ chaque lot livré.
 | Catalogue d'entraînement | `TrainingCatalogView.swift` | `SubjectsScreen.tsx`, `data/tracks.ts` | ✅ |
 | Espace de travail d'exercice | `ExerciseGradingViews.swift` | `ChallengeExerciseWorkspace.tsx`, `SuccessSummary.tsx` | ✅ |
 | Clavier mathématique | `MathKeyboardView.swift` | `MathKeyboard.tsx` | ✅ |
-| Cours & TD | `CourseTdView.swift` | `CourseTdPanel.tsx`, `HtmlDocumentView.tsx` | ⏳ |
+| Cours & TD | `CourseTdView.swift` | `CourseTdPanel.tsx`, `HtmlDocumentView.tsx` | ✅ |
 | Annales | `AnnalesView.swift` | `AnnaleViewer.tsx`, `AnnaleCopyCorrectionModal.tsx` | ✅ |
 | Premium / paywall | `PremiumView.swift` | `PaywallContent.tsx`, `PremiumOffers.tsx` | ✅ |
 | Planning journalier | `PlanView.swift` | `EnhancedPlanScreen.tsx` | ✅ |
-| Outils d'étude | `StudyToolsView.swift` | `PythonConsole.tsx`, `Whiteboard.native.tsx`, `PhotoTranscriptionModal.tsx` | ⏳ |
-| Parcours HEC | `HecJourneyView.swift` | `HecJourney.tsx`, `HecJourneyScene.tsx` | ⏳ |
+| Outils d'étude | `PythonConsoleView.swift`, `WhiteboardView.swift`, `PhotoTranscriptionView.swift` | `PythonConsole.tsx`, `Whiteboard.native.tsx`, `PhotoTranscriptionModal.tsx` | ✅ |
+| Parcours HEC | `HecJourneyView.swift` | `HecJourney.tsx`, `HecJourneyScene.tsx` | ✅ |
 | Événements | `EventsView.swift` | `EventsList.tsx`, `event/` | ⏳ |
 | Social (invitations, présence, profil public) | `SocialViews.swift` | `ChallengeInviteModal.tsx`, `PresenceProvider.tsx` | ⏳ |
 | Réglages annexes & planification | `SettingsExtraViews.swift` | `FeedbackScreen.tsx`, `ScheduleEditor.tsx` | ⏳ |
 | Affiliation | `AffiliateView.swift` | `features/affiliate/` | ⏳ |
 | Administration | `AdminView.swift` | `admin/` | ⏳ |
+
+## Conformité aux règles de complexité Duello
+
+Règles (héritées de l'`AGENTS.md` du VPS, cf. `AGENTS.md` du workspace) :
+**max 500 lignes/fichier, 10 fonctions/fichier, 50 lignes/fonction**.
+
+Les gros écrans ont été découpés en modules à responsabilité claire — découpage
+**transparent** (aucun type, propriété, méthode ni signature renommé) :
+
+| Fichier d'origine | Lignes | Modules |
+| --- | --- | --- |
+| `AnnalesView.swift` | 2 827 | 14 fichiers `Ann*` |
+| `PlanView.swift` | 2 103 | 16 fichiers `Plan*` |
+| `MathKeyboardView.swift` | 2 071 | 15 fichiers `MathKb*` |
+| `ExerciseGradingViews.swift` | 1 975 | 10 fichiers `ExG*` |
+| `TrainingCatalogView.swift` | 1 066 | 15 fichiers `Train*` |
+| `PremiumView.swift` (paywall) | 1 018 | 12 fichiers `Prem*` |
+
+**Reste à découper** (vague v1–v3, encore > 500 lignes) : `AccountDetailViews`
+(963), `RankingsView` (855), `MessagesView` (845), `NotificationsViews` (724),
+`LatexToUnicode` (712), `Programs` (668), `DuelJudge` (635),
+`AnnCopyCorrectionSheet` (624), `AnnReaderView` (607), `DuelloAPI` (571),
+`ProgressView` (558).
+
+> ⚠️ **Concurrence** : plusieurs sessions `agent -a a` travaillant dans le
+> **même** arbre git se sont écrasées mutuellement (le paywall `PremiumView` a
+> été perdu avant `e4c9f2b`, puis reconstruit). **Une seule session à la fois
+> sur ce dépôt**, ou des clones / worktrees séparés.
