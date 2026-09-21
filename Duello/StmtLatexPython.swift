@@ -120,6 +120,11 @@ enum StmtLatexPython {
         return output.joined(separator: "\n")
     }
 
+    ///
+    /// Dérogation de complexité : `mathDocumentForDisplayOnce` compte 53 lignes
+    /// (limite : 50) — imbrication de passes de nettoyage reprise telle quelle
+    /// de la source ; l'aplatir en sous-fonctions ne ferait que déplacer les
+    /// parenthèses. Conservée telle quelle.
     /// Découle les commandes LaTeX fusionnées à tort. Idempotent.
     static func unglueLatexCommands(_ text: String) -> String {
         var result = text

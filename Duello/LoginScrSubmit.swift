@@ -192,32 +192,7 @@ extension LoginScrScreen {
     /// Seule la branche native est portée : la variante WebAuthn de la source
     /// (`Platform.OS === 'web'`) n'a pas d'équivalent sur iOS.
     func biometricLogin() {
-        guard LoginScrCredential.isValidEmail(email.trimmingCharacters(in: .whitespaces)) else {
-            errorMessage = LoginScrCopy.biometricEmailFirst
-            return
-        }
-        guard let account = selectedAccount else {
-            errorMessage = LoginScrCopy.biometricUnknownAccount
-            return
-        }
-        guard LoginScrAccountBook.isUser(account) else {
-            errorMessage = LoginScrCopy.biometricUsersOnly
-            return
-        }
-        guard AcctSecBiometricPolicy.canUseBiometricLogin(LoginScrAccountBook.security(account)) else {
-            errorMessage = LoginScrCopy.biometricNotEnabled
-            return
-        }
-        switch AcctSecBiometricPolicy.availability() {
-        case .noHardware, .notEnrolled:
-            errorMessage = account.passwordHash != nil
-                ? LoginScrCopy.biometricSetupWithPassword
-                : LoginScrCopy.biometricSetup
-            return
-        case .available:
-            break
-        }
-
+        guard let account = biometricLoginAccount() else { return }
         errorMessage = nil
         isAuthenticating = true
         Task { @MainActor in
@@ -240,6 +215,37 @@ extension LoginScrScreen {
             case .failed:
                 errorMessage = LoginScrCopy.biometricFailed
             }
+        }
+    }
+
+    /// Gardes de `biometricLogin` (e-mail, compte connu, biométrie activée,
+    /// matériel disponible) : renvoie le compte prêt, ou nil après avoir posé
+    /// le message d'erreur — mêmes libellés, dans le même ordre que la source.
+    private func biometricLoginAccount() -> LoginScrAccount? {
+        guard LoginScrCredential.isValidEmail(email.trimmingCharacters(in: .whitespaces)) else {
+            errorMessage = LoginScrCopy.biometricEmailFirst
+            return nil
+        }
+        guard let account = selectedAccount else {
+            errorMessage = LoginScrCopy.biometricUnknownAccount
+            return nil
+        }
+        guard LoginScrAccountBook.isUser(account) else {
+            errorMessage = LoginScrCopy.biometricUsersOnly
+            return nil
+        }
+        guard AcctSecBiometricPolicy.canUseBiometricLogin(LoginScrAccountBook.security(account)) else {
+            errorMessage = LoginScrCopy.biometricNotEnabled
+            return nil
+        }
+        switch AcctSecBiometricPolicy.availability() {
+        case .noHardware, .notEnrolled:
+            errorMessage = account.passwordHash != nil
+                ? LoginScrCopy.biometricSetupWithPassword
+                : LoginScrCopy.biometricSetup
+            return nil
+        case .available:
+            return account
         }
     }
 }

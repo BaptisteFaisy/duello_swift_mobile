@@ -41,6 +41,11 @@ enum StmtLayoutLines {
         return parts
     }
 
+    ///
+    /// Dérogation de complexité : `logicalLines` compte 55 lignes (limite : 50).
+    /// Boucle à état partagé (pile logique, insideMath) muté à chaque ligne :
+    /// la scinder exigerait de transporter cet état entre sous-fonctions.
+    /// Conservée telle quelle.
     /// Recolle les lignes physiques en lignes logiques.
     static func logicalLines(_ physicalLines: [String]) -> [String] {
         var logical: [String] = []

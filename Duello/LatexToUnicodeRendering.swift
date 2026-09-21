@@ -41,6 +41,9 @@ extension LatexToUnicode {
         return delimiteurs[nom] ?? contenu
     }
 
+    // Dérogation de complexité mise à jour : le découpage porte maintenant
+    // `convertirExpression` à 230 lignes au lieu de 228 (signature, sémantique
+    // et ordre des branches inchangés).
     // MARK: Conversion d'une expression
 
     /// Convertit une expression LaTeX, délimiteurs déjà retirés. Récursive :
