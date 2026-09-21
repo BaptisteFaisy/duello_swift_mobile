@@ -284,9 +284,13 @@ enum SocPresencePalette {
     static let dotBorder: CGFloat = 2
 }
 
-/// Pastille de présence affichée au coin inférieur droit d'une photo de profil
-/// (`OnlineDot.tsx`). Décorative : l'information est déjà portée par la liste
-/// qui la contient.
+/// Pastille de présence décorative, **placée par l'appelant** : l'information
+/// est déjà portée par la liste qui la contient (`OnlineDot.tsx`, PR #426).
+///
+/// Depuis la PR #426, le composant ne se positionne plus lui-même : le
+/// placement par défaut (coin inférieur droit) appartient à l'enveloppe
+/// (`SocialAvatarPresence`), et un appelant qui vise un autre bord — le blason
+/// retournable de la vitrine de profil — fournit son propre alignement.
 struct SocOnlineDot: View {
     /// Absent ou faux : rien n'est dessiné, comme `if (!online) return null`.
     var online: Bool? = nil
@@ -307,24 +311,34 @@ struct SocOnlineDot: View {
 
 /// Enveloppe neutre autour d'une photo de profil (`AvatarPresence.tsx`) : elle
 /// n'impose ni taille ni forme, mais réserve le coin inférieur droit à la
-/// pastille de présence. La photo garde son propre style (bord arrondi, marges),
-/// donc la pastille n'est jamais rognée par un `overflow: hidden`.
+/// pastille de présence — placement repris de la PR #426 (`styles.dot`). La
+/// photo garde son propre style (bord arrondi, marges), donc la pastille n'est
+/// jamais rognée par un `overflow: hidden`.
 struct SocialAvatarPresence<Content: View>: View {
     /// Vrai lorsque l'identifiant public est connecté.
     var online: Bool = false
     /// Diamètre de la pastille ; `nil` reprend la taille par défaut d'Expo.
     var dotSize: CGFloat?
+    /// Placement de la pastille dans l'enveloppe ; coin inférieur droit par
+    /// défaut, comme la source.
+    var dotAlignment: Alignment
     private let content: Content
 
-    init(online: Bool = false, dotSize: CGFloat? = nil, @ViewBuilder content: () -> Content) {
+    init(
+        online: Bool = false,
+        dotSize: CGFloat? = nil,
+        dotAlignment: Alignment = .bottomTrailing,
+        @ViewBuilder content: () -> Content
+    ) {
         self.online = online
         self.dotSize = dotSize
+        self.dotAlignment = dotAlignment
         self.content = content()
     }
 
     var body: some View {
         content
-            .overlay(alignment: .bottomTrailing) {
+            .overlay(alignment: dotAlignment) {
                 SocOnlineDot(online: online, size: dotSize ?? SocPresencePalette.dotSize)
             }
     }

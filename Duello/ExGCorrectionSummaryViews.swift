@@ -48,27 +48,106 @@ struct ExGRemarkBadge: View {
 
 // MARK: - Bilan de correction : blocs
 
-/// `CorrectionResultTiles` : l'appréciation, puis note, XP gagnés et rang.
+/// `CorrectionResultTiles` : l'appréciation, puis note, XP gagnés et rang
+/// réunis dans un seul bloc à contour (PR #424, `pr-corr-contours-1024`).
 ///
-/// Les trois mesures réutilisent `DuelloStatTile` du kit (la source les
-/// réunit dans un bloc bordé à séparateurs ; la tuile porte les mêmes
-/// libellés, la casse majuscule restant purement visuelle).
+/// Le bloc reprend `styles.block` de la source : bord `colors.border` de 1 pt,
+/// rayon `radii.medium`, fond `colors.surface`. Chaque mesure est centrée avec
+/// son icône, et un filet vertical les sépare (`styles.divider`).
+/// `StyleSheet.hairlineWidth` devient 1 pt : le port n'utilise nulle part
+/// ailleurs d'épaisseur dépendante de l'échelle, et l'écart est invisible.
 struct ExGCorrectionResultTiles: View {
     var scoreOn20: Double? = nil
     var xp: Double = 0
     var exerciseRank: Int? = nil
 
+    /// Une mesure du bloc (`ResultMetric`) : identifiant, icône, libellé, valeur.
+    private struct ResultMetric: Identifiable {
+        let id: String
+        /// Équivalent SF Symbol de l'Ionicon de la source.
+        let icon: String
+        let label: String
+        let value: String
+    }
+
+    /// `resultMetrics` : note, XP gagnés, rang, dans cet ordre.
+    private var metrics: [ResultMetric] {
+        [
+            ResultMetric(
+                id: "score",
+                icon: "graduationcap",
+                label: "Note",
+                value: ExGFormat.score(scoreOn20)
+            ),
+            ResultMetric(
+                id: "xp",
+                icon: "sparkles",
+                label: "XP gagnés",
+                value: "+\(ExGFormat.xp(xp)) XP"
+            ),
+            ResultMetric(
+                id: "rank",
+                icon: "trophy",
+                label: "Rang",
+                value: ExGFormat.rank(exerciseRank)
+            ),
+        ]
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             ExGRemarkBadge(score: scoreOn20)
                 .frame(maxWidth: .infinity, alignment: .center)
-            HStack(alignment: .top, spacing: 8) {
-                DuelloStatTile(label: "Note", value: ExGFormat.score(scoreOn20))
-                DuelloStatTile(label: "XP gagnés", value: "+\(ExGFormat.xp(xp)) XP")
-                DuelloStatTile(label: "Rang", value: ExGFormat.rank(exerciseRank))
+            HStack(alignment: .top, spacing: 0) {
+                ForEach(Array(metrics.enumerated()), id: \.element.id) { index, metric in
+                    if index > 0 { divider }
+                    metricView(metric)
+                }
             }
+            .background(Theme.surface)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.radiusMedium)
+                    .stroke(Theme.border, lineWidth: 1)
+            )
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// `styles.divider` : filet vertical, en retrait de 12 pt en haut et en bas.
+    private var divider: some View {
+        Rectangle()
+            .fill(Theme.border)
+            .frame(width: 1)
+            .padding(.vertical, 12)
+    }
+
+    /// `MetricView` : icône et libellé sur une ligne, valeur en dessous.
+    private func metricView(_ metric: ResultMetric) -> some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 5) {
+                Image(systemName: metric.icon)
+                    .font(.system(size: 14))
+                    .foregroundStyle(Theme.inkSoft)
+                Text(metric.label)
+                    .font(.system(size: 12))
+                    .foregroundStyle(Theme.inkSoft)
+                    .lineLimit(1)
+            }
+            // Trois colonnes sur un téléphone étroit : un gros total d'XP se
+            // resserre plutôt que de déborder.
+            Text(metric.value)
+                .font(.system(size: 17, weight: .medium))
+                .monospacedDigit()
+                .foregroundStyle(Theme.ink)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 13)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(metric.label) : \(metric.value)")
     }
 }
 
