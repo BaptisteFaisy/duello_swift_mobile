@@ -467,6 +467,7 @@
 		12BB140111852944E0666970 /* ReportStatementPager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 438B65FEB04DC580AF522DE9 /* ReportStatementPager.swift */; };
 		3D6483BB201A9604B8EE0CB9 /* ReportUserSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98F89EE7B9F960F362FB2D29 /* ReportUserSheet.swift */; };
 		28C0993DCD9F3E280EBE8774 /* ReportVisibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9B56E3FB140843196289FE5 /* ReportVisibility.swift */; };
+		AA000001AAAAAAAAAAAAAA10 /* ChallengePlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001AAAAAAAAAAAAAA10 /* ChallengePlayerView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -931,6 +932,7 @@
 		438B65FEB04DC580AF522DE9 /* ReportStatementPager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportStatementPager.swift; sourceTree = "<group>"; };
 		98F89EE7B9F960F362FB2D29 /* ReportUserSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportUserSheet.swift; sourceTree = "<group>"; };
 		B9B56E3FB140843196289FE5 /* ReportVisibility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportVisibility.swift; sourceTree = "<group>"; };
+		AB000001AAAAAAAAAAAAAA10 /* ChallengePlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChallengePlayerView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */

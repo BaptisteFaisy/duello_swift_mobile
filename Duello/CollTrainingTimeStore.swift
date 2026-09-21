@@ -18,6 +18,21 @@ import SwiftUI
 
 /// Journal de temps d'un compte, persisté dans les préférences.
 final class CollTrainingTimeStore: ObservableObject {
+    /// Entrée brute : `activity` est lue comme texte pour pouvoir écarter une
+    /// valeur inconnue sans perdre le reste du journal.
+    private struct RawEntry: Decodable {
+        var day: String?
+        var subject: String?
+        var activity: String?
+        var seconds: Double?
+    }
+
+    /// Journal brut, tel qu'écrit sur disque (`TrainingTimeLog`).
+    private struct RawLog: Decodable {
+        var version: Int?
+        var entries: [RawEntry]?
+    }
+
     @Published private(set) var log: CollTrainingTimeLog = .empty
 
     /// `ACCOUNT_STORAGE_KEYS.trainingTime`.
@@ -28,16 +43,25 @@ final class CollTrainingTimeStore: ObservableObject {
     }
 
     /// `loadTrainingTime` : un journal illisible ne doit pas empêcher de travailler,
-    /// on repart à vide.
+    /// on repart à vide. Les entrées sont lues une à une (`normalizeTrainingTime`
+    /// de la source) : une entrée invalide est écartée seule.
     func restore() {
         guard let raw = UserDefaults.standard.string(forKey: Self.storageKey),
               let data = raw.data(using: .utf8),
-              let decoded = try? JSONDecoder().decode(CollTrainingTimeLog.self, from: data)
+              let decoded = try? JSONDecoder().decode(RawLog.self, from: data)
         else {
             log = .empty
             return
         }
-        log = CollTrainingTime.normalize(decoded)
+        let entries = (decoded.entries ?? []).compactMap { entry -> CollTrainingTimeEntry? in
+            guard let day = entry.day,
+                  let subject = entry.subject,
+                  let activity = entry.activity.flatMap(CollTrainingActivity.init(rawValue:)),
+                  let seconds = entry.seconds
+            else { return nil }
+            return CollTrainingTimeEntry(day: day, subject: subject, activity: activity, seconds: seconds)
+        }
+        log = CollTrainingTime.normalize(CollTrainingTimeLog(version: 1, entries: entries))
     }
 
     /// `recordTrainingTime` : ajoute un temps mesuré au journal et publie le

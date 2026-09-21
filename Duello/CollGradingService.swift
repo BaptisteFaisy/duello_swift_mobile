@@ -137,6 +137,7 @@ enum CollGradingService {
             "gradingScaleVersion": 2,
             "exercise": exercise,
             "question": question,
+            "statement": question,
             "answer": answer,
             "program": program,
             "mimeType": "image/jpeg",

@@ -62,7 +62,7 @@ struct CollScoreCard: View {
                 Text("Note de la colle")
                     .font(.system(size: 11, weight: .heavy))
                     .foregroundStyle(Theme.inkSoft)
-                Text(ExGFormat.score(scoreOn20) + (score.complete ? "" : "\u{00A0}· provisoire"))
+                Text(ExGFormat.score(scoreOn20) + (score.complete ? "" : " · provisoire"))
                     .font(.system(size: 20, weight: .black))
                     .foregroundStyle(Theme.ink)
             }

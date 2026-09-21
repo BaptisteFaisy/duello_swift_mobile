@@ -259,14 +259,16 @@ struct AcctSecPasswordResetForm: View {
     }
 
     private func submitCode() {
-        let normalized = AcctSecRecoveryCodePolicy.normalize(code)
-        guard !normalized.isEmpty else {
+        // Le jeton de réinitialisation part **brut** (`^[a-zA-Z0-9_-]{32,128}$`) :
+        // `normalize` est réservé au code de secours affiché à l'utilisateur.
+        let token = code.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !token.isEmpty else {
             errorMessage = "Saisis le code reçu par e-mail ou ton code de secours."
             return
         }
         errorMessage = ""
         notice = ""
-        code = normalized
+        code = token
         step = .password
     }
 

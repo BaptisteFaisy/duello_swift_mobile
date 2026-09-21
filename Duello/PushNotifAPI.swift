@@ -22,22 +22,43 @@ enum PushNotifAPI {
     }
 
     /// `POST /push-tokens` — inscrit le jeton pour ce profil.
-    static func registerToken(profile: UserProfile, token: String) async throws {
+    ///
+    /// Le transport de la source (`duelloApiRequest`) joint **toujours** le
+    /// jeton de session en `Bearer` : sans lui le serveur répond 401.
+    static func registerToken(
+        profile: UserProfile,
+        token: String,
+        sessionToken: String?
+    ) async throws {
         let email = profile.email.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !email.isEmpty else { return }
         let body = try DuelloAPI.encodeBody(
             TokenBody(userId: DuelloAPI.publicProfileId(email: email), token: token)
         )
-        _ = try await DuelloAPI.request("push-tokens", method: "POST", body: body)
+        _ = try await DuelloAPI.request(
+            "push-tokens",
+            method: "POST",
+            token: sessionToken,
+            body: body
+        )
     }
 
     /// `DELETE /push-tokens` — révoque le jeton pour ce profil.
-    static func unregisterToken(profile: UserProfile, token: String) async throws {
+    static func unregisterToken(
+        profile: UserProfile,
+        token: String,
+        sessionToken: String?
+    ) async throws {
         let email = profile.email.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !email.isEmpty else { return }
         let body = try DuelloAPI.encodeBody(
             TokenBody(userId: DuelloAPI.publicProfileId(email: email), token: token)
         )
-        _ = try await DuelloAPI.request("push-tokens", method: "DELETE", body: body)
+        _ = try await DuelloAPI.request(
+            "push-tokens",
+            method: "DELETE",
+            token: sessionToken,
+            body: body
+        )
     }
 }

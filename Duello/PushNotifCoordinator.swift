@@ -34,6 +34,9 @@ final class PushNotifCoordinator: ObservableObject {
     private let accountId: String
     private let preference: () -> Bool
     private let registerRemotely: () -> Bool
+    /// Jeton de session Duello, joint en `Bearer` aux appels `/push-tokens`
+    /// (le transport de la source le pose systématiquement).
+    private let sessionToken: () -> String?
     private var profile: UserProfile
     private var loop: PushNotifRetryLoop?
 
@@ -42,18 +45,21 @@ final class PushNotifCoordinator: ObservableObject {
     ///   - accountId: identifiant du compte, clé de la file sérialisée.
     ///   - preference: lit la préférence « notifications poussées ».
     ///   - registerRemotely: vrai si l'app doit inscrire le jeton au serveur.
+    ///   - sessionToken: lit le jeton de session courant (`SessionStore.token`).
     ///   - store: journal local des jetons.
     init(
         profile: UserProfile,
         accountId: String,
         preference: @escaping () -> Bool,
         registerRemotely: @escaping () -> Bool,
+        sessionToken: @escaping () -> String?,
         store: PushNotifTokenStore = PushNotifTokenStore()
     ) {
         self.profile = profile
         self.accountId = accountId
         self.preference = preference
         self.registerRemotely = registerRemotely
+        self.sessionToken = sessionToken
         self.store = store
         refreshStatus()
     }
@@ -126,12 +132,20 @@ final class PushNotifCoordinator: ObservableObject {
         }
         let resolution = await ensureToken()
         let actions = PushNotifRegistrationActions(
-            registerRemotely: { [profile, registerRemotely] token in
+            registerRemotely: { [profile, registerRemotely, sessionToken] token in
                 guard registerRemotely() else { return }
-                try await PushNotifAPI.registerToken(profile: profile, token: token)
+                try await PushNotifAPI.registerToken(
+                    profile: profile,
+                    token: token,
+                    sessionToken: sessionToken()
+                )
             },
-            unregisterRemotely: { [profile] token in
-                try await PushNotifAPI.unregisterToken(profile: profile, token: token)
+            unregisterRemotely: { [profile, sessionToken] token in
+                try await PushNotifAPI.unregisterToken(
+                    profile: profile,
+                    token: token,
+                    sessionToken: sessionToken()
+                )
             },
             confirmLocally: { [store] token in
                 store.confirm(token: token)
@@ -175,9 +189,13 @@ final class PushNotifCoordinator: ObservableObject {
             nativeUnregistered: nativeUnregistered
         )
         let actions = PushNotifUnregistrationActions(
-            unregisterRemotely: { [profile, registerRemotely] token in
+            unregisterRemotely: { [profile, registerRemotely, sessionToken] token in
                 guard registerRemotely() else { return }
-                try await PushNotifAPI.unregisterToken(profile: profile, token: token)
+                try await PushNotifAPI.unregisterToken(
+                    profile: profile,
+                    token: token,
+                    sessionToken: sessionToken()
+                )
             },
             forgetLocally: { [store] in
                 store.forget()
