@@ -69,8 +69,6 @@ public struct ContentShapeKinds: OptionSet, Sendable {
     public static let interaction = ContentShapeKinds(rawValue: 1 << 0)
     public static let dragPreview = ContentShapeKinds(rawValue: 1 << 1)
     public static let contextMenuPreview = ContentShapeKinds(rawValue: 1 << 2)
-    public static let focusEffect = ContentShapeKinds(rawValue: 1 << 3)
-    public static let hoverEffect = ContentShapeKinds(rawValue: 1 << 4)
 }
 
 public struct AccessibilityChildBehavior: Hashable, Sendable {
@@ -357,8 +355,6 @@ public struct WheelPickerStyle: PickerStyle { public nonisolated init() {} }
 public struct MenuPickerStyle: PickerStyle { public nonisolated init() {} }
 public struct InlinePickerStyle: PickerStyle { public nonisolated init() {} }
 public struct NavigationLinkPickerStyle: PickerStyle { public nonisolated init() {} }
-public struct RadioGroupPickerStyle: PickerStyle { public nonisolated init() {} }
-public struct PalettePickerStyle: PickerStyle { public nonisolated init() {} }
 public extension PickerStyle where Self == DefaultPickerStyle {
     static var automatic: DefaultPickerStyle { DefaultPickerStyle() }
 }
@@ -376,12 +372,6 @@ public extension PickerStyle where Self == InlinePickerStyle {
 }
 public extension PickerStyle where Self == NavigationLinkPickerStyle {
     static var navigationLink: NavigationLinkPickerStyle { NavigationLinkPickerStyle() }
-}
-public extension PickerStyle where Self == RadioGroupPickerStyle {
-    static var radioGroup: RadioGroupPickerStyle { RadioGroupPickerStyle() }
-}
-public extension PickerStyle where Self == PalettePickerStyle {
-    static var palette: PalettePickerStyle { PalettePickerStyle() }
 }
 
 public protocol ListStyle {}
@@ -532,13 +522,8 @@ public extension View {
     func contentShape<S: Shape>(_ shape: S, eoFill: Bool = false) -> some View { _ShimView() }
     func contentShape<S: Shape>(_ kind: ContentShapeKinds, _ shape: S, eoFill: Bool = false) -> some View { _ShimView() }
     func contentShape(_ kind: ContentShapeKinds) -> some View { _ShimView() }
-    func containerRelativeFrame(_ axes: Axis.Set, alignment: Alignment = .center) -> some View { _ShimView() }
-    func containerRelativeFrame(_ axes: Axis.Set, count: Int, span: Int = 1, spacing: CGFloat, alignment: Alignment = .center) -> some View { _ShimView() }
-    func contentMargins(_ edges: Edge.Set = .all, _ length: CGFloat, for placement: ContentMarginPlacement = .automatic) -> some View { _ShimView() }
-    func contentMargins(_ placement: ContentMarginPlacement, _ edges: Edge.Set = .all, _ length: CGFloat) -> some View { _ShimView() }
 }
 
-public enum ContentMarginPlacement: Hashable, Sendable { case automatic, scrollContent, scrollIndicators }
 
 // MARK: - Fond / superposition / bordure
 
@@ -589,11 +574,8 @@ public extension View {
     func blendMode(_ blendMode: BlendMode) -> some View { _ShimView() }
     func drawingGroup(opaque: Bool = false, colorMode: ColorRenderingMode = .nonLinear) -> some View { _ShimView() }
     func compositingGroup() -> some View { _ShimView() }
-    func geometryGroup() -> some View { _ShimView() }
-    func materialActiveAppearance(_ appearance: MaterialActiveAppearance) -> some View { _ShimView() }
 }
 
-public enum MaterialActiveAppearance: Hashable, Sendable { case automatic, active, inactive }
 
 // MARK: - Transformations
 
@@ -653,10 +635,6 @@ public struct CombinedTransition: Transition { public nonisolated init() {} }
 public func withAnimation<Result>(_ animation: Animation? = .default, _ body: () throws -> Result) rethrows -> Result {
     try body()
 }
-public func withAnimation<Result>(_ animation: Animation? = .default, completionCriteria: AnimationCompletionCriteria = .logicallyComplete, _ body: () throws -> Result, completion: @escaping () -> Void) rethrows -> Result {
-    try body()
-}
-public enum AnimationCompletionCriteria: Hashable, Sendable { case logicallyComplete, removed }
 
 // MARK: - Typographie
 
@@ -744,7 +722,6 @@ public extension View {
     func listRowBackground<V: View>(_ view: V?) -> some View { _ShimView() }
     func listSectionSeparator(_ visibility: Visibility, edges: VerticalEdge.Set = .all) -> some View { _ShimView() }
     func listItemTint(_ tint: Color?) -> some View { _ShimView() }
-    func listRowSpacing(_ spacing: CGFloat?) -> some View { _ShimView() }
     func swipeActions<T: View>(edge: HorizontalEdge = .trailing, allowsFullSwipe: Bool = true, @ViewBuilder content: () -> T) -> some View { _ShimView() }
     func badge(_ count: Int) -> some View { _ShimView() }
     func badge<S: StringProtocol>(_ label: S) -> some View { _ShimView() }
@@ -789,10 +766,7 @@ public extension View {
     func scrollContentBackground(_ visibility: Visibility) -> some View { _ShimView() }
     func scrollDismissesKeyboard(_ mode: ScrollDismissesKeyboardMode) -> some View { _ShimView() }
     func scrollIndicators(_ visibility: ScrollIndicatorVisibility, axes: Axis.Set = .all) -> some View { _ShimView() }
-    func scrollClipDisabled(_ disabled: Bool = true) -> some View { _ShimView() }
     func scrollDisabled(_ disabled: Bool) -> some View { _ShimView() }
-    func defaultScrollAnchor(_ anchor: UnitPoint?) -> some View { _ShimView() }
-    func scrollTargetLayout(isEnabled: Bool = true) -> some View { _ShimView() }
 }
 
 // MARK: - Zones sûres
@@ -801,7 +775,6 @@ public extension View {
     func ignoresSafeArea(_ regions: SafeAreaRegions = .all, edges: Edge.Set = .all) -> some View { _ShimView() }
     func edgesIgnoringSafeArea(_ edges: Edge.Set) -> some View { _ShimView() }
     func safeAreaInset<V: View>(edge: VerticalEdge, alignment: HorizontalAlignment = .center, spacing: CGFloat? = nil, @ViewBuilder content: () -> V) -> some View { _ShimView() }
-    func safeAreaPadding(_ edges: Edge.Set = .all, _ length: CGFloat? = nil) -> some View { _ShimView() }
     func statusBarHidden(_ hidden: Bool = true) -> some View { _ShimView() }
     func persistentSystemOverlays(_ visibility: Visibility) -> some View { _ShimView() }
 }
@@ -881,8 +854,6 @@ public extension View {
     func task(priority: TaskPriority = .userInitiated, _ action: @escaping @Sendable () async -> Void) -> some View { _ShimView() }
     func task<ID: Equatable>(id: ID, priority: TaskPriority = .userInitiated, _ action: @escaping @Sendable () async -> Void) -> some View { _ShimView() }
     func onChange<V: Equatable>(of value: V, perform action: @escaping (V) -> Void) -> some View { _ShimView() }
-    func onChange<V: Equatable>(of value: V, initial: Bool = false, _ action: @escaping (V, V) -> Void) -> some View { _ShimView() }
-    func onChange<V: Equatable>(of value: V, initial: Bool = false, _ action: @escaping () -> Void) -> some View { _ShimView() }
     func onReceive<P: Publisher>(_ publisher: P, perform action: @escaping (P.Output) -> Void) -> some View { _ShimView() }
     func onSubmit(of triggers: SubmitTriggers = .text, _ action: @escaping () -> Void) -> some View { _ShimView() }
     func onPreferenceChange<K: PreferenceKey>(_ key: K.Type, perform action: @escaping (K.Value) -> Void) -> some View { _ShimView() }
@@ -902,8 +873,6 @@ public extension View {
     func focusable(_ isFocusable: Bool = true, onFocusChange: @escaping (Bool) -> Void = { _ in }) -> some View { _ShimView() }
     func focused<Value>(_ binding: FocusState<Value>.Binding, equals value: Value) -> some View where Value: Hashable { _ShimView() }
     func focused(_ binding: FocusState<Bool>.Binding) -> some View { _ShimView() }
-    func focusEffectDisabled(_ disabled: Bool = true) -> some View { _ShimView() }
-    func defaultFocus<V>(_ binding: FocusState<V>.Binding, _ value: V, priority: Double = 0) -> some View where V: Hashable { _ShimView() }
     func help(_ textKey: LocalizedStringKey) -> some View { _ShimView() }
     func help<S: StringProtocol>(_ text: S) -> some View { _ShimView() }
     func help(_ text: Text) -> some View { _ShimView() }
@@ -938,8 +907,6 @@ public extension View {
     func onLongPressGesture(minimumDuration: Double = 0.5, maximumDistance: CGFloat = 10, pressing: ((Bool) -> Void)? = nil, perform action: @escaping () -> Void) -> some View { _ShimView() }
     func onLongPressGesture(minimumDuration: Double = 0.5, perform action: @escaping () -> Void) -> some View { _ShimView() }
     func coordinateSpace(name: AnyHashable) -> some View { _ShimView() }
-    func coordinateSpace(_ name: NamedCoordinateSpace) -> some View { _ShimView() }
-    var namedCoordinateSpace: NamedCoordinateSpace { .local }
 }
 
 public struct GestureMask: OptionSet, Sendable {

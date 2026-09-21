@@ -94,7 +94,7 @@ serif pour la lecture, verts réservés à la maîtrise.
 1. Copier le dossier `duello_swift_app` sur le Mac (AirDrop, clé USB, iCloud…).
 2. Installer **Xcode 15+** depuis l'App Store.
 3. Ouvrir `Duello.xcodeproj` (double-clic).
-4. Choisir un simulateur **iPhone** (iOS 16.4+) puis ▶︎ Run.
+4. Choisir un simulateur **iPhone** (iOS 16.0+) puis ▶︎ Run.
 
 ### Sur un iPhone réel
 
