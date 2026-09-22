@@ -91,22 +91,32 @@ jobs:
           set -euo pipefail
           xcodebuild -resolvePackageDependencies -project Duello.xcodeproj -scheme Duello
 
-      - name: Archive (Release, signature manuelle)
+      - name: Archive (Release, signature automatique via clé API)
+        env:
+          ASC_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+          ASC_ISSUER: ${{ secrets.APPSTORE_API_ISSUER }}
         run: |
           set -euo pipefail
           BN="${{ github.event.inputs.build_number }}"
           [ -z "$BN" ] && BN="$(date -u +%Y%m%d%H%M)"
           echo "CFBundleVersion = $BN"
+          # Signature automatique : Xcode choisit/crée le profil via la clé API.
+          # On ne fixe PAS PROVISIONING_PROFILE_SPECIFIER en ligne de commande :
+          # cela s'appliquerait aussi aux cibles des paquets SwiftPM (GoogleSignIn,
+          # GTMAppAuth, AppAuth, GTMSessionFetcher) qui n'ont pas de profil et
+          # feraient échouer l'archive (exit 65).
           xcodebuild archive \
             -project Duello.xcodeproj \
             -scheme Duello \
             -configuration Release \
             -destination 'generic/platform=iOS' \
             -archivePath "$RUNNER_TEMP/Duello.xcarchive" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER" \
             DEVELOPMENT_TEAM=9L7AY22737 \
-            CODE_SIGN_STYLE=Manual \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
-            PROVISIONING_PROFILE_SPECIFIER="duello-swift-appstore" \
+            CODE_SIGN_STYLE=Automatic \
             CURRENT_PROJECT_VERSION="$BN"
 
       - name: ExportOptions.plist
@@ -122,12 +132,7 @@ jobs:
             <key>teamID</key>
             <string>9L7AY22737</string>
             <key>signingStyle</key>
-            <string>manual</string>
-            <key>provisioningProfiles</key>
-            <dict>
-              <key>com.prepapp.mobile.swift</key>
-              <string>duello-swift-appstore</string>
-            </dict>
+            <string>automatic</string>
             <key>uploadSymbols</key>
             <true/>
             <key>destination</key>
