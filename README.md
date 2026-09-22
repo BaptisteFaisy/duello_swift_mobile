@@ -1,12 +1,31 @@
 # Duello pour iOS — version SwiftUI native
 
-Port natif SwiftUI de l'application **Duello** (app Expo/React Native hébergée
-en production sur le VPS Azure `duello-prod-vm`). Cette version iOS parle au
-même backend que l'application officielle :
+Port natif SwiftUI de l'application **Duello** (app Expo/React Native).
+
+Cette version iOS est branchée sur le **backend de développement** — le même
+que la variante `development` de l'app Expo (`eas.json`,
+`config/duello-development.json`) :
 
 ```
-https://duello-api-relay.duello.workers.dev/api
+https://duello-development-api-relay.duello.workers.dev/api
 ```
+
+Ce Worker Cloudflare est l'adresse **stable** à viser : son `ORIGIN` est un
+tunnel cloudflared *quick* (URL `*.trycloudflare.com` qui change à chaque
+redémarrage) repoussé automatiquement dans le Worker par
+`~/duello-mirror/bin/dev-tunnel-keepalive.sh` (service `duello-dev-tunnel`).
+
+Les serveurs de développement tournent sur le **ZenBook** (Tailscale
+`100.106.221.76`) : API `social-server.mjs` → `127.0.0.1:18893`, relay →
+`127.0.0.1:18787`, Postgres dev `55433`, Redis `56379`. L'interface web dev
+passe par un funnel Caddy (`:8082` → tailscale serve `:8443`). Le VPS Azure
+`azure-duello` est **hors service** (remplacé par ce montage ZenBook).
+
+Tout dérive de `DuelloAPI.baseURL` (`Duello/DuelloAPITransport.swift`) :
+contenu hors ligne, `download`, `relay`, auth Google, présence (socket).
+
+**Bascule prod** : reprendre `https://duello-api-relay.duello.workers.dev/api`
+(variante `production` de l'app Expo).
 
 ## Contenu de la version 1
 
@@ -53,7 +72,7 @@ chaque identifiant y correspond à un énoncé réellement téléchargeable — 
 même vérité terrain que `challengeExercisesFor` (Expo), qui ne met en pool
 que les exercices à énoncé retranscrit. Le corps de la requête `POST /queue`
 est borné à 58 Ko : le serveur refuse toute requête de plus de 64 Ko
-(`MAX_BODY_BYTES`, vérifié en production) avant même la validation ; la
+(`MAX_BODY_BYTES`, vérifié sur le serveur) avant même la validation ; la
 sous-banque annoncée est tronquée de façon déterministe et identique chez
 tous les joueurs, pour que l'intersection reste large.
 

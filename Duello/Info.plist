@@ -12,6 +12,17 @@
 				<string>com.googleusercontent.apps.283336474401-hbo36u49j767lqknahakr2937mfa6amn</string>
 			</array>
 		</dict>
+		<dict>
+			<!-- Retour du lien de réinitialisation de mot de passe servi par
+			     le backend de développement (`DUELLO_PASSWORD_RESET_APP_SCHEME=duello-dev`).
+			     Le schéma de production `duello` sera à ajouter ici lors de la bascule prod. -->
+			<key>CFBundleURLName</key>
+			<string>fr.duello.app.dev</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>duello-dev</string>
+			</array>
+		</dict>
 	</array>
 	<!-- Photo d'une copie ou d'un exercice (transcription, correction). -->
 	<key>NSCameraUsageDescription</key>

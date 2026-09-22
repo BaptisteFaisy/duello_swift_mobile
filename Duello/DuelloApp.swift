@@ -7,6 +7,14 @@ struct DuelloApp: App {
     /// l'exigent en `@EnvironmentObject` (`DuelloProgressView`,
     /// `TrainingCatalogView`) — sans elle, l'app plante à leur ouverture.
     @StateObject private var progress = ProgressStore()
+    /// Demande de réinitialisation reçue par lien profond
+    /// (`duello-dev://reset-password?email=…&token=…`) : présentée en plein
+    /// écran, comme `PasswordResetScreen` côté Expo.
+    @State private var passwordResetRequest: AcctSecResetRequest?
+
+    /// Schéma d'URL de la variante (dev : `duello-dev`, cf. `CFBundleURLTypes`
+    /// de `Info.plist` et `DUELLO_PASSWORD_RESET_APP_SCHEME` du backend).
+    private static let resetScheme = "duello-dev"
 
     var body: some Scene {
         WindowGroup {
@@ -17,6 +25,31 @@ struct DuelloApp: App {
                 // iOS inversé), comme le handle de lien profond Expo.
                 .onOpenURL { url in
                     GoogleAuthService.shared.handle(url)
+                    // Lien de réinitialisation servi par le backend
+                    // (`passwordResetLink.ts`, branche `legacy-native`).
+                    if let request = AcctSecResetLink.request(
+                        from: url.absoluteString,
+                        scheme: Self.resetScheme
+                    ) {
+                        passwordResetRequest = request
+                    }
+                }
+                .fullScreenCover(item: $passwordResetRequest) { request in
+                    NavigationStack {
+                        AcctSecPasswordResetForm(
+                            email: request.email,
+                            token: request.token,
+                            onAuthenticated: { serverSession in
+                                try? session.installSession(serverSession)
+                                passwordResetRequest = nil
+                            }
+                        )
+                        .toolbar {
+                            ToolbarItem(placement: .cancellationAction) {
+                                Button("Fermer") { passwordResetRequest = nil }
+                            }
+                        }
+                    }
                 }
         }
     }
