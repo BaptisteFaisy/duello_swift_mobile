@@ -196,10 +196,11 @@ struct SubjTrainingModeTabs: View {
         return usable * weight(for: option) / sum
     }
 
-    /// Un onglet : `modeTab` de la source — largeur répartie entre les onglets
-    /// (`flex: 1`), icône + libellé centrés, pastille choisie en encre pleine.
-    /// Le libellé se réduit (`minimumFontScale 0.75`) plutôt que d'être coupé,
-    /// comme `adjustsFontSizeToFit` de la source.
+    /// Un onglet : `modeTab` de la source — icône + libellé centrés, pastille
+    /// choisie en encre pleine. L'icône est bridée à 18 points (les symboles SF
+    /// sont plus larges que les Ionicons d'origine) et le libellé se réduit
+    /// (`minimumScaleFactor` 0,7) plutôt que d'être coupé, comme
+    /// `adjustsFontSizeToFit` de la source.
     private func tab(_ option: SubjTrainingModeOption, width: CGFloat) -> some View {
         let selected = displayedMode == option.mode
         return Button {
@@ -207,17 +208,18 @@ struct SubjTrainingModeTabs: View {
             displayedMode = option.mode
             onSelect(option.mode)
         } label: {
-            HStack(spacing: 6) {
+            HStack(spacing: 5) {
                 Image(systemName: option.systemImage)
-                    .font(.system(size: compact ? 14 : 16, weight: .semibold))
+                    .font(.system(size: compact ? 13 : 15, weight: .semibold))
+                    .frame(width: 18)
                 Text(option.label)
-                    .font(.system(size: compact ? 11 : 13, weight: .heavy))
+                    .font(.system(size: compact ? 11 : 12.5, weight: .heavy))
                     .lineLimit(1)
-                    .minimumScaleFactor(0.75)
+                    .minimumScaleFactor(0.7)
             }
             .foregroundStyle(selected ? Color.white : Theme.inkSoft)
-            .padding(.horizontal, 4)
-            .frame(maxWidth: .infinity, minHeight: compact ? 36 : 44)
+            .padding(.horizontal, 3)
+            .frame(width: width, height: compact ? 36 : 44)
             .background(selected ? Theme.primary : Color.clear)
             .clipShape(RoundedRectangle(cornerRadius: 12))
         }
