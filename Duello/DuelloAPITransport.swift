@@ -26,10 +26,13 @@ struct DirectoryError: LocalizedError, Decodable {
 }
 
 /// Client HTTP du backend Duello (voir `src/utils/socialApi.ts`).
-/// Adresse figée dans le bundle : relay Cloudflare en production, comme l'app Expo.
+/// Adresse figée dans le bundle : relay Cloudflare de **développement**.
+/// Correspond à la variante `development` de l'app Expo (`eas.json` +
+/// `config/duello-development.json` : `apiUrl`). Bascule prod : reprendre
+/// `https://duello-api-relay.duello.workers.dev/api`.
 enum DuelloAPI {
-    /// `DUELLO_API_URL` de `src/config/platform.ts`, en variante production.
-    static let baseURL = URL(string: "https://duello-api-relay.duello.workers.dev/api")!
+    /// `EXPO_PUBLIC_DUELLO_API_URL` de `eas.json` (profil `development`).
+    static let baseURL = URL(string: "https://duello-development-api-relay.duello.workers.dev/api")!
 
     static let decoder: JSONDecoder = {
         let d = JSONDecoder()
