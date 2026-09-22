@@ -158,11 +158,14 @@ struct SubjTrainingModeTabs: View {
     }
 
     var body: some View {
-        HStack(spacing: compact ? 2 : 5) {
-            ForEach(availableModes) { option in
-                tab(option)
+        GeometryReader { proxy in
+            HStack(spacing: compact ? 2 : 5) {
+                ForEach(availableModes) { option in
+                    tab(option, width: tabWidth(for: option, total: proxy.size.width))
+                }
             }
         }
+        .frame(height: compact ? 42 : 52)
         .padding(compact ? 3 : 4)
         .background(Theme.surfaceMuted)
         .clipShape(RoundedRectangle(cornerRadius: 16))
@@ -171,11 +174,33 @@ struct SubjTrainingModeTabs: View {
         }
     }
 
+    /// Poids `flex` de l'onglet : `modeTabExercises` = 1,28 et
+    /// `modeTabAnnales` = 1,1 dans la source — les libellés longs gardent leur
+    /// place au lieu d'être coupés. Les autres onglets valent 1.
+    private func weight(for option: SubjTrainingModeOption) -> CGFloat {
+        switch option.mode {
+        case .exercices: return 1.28
+        case .annales: return 1.1
+        default: return 1
+        }
+    }
+
+    /// Largeur d'un onglet : la place restante après les intervalles, répartie
+    /// au prorata des poids.
+    private func tabWidth(for option: SubjTrainingModeOption, total: CGFloat) -> CGFloat {
+        guard !availableModes.isEmpty else { return total }
+        let gaps = CGFloat(availableModes.count - 1) * (compact ? 2 : 5)
+        let usable = max(0, total - gaps)
+        let sum = availableModes.reduce(CGFloat(0)) { $0 + weight(for: $1) }
+        guard sum > 0 else { return usable / CGFloat(availableModes.count) }
+        return usable * weight(for: option) / sum
+    }
+
     /// Un onglet : `modeTab` de la source — largeur répartie entre les onglets
     /// (`flex: 1`), icône + libellé centrés, pastille choisie en encre pleine.
     /// Le libellé se réduit (`minimumFontScale 0.75`) plutôt que d'être coupé,
     /// comme `adjustsFontSizeToFit` de la source.
-    private func tab(_ option: SubjTrainingModeOption) -> some View {
+    private func tab(_ option: SubjTrainingModeOption, width: CGFloat) -> some View {
         let selected = displayedMode == option.mode
         return Button {
             guard option.mode != displayedMode else { return }
