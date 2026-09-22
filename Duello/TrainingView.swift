@@ -6,6 +6,10 @@ import SwiftUI
 struct TrainingView: View {
     @EnvironmentObject private var session: SessionStore
 
+    /// Année du programme choisie dans le sélecteur de l'en-tête. `nil` = celle
+    /// du compte, comme `localProgramYear` de la source.
+    @State private var programYearOverride: Int?
+
     var body: some View {
         NavigationStack {
             Group {
@@ -20,7 +24,12 @@ struct TrainingView: View {
                     // La liste ne reste que comme repli (maths absente du
                     // parcours) — exactement le `openedSubject ? [openedSubject]
                     // : listedSubjects` de la source.
-                    TrainingCatalogView(subject: maths)
+                    TrainingCatalogView(
+                        subject: maths,
+                        programYear: programYear,
+                        profileYear: profileYear,
+                        onSelectYear: { programYearOverride = $0 }
+                    )
                 } else if subjects.isEmpty {
                     emptyState
                         .navigationTitle("Entraînement")
@@ -54,11 +63,23 @@ struct TrainingView: View {
         )
     }
 
+    /// Année du compte (`toProgramYear` de la source) : « 2 » dans le libellé
+    /// signifie 2e année, tout le reste est 1re.
+    private var profileYear: Int {
+        session.profile.year.lowercased().contains("2") ? 2 : 1
+    }
+
+    /// Année du programme affichée : celle choisie dans le sélecteur, à défaut
+    /// celle du compte.
+    private var programYear: Int {
+        programYearOverride ?? profileYear
+    }
+
     private var subjects: [TrackSubject] {
         DuelloProgram.subjects(
             track: session.profile.track,
             specialty: session.profile.specialty,
-            year: session.profile.year
+            year: programYear == 2 ? "2e année" : "1re"
         )
     }
 

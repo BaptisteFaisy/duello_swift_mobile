@@ -661,6 +661,9 @@
 		4847E4FA3CAAFB89012F6FAE /* AcctSecResetLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49D0C4F26706B8CE611E30CE /* AcctSecResetLink.swift */; };
 		8D921A60A9813432EC3441DE /* ScreenshotTour.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90A4DA3098EB70E4F2AFAFBC /* ScreenshotTour.swift */; };
 		8D1413EF6F9A6C949EC7EA49 /* DuelloBottomBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4038FF1A5A35696F7BB66DE7 /* DuelloBottomBar.swift */; };
+		06C47F37FECC536A1229CE90 /* AcctIntNotificationsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FD9D4CA30D61FB7410A560D /* AcctIntNotificationsSheet.swift */; };
+		5F26C59D8E7D986266A341B3 /* AcctIntSearchRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8276ED1B0008EC96E15FA14 /* AcctIntSearchRow.swift */; };
+		9E78F1D7E5E871C29AE15E82 /* SubjTrainingMetricsBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC25F5960D4E288ADF6E761B /* SubjTrainingMetricsBar.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -1319,6 +1322,9 @@
 		49D0C4F26706B8CE611E30CE /* AcctSecResetLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctSecResetLink.swift; sourceTree = "<group>"; };
 		90A4DA3098EB70E4F2AFAFBC /* ScreenshotTour.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotTour.swift; sourceTree = "<group>"; };
 		4038FF1A5A35696F7BB66DE7 /* DuelloBottomBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuelloBottomBar.swift; sourceTree = "<group>"; };
+		9FD9D4CA30D61FB7410A560D /* AcctIntNotificationsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctIntNotificationsSheet.swift; sourceTree = "<group>"; };
+		C8276ED1B0008EC96E15FA14 /* AcctIntSearchRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctIntSearchRow.swift; sourceTree = "<group>"; };
+		FC25F5960D4E288ADF6E761B /* SubjTrainingMetricsBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjTrainingMetricsBar.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1998,6 +2004,9 @@
 				49D0C4F26706B8CE611E30CE /* AcctSecResetLink.swift */,
 				90A4DA3098EB70E4F2AFAFBC /* ScreenshotTour.swift */,
 				4038FF1A5A35696F7BB66DE7 /* DuelloBottomBar.swift */,
+				9FD9D4CA30D61FB7410A560D /* AcctIntNotificationsSheet.swift */,
+				C8276ED1B0008EC96E15FA14 /* AcctIntSearchRow.swift */,
+				FC25F5960D4E288ADF6E761B /* SubjTrainingMetricsBar.swift */,
 			);
 			path = Duello;
 			sourceTree = "<group>";
@@ -2733,6 +2742,9 @@
 				4847E4FA3CAAFB89012F6FAE /* AcctSecResetLink.swift in Sources */,
 				8D921A60A9813432EC3441DE /* ScreenshotTour.swift in Sources */,
 				8D1413EF6F9A6C949EC7EA49 /* DuelloBottomBar.swift in Sources */,
+				06C47F37FECC536A1229CE90 /* AcctIntNotificationsSheet.swift in Sources */,
+				5F26C59D8E7D986266A341B3 /* AcctIntSearchRow.swift in Sources */,
+				9E78F1D7E5E871C29AE15E82 /* SubjTrainingMetricsBar.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -2,11 +2,20 @@ import SwiftUI
 
 /// Onglet « Mon compte » : profil, parcours, objectifs et déconnexion.
 /// Reprend l'esprit de `src/screens/AccountScreen.tsx` (sections en cartes).
+///
+/// `@MainActor` : la vue possède `AcctSearchModel`, isolé au fil principal, et
+/// l'initialise dans un initialiseur de propriété (non isolé par défaut) —
+/// même motif que `AcctIntDirectorySheet`.
+@MainActor
 struct AccountView: View {
     @EnvironmentObject private var session: SessionStore
 
     @State private var showProfileEditor = false
     @State private var activeSheet: AccountSheet?
+    @State private var notificationsOpen = false
+    /// Annuaire de recherche de la page : la ligne de recherche vit en tête du
+    /// profil, comme `searchQuery` / `directoryProfiles` de la source.
+    @StateObject private var search = AcctSearchModel()
 
     private let tracks = ["ECG", "MPSI", "MP", "PSI"]
     private let years = ["1re année", "2e année"]
@@ -15,21 +24,34 @@ struct AccountView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 14) {
-                    AcctIntShowcase()
-                    hubCard
-                    programCard
-                    goalCard
-                    signOutCard
+                    AcctIntSearchRow(
+                        model: search,
+                        onOpenNotifications: { notificationsOpen = true },
+                        onOpenSettings: { activeSheet = .info }
+                    )
+                    // Une fiche de membre ouverte remplace le profil affiché,
+                    // comme `resolveViewedProfile(profile, selectedMember)` de
+                    // la source : le bloc de recherche reste, le corps change.
+                    if search.selectedMemberId == nil {
+                        AcctIntShowcase()
+                        hubCard
+                        programCard
+                        goalCard
+                        signOutCard
+                    }
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
                 .padding(.bottom, 24)
             }
             .background(Theme.background)
-            .navigationTitle("Mon compte")
-            .navigationBarTitleDisplayMode(.inline)
+            // La source n'a pas d'en-tête de navigation : la page commence par
+            // la ligne de recherche, sans titre centré.
             .sheet(isPresented: $showProfileEditor) {
                 ProfileEditorView()
+            }
+            .sheet(isPresented: $notificationsOpen) {
+                AcctIntNotificationsSheet()
             }
             .sheet(item: $activeSheet) { sheet in
                 switch sheet {
