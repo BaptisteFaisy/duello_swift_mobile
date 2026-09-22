@@ -49,6 +49,11 @@ open class UIApplication: NSObject {
         completionHandler: ((Bool) -> Void)? = nil
     ) {}
 
+    /// Forme async du SDK (Xcode 26 la préfère pour `open(url)` en contexte
+    /// async — constaté par le build macOS du 2026-09-22). Sans elle, le
+    /// contrôle Linux déclare l'appel synchrone et masque l'`await` manquant.
+    public func open(_ url: URL, options: [String: Any] = [:]) async -> Bool { false }
+
     /// Cible de réglages de l'app (`UIApplication.openSettingsURLString`).
     public static let openSettingsURLString = "app-settings:"
 }
