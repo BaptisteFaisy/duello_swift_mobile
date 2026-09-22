@@ -93,7 +93,7 @@ struct EvEventShareSheet: View {
 /// Composeur de message du système (`SMS.sendSMSAsync` côté Expo).
 struct EvEventMessageComposer: UIViewControllerRepresentable {
     let message: String
-    let onFinish: (MFMessageComposeResult) -> Void
+    let onFinish: (MessageComposeResult) -> Void
 
     func makeUIViewController(context: Context) -> MFMessageComposeViewController {
         let controller = MFMessageComposeViewController()
@@ -107,15 +107,15 @@ struct EvEventMessageComposer: UIViewControllerRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(onFinish: onFinish) }
 
     final class Coordinator: NSObject, MFMessageComposeViewControllerDelegate {
-        private let onFinish: (MFMessageComposeResult) -> Void
+        private let onFinish: (MessageComposeResult) -> Void
 
-        init(onFinish: @escaping (MFMessageComposeResult) -> Void) {
+        init(onFinish: @escaping (MessageComposeResult) -> Void) {
             self.onFinish = onFinish
         }
 
         func messageComposeViewController(
             _ controller: MFMessageComposeViewController,
-            didFinishWith result: MFMessageComposeResult
+            didFinishWith result: MessageComposeResult
         ) {
             onFinish(result)
         }

@@ -9,7 +9,11 @@
 import Foundation
 import UIKit
 
-public enum MFMessageComposeResult: Int, Sendable {
+// `MessageComposeResult` garde ce nom en Swift (le préfixe MF tombe pour
+// cet enum, contrairement à `MFMessageComposeViewController` qui le garde).
+// Ne PAS déclarer `MFMessageComposeResult` : ce nom n'existe pas côté Apple
+// et masquerait une vraie erreur (constaté par le build macOS du 2026-09-22).
+public enum MessageComposeResult: Int, Sendable {
     case cancelled = 0
     case sent = 1
     case failed = 2
@@ -18,7 +22,7 @@ public enum MFMessageComposeResult: Int, Sendable {
 public protocol MFMessageComposeViewControllerDelegate: NSObjectProtocol {
     func messageComposeViewController(
         _ controller: MFMessageComposeViewController,
-        didFinishWith result: MFMessageComposeResult
+        didFinishWith result: MessageComposeResult
     )
 }
 
