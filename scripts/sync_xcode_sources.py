@@ -49,6 +49,32 @@ def referenced_names(text: str) -> set[str]:
     return set(re.findall(pattern, text))
 
 
+# Caractères autorisés dans une chaîne nue du format OpenStep (pbxproj). Tout
+# autre caractère — notamment le `+` de `Vue+Extension.swift` — exige des
+# guillemets, sinon Xcode refuse le projet entier (« missing semicolon in
+# dictionary », constaté par le build macOS du 2026-09-22).
+_BARE = re.compile(r"[A-Za-z0-9_$/:.-]+\Z")
+
+
+def pbx_path(name: str) -> str:
+    """Valeur `path = …` valide : nue si possible, quotée sinon."""
+    if _BARE.match(name):
+        return name
+    return '"{}"'.format(name.replace('"', '\\"'))
+
+
+def requote_paths(text: str) -> str:
+    """Quote les `path = …` nus invalides déjà présents dans le pbxproj."""
+
+    def fix(match: re.Match) -> str:
+        val = match.group(1)
+        if _BARE.match(val):
+            return match.group(0)
+        return "path = " + pbx_path(val) + ";"
+
+    return re.sub(r"path = ([^\"\s;][^;\n]*);", fix, text)
+
+
 def prune(text: str, stale: set[str]) -> str:
     """Retire du pbxproj toute ligne citant un fichier supprimé.
 
@@ -104,13 +130,21 @@ def main() -> int:
         return 1
 
     text = PBX.read_text(encoding="utf-8")
+    fixed = requote_paths(text)
+    requoted = fixed != text
+    if requoted:
+        if check:
+            print("Guillemets OpenStep manquants : relancer sans --check.",
+                  file=sys.stderr)
+            return 1
+        text = fixed
     on_disk = sorted(p.name for p in SRC_DIR.glob("*.swift"))
     known = referenced_names(text)
 
     stale = known - set(on_disk)
     missing = [name for name in on_disk if name not in known]
 
-    if not stale and not missing:
+    if not stale and not missing and not requoted:
         print(f"Rien à faire : {len(on_disk)} fichiers .swift synchronisés.")
         return 0
     if check:
@@ -134,7 +168,7 @@ def main() -> int:
             REF_SECTION,
             "".join(
                 f"\t\t{stable_id(n, 'ref')} /* {n} */ = {{isa = PBXFileReference; "
-                f'lastKnownFileType = sourcecode.swift; path = {n}; sourceTree = "<group>"; }};\n'
+                f'lastKnownFileType = sourcecode.swift; path = {pbx_path(n)}; sourceTree = "<group>"; }};\n'
                 for n in missing
             )
             + REF_SECTION,
