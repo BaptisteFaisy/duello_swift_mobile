@@ -1,0 +1,78 @@
+name: ios-build
+
+# Compilation iOS réelle de duello_swift_work — le seul juge final.
+#
+# Pourquoi ce workflow existe : ni le toolchain Swift Linux du poste, ni les
+# SDK de cross-compilation (musl, WASM) du chat rpc_52404c6c, ni les 19 shims
+# de scripts/linux-shims/ ne peuvent produire un binaire iOS — SwiftUI, Charts,
+# PDFKit et les autres frameworks Apple n'existent que dans le SDK d'Xcode.
+# Le pré-contrôle Linux (scripts/verify-swift-linux.sh) vérifie la syntaxe et
+# les types ; CE workflow vérifie que l'app compile vraiment.
+#
+# Ce qui est vérifié (runner macOS hébergé par GitHub, Xcode réel) :
+#   1. Résolution SPM : GoogleSignIn-iOS (XCRemoteSwiftPackageReference du
+#      pbxproj) se résout depuis le réseau du runner.
+#   2. Build simulateur : scheme partagé Duello
+#      (Duello.xcodeproj/xcshareddata/xcschemes/Duello.xcscheme), SDK
+#      iphonesimulator, destination « iPhone 16 ».
+#   3. Sans signature : CODE_SIGNING_ALLOWED=NO — le projet est en
+#      CODE_SIGN_STYLE = Automatic sans équipe, ce qui bloque tout build
+#      signé en CI. Un build simulateur non signé suffit à valider la
+#      compilation ; la signature reste l'affaire du Mac du développeur.
+#
+# Ce qui n'est PAS vérifié ici : le rendu, la signature / l'archive App Store
+# (il faut un Mac avec équipe Apple), les tests UI.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-build-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  ios-build:
+    name: Build iOS (simulateur)
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Xcode le plus récent du runner
+        run: |
+          set -euo pipefail
+          LATEST="$(ls /Applications | grep -oE 'Xcode_[0-9.]+' | sort -V | tail -1)"
+          echo "Xcode retenu : $LATEST"
+          sudo xcode-select -s "/Applications/${LATEST}.app/Contents/Developer"
+          xcodebuild -version
+          xcrun simctl list runtimes | head -5
+
+      - name: Dépendances SwiftPM (GoogleSignIn-iOS)
+        run: |
+          set -euo pipefail
+          xcodebuild -resolvePackageDependencies \
+            -project Duello.xcodeproj \
+            -scheme Duello
+
+      - name: Build simulateur (sans signature)
+        run: |
+          set -euo pipefail
+          xcodebuild build \
+            -project Duello.xcodeproj \
+            -scheme Duello \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY=""
