@@ -94,6 +94,14 @@ enum SubjTrainingModeCatalog {
     static let all: [SubjTrainingModeOption] =
         SubjTrainingMode.allCases.map(SubjTrainingModeOption.init)
 
+    /// `hasAnnaleBank` de `data/chapterItemBasics.ts` : seules l'ECG et la MPSI
+    /// sont pourvues d'une banque d'annales — l'onglet Annales des maths ne
+    /// dépend ni de l'année ni de l'option.
+    static func hasAnnaleBank(track: String) -> Bool {
+        let normalized = track.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        return normalized == "ECG" || normalized == "MPSI"
+    }
+
     /// Onglets d'une matière : le Cours et les Annales ne concernent que les
     /// maths (les Annales seulement si elles sont servies), et les
     /// dissertations remplacent les exercices en ESH et HGG.
