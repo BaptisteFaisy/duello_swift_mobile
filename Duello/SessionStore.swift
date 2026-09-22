@@ -10,6 +10,19 @@ struct ServerSession: Codable, Equatable {
     var email: String
 }
 
+extension ServerSession {
+    /// Session issue d'une réponse d'authentification ; `payload.email` peut
+    /// être vide, l'adresse de la demande fait alors foi.
+    init(payload: DuelloAPI.SessionPayload, fallbackEmail: String) {
+        self.init(
+            token: payload.token,
+            expiresAt: payload.expiresAt,
+            publicId: payload.publicId,
+            email: payload.email.isEmpty ? fallbackEmail : payload.email
+        )
+    }
+}
+
 /// Compte local et profil, persistés dans le trousseau et les préférences.
 final class SessionStore: ObservableObject {
     @Published var isSignedIn: Bool = false
@@ -38,7 +51,7 @@ final class SessionStore: ObservableObject {
     @MainActor
     func signIn(email: String, password: String) async throws {
         let payload = try await DuelloAPI.login(email: email, password: password)
-        try applySession(payload, email: email)
+        try installSession(ServerSession(payload: payload, fallbackEmail: email))
     }
 
     @MainActor
@@ -50,7 +63,7 @@ final class SessionStore: ObservableObject {
             displayName: displayName,
             deviceId: deviceId
         )
-        try applySession(payload, email: email)
+        try installSession(ServerSession(payload: payload, fallbackEmail: email))
     }
 
     /// Ouvre la session renvoyée par `POST /auth/google` et préremplit le
@@ -59,7 +72,7 @@ final class SessionStore: ObservableObject {
     /// fournisseur entre les comptes.
     @MainActor
     func signInWithGoogle(identity: GoogleIdentity, payload: DuelloAPI.SessionPayload) throws {
-        try applySession(payload, email: identity.email)
+        try installSession(ServerSession(payload: payload, fallbackEmail: identity.email))
 
         let words = identity.displayName.split(whereSeparator: { $0.isWhitespace }).map(String.init)
         let firstName = identity.firstName.isEmpty ? (words.first ?? "") : identity.firstName
@@ -86,13 +99,11 @@ final class SessionStore: ObservableObject {
 
     // MARK: Persistance
 
-    private func applySession(_ payload: DuelloAPI.SessionPayload, email: String) throws {
-        let session = ServerSession(
-            token: payload.token,
-            expiresAt: payload.expiresAt,
-            publicId: payload.publicId,
-            email: payload.email.isEmpty ? email : payload.email
-        )
+    /// Installe une session serveur validée : marque l'utilisateur connecté,
+    /// aligne le profil local et persiste le tout. Point d'entrée unique des
+    /// ouvertures de session — mot de passe, inscription, Google, et session
+    /// rendue par `POST /auth/password/reset`.
+    func installSession(_ session: ServerSession) throws {
         guard session.token.hasPrefix("dus_") else {
             throw DirectoryError(message: "Session refusée par le serveur Duello.")
         }
@@ -100,7 +111,7 @@ final class SessionStore: ObservableObject {
         isSignedIn = true
         profile.email = session.email
         if profile.displayName.isEmpty {
-            profile.displayName = email.split(separator: "@").first.map(String.init) ?? "Élève"
+            profile.displayName = session.email.split(separator: "@").first.map(String.init) ?? "Élève"
         }
         if profile.firstName.isEmpty {
             profile.firstName = profile.displayName

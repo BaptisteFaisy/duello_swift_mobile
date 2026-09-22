@@ -658,6 +658,7 @@
 		87906700E41FA7356F0ACCF2 /* TrainIntProgram.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6085A3EABBF6CF091B28387 /* TrainIntProgram.swift */; };
 		4B2BAA1024A339376C1F9561 /* AcctSecEmailValidation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44980A5EB1186F6EA408EB60 /* AcctSecEmailValidation.swift */; };
 		D684A5DF66737A30472488F0 /* MsgBubbleShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3BDBD73E02971991D89399F /* MsgBubbleShape.swift */; };
+		4847E4FA3CAAFB89012F6FAE /* AcctSecResetLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49D0C4F26706B8CE611E30CE /* AcctSecResetLink.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -1313,6 +1314,7 @@
 		F6085A3EABBF6CF091B28387 /* TrainIntProgram.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainIntProgram.swift; sourceTree = "<group>"; };
 		44980A5EB1186F6EA408EB60 /* AcctSecEmailValidation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctSecEmailValidation.swift; sourceTree = "<group>"; };
 		B3BDBD73E02971991D89399F /* MsgBubbleShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MsgBubbleShape.swift; sourceTree = "<group>"; };
+		49D0C4F26706B8CE611E30CE /* AcctSecResetLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctSecResetLink.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1989,6 +1991,7 @@
 				F6085A3EABBF6CF091B28387 /* TrainIntProgram.swift */,
 				44980A5EB1186F6EA408EB60 /* AcctSecEmailValidation.swift */,
 				B3BDBD73E02971991D89399F /* MsgBubbleShape.swift */,
+				49D0C4F26706B8CE611E30CE /* AcctSecResetLink.swift */,
 			);
 			path = Duello;
 			sourceTree = "<group>";
@@ -2721,6 +2724,7 @@
 				87906700E41FA7356F0ACCF2 /* TrainIntProgram.swift in Sources */,
 				4B2BAA1024A339376C1F9561 /* AcctSecEmailValidation.swift in Sources */,
 				D684A5DF66737A30472488F0 /* MsgBubbleShape.swift in Sources */,
+				4847E4FA3CAAFB89012F6FAE /* AcctSecResetLink.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -6,10 +6,9 @@
 //  connexion sombre (`LoginScrScreen`, porté de `src/screens/LoginScreen.tsx`).
 //
 //  `SessionStore.swift` est **hors périmètre** de ce lot et n'expose aucune
-//  entrée Apple : `applySession` y est privée, et le seul point d'entrée public
-//  qui ouvre une session à partir d'une identité fournisseur est
-//  `signInWithGoogle(identity:payload:)`. On lui présente donc une
-//  `GoogleIdentity` **construite depuis l'identité Apple déjà validée par le
+//  entrée Apple : la seule entrée qui ouvre une session à partir d'une identité
+//  fournisseur est `signInWithGoogle(identity:payload:)`. On lui présente donc
+//  une `GoogleIdentity` **construite depuis l'identité Apple déjà validée par le
 //  serveur** (`AppleAuthIdentity`) : l'effet est le même que la source
 //  (`profileWithAppleIdentity` / `profileWithGoogleIdentity` produisent le même
 //  profil : prénom, nom, e-mail normalisé, profil public, sans photo distante).

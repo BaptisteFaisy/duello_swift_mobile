@@ -27,8 +27,13 @@ enum AcctSecPasswordResetStep: Equatable {
 
 /// Formulaire en trois étapes : demande, code, nouveau mot de passe.
 struct AcctSecPasswordResetForm: View {
-    /// Adresse préremplie ; si non vide, le parcours démarre à l'étape « code ».
+    /// Adresse préremplie ; si non vide, le parcours démarre à l'étape « code »
+    /// (ou directement à l'étape « mot de passe » quand `token` est fourni).
     var email: String = ""
+    /// Jeton prérempli par un lien entrant
+    /// (`duello-dev://reset-password?email=…&token=…`) : le jeton étant déjà
+    /// connu, le parcours saute les étapes « demande » et « code ».
+    var token: String = ""
     /// Destination du lien de réinitialisation.
     var destination: AcctSecResetDestination = .app
     /// Remise de la session serveur pour la confier à `SessionStore`.
@@ -238,7 +243,15 @@ struct AcctSecPasswordResetForm: View {
     private func prime() {
         guard address.isEmpty, !email.isEmpty else { return }
         address = email
-        step = .code
+        // Un lien entrant porte déjà le jeton : l'utilisateur choisit
+        // directement son nouveau mot de passe (comme `PasswordResetScreen`,
+        // qui s'ouvre sur cette seule étape quand le lien fournit le jeton).
+        if token.isEmpty {
+            step = .code
+        } else {
+            code = token
+            step = .password
+        }
     }
 
     private func submitRequest() async {
