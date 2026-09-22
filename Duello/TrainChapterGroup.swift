@@ -41,16 +41,23 @@ struct TrainChapterGroup: Identifiable {
     /// programme, puis un groupe sans domaine pour les chapitres restants.
     static func grouped(_ chapters: [TrackChapter]) -> [TrainChapterGroup] {
         var groups: [TrainChapterGroup] = TrainDomain.allCases.compactMap { domain -> TrainChapterGroup? in
-            let matching = chapters.filter { $0.domain == domain.rawValue }
+            let matching = chapters.filter { Self.domain(of: $0) == domain }
             return matching.isEmpty ? nil : TrainChapterGroup(domain: domain, chapters: matching)
         }
-        let others = chapters.filter { chapter in
-            guard let domain = chapter.domain else { return true }
-            return TrainDomain(rawValue: domain) == nil
-        }
+        let others = chapters.filter { Self.domain(of: $0) == nil }
         if !others.isEmpty {
             groups.append(TrainChapterGroup(domain: nil, chapters: others))
         }
         return groups
+    }
+
+    /// Domaine d'un chapitre, résolu sans tenir compte de la casse ni des
+    /// accents : le catalogue Swift écrit `domain: "Fondements"` (lisible dans
+    /// le source) là où `CHAPTER_DOMAINS` de `tracks.ts` est en minuscules
+    /// (`'fondements'`). Sans cette normalisation, **aucun** chapitre ne
+    /// rejoignait son domaine et tout retombait sous « Autres chapitres ».
+    private static func domain(of chapter: TrackChapter) -> TrainDomain? {
+        guard let raw = chapter.domain else { return nil }
+        return TrainDomain(rawValue: DuelloProgram.normalize(raw))
     }
 }

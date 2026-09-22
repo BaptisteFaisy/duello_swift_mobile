@@ -158,17 +158,23 @@ struct SubjTrainingModeTabs: View {
     }
 
     var body: some View {
-        HStack(spacing: compact ? 4 : 6) {
+        HStack(spacing: compact ? 2 : 5) {
             ForEach(availableModes) { option in
                 tab(option)
             }
         }
+        .padding(compact ? 3 : 4)
+        .background(Theme.surfaceMuted)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
         .onChange(of: mode) { newValue in
             if displayedMode != newValue { displayedMode = newValue }
         }
     }
 
-    /// Un onglet : pastille sélectionnée en encre pleine, les autres en gris.
+    /// Un onglet : `modeTab` de la source — largeur répartie entre les onglets
+    /// (`flex: 1`), icône + libellé centrés, pastille choisie en encre pleine.
+    /// Le libellé se réduit (`minimumFontScale 0.75`) plutôt que d'être coupé,
+    /// comme `adjustsFontSizeToFit` de la source.
     private func tab(_ option: SubjTrainingModeOption) -> some View {
         let selected = displayedMode == option.mode
         return Button {
@@ -176,19 +182,19 @@ struct SubjTrainingModeTabs: View {
             displayedMode = option.mode
             onSelect(option.mode)
         } label: {
-            HStack(spacing: 5) {
+            HStack(spacing: 6) {
                 Image(systemName: option.systemImage)
-                    .font(.system(size: compact ? 12 : 14, weight: .semibold))
+                    .font(.system(size: compact ? 14 : 16, weight: .semibold))
                 Text(option.label)
-                    .font(.system(size: compact ? 12 : 13, weight: .heavy))
+                    .font(.system(size: compact ? 11 : 13, weight: .heavy))
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
             }
             .foregroundStyle(selected ? Color.white : Theme.inkSoft)
-            .padding(.horizontal, compact ? 8 : 10)
-            .padding(.vertical, compact ? 5 : 7)
-            .background(selected ? Theme.ink : Theme.surfaceMuted)
-            .clipShape(Capsule())
+            .padding(.horizontal, 4)
+            .frame(maxWidth: .infinity, minHeight: compact ? 36 : 44)
+            .background(selected ? Theme.primary : Color.clear)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(option.label) — \(subjectName)")

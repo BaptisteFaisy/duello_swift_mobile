@@ -60,10 +60,13 @@ extension ScreenshotTour {
         store.profile.lastName = "Faisy"
         store.profile.displayName = "Camille"
         // L'écran `onboarding` se joue avant tout parcours choisi ; les autres
-        // écrans authentifiés supposent une filière posée.
+        // écrans authentifiés supposent une filière posée. Libellés alignés sur
+        // ceux de l'app (« 1re année », `data/tracks.ts:1863`) pour que la
+        // capture soit comparable à celle du RN.
         if shot != "onboarding" {
-            store.profile.year = "1re"
+            store.profile.year = "1re année"
             store.profile.track = "ECG"
+            store.profile.specialty = "Maths appliquées"
         }
         store.isLoadingSession = false
     }
