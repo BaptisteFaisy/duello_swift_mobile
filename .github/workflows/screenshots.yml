@@ -1,0 +1,112 @@
+name: screenshots
+
+# Captures d'écran du rendu SwiftUI réel, pour comparaison avec l'app
+# React Native (source de vérité). Un runner macOS hébergé par GitHub boote un
+# simulateur iPhone, installe l'app et photographie chaque écran listé, puis
+# publie les PNG en artefact.
+#
+# Pourquoi ici et pas sur le poste : SwiftUI n'existe que dans le SDK d'Xcode.
+# Le pré-contrôle Linux vérifie la syntaxe et les types, jamais le rendu.
+#
+# Le pilotage se fait par le mode `DUELLO_SHOT` (Duello/ScreenshotTour.swift) :
+# variable d'environnement lue au lancement, qui sème une session factice et
+# fige la racine sur l'écran demandé. Aucun tap n'est nécessaire.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'Duello/**'
+      - '.github/workflows/screenshots.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: screenshots-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  # Écrans photographiés. Ajouter une valeur ici suffit : le mode capture la
+  # reconnaît côté app (Duello/ScreenshotTour.swift).
+  SHOT_SCREENS: welcome onboarding profile training challenges
+  BUNDLE_ID: com.prepapp.mobile.swift
+  DEVICE: iPhone 16
+
+jobs:
+  screenshots:
+    name: Captures simulateur
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Xcode le plus récent du runner
+        run: |
+          set -euo pipefail
+          LATEST="$(ls /Applications | grep -oE 'Xcode_[0-9]+(\.[0-9]+)*' | sort -V | tail -1)"
+          echo "Xcode retenu : $LATEST"
+          sudo xcode-select -s "/Applications/${LATEST}.app/Contents/Developer"
+          xcodebuild -version
+
+      - name: Dépendances SwiftPM (GoogleSignIn-iOS)
+        run: |
+          set -euo pipefail
+          xcodebuild -resolvePackageDependencies \
+            -project Duello.xcodeproj -scheme Duello
+
+      - name: Build simulateur (sans signature)
+        run: |
+          set -euo pipefail
+          xcodebuild build \
+            -project Duello.xcodeproj \
+            -scheme Duello \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination "platform=iOS Simulator,name=${DEVICE}" \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY=""
+
+      - name: Boot du simulateur
+        run: |
+          set -euo pipefail
+          DEVICE_ID="$(xcrun simctl list devices available -j \
+            | python3 -c "import json,sys;d=json.load(sys.stdin)['devices'];print(next(x['udid'] for v in d.values() for x in v if x['name']=='${DEVICE}'))")"
+          echo "DEVICE_ID=$DEVICE_ID" >> "$GITHUB_ENV"
+          xcrun simctl boot "$DEVICE_ID" || true
+          xcrun simctl bootstatus "$DEVICE_ID" -b
+
+      - name: Installer l'app
+        run: |
+          set -euo pipefail
+          APP="$(find build/Build/Products -maxdepth 2 -name 'Duello.app' -type d | head -1)"
+          echo "App : $APP"
+          xcrun simctl install "$DEVICE_ID" "$APP"
+
+      - name: Photographier chaque écran
+        run: |
+          set -euo pipefail
+          mkdir -p shots
+          for SCREEN in $SHOT_SCREENS; do
+            echo "— écran : $SCREEN"
+            xcrun simctl terminate "$DEVICE_ID" "$BUNDLE_ID" >/dev/null 2>&1 || true
+            SIMCTL_CHILD_DUELLO_SHOT="$SCREEN" \
+              xcrun simctl launch "$DEVICE_ID" "$BUNDLE_ID" >/dev/null
+            # Laisse le premier rendu, les polices et un éventuel appel réseau
+            # se poser : un écran capturé trop tôt est un écran vide.
+            sleep 8
+            xcrun simctl io "$DEVICE_ID" screenshot "shots/$SCREEN.png"
+          done
+          ls -la shots
+
+      - name: Publier les captures
+        uses: actions/upload-artifact@v4
+        with:
+          name: duello-swift-shots
+          path: shots/*.png
+          if-no-files-found: error
+          retention-days: 30

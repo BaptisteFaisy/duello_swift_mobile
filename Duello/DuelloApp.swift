@@ -69,7 +69,11 @@ struct RootView: View {
 
     var body: some View {
         Group {
-            if session.isSignedIn {
+            // Mode capture : la racine peut être figée sur l'accueil signé-out
+            // même quand une session factice est semée.
+            if ScreenshotTour.screen == "welcome" {
+                WelcomeView()
+            } else if session.isSignedIn {
                 if needsOnboarding {
                     OnboardingView {}
                 } else {

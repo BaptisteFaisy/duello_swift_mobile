@@ -37,6 +37,36 @@ final class SessionStore: ObservableObject {
 
     init() {
         restoreSession()
+        // Mode capture (outil de développement) : une session factice remplace
+        // celle restaurée pour que les écrans authentifiés s'affichent dans un
+        // simulateur CI sans compte. Hors de ce mode, `ScreenshotTour.screen`
+        // vaut `nil` et rien de ceci ne s'exécute.
+        if let shot = ScreenshotTour.screen {
+            seedScreenshotSession(onboarding: shot == "onboarding")
+        }
+    }
+
+    /// Session et profil factices du mode capture : mêmes formes que le vrai
+    /// chemin (jeton `dus_`, expiration lointaine), sans réseau ni trousseau.
+    private func seedScreenshotSession(onboarding: Bool) {
+        let far = ISO8601DateFormatter().string(from: Date().addingTimeInterval(60 * 60 * 24 * 30))
+        session = ServerSession(
+            token: "dus_screenshot_tour",
+            expiresAt: far,
+            publicId: "member-screenshot",
+            email: "camille@email.fr"
+        )
+        isSignedIn = true
+        profile = UserProfile()
+        profile.email = "camille@email.fr"
+        profile.firstName = "Camille"
+        profile.lastName = "Faisy"
+        profile.displayName = "Camille"
+        if !onboarding {
+            profile.year = "1re"
+            profile.track = "ECG"
+        }
+        isLoadingSession = false
     }
 
     var token: String? { session?.token }
