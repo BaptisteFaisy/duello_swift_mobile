@@ -13,5 +13,20 @@
 			</array>
 		</dict>
 	</array>
+	<!-- Photo d'une copie ou d'un exercice (transcription, correction). -->
+	<key>NSCameraUsageDescription</key>
+	<string>Duello utilise l'appareil photo pour photographier vos copies et exercices afin de les transcrire et de les corriger.</string>
+	<!-- Choix d'une photo existante (copie, avatar, événement). -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Duello accède à vos photos pour choisir une copie à corriger ou une image de profil.</string>
+	<!-- Dictée d'une formule (moteur AVAudioEngine + SFSpeechRecognizer). -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Duello utilise le microphone pour la dictée des formules mathématiques.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Duello utilise la reconnaissance vocale pour transcrire vos formules dictées.</string>
+	<!-- HTTPS uniquement, aucun chiffrement non exempté : pas de
+	     questionnaire de conformité d'export à chaque upload TestFlight. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>
