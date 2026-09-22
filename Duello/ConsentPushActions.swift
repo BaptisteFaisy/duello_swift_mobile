@@ -93,7 +93,7 @@ enum ConsentPushActions {
         guard let url = URL(string: UIApplication.openSettingsURLString) else {
             throw Failure.settingsUnavailable
         }
-        UIApplication.shared.open(url)
+        await UIApplication.shared.open(url)
         saveEnabled(true)
         #else
         throw Failure.settingsUnavailable
