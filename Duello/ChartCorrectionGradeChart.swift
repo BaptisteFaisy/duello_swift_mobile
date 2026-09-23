@@ -60,6 +60,8 @@ struct ChartCorrectionGradeChart: View {
 
     /// `MAX_POINTS` : la courbe est bornée aux 24 dernières périodes.
     private let maxPoints = 24
+    /// `TOOLTIP_WIDTH`.
+    private static let tooltipWidth: CGFloat = 168
 
     var body: some View {
         if visible.isEmpty { EmptyView() } else { content }
@@ -75,8 +77,9 @@ struct ChartCorrectionGradeChart: View {
         let linePoints = visible.map { point in
             ChartLinePoint(
                 value: point.score,
-                tooltip: tooltipTitle(for: point),
-                tooltipDetail: tooltipDetail(for: point)
+                tooltip: "\(ExGFormat.xp(point.score))/20",
+                tooltipTitle: tooltipTitle(for: point),
+                tooltipAnnotation: " · \(ChartDateFormat.periodDate(point.at, granularity))"
             )
         }
         return ChartSmoothLineChart(
@@ -90,7 +93,9 @@ struct ChartCorrectionGradeChart: View {
             accessibility: "Évolution \(granularity.name) des notes de correction sur 20, de \(ExGFormat.xp(first.score)) à \(ExGFormat.xp(last.score))",
             axisWidth: 32,
             showsDateRange: showsDateRange,
-            middleAxisLabel: "10"
+            middleAxisLabel: "10",
+            tooltipWidth: Self.tooltipWidth,
+            tooltipVerticalPadding: 5
         )
     }
 
@@ -98,9 +103,5 @@ struct ChartCorrectionGradeChart: View {
         point.entries.count == 1
             ? (point.entries[0].title ?? point.entries[0].activity.label)
             : "Moyenne de \(point.entries.count) corrections"
-    }
-
-    private func tooltipDetail(for point: ChartCorrectionPeriodPoint) -> String {
-        "\(ExGFormat.xp(point.score))/20 · \(ChartDateFormat.periodDate(point.at, granularity))"
     }
 }

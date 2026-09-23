@@ -8,7 +8,7 @@ extension MessagesView {
             VStack(alignment: .leading, spacing: 0) {
                 listHeader(title: "Conversations", pill: "\(conversations.count) actives")
 
-                VStack(spacing: 0) {
+                LazyVStack(spacing: 0) {
                     ForEach(Array(conversations.enumerated()), id: \.element.id) { index, conversation in
                         Button {
                             open(conversation)

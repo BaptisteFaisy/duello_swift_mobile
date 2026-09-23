@@ -26,6 +26,8 @@ import SwiftUI
 /// et corrigé. À ne pas confondre avec `ChallengePlayerView`, qui mène la copie
 /// jusqu'au verdict ; ici, le verdict est déjà rendu.
 struct ChalRunResultView: View {
+    @EnvironmentObject private var session: SessionStore
+
     let result: ChalRunResult
     /// Initiale du joueur pour sa propre carte de note.
     let myInitial: String
@@ -38,7 +40,8 @@ struct ChalRunResultView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                ChalRunResultHeader(result: result, onBack: onBack)
+                backButton
+                ChalRunResultHeader(result: result)
                 verdictSection
                 notices
                 promptSection
@@ -55,10 +58,36 @@ struct ChalRunResultView: View {
         .background(Theme.background)
     }
 
+    /// Retour aux défis (`resultBackButton`) : pastille bordée, chevron + libellé.
+    private var backButton: some View {
+        Button {
+            onBack()
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 15, weight: .bold))
+                Text("Retour aux défis")
+                    .font(.system(size: 13, weight: .heavy))
+            }
+            .foregroundStyle(Theme.ink)
+            .frame(minHeight: 40)
+            .padding(.horizontal, 11)
+            .background(Theme.surface)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.radiusMedium, style: .continuous)
+                    .stroke(Theme.border, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Revenir à l’accueil des défis")
+    }
+
     private var verdictSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             ChalRunSectionLabel(text: result.verdictSectionLabel)
             ChalRunVerdictCard(result: result)
+            ChalRunVerdictNote(result: result)
         }
     }
 
@@ -85,21 +114,43 @@ struct ChalRunResultView: View {
             } label: {
                 HStack {
                     ChalRunSectionLabel(text: "ÉNONCÉ")
+                    Spacer(minLength: 8)
                     Image(systemName: promptExpanded ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 15, weight: .bold))
+                        .font(.system(size: 18, weight: .bold))
                         .foregroundStyle(Theme.ink)
+                        .frame(width: 32, height: 32)
+                        .background(Theme.primaryLight)
+                        .clipShape(Capsule())
                 }
             }
             .buttonStyle(.plain)
             .accessibilityLabel(promptExpanded ? "Replier l’énoncé" : "Déplier l’énoncé")
             if promptExpanded {
-                Text(LatexToUnicode.toUnicodeMath(result.prompt))
-                    .font(Theme.readingFont)
-                    .foregroundStyle(Theme.ink)
-                    .lineSpacing(4)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .textSelection(.enabled)
-                    .duelloCard()
+                VStack(alignment: .trailing, spacing: 6) {
+                    ReportExerciseButton.make(
+                        profile: session.profile,
+                        target: .statement,
+                        source: .challenge,
+                        exerciseId: result.trainingTarget.itemId,
+                        exerciseTitle: result.trainingTarget.itemTitle,
+                        subject: result.subject,
+                        compact: true
+                    )
+                    Text(LatexToUnicode.toUnicodeMath(result.prompt))
+                        .font(.system(size: 11, design: .serif))
+                        .foregroundStyle(Theme.inkSoft)
+                        .lineSpacing(4)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .textSelection(.enabled)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(13)
+                .background(Theme.surface)
+                .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: Theme.radiusMedium, style: .continuous)
+                        .stroke(Theme.border, lineWidth: 1)
+                )
             }
         }
     }
@@ -190,55 +241,55 @@ struct ChalRunResultView: View {
                 Button {
                     onContinueTraining(result.trainingTarget)
                 } label: {
-                    Text("Reprendre l’exercice").frame(maxWidth: .infinity, minHeight: 48)
+                    HStack(spacing: 8) {
+                        Image(systemName: "graduationcap")
+                            .font(.system(size: 18, weight: .semibold))
+                        Text("Reprendre l’exercice")
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 48)
                 }
                 .buttonStyle(DuelloPrimaryButton())
             }
             Button {
                 onBack()
             } label: {
-                Text("Faire un autre défi").frame(maxWidth: .infinity, minHeight: 48)
+                HStack(spacing: 8) {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 19, weight: .semibold))
+                    Text("Faire un autre défi")
+                }
+                .frame(maxWidth: .infinity, minHeight: 48)
             }
             .buttonStyle(DuelloPrimaryButton())
         }
     }
 }
 
-/// En-tête du bilan : retour aux défis, icône d'issue, titre et méta.
+/// En-tête du bilan : icône d'issue dans un encart, titre et méta, centrés.
 struct ChalRunResultHeader: View {
     let result: ChalRunResult
-    var onBack: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Button {
-                onBack()
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 15, weight: .bold))
-                    Text("Retour aux défis")
-                        .font(.system(size: 14, weight: .heavy))
-                }
+        VStack(spacing: 0) {
+            Image(systemName: iconName)
+                .font(.system(size: 26, weight: .black))
                 .foregroundStyle(Theme.ink)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Revenir à l’accueil des défis")
-            HStack(spacing: 10) {
-                Image(systemName: iconName)
-                    .font(.system(size: 26, weight: .black))
-                    .foregroundStyle(Theme.ink)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(result.title)
-                        .font(.system(size: 18, weight: .black))
-                        .foregroundStyle(Theme.ink)
-                    Text(result.headerMeta)
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(Theme.inkFaint)
-                }
-            }
+                .frame(width: 58, height: 58)
+                .background(Theme.primaryLight)
+                .clipShape(RoundedRectangle(cornerRadius: 21, style: .continuous))
+            Text(result.title)
+                .font(.system(size: 20, weight: .black))
+                .foregroundStyle(Theme.ink)
+                .padding(.top, 14)
+            Text(result.headerMeta)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(Theme.inkSoft)
+                .multilineTextAlignment(.center)
+                .padding(.top, 4)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .center)
+        .padding(.top, 14)
+        .padding(.bottom, 20)
     }
 
     /// L'icône dit d'abord si le défi a été arbitré, puis qui l'emporte.
@@ -276,33 +327,46 @@ struct ChalRunAbandonVictoryView: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(spacing: 0) {
             Image(systemName: "trophy.fill")
                 .font(.system(size: 26, weight: .black))
                 .foregroundStyle(Theme.ink)
+                .frame(width: 58, height: 58)
+                .background(Theme.primaryLight)
+                .clipShape(RoundedRectangle(cornerRadius: 21, style: .continuous))
             Text("Défi gagné")
-                .font(.system(size: 18, weight: .black))
+                .font(.system(size: 20, weight: .black))
                 .foregroundStyle(Theme.ink)
+                .padding(.top, 14)
             Text("\(result.opponentName) a abandonné avant la fin du chrono.")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Theme.inkFaint)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(Theme.inkSoft)
+                .multilineTextAlignment(.center)
+                .padding(.top, 4)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .center)
+        .padding(.top, 14)
+        .padding(.bottom, 20)
     }
 
     private var verdictCard: some View {
-        HStack(alignment: .top, spacing: 8) {
+        HStack(alignment: .top, spacing: 11) {
             Image(systemName: "flag")
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(Theme.ink)
+                .frame(width: 30, height: 30)
+                .background(Theme.surface)
+                .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
             Text("Tu remportes immédiatement le défi. Ta réponse a été conservée pour que tu puisses terminer l’exercice dans Entraînement.")
-                .font(.system(size: 15, weight: .semibold))
+                .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(Theme.ink)
                 .lineSpacing(3)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .duelloCard()
+        .padding(15)
+        .background(Theme.primaryLight)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge, style: .continuous))
     }
 
     private var actions: some View {
@@ -311,14 +375,24 @@ struct ChalRunAbandonVictoryView: View {
                 Button {
                     onContinueTraining(result.trainingTarget)
                 } label: {
-                    Text("Continuer l’exercice").frame(maxWidth: .infinity, minHeight: 48)
+                    HStack(spacing: 8) {
+                        Image(systemName: "graduationcap")
+                            .font(.system(size: 18, weight: .semibold))
+                        Text("Continuer l’exercice")
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 48)
                 }
                 .buttonStyle(DuelloPrimaryButton())
             }
             Button {
                 onBack()
             } label: {
-                Text("Faire un autre défi").frame(maxWidth: .infinity, minHeight: 48)
+                HStack(spacing: 8) {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 19, weight: .semibold))
+                    Text("Faire un autre défi")
+                }
+                .frame(maxWidth: .infinity, minHeight: 48)
             }
             .buttonStyle(DuelloPrimaryButton())
         }

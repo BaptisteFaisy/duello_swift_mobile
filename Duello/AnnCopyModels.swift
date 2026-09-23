@@ -64,10 +64,22 @@ struct AnnCopyPage: Identifiable, Equatable {
     var imageBase64: String
     var mimeType: String
 
-    /// Image décodée, pour l'aperçu de la grille de pages.
+    /// Octets JPEG de la page, décodés depuis le base64.
+    var imageData: Data? {
+        Data(base64Encoded: imageBase64)
+    }
+
+    /// Clé de cache stable de la page (un `id` = une page).
+    var cacheKey: String {
+        "anncopy-page-\(id.uuidString)"
+    }
+
+    /// Image décodée, servie par le cache partagé : renvoie l'image si elle est
+    /// déjà décodée, sinon déclenche le décodage hors main thread (une seule
+    /// fois). La grille, elle, se rafraîchit via `CachedImage`.
     var image: UIImage? {
-        guard let data = Data(base64Encoded: imageBase64) else { return nil }
-        return UIImage(data: data)
+        guard let data = imageData else { return nil }
+        return ImageCache.shared.load(data, key: cacheKey)
     }
 
     /// Qualité d'enregistrement reprise de l'app Expo (`quality: 0.78`).

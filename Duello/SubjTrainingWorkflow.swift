@@ -57,9 +57,10 @@ enum SubjTrainingWorkflow {
             id: correctionStepId,
             label: "Correction",
             icon: "checkmark.circle",
-            // Le vert commun de réussite (`colors.mastery`) signale la
-            // correction, comme `TrainCourseStatus.completed`.
-            tint: Theme.progress
+            // Le vert commun de réussite (`colors.mastery`, #22C55E) signale la
+            // correction, comme `TrainCourseStatus.completed` — et non
+            // `colors.progress` (#16A34A).
+            tint: Theme.mastery
         ),
     ]
 }
@@ -123,7 +124,7 @@ struct SubjTrainingWorkflowIcons: View {
 struct SubjTrainingWorkflowGuide: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            DuelloSectionHeader(title: subjWorkflowTitle)
+            guideTitle
             SubjTrainingWorkflowIcons(compact: true)
                 .padding(.top, 8)
         }
@@ -132,5 +133,18 @@ struct SubjTrainingWorkflowGuide: View {
             Rectangle().fill(Theme.border).frame(height: 1)
         }
         .padding(.top, 18)
+    }
+
+    /// Titre du guide : 10 pt noir, capitales, `tracking` 0,5
+    /// (`styles.legendTitle` de `SubjectsScreen.tsx`) — plus petit que le titre
+    /// de section partagé (`DuelloSectionHeader`, 13 pt), que ce guide n'emploie
+    /// donc pas.
+    private var guideTitle: some View {
+        Text(subjWorkflowTitle)
+            .font(.system(size: 10, weight: .black))
+            .textCase(.uppercase)
+            .tracking(0.5)
+            .foregroundStyle(Theme.inkSoft)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

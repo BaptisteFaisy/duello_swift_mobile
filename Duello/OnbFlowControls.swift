@@ -24,10 +24,11 @@ struct OnbFlowDivider: View {
         HStack(spacing: 10) {
             line
             Text("OU")
-                .font(.system(size: 11, weight: .heavy))
+                .font(.system(size: 10, weight: .heavy))
                 .foregroundStyle(OnbFlowPalette.dividerText)
             line
         }
+        .padding(.vertical, -2)
     }
 
     private var line: some View {
@@ -44,20 +45,20 @@ struct OnbFlowBiometricButton: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 9) {
+            HStack(spacing: 10) {
                 Image(systemName: verified ? "checkmark.circle.fill" : "touchid")
-                    .font(.system(size: 20))
+                    .font(.system(size: 23))
                 Text(verified ? "Biométrie validée" : "Créer mon compte avec la biométrie")
-                    .font(.system(size: 14, weight: .heavy))
+                    .font(.system(size: 13, weight: .black))
             }
             // `guestBiometricButton` : bordure blanche, fond noir, texte blanc
             // (l'état validé garde la bordure blanche, comme la source).
             .foregroundStyle(Color.white)
-            .frame(maxWidth: .infinity, minHeight: 50)
+            .frame(maxWidth: .infinity, minHeight: 54)
             .background(verified ? Theme.primary : Color.black)
-            .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
+            .clipShape(RoundedRectangle(cornerRadius: 17))
             .overlay(
-                RoundedRectangle(cornerRadius: Theme.radiusMedium)
+                RoundedRectangle(cornerRadius: 17)
                     .stroke(Color.white, lineWidth: 1.5)
             )
         }
@@ -69,14 +70,25 @@ struct OnbFlowBiometricButton: View {
 /// `goalIllustration` : l'école cible, dans un disque décoré.
 struct OnbFlowGoalIllustration: View {
     var body: some View {
-        ZStack {
-            Circle()
-                .fill(Theme.progressLight)
-                .frame(width: 86, height: 86)
-                .rotationEffect(.degrees(-5))
-            Image(systemName: "flag.fill")
-                .font(.system(size: 32))
-                .foregroundStyle(Theme.progress)
+        GeometryReader { proxy in
+            ZStack {
+                Circle()
+                    .fill(Color(hex: 0xECEEED))
+                    .frame(width: 86, height: 86)
+                    .rotationEffect(.degrees(-5))
+                Image(systemName: "flag")
+                    .font(.system(size: 34))
+                    .foregroundStyle(Theme.ink)
+                // `sparkOne` / `sparkTwo` : deux pastilles décoratives.
+                Circle()
+                    .fill(Theme.ink)
+                    .frame(width: 9, height: 9)
+                    .position(x: proxy.size.width * 0.26 + 4.5, y: 20.5)
+                Circle()
+                    .fill(Color(hex: 0xF4F5F4))
+                    .frame(width: 9, height: 9)
+                    .position(x: proxy.size.width * 0.73 - 4.5, y: proxy.size.height - 16.5)
+            }
         }
         .frame(maxWidth: .infinity)
         .frame(height: 108)
@@ -100,17 +112,17 @@ struct OnbFlowSchoolSuggestions: View {
                 } label: {
                     HStack(spacing: 9) {
                         Image(systemName: "school")
-                            .font(.system(size: 15))
+                            .font(.system(size: 17))
                             .foregroundStyle(Theme.progress)
                         Text(school)
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.system(size: 12, weight: .bold))
                             .foregroundStyle(Theme.ink)
                         Spacer(minLength: 0)
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 13))
+                            .font(.system(size: 17))
                             .foregroundStyle(Theme.inkFaint)
                     }
-                    .padding(.horizontal, 14)
+                    .padding(.horizontal, 13)
                     .frame(minHeight: 44)
                 }
                 .buttonStyle(.plain)
@@ -143,7 +155,7 @@ struct OnbFlowProviderButtons: View {
     @State private var googleError: String?
 
     var body: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 14) {
             Button {
                 signInWithGoogle()
             } label: {

@@ -42,10 +42,21 @@ struct OnbGiftStepView: View {
     @State private var openStartedAt: Date?
 
     var body: some View {
+        // La `TimelineView` ne porte que la scène animée : la géométrie, le
+        // geste et l'accessibilité du panneau restent hors de son périmètre et
+        // ne sont donc plus reconstruits à chaque image.
         TimelineView(.animation(paused: reduceMotion)) { context in
             let elapsed = reduceMotion ? 0 : context.date.timeIntervalSince(startedAt)
             return stage(elapsed: elapsed, progress: progress(at: context.date))
         }
+        .frame(width: OnbGiftTimeline.stageWidth, height: OnbGiftTimeline.stageHeight)
+        .offset(x: tapShake)
+        .contentShape(RoundedRectangle(cornerRadius: 32))
+        .onTapGesture { handleTap() }
+        .allowsHitTesting(!opened)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(opened ? message : Self.crackHint)
+        .accessibilityAddTraits(.isButton)
         .frame(maxWidth: .infinity)
         .frame(height: Self.panelHeight)
         .background(Color.black)
@@ -61,8 +72,8 @@ struct OnbGiftStepView: View {
         }
     }
 
-    /// La scène : le cadeau (et ses couches) sous la main tant qu’il est fermé,
-    /// le tout secoué par le tap. Le fond noir de la source est porté par la vue.
+    /// La scène : le cadeau (et ses couches) sous la main tant qu’il est fermé.
+    /// Seul ce contenu dépend du temps, donc seule cette zone est animée.
     private func stage(elapsed: Double, progress: Double) -> some View {
         ZStack {
             OnbGiftTimeline(progress: progress, crackStage: crackStage, elapsed: elapsed)
@@ -70,14 +81,6 @@ struct OnbGiftStepView: View {
                 OnbGiftPressHand(elapsed: elapsed)
             }
         }
-        .frame(width: OnbGiftTimeline.stageWidth, height: OnbGiftTimeline.stageHeight)
-        .offset(x: tapShake)
-        .contentShape(RoundedRectangle(cornerRadius: 32))
-        .onTapGesture { handleTap() }
-        .allowsHitTesting(!opened)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(opened ? message : Self.crackHint)
-        .accessibilityAddTraits(.isButton)
     }
 
     /// `handleTap` : chaque tap fissure un peu plus ; le troisième ouvre.

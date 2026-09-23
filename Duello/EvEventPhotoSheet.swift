@@ -109,38 +109,52 @@ struct EvEventPhotoSheet: View {
 
     /// Une vignette de page, lue depuis son URI de fichier.
     @ViewBuilder private func thumbnail(_ uri: String) -> some View {
-        if let image = localImage(uri) {
-            Image(uiImage: image)
-                .resizable()
-                .scaledToFill()
-                .frame(width: 76, height: 100)
-                .clipped()
-                .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
+        if let source = localSource(uri) {
+            CachedImage(source) { image in
+                image
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 76, height: 100)
+                    .clipped()
+                    .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
+            } placeholder: {
+                thumbnailPlaceholder
+            }
         } else {
-            RoundedRectangle(cornerRadius: Theme.radiusSmall)
-                .fill(Theme.surfaceMuted)
-                .frame(width: 76, height: 100)
+            thumbnailPlaceholder
         }
+    }
+
+    /// Repli d'une vignette illisible : fond muet de 76 × 100.
+    private var thumbnailPlaceholder: some View {
+        RoundedRectangle(cornerRadius: Theme.radiusSmall)
+            .fill(Theme.surfaceMuted)
+            .frame(width: 76, height: 100)
     }
 
     /// Fenêtre plein écran : la vignette s'agrandit, un appui la referme.
     @ViewBuilder private var zoomOverlay: some View {
-        if let uri = zoomedUri, let image = localImage(uri) {
+        if let uri = zoomedUri, let source = localSource(uri) {
             ZStack {
                 Color.black.opacity(0.92).ignoresSafeArea()
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFit()
-                    .padding(24)
+                CachedImage(source) { image in
+                    image
+                        .resizable()
+                        .scaledToFit()
+                        .padding(24)
+                } placeholder: {
+                    Color.clear
+                }
             }
             .contentShape(Rectangle())
             .onTapGesture { zoomedUri = nil }
         }
     }
 
-    /// Image locale d'une URI de fichier, `nil` si elle est illisible.
-    private func localImage(_ uri: String) -> UIImage? {
+    /// Image locale d'une URI de fichier, décodée hors main thread puis
+    /// mémorisée ; `nil` si l'URI est illisible.
+    private func localSource(_ uri: String) -> CachedImageSource? {
         guard let url = URL(string: uri) else { return nil }
-        return UIImage(contentsOfFile: url.path)
+        return .file(url.path)
     }
 }

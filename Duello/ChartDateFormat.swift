@@ -30,7 +30,7 @@ enum ChartDateFormat {
 
     /// `shortDate` : « 15 juil. ».
     static func shortDate(_ date: Date) -> String {
-        formatter("d MMM").string(from: date)
+        shortDateFormatter.string(from: date)
     }
 
     /// `periodDate` de `CorrectionGradeChart.tsx` : « juil. 2026 », « Sem. 15 juil. » ou « 15 juil. ».
@@ -48,12 +48,12 @@ enum ChartDateFormat {
     static func historyDate(_ raw: String) -> String {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, let parsed = parse(trimmed) else { return trimmed }
-        return formatter("dd MMMM yyyy 'à' HH:mm").string(from: parsed)
+        return historyDateFormatter.string(from: parsed)
     }
 
     /// `monthYear` : « juil. 2026 ».
     private static func monthYear(_ at: Double) -> String {
-        formatter("MMM yyyy").string(from: ChartTimeSeries.date(at))
+        monthYearFormatter.string(from: ChartTimeSeries.date(at))
     }
 
     /// Analyse une date ISO 8601 (avec ou sans fraction de seconde).
@@ -67,8 +67,13 @@ enum ChartDateFormat {
         return iso.date(from: raw)
     }
 
-    /// `DateFormatter` `fr-FR` pour un motif donné.
-    private static func formatter(_ format: String) -> DateFormatter {
+    /// Formateurs `fr-FR`, construits une seule fois (modèle `AdmFormat`) : les
+    /// axes et infobulles des graphes les lisent à chaque évaluation de `body`.
+    private static let shortDateFormatter = makeFormatter("d MMM")
+    private static let historyDateFormatter = makeFormatter("dd MMMM yyyy 'à' HH:mm")
+    private static let monthYearFormatter = makeFormatter("MMM yyyy")
+
+    private static func makeFormatter(_ format: String) -> DateFormatter {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "fr_FR")
         formatter.dateFormat = format

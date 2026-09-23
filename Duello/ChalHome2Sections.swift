@@ -55,6 +55,9 @@ enum ChalHome2Section: String, Equatable, CaseIterable {
 /// (`challengeSectionTabs`). Il partage l'état de section avec le pager.
 struct ChalHome2SectionTabs: View {
     @Binding var section: ChalHome2Section
+    /// Allume la pastille « nouvel événement » sur l'onglet Événements tant que
+    /// la section n'est pas affichée (`hasUnseenEvents` de la source).
+    var hasUnseenEvents: Bool = false
 
     var body: some View {
         HStack(spacing: 3) {
@@ -66,20 +69,27 @@ struct ChalHome2SectionTabs: View {
         .background(Theme.surfaceMuted)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Sections de l’accueil des défis")
     }
 
     /// Un onglet : icône + libellé, encre pleine quand il est sélectionné.
     private func tab(_ item: ChalHome2Section) -> some View {
         let selected = section == item
+        let showsNewDot = hasUnseenEvents && item == .events && !selected
         return Button {
             section = item
         } label: {
             HStack(spacing: 4) {
                 Image(systemName: item.icon)
-                    .font(.system(size: 12, weight: .bold))
+                    .font(.system(size: 14, weight: .bold))
                 Text(item.title)
                     .font(.system(size: 12, weight: .heavy))
+                // Pastille « nouveau » : un événement ajouté au catalogue se
+                // repère depuis l'accueil Défis, hors section seulement.
+                if showsNewDot {
+                    Circle()
+                        .fill(Theme.ink)
+                        .frame(width: 8, height: 8)
+                }
             }
             .foregroundStyle(selected ? Theme.surface : Theme.inkSoft)
             .frame(minHeight: 30)
@@ -89,7 +99,7 @@ struct ChalHome2SectionTabs: View {
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(selected ? [.isSelected] : [])
-        .accessibilityLabel(item.title)
+        .accessibilityLabel(showsNewDot ? "\(item.title), nouvel événement" : item.title)
     }
 }
 
@@ -123,6 +133,8 @@ struct ChalHome2HomeSurface<ChallengesContent: View, EventsContent: View>: View 
     /// Cote affichée en tête de barre (`formatElo(overallElo)`).
     var elo: String
     @Binding var section: ChalHome2Section
+    /// Allume la pastille « nouvel événement » sur l'onglet Événements.
+    var hasUnseenEvents: Bool = false
     var onOpenLeaderboard: () -> Void
     @ViewBuilder var challenges: () -> ChallengesContent
     @ViewBuilder var events: () -> EventsContent
@@ -131,7 +143,9 @@ struct ChalHome2HomeSurface<ChallengesContent: View, EventsContent: View>: View 
         VStack(spacing: 0) {
             ChalHomeHeader(
                 elo: elo,
-                centered: AnyView(ChalHome2SectionTabs(section: $section)),
+                centered: AnyView(
+                    ChalHome2SectionTabs(section: $section, hasUnseenEvents: hasUnseenEvents)
+                ),
                 onOpenLeaderboard: onOpenLeaderboard
             )
             ChalHome2SectionPager(

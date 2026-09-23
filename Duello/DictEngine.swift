@@ -4,12 +4,13 @@
 //
 //  Portage de `src/utils/realtimeAsr.ts` et du volet moteur de
 //  `src/hooks/useDictation.ts` : abstraction du moteur de reconnaissance
-//  (`DictEngine`) et son repli simulé.
+//  (`DictEngine`), sélection du moteur (`DictEngineKind`) et fabrique par défaut.
 //
-//  Le moteur réel (Speech/AVFoundation, relais temps réel) n'est pas vérifiable
-//  sur la machine de portage : il vit derrière `#if canImport` dans
-//  `DictSpeechEngine.swift`. Le protocole et `DictSimulatedEngine` sont, eux,
-//  portables et testables.
+//  Le moteur réellement branché est le moteur natif de l'appareil
+//  (`DictSpeechEngine`, Speech/AVFoundation) ; le relais temps réel premium est
+//  le client WebSocket `DictAsrRelay`. `DictSimulatedEngine` ne sert plus que de
+//  repli documenté là où aucun moteur n'existe (cibles sans Speech/AVFoundation),
+//  afin de ne jamais laisser la dictée muette sans le dire.
 //
 //  Cible : iOS 16. Aucune dépendance externe.
 //
@@ -34,6 +35,31 @@ enum DictEngineKind: String {
     case funAsr = "fun-asr"
     case scribeV2 = "scribe-v2"
     case device
+
+    /// Moteur déduit du modèle annoncé par le relais — `useDictation.ts`
+    /// (`ready.model.startsWith('qwen')`, `'scribe_v2'`, sinon Fun-ASR).
+    static func fromModel(_ model: String) -> DictEngineKind {
+        if model.hasPrefix("qwen") { return .qwenAsr }
+        if model.hasPrefix("scribe_v2") { return .scribeV2 }
+        return .funAsr
+    }
+}
+
+/// Fabrique du moteur par défaut — `useDictation` démarre toujours sur un moteur
+/// réel (relais premium, sinon reconnaissance du téléphone).
+enum DictEngineFactory {
+    /// Moteur réel de l'appareil (`DictSpeechEngine`), ou repli simulé documenté.
+    ///
+    /// Sur les cibles sans `Speech`/`AVFoundation` (machine de portage), aucun
+    /// moteur natif n'existe : `DictSimulatedEngine` rejoue alors la
+    /// transcription fournie pour ne pas casser l'interface, limite assumée et
+    /// signalée par son nom.
+    static func moteurParDefaut() -> DictEngine {
+        #if canImport(Speech) && canImport(AVFoundation)
+        if #available(iOS 16.0, *) { return DictSpeechEngine() }
+        #endif
+        return DictSimulatedEngine()
+    }
 }
 
 /// Moteur simulé, utilisé hors appareil : émet un événement par étape.

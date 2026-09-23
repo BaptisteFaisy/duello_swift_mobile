@@ -94,7 +94,7 @@ struct LeaguePromotionCard: View {
     private var badge: some View {
         Group {
             if let url = LeagueBadges.badgeURL(forLeague: promotion.to.id) {
-                AsyncImage(url: url) { image in
+                CachedRemoteImage(url: url) { image in
                     image.resizable().scaledToFit()
                 } placeholder: {
                     Color.clear

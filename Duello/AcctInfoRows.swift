@@ -24,10 +24,26 @@ enum AcctInfoRowMetrics {
     static let iconSize: CGFloat = 22
     /// Logo cube Duello, plus large que les pictogrammes (`iconSize={28}`).
     static let duelloLogoSize: CGFloat = 28
-    /// Largeur de la colonne d'icône, alignée sur les lignes existantes.
-    static let iconColumn: CGFloat = 28
-    /// Retrait des séparateurs, pour qu'ils démarrent après le pictogramme.
-    static let separatorInset: CGFloat = 44
+    /// Pastille d'icône des lignes (`compactSettingsIcon`, `passwordToggleIcon`,
+    /// `visibilityIcon`, `informationRowIcon`, `compactLogoutIcon`) : 34 × 34.
+    static let iconPill: CGFloat = 34
+}
+
+/// Jeu de métriques d'une ligne d'action : la source distingue les lignes
+/// compactes (`feedbackButton` + `compactSettingsAction`) des lignes e-mail /
+/// mot de passe (`passwordToggle`).
+enum AcctInfoActionMetrics {
+    /// `compactSettingsAction` : pages « Duello » et « Comptes bloqués ».
+    case compact
+    /// `passwordToggle` : lignes « Modifier mon adresse e-mail » / mot de passe.
+    case password
+
+    /// Hauteur minimale de la ligne.
+    var minHeight: CGFloat { self == .compact ? 44 : 60 }
+    /// Écart entre la pastille, le titre et le chevron.
+    var gap: CGFloat { self == .compact ? 13 : 10 }
+    /// Retrait vertical interne.
+    var verticalPadding: CGFloat { self == .compact ? 5 : 8 }
 }
 
 /// Ligne d'accès à une sous-page (`SettingsCategoryRow`) : icône, libellé, chevron.
@@ -49,11 +65,12 @@ struct AcctInfoCategoryRow: View {
                     .foregroundStyle(Theme.ink)
                 Spacer(minLength: 8)
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .bold))
+                    .font(.system(size: 20))
                     .foregroundStyle(Theme.inkFaint)
             }
             .frame(minHeight: 60)
             .padding(.horizontal, 8)
+            .padding(.vertical, 8)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -73,40 +90,45 @@ struct AcctInfoCategoryRow: View {
                 Color.clear
             }
         }
-        .frame(width: 34, height: 34)
+        .frame(width: AcctInfoRowMetrics.iconPill, height: AcctInfoRowMetrics.iconPill)
     }
 }
 
 /// Ligne d'action compacte (`feedbackButton` / `passwordToggle`) : pictogramme
-/// teinté, titre, chevron facultatif. Sert aux pages « Duello » et « Compte ».
+/// teinté dans une pastille 34 × 34, titre 13 / 800, chevron facultatif. Sert aux
+/// pages « Duello », « Comptes bloqués » et aux lignes e-mail / mot de passe.
 struct AcctInfoActionRow: View {
     let icon: String
     let title: String
     var tint: Color = Theme.primary
     var iconSize: CGFloat = AcctInfoRowMetrics.iconSize
+    var metrics: AcctInfoActionMetrics = .compact
     var showsChevron: Bool = true
     var accessibilityLabel: String? = nil
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 12) {
+            HStack(spacing: metrics.gap) {
                 Image(systemName: icon)
                     .font(.system(size: iconSize, weight: .semibold))
                     .foregroundStyle(tint)
-                    .frame(width: AcctInfoRowMetrics.iconColumn)
+                    .frame(width: AcctInfoRowMetrics.iconPill, height: AcctInfoRowMetrics.iconPill)
+                    .background(Theme.surface)
                 Text(title)
-                    .font(.system(size: 15, weight: .bold))
+                    .font(.system(size: 13, weight: .heavy))
                     .foregroundStyle(Theme.ink)
                     .multilineTextAlignment(.leading)
                 Spacer(minLength: 8)
                 if showsChevron {
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 12, weight: .bold))
+                        .font(.system(size: 20))
                         .foregroundStyle(Theme.inkFaint)
                 }
             }
-            .frame(minHeight: 48)
+            .frame(minHeight: metrics.minHeight)
+            .padding(.horizontal, 8)
+            .padding(.vertical, metrics.verticalPadding)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -114,8 +136,9 @@ struct AcctInfoActionRow: View {
     }
 }
 
-/// Ligne à interrupteur : pictogramme, titre, description facultative, `Toggle`.
-/// Reprend le motif « icône + titre + description + Switch » de la source.
+/// Ligne à interrupteur : pictogramme dans une pastille 34 × 34, titre
+/// 13 / 800, description facultative, `Toggle`. Reprend le motif aligné au
+/// centre « icône + titre + description + Switch » de la source.
 struct AcctInfoToggleRow: View {
     let icon: String
     let title: String
@@ -127,14 +150,15 @@ struct AcctInfoToggleRow: View {
     var accessibilityLabel: String? = nil
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(spacing: 10) {
             Image(systemName: icon)
                 .font(.system(size: iconSize, weight: .semibold))
                 .foregroundStyle(tint)
-                .frame(width: AcctInfoRowMetrics.iconColumn)
+                .frame(width: AcctInfoRowMetrics.iconPill, height: AcctInfoRowMetrics.iconPill)
+                .background(Theme.surface)
             VStack(alignment: .leading, spacing: 3) {
                 Text(title)
-                    .font(.system(size: 15, weight: .bold))
+                    .font(.system(size: 13, weight: .heavy))
                     .foregroundStyle(Theme.ink)
                 if let description {
                     Text(description)
@@ -150,6 +174,8 @@ struct AcctInfoToggleRow: View {
                 .disabled(isDisabled)
                 .accessibilityLabel(accessibilityLabel ?? title)
         }
+        .frame(minHeight: 60)
+        .padding(.horizontal, 8)
         .padding(.vertical, 8)
     }
 }
@@ -167,17 +193,20 @@ struct AcctInfoLogoutRow: View {
 
     var body: some View {
         Button { isConfirming = true } label: {
-            HStack(spacing: 12) {
+            HStack(spacing: 13) {
                 Image(systemName: "rectangle.portrait.and.arrow.right")
                     .font(.system(size: iconSize, weight: .semibold))
                     .foregroundStyle(Theme.ink)
-                    .frame(width: AcctInfoRowMetrics.iconColumn)
+                    .frame(width: AcctInfoRowMetrics.iconPill, height: AcctInfoRowMetrics.iconPill)
+                    .background(Theme.surface)
                 Text(actionLabel)
-                    .font(.system(size: 15, weight: .heavy))
+                    .font(.system(size: 13, weight: .heavy))
                     .foregroundStyle(Theme.ink)
                 Spacer(minLength: 8)
             }
-            .frame(minHeight: 52)
+            .frame(minHeight: 44)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -192,7 +221,7 @@ struct AcctInfoLogoutRow: View {
     }
 }
 
-/// Ligne de suppression de compte (action destructive), avec la confirmation
+/// Ligne de suppression de compte (action en encre), avec la confirmation
 /// « Supprimer mon compte ? » de la source.
 struct AcctInfoDeleteRow: View {
     var isBusy: Bool = false
@@ -207,21 +236,25 @@ struct AcctInfoDeleteRow: View {
 
     var body: some View {
         Button { isConfirming = true } label: {
-            HStack(spacing: 12) {
+            HStack(spacing: 13) {
                 if isBusy {
-                    ProgressView().frame(width: AcctInfoRowMetrics.iconColumn)
+                    ProgressView()
+                        .frame(width: AcctInfoRowMetrics.iconPill, height: AcctInfoRowMetrics.iconPill)
                 } else {
                     Image(systemName: "trash")
                         .font(.system(size: iconSize, weight: .semibold))
-                        .foregroundStyle(Theme.like)
-                        .frame(width: AcctInfoRowMetrics.iconColumn)
+                        .foregroundStyle(Theme.ink)
+                        .frame(width: AcctInfoRowMetrics.iconPill, height: AcctInfoRowMetrics.iconPill)
+                        .background(Theme.surface)
                 }
                 Text(isBusy ? "Suppression en cours…" : "Supprimer mon compte")
-                    .font(.system(size: 15, weight: .heavy))
-                    .foregroundStyle(Theme.like)
+                    .font(.system(size: 13, weight: .heavy))
+                    .foregroundStyle(Theme.ink)
                 Spacer(minLength: 8)
             }
             .frame(minHeight: 52)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

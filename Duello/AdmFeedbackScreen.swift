@@ -79,7 +79,7 @@ struct AdmFeedbackScreen: View {
                     : "Aucun message ne correspond à la recherche."
             )
         } else {
-            VStack(spacing: 10) {
+            LazyVStack(spacing: 10) {
                 ForEach(visibleFeedback) { item in
                     card(item)
                 }

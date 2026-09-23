@@ -118,7 +118,7 @@ struct SocInviteResultsMenu: View {
     /// de l'écran.
     private var results: some View {
         ScrollView {
-            VStack(spacing: 0) {
+            LazyVStack(spacing: 0) {
                 ForEach(profiles) { member in
                     SocInviteCandidateRow(
                         member: member,

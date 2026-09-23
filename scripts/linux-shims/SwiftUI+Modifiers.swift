@@ -645,6 +645,7 @@ public extension View {
     func fontWidth(_ width: Font.Width?) -> some View { _ShimView() }
     func bold() -> some View { _ShimView() }
     func italic() -> some View { _ShimView() }
+    func italic(_ isActive: Bool) -> some View { _ShimView() }
     func monospaced() -> some View { _ShimView() }
     func monospacedDigit() -> some View { _ShimView() }
     func kerning(_ kerning: CGFloat) -> some View { _ShimView() }
@@ -1019,6 +1020,14 @@ public extension Scene {
     func commandsRemoved() -> some Scene { self }
 }
 
+
+// MARK: - Égalité (réutilisation de vue)
+
+public extension View {
+    /// `View.equatable()` : marque la vue comme réutilisable tant qu'elle est
+    /// égale. Shim : renvoie la vue elle-même (aucune vue enveloppe à typer).
+    func equatable() -> Self { self }
+}
 
 // MARK: - Compléments Foundation absents de corelibs-foundation
 

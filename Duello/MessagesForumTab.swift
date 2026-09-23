@@ -10,7 +10,7 @@ extension MessagesView {
 
                 listHeader(title: "Discussions récentes", pill: "\(ForumTopic.samples.count) sujets")
 
-                VStack(spacing: 10) {
+                LazyVStack(spacing: 10) {
                     ForEach(ForumTopic.samples) { topic in
                         Button {
                             open(topic)

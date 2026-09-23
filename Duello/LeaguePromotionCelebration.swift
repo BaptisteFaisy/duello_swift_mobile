@@ -40,24 +40,33 @@ struct LeaguePromotionCelebration: View {
 
     var body: some View {
         GeometryReader { proxy in
-            TimelineView(.animation(paused: reduceMotion)) { context in
-                let animation = LeaguePromotionAnimation(progress: progress(at: context.date))
-                ZStack {
-                    Color(hex: 0x0A0D0C)
-                        .opacity(0.62 * animation.backdropOpacity)
-                        .ignoresSafeArea()
-                    dismissLayer
-                    LeaguePromotionCard(
-                        promotion: promotion,
-                        animation: animation,
-                        onDismiss: dismiss
-                    )
-                    .padding(.horizontal, 20)
-                    .padding(.top, max(proxy.safeAreaInsets.top, 24))
-                    .padding(.bottom, max(proxy.safeAreaInsets.bottom, 24))
+            ZStack {
+                // Hors de la `TimelineView` : la zone de fermeture n'est plus
+                // reconstruite à chaque image. Elle reste sous le voile et la
+                // carte (l'ordre d'affichage est inchangé).
+                dismissLayer
+                TimelineView(.animation(paused: reduceMotion)) { context in
+                    let animation = LeaguePromotionAnimation(progress: progress(at: context.date))
+                    ZStack {
+                        Color(hex: 0x0A0D0C)
+                            .opacity(0.62 * animation.backdropOpacity)
+                            .ignoresSafeArea()
+                            // Le voile passe devant `dismissLayer` : il ne doit
+                            // pas intercepter les taps de fermeture du fond.
+                            .allowsHitTesting(false)
+                        LeaguePromotionCard(
+                            promotion: promotion,
+                            animation: animation,
+                            onDismiss: dismiss
+                        )
+                        .padding(.horizontal, 20)
+                        .padding(.top, max(proxy.safeAreaInsets.top, 24))
+                        .padding(.bottom, max(proxy.safeAreaInsets.bottom, 24))
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .onAppear { startedAt = Date() }
     }

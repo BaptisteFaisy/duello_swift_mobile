@@ -19,7 +19,8 @@
 //
 //  Thème : la source force `usesDarkOnboardingAppearance = true`
 //  (`OnboardingScreen.tsx:251`) ; le contenu reprend donc les variantes
-//  `dark` des briques `OnbUi` (`guest*` de la source).
+//  `dark` des briques `OnbUi` (`guest*` de la source) — sauf l'étape `origin`
+//  et l'étape `target`, laissées claires par la source.
 //
 //  ⚠️ Écart assumé :
 //   - `GoogleAuthButton` (Swift) ouvre la session : l'étape passe par
@@ -80,7 +81,14 @@ struct OnbFlowStepContent: View {
     /// `year` : l'année du monde choisi sur « TON NIVEAU » (`yearChoices` :
     /// `LYCEE_YEARS` au lycée, `YEARS` en prépa).
     private var yearStep: some View {
-        OnbUiChoiceSection(dark: true) {
+        // `choiceGrid` de la source : `flexDirection: 'row', flexWrap: 'wrap',
+        // gap: 9` — les années s'affichent côte à côte et passent à la ligne
+        // au besoin (les puces `wide` des autres étapes restent en colonne).
+        LazyVGrid(
+            columns: [GridItem(.adaptive(minimum: 110))],
+            alignment: .leading,
+            spacing: 9
+        ) {
             ForEach(coordinator.yearChoices, id: \.self) { year in
                 OnbUiChoiceChip(
                     label: year,
@@ -95,7 +103,10 @@ struct OnbFlowStepContent: View {
     /// `current-track` : la filière actuelle (`onboardingCurrentTrackChoices`).
     private var currentTrackStep: some View {
         OnbUiChoiceSection(dark: true) {
-            ForEach(coordinator.currentTrackChoices, id: \.self) { track in
+            // Filières indexées par position : la source peut renvoyer deux
+            // fois « PT » en 2e année (`SECOND_YEAR_TRACKS`), ce qui ferait
+            // lever `ForEach(… id: \.self)` sur identifiants dupliqués.
+            ForEach(Array(coordinator.currentTrackChoices.enumerated()), id: \.offset) { _, track in
                 OnbUiChoiceChip(
                     label: track,
                     isSelected: coordinator.path.currentTrack == track,
@@ -109,18 +120,17 @@ struct OnbFlowStepContent: View {
 
     /// `origin` : la filière de 1re année (`originChoices`).
     private var originStep: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 19) {
             Text("Nous gardons cette information pour tes révisions et tes prérequis de concours.")
                 .font(.system(size: 13))
-                .foregroundStyle(OnbFlowPalette.helper)
-            OnbUiChoiceSection(label: "Quelle filière suivais-tu en 1re année ?", dark: true) {
+                .foregroundStyle(Theme.inkSoft)
+            OnbUiChoiceSection(label: "Quelle filière suivais-tu en 1re année ?") {
                 ForEach(coordinator.originChoices, id: \.self) { track in
                     OnbUiChoiceChip(
                         label: track,
                         isSelected: coordinator.path.firstYearTrack == track,
                         action: { coordinator.chooseOrigin(track) },
-                        wide: true,
-                        dark: true
+                        wide: true
                     )
                 }
             }
@@ -170,7 +180,7 @@ struct OnbFlowStepContent: View {
 
     /// `target` : l'école visée, avec suggestions (`TARGET_SCHOOLS`).
     private var targetStep: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 19) {
             OnbFlowGoalIllustration()
             OnbUiField(props: OnbUiFieldProps(
                 value: coordinator.profile.targetSchool,
@@ -181,7 +191,9 @@ struct OnbFlowStepContent: View {
                 },
                 placeholder: "Ex. HEC Paris, CentraleSupélec…",
                 icon: "school",
-                dark: true
+                onFocus: { coordinator.schoolSearchFocused = true },
+                onBlur: { coordinator.schoolSearchFocused = false },
+                dark: false
             ))
             if coordinator.schoolSuggestionsVisible, !coordinator.schoolSuggestions.isEmpty {
                 OnbFlowSchoolSuggestions(schools: coordinator.schoolSuggestions) { school in
@@ -191,13 +203,15 @@ struct OnbFlowStepContent: View {
             }
             Text("Tu peux aussi conserver le nom saisi s’il n’apparaît pas dans la liste.")
                 .font(.system(size: 12))
-                .foregroundStyle(OnbFlowPalette.helper)
+                .foregroundStyle(Theme.inkSoft)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
         }
     }
 
     /// `identity` : le pseudo (`displayName`), unique dans l'app.
     private var identityStep: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 19) {
             OnbUiField(props: OnbUiFieldProps(
                 label: "PSEUDO",
                 value: coordinator.profile.displayName,
@@ -213,12 +227,14 @@ struct OnbFlowStepContent: View {
             Text("Ton pseudo sera visible dans l’app et doit être unique.")
                 .font(.system(size: 12))
                 .foregroundStyle(OnbFlowPalette.helper)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
         }
     }
 
     /// `auth-method` : e-mail, ou récapitulatif du fournisseur déjà connecté.
     private var authMethodStep: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 19) {
             if let email = coordinator.providerEmail {
                 OnbUiProviderAccountSummary(
                     email: email,
@@ -247,7 +263,7 @@ struct OnbFlowStepContent: View {
 
     /// `credentials` : mot de passe ou biométrie, puis mentions légales.
     private var credentialsStep: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 19) {
             if let email = coordinator.providerEmail {
                 OnbUiProviderAccountSummary(
                     email: email,
@@ -275,9 +291,11 @@ struct OnbFlowStepContent: View {
                         coordinator.showPassword.toggle()
                     } label: {
                         Image(systemName: coordinator.showPassword ? "eye.slash" : "eye")
-                            .font(.system(size: 18))
-                            .foregroundStyle(OnbFlowPalette.helper)
+                            .font(.system(size: 21))
+                            .foregroundStyle(Color.white)
                             .frame(width: 36, height: 36)
+                            .background(Color(hex: 0x262626))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(

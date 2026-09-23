@@ -38,7 +38,7 @@ enum EvEventDateFormatting {
     /// Mois abrégé (« nov. ») pour la pastille de date, sans le point.
     static func monthLabel(_ date: String) -> String {
         guard let day = parseDay(date) else { return "" }
-        return formatter("MMM").string(from: day).replacingOccurrences(of: ".", with: "")
+        return monthFormatter.string(from: day).replacingOccurrences(of: ".", with: "")
     }
 
     /// Numéro du jour dans le mois.
@@ -57,16 +57,21 @@ enum EvEventDateFormatting {
     /// Jour long « dimanche 4 octobre », pour le rappel copié.
     static func longDay(_ date: String) -> String {
         guard let day = parseDay(date) else { return date }
-        return formatter("EEEE d MMMM").string(from: day)
+        return longDayFormatter.string(from: day)
     }
 
     /// Heure locale « 16:04 » d'un instant, pour l'en-tête de salle d'attente.
     static func clock(_ at: Date) -> String {
-        formatter("HH:mm").string(from: at)
+        clockFormatter.string(from: at)
     }
 
-    /// Formateur français du module, au motif demandé.
-    private static func formatter(_ format: String) -> DateFormatter {
+    /// Formateurs français du module, construits une seule fois (modèle
+    /// `AdmFormat`) : les cellules d'`EventsView` les lisent à chaque `body`.
+    private static let monthFormatter = makeFormatter("MMM")
+    private static let longDayFormatter = makeFormatter("EEEE d MMMM")
+    private static let clockFormatter = makeFormatter("HH:mm")
+
+    private static func makeFormatter(_ format: String) -> DateFormatter {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "fr_FR")
         formatter.dateFormat = format

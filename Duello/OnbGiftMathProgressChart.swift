@@ -45,6 +45,14 @@ struct OnbGiftChartSeries: Identifiable {
     let emphasized: Bool
 }
 
+/// Un segment de Bézier cubique du tracé. Les abscisses sont **normalisées**
+/// (dans `[0, 1]` de la largeur du tracé) ; les ordonnées sont en points.
+struct OnbGiftChartSegment {
+    var to: CGPoint
+    var control1: CGPoint
+    var control2: CGPoint
+}
+
 /// Les constantes du graphique, reprises mot pour mot de la source.
 enum OnbGiftChartData {
     /// `NATIVE_PROGRESS_PLOT_HEIGHT` : hauteur de la zone de tracé.
@@ -77,17 +85,46 @@ enum OnbGiftChartData {
         plotHeight * CGFloat(1 - (grade - 8) / 8)
     }
 
+    /// Segments pré-calculés des deux séries statiques : les points de contrôle
+    /// ne dépendent que des notes et sont donc calculés une fois, pas à chaque
+    /// image du tracé animé.
+    static let withDuelloSegments = makeSegments(withDuelloGrades)
+    static let withoutAppSegments = makeSegments(withoutAppGrades)
+
     /// Chemin lissé du tracé (`curvePath`) : une courbe de Bézier cubique par
-    /// segment, dont les points de contrôle suivent les voisins.
+    /// segment. Le rendu ne fait plus que mettre les segments pré-calculés à
+    /// l'échelle de la largeur mesurée, sans reparcourir les points.
     static func curvePath(_ grades: [Double], plotWidth: CGFloat) -> Path {
-        guard grades.count > 1, months.count > 1 else { return Path() }
-        let points = grades.enumerated().map { index, grade in
-            CGPoint(
-                x: plotWidth * CGFloat(index) / CGFloat(months.count - 1),
-                y: gradeY(grade))
+        guard let first = grades.first else { return Path() }
+        let segments: [OnbGiftChartSegment]
+        if grades == withDuelloGrades {
+            segments = withDuelloSegments
+        } else if grades == withoutAppGrades {
+            segments = withoutAppSegments
+        } else {
+            segments = makeSegments(grades)
         }
+        guard !segments.isEmpty else { return Path() }
         var path = Path()
-        path.move(to: points[0])
+        path.move(to: CGPoint(x: 0, y: gradeY(first)))
+        for segment in segments {
+            path.addCurve(
+                to: CGPoint(x: segment.to.x * plotWidth, y: segment.to.y),
+                control1: CGPoint(x: segment.control1.x * plotWidth, y: segment.control1.y),
+                control2: CGPoint(x: segment.control2.x * plotWidth, y: segment.control2.y))
+        }
+        return path
+    }
+
+    /// Décompose une série en segments normalisés (pré-calcul) : abscisses dans
+    /// `[0, 1]` (mises à l'échelle au rendu), ordonnées en points.
+    private static func makeSegments(_ grades: [Double]) -> [OnbGiftChartSegment] {
+        guard grades.count > 1, months.count > 1 else { return [] }
+        let count = months.count
+        let points = grades.enumerated().map { index, grade in
+            CGPoint(x: CGFloat(index) / CGFloat(count - 1), y: gradeY(grade))
+        }
+        var segments: [OnbGiftChartSegment] = []
         for index in 1..<points.count {
             let previous = points[index - 1]
             let beforePrevious = points[max(0, index - 2)]
@@ -98,9 +135,9 @@ enum OnbGiftChartData {
             let secondControl = CGPoint(
                 x: points[index].x - (afterPoint.x - previous.x) / 6,
                 y: points[index].y - (afterPoint.y - previous.y) / 6)
-            path.addCurve(to: points[index], control1: firstControl, control2: secondControl)
+            segments.append(OnbGiftChartSegment(to: points[index], control1: firstControl, control2: secondControl))
         }
-        return path
+        return segments
     }
 }
 

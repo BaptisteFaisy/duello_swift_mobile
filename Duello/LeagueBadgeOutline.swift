@@ -61,7 +61,7 @@ private struct LeagueOutlineImage: View {
     let tint: Color
 
     var body: some View {
-        AsyncImage(url: url) { image in
+        CachedRemoteImage(url: url) { image in
             image
                 .resizable()
                 .renderingMode(.template)

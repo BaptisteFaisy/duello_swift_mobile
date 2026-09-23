@@ -22,48 +22,61 @@ enum TrainContent {
     /// Banques du programme de l'élève, année affichée en tête
     /// (`profileBundleIds`). Le lycée n'a pas de banque servie.
     static func profileBundleIds(track: String, specialty: String, year: Int) -> [String] {
+        let first = yearBundleIds(track: track, specialty: specialty, year: 1)
+        let second = yearBundleIds(track: track, specialty: specialty, year: 2)
+        let ordered = year == 2 ? second + first : first + second
+        // Le corpus oral de l'ECG complète les deux années.
+        return normalize(track).contains("ecg") ? ordered + ["oral-drive-exercises"] : ordered
+    }
+
+    /// Banques de l'année affichée seule : énoncés, colles et annales réunis.
+    /// C'est le périmètre du décompte d'une matière (`chapterItemScope` de
+    /// `data/chapterItemBasics.ts`) — l'autre année ne doit pas gonfler le
+    /// dénominateur quand un chapitre porte le même identifiant dans les deux
+    /// programmes (par exemple `prehilbertiens` en MPSI et en MP).
+    static func yearBundleIds(track: String, specialty: String, year: Int) -> [String] {
         let normalizedTrack = normalize(track)
         if normalizedTrack.contains("lycee") { return [] }
 
         if normalizedTrack.contains("mpsi") {
-            let first = ["mpsi-statements", "colles-mpsi-1"]
-            let second = ["mp-statements"]
-            return year == 2 ? second + first : first + second
+            return year == 2 ? ["mp-statements"] : ["mpsi-statements", "colles-mpsi-1"]
         }
 
         guard normalizedTrack.contains("ecg") else { return [] }
 
         if normalize(specialty).contains("applique") {
-            let first = [
+            if year == 2 {
+                return [
+                    "ecg-applied-2-statements",
+                    "colles-ecg-appliquees-2",
+                    "ecg-applied-annales-2025",
+                    "ecg-applied-annales-2024",
+                    "ecg-applied-annales-legendre",
+                ]
+            }
+            return [
                 "ecg-applied-1-statements",
                 "colles-ecg-appliquees-1",
                 "ecg-applied-annales-year-1",
             ]
-            let second = [
-                "ecg-applied-2-statements",
-                "colles-ecg-appliquees-2",
-                "ecg-applied-annales-2025",
-                "ecg-applied-annales-2024",
-                "ecg-applied-annales-legendre",
-            ]
-            return (year == 2 ? second + first : first + second) + ["oral-drive-exercises"]
         }
 
-        let first = [
+        if year == 2 {
+            return [
+                "ecg-advanced-2-statements",
+                "colles-ecg-approfondies-2",
+                "ecg-advanced-annales-2",
+                "ecg-advanced-annales-2-drive",
+                "ecg-advanced-maths-i-annales",
+                "ecg-advanced-maths-ii-annales",
+            ]
+        }
+        return [
             "ecg-advanced-1-statements",
             "colles-ecg-approfondies-1",
             "ecg-advanced-annales-1",
             "ecg-advanced-annales-1-kleber",
         ]
-        let second = [
-            "ecg-advanced-2-statements",
-            "colles-ecg-approfondies-2",
-            "ecg-advanced-annales-2",
-            "ecg-advanced-annales-2-drive",
-            "ecg-advanced-maths-i-annales",
-            "ecg-advanced-maths-ii-annales",
-        ]
-        return (year == 2 ? second + first : first + second) + ["oral-drive-exercises"]
     }
 
     /// Banques d'énoncés de l'année affichée, la première portant le corpus
@@ -99,5 +112,28 @@ enum TrainContent {
             best[descriptor.chapterId] = (rank, descriptor)
         }
         return best.mapValues { $0.descriptor }
+    }
+
+    /// Décompte du catalogue par chapitre, **exercices servis, colles et
+    /// annales réunis** (`buildSubjectSuccessSummaries` de
+    /// `src/utils/subjectSuccess.ts`). C'est le dénominateur de l'en-tête d'une
+    /// matière : il couvre les trois natures de sujets, là où `chapterIndex`
+    /// ne retient que la banque d'énoncés. Les banques de l'année affichée
+    /// (`yearBundleIds`) portent déjà les colles et les annales, chaque banque
+    /// comptant ses propres items.
+    static func catalogCounts(
+        manifest: DuelloAPI.ContentManifest,
+        track: String,
+        specialty: String,
+        year: String
+    ) -> [String: Int] {
+        let bundles = Set(
+            yearBundleIds(track: track, specialty: specialty, year: programYear(from: year))
+        )
+        var counts: [String: Int] = [:]
+        for descriptor in manifest.chapters ?? [] where bundles.contains(descriptor.bundleId) {
+            counts[descriptor.chapterId, default: 0] += descriptor.count
+        }
+        return counts
     }
 }

@@ -22,6 +22,9 @@ struct AdmWaitlistScreen: View {
     @State private var isLoading = true
     @State private var errorMessage = ""
     @State private var reloadKey = 0
+    /// `visibleEntries` mémoïsé : recalculé uniquement quand `entries` ou
+    /// `query` change, au lieu de l'être à chaque évaluation de `body`.
+    @State private var visibleEntries: [AdmWaitlistEntry] = []
 
     var body: some View {
         ScrollView {
@@ -40,6 +43,8 @@ struct AdmWaitlistScreen: View {
             .padding(.bottom, 32)
         }
         .task(id: AdmLoadKey(reload: reloadKey, token: token)) { await load() }
+        .onChange(of: entries) { _ in refreshVisibleEntries() }
+        .onChange(of: query) { _ in refreshVisibleEntries() }
     }
 
     private var header: some View {
@@ -53,10 +58,13 @@ struct AdmWaitlistScreen: View {
     }
 
     /// `visibleEntries` : téléphone, e-mail et prépa.
-    private var visibleEntries: [AdmWaitlistEntry] {
+    private func refreshVisibleEntries() {
         let normalized = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !normalized.isEmpty else { return entries }
-        return entries.filter { entry in
+        guard !normalized.isEmpty else {
+            visibleEntries = entries
+            return
+        }
+        visibleEntries = entries.filter { entry in
             let haystack = [entry.phone ?? "", entry.email ?? "", entry.school]
                 .joined(separator: " ")
                 .lowercased()
@@ -78,7 +86,7 @@ struct AdmWaitlistScreen: View {
                     : "Aucune inscription ne correspond."
             )
         } else {
-            VStack(spacing: 10) {
+            LazyVStack(spacing: 10) {
                 ForEach(visibleEntries) { entry in
                     row(entry)
                 }

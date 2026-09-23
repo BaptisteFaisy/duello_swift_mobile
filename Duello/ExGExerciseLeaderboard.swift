@@ -246,7 +246,7 @@ struct ExGLeaderboardSheet: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView(.vertical, showsIndicators: false) {
-                    VStack(spacing: 10) {
+                    LazyVStack(spacing: 10) {
                         ForEach(entries) { entry in
                             row(entry)
                         }

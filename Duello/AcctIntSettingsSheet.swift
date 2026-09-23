@@ -91,12 +91,12 @@ struct AcctIntSettingsSheet: View {
     @ViewBuilder
     private func destination(_ target: AcctIntSettingsTarget) -> some View {
         switch target {
-        case .feedback: FeedbackView()
+        case .feedback: ExtraFeedbackView(onBack: { presented = nil })
         case .privacy: PrivacyPolicyView()
         case .terms: TermsOfUseView()
         case .email: AcctSecEmailView()
         case .password: AcctSecPasswordView()
-        case .blocked: BlockedUsersView()
+        case .blocked: AcctSubBlockedUsersView()
         }
     }
 }

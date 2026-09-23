@@ -64,6 +64,8 @@ enum AcctInfoNotificationsTabs {
 // MARK: - Page « menu »
 
 /// Menu racine : trois accès — Mes informations, Mon compte, Duello.
+/// `securityCard` de la source : fond blanc pleine largeur, sans bordure ni
+/// séparateur.
 struct AcctInfoMenuPage: View {
     let onSelect: (AcctInfoPage) -> Void
 
@@ -73,9 +75,7 @@ struct AcctInfoMenuPage: View {
     var body: some View {
         VStack(spacing: 0) {
             AcctInfoCategoryRow(icon: "person", label: "Mes informations") { onSelect(.personal) }
-            Divider().padding(.leading, AcctInfoRowMetrics.separatorInset)
             AcctInfoCategoryRow(icon: "gearshape", label: "Mon compte") { onSelect(.account) }
-            Divider().padding(.leading, AcctInfoRowMetrics.separatorInset)
             AcctInfoCategoryRow(
                 icon: "cube.transparent",
                 assetIcon: Self.duelloLogoAsset,
@@ -83,34 +83,33 @@ struct AcctInfoMenuPage: View {
                 label: "Duello"
             ) { onSelect(.duello) }
         }
-        .duelloCard()
+        .background(Theme.surface)
     }
 }
 
 // MARK: - Page « Duello »
 
 /// Préférences Duello : signalement de bug et documents légaux.
+/// `duelloLegalGroup` de la source : `gap: 8`, sans carte ni séparateur.
 struct AcctInfoDuelloPage: View {
     var onReportBug: () -> Void = {}
     var onOpenPrivacy: () -> Void = {}
     var onOpenTerms: () -> Void = {}
 
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 8) {
             AcctInfoActionRow(
                 icon: "bubble.left.and.text.bubble.right",
                 title: "Un bug ?",
                 accessibilityLabel: "Signaler un bug",
                 action: onReportBug
             )
-            Divider().padding(.leading, AcctInfoRowMetrics.separatorInset)
             AcctInfoActionRow(
                 icon: "checkmark.shield",
                 title: "Politique de confidentialité",
                 accessibilityLabel: "Consulter la politique de confidentialité",
                 action: onOpenPrivacy
             )
-            Divider().padding(.leading, AcctInfoRowMetrics.separatorInset)
             AcctInfoActionRow(
                 icon: "doc.text",
                 title: "Conditions d’utilisation",
@@ -118,13 +117,15 @@ struct AcctInfoDuelloPage: View {
                 action: onOpenTerms
             )
         }
-        .duelloCard()
+        .background(Theme.surface)
     }
 }
 
 // MARK: - Page « informations personnelles »
 
 /// Informations personnelles : nom affiché et année d'études.
+/// `identityCard` de la source : fond blanc pleine largeur, lignes
+/// `minHeight: 64`, `gap: 14`, `paddingHorizontal: 8`.
 struct AcctInfoPersonalPage: View {
     @Binding var displayName: String
     @Binding var year: String
@@ -134,46 +135,65 @@ struct AcctInfoPersonalPage: View {
     private static let years = ["1re année", "2e année"]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 0) {
             nameField
-            Divider()
             yearField
         }
-        .duelloCard()
+        .background(Theme.surface)
     }
 
-    /// Nom affiché : avatar à initiale, libellé « Nom », champ « Ex. Camille ».
+    /// Nom affiché : bouton photo 34 × 34 (badge caméra) et champ « Ex. Camille ».
     private var nameField: some View {
-        HStack(spacing: 12) {
-            DuelloAvatar(initial: currentInitial, size: 44)
-            VStack(alignment: .leading, spacing: 3) {
-                Text("Nom")
-                    .font(.system(size: 11, weight: .heavy))
-                    .textCase(.uppercase)
-                    .foregroundStyle(Theme.inkFaint)
-                TextField("Ex. Camille", text: $displayName)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Theme.ink)
-                    .disabled(isGuest)
-                    .accessibilityLabel("Nom")
-            }
+        HStack(spacing: 14) {
+            profilePhotoButton
+            TextField("Ex. Camille", text: $displayName)
+                .font(.system(size: 13, weight: .heavy))
+                .foregroundStyle(Theme.ink)
+                .disabled(isGuest)
+                .accessibilityLabel("Nom")
             Spacer(minLength: 8)
             if !isGuest {
                 Image(systemName: "pencil")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(Theme.inkSoft)
                     .accessibilityHidden(true)
             }
         }
+        .frame(minHeight: 64)
+        .padding(.horizontal, 8)
+    }
+
+    /// Bouton photo de profil (`profilePhotoButton`) : pastille 34 × 34, initiale
+    /// 14 / 900, badge caméra 14 × 14 en bas-droite.
+    private var profilePhotoButton: some View {
+        ZStack(alignment: .bottomTrailing) {
+            Circle()
+                .fill(Theme.primaryLight)
+                .frame(width: AcctInfoRowMetrics.iconPill, height: AcctInfoRowMetrics.iconPill)
+                .overlay(Circle().strokeBorder(Theme.border, lineWidth: 1.5))
+            Text(currentInitial)
+                .font(.system(size: 14, weight: .black))
+                .foregroundStyle(Theme.inkSoft)
+                .frame(width: AcctInfoRowMetrics.iconPill, height: AcctInfoRowMetrics.iconPill)
+            Image(systemName: "camera")
+                .font(.system(size: 8, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(width: 14, height: 14)
+                .background(Circle().fill(Theme.primary))
+                .overlay(Circle().strokeBorder(Theme.surface, lineWidth: 2))
+                .offset(x: 2, y: 2)
+        }
+        .frame(width: AcctInfoRowMetrics.iconPill, height: AcctInfoRowMetrics.iconPill)
+        .accessibilityHidden(true)
     }
 
     /// Année d'études : menu déroulant, libellé d'action « Choisir mon année ».
     private var yearField: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 14) {
             Image(systemName: "calendar")
                 .font(.system(size: AcctInfoRowMetrics.iconSize, weight: .semibold))
                 .foregroundStyle(Theme.ink)
-                .frame(width: AcctInfoRowMetrics.iconColumn)
+                .frame(width: AcctInfoRowMetrics.iconPill, height: AcctInfoRowMetrics.iconPill)
             Menu {
                 ForEach(Self.years, id: \.self) { value in
                     Button(value) { year = value }
@@ -192,6 +212,8 @@ struct AcctInfoPersonalPage: View {
             }
             .accessibilityLabel("Choisir mon année")
         }
+        .frame(minHeight: 64)
+        .padding(.horizontal, 8)
     }
 
     private var currentInitial: String {
@@ -221,28 +243,33 @@ struct AcctInfoAccountPage: View {
     @State private var isPrivateAccount = false
 
     /// `informationContent` (`gap: 36`) puis `accountActionsGroup` (`gap: 8`).
+    /// La carte sécurité est masquée en invité (`{!isGuest ? … : null}`).
     var body: some View {
         VStack(spacing: 36) {
-            securityCard
+            if !isGuest {
+                securityCard
+            }
             accountActions
         }
     }
 
     /// Sécurité : e-mail, mot de passe, connexion biométrique.
+    /// `securityCard` de la source : fond blanc, sans bordure ni séparateur ;
+    /// les lignes e-mail / mot de passe reprennent `passwordToggle` (60 / 10).
     private var securityCard: some View {
         VStack(spacing: 0) {
             AcctInfoActionRow(
                 icon: "envelope",
                 title: "Modifier mon adresse e-mail",
+                metrics: .password,
                 action: onOpenEmail
             )
-            Divider().padding(.leading, AcctInfoRowMetrics.separatorInset)
             AcctInfoActionRow(
                 icon: "key",
                 title: "Modifier mon mot de passe",
+                metrics: .password,
                 action: onOpenPassword
             )
-            Divider().padding(.leading, AcctInfoRowMetrics.separatorInset)
             AcctInfoToggleRow(
                 icon: "touchid",
                 title: "Connexion biométrique",
@@ -250,7 +277,7 @@ struct AcctInfoAccountPage: View {
                 accessibilityLabel: "Activer la connexion biométrique"
             )
         }
-        .duelloCard()
+        .background(Theme.surface)
     }
 
     /// Actions du compte, dans l'ordre de la source (`accountActionsGroup`,
@@ -266,6 +293,15 @@ struct AcctInfoAccountPage: View {
                 isOn: $isPrivateAccount,
                 accessibilityLabel: "Activer le compte privé"
             )
+            communityCard
+        }
+    }
+
+    /// `communityCard` de la source : « Comptes bloqués », puis — hors invité —
+    /// la déconnexion (`marginTop: 36`) et la suppression (`marginTop: 16`),
+    /// regroupées dans la même carte.
+    private var communityCard: some View {
+        VStack(spacing: 0) {
             AcctInfoActionRow(
                 icon: "nosign",
                 title: "Comptes bloqués",
@@ -274,9 +310,12 @@ struct AcctInfoAccountPage: View {
             )
             if !isGuest {
                 AcctInfoLogoutRow(onLogout: onLogout)
+                    .padding(.top, 36)
                 AcctInfoDeleteRow(onDelete: onDeleteAccount)
+                    .padding(.top, 16)
             }
         }
+        .background(Theme.surface)
     }
 
     private var privateAccountDescription: String {

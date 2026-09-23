@@ -61,7 +61,11 @@ struct SocialChallengeInviteModal: View {
     /// racine de l'app. À défaut, l'instance partagée : personne n'est alors
     /// signalé en ligne, comme le contexte React d'Expo qui a une valeur de
     /// repli (`isOnline: () => false`).
-    @ObservedObject var presence: SocPresenceStore = SocPresenceStore.shared
+    ///
+    /// Volontairement **non observée** ici (section 4 #58) : seules les zones
+    /// qui l'affichent (`SocInvitePresenceZone`) s'y abonnent, le reste du volet
+    /// n'est donc plus ré-évalué à chaque changement de connectés.
+    var presence: SocPresenceStore = SocPresenceStore.shared
     @StateObject private var model = SocInviteModel()
     @State private var chaptersOpen = false
     @State private var chapterQuery = ""
@@ -115,17 +119,19 @@ struct SocialChallengeInviteModal: View {
                 channelsOpen: $model.channelsOpen
             )
             if hasQuery {
-                SocInviteResultsMenu(
-                    profiles: candidates,
-                    searching: model.searching,
-                    errorMessage: model.errorMessage,
-                    invitedIds: invitedIds,
-                    selectedIds: Set(model.selectedMembers.map(\.id)),
-                    onlineIds: presence.onlineIds,
-                    context: compatibilityContext,
-                    onRetry: { model.attempt += 1 },
-                    onToggle: { member in model.toggleMember(member) }
-                )
+                SocInvitePresenceZone(presence: presence) { presence in
+                    SocInviteResultsMenu(
+                        profiles: candidates,
+                        searching: model.searching,
+                        errorMessage: model.errorMessage,
+                        invitedIds: invitedIds,
+                        selectedIds: Set(model.selectedMembers.map(\.id)),
+                        onlineIds: presence.onlineIds,
+                        context: compatibilityContext,
+                        onRetry: { model.attempt += 1 },
+                        onToggle: { member in model.toggleMember(member) }
+                    )
+                }
             }
         }
     }
@@ -162,12 +168,14 @@ struct SocialChallengeInviteModal: View {
     /// Bandeau des amis choisis, déclencheur et menu des chapitres.
     private var selectedArea: some View {
         VStack(alignment: .leading, spacing: 0) {
-            SocInviteSelectedStrip(
-                members: model.selectedMembers,
-                summary: selectedMemberNames,
-                isOnline: { presence.isOnline($0) },
-                onRemove: { member in model.toggleMember(member) }
-            )
+            SocInvitePresenceZone(presence: presence) { presence in
+                SocInviteSelectedStrip(
+                    members: model.selectedMembers,
+                    summary: selectedMemberNames,
+                    isOnline: { presence.isOnline($0) },
+                    onRemove: { member in model.toggleMember(member) }
+                )
+            }
             SocInviteChapterTrigger(
                 summary: chapterTriggerSummary,
                 hasSelection: !model.selectedChapterKeys.isEmpty,
@@ -271,6 +279,21 @@ struct SocialChallengeInviteModal: View {
         Task {
             await model.sendInvitation(allowed: canSendInvitation, onInvite: onInvite)
         }
+    }
+}
+
+// MARK: - Zone abonnée à la présence
+
+/// Zone du volet qui affiche la présence : seule cette vue observe le store
+/// partagé, pas tout le volet (section 4 #58). Le changement de connectés ne
+/// ré-évalue donc que les listes concernées, pas le champ de recherche, la
+/// sélection ni les chapitres.
+private struct SocInvitePresenceZone<Content: View>: View {
+    @ObservedObject var presence: SocPresenceStore
+    let build: (SocPresenceStore) -> Content
+
+    var body: some View {
+        build(presence)
     }
 }
 

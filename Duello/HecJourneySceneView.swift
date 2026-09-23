@@ -69,10 +69,19 @@ struct HecJourneySceneView: View {
                 positions: positions,
                 scrollOffset: scrollOffset
             )
+            // Pré-calcul unique par évaluation : la liste des crans visibles et
+            // leurs points projetés, réutilisés par la piste et par les blocs
+            // (au lieu d'être recalculés dans la boucle de `body`).
+            let visibleIndices = projection.visibleIndices(size: geometry.size)
+            let points = visibleIndices.map { projection.point(at: $0, size: geometry.size) }
             ZStack(alignment: .topLeading) {
-                trackLayer(projection: projection, size: geometry.size)
-                ForEach(projection.visibleIndices(size: geometry.size), id: \.self) { index in
-                    blockLayer(index: index, projection: projection, size: geometry.size)
+                trackLayer(points: points)
+                ForEach(visibleIndices.indices, id: \.self) { offset in
+                    blockLayer(
+                        index: visibleIndices[offset],
+                        point: points[offset],
+                        projection: projection
+                    )
                 }
             }
             .frame(width: geometry.size.width, height: geometry.size.height)
@@ -90,10 +99,9 @@ struct HecJourneySceneView: View {
     /// La piste : dans la source, un tuyau de rayon 0,13 unité, presque
     /// transparent (opacité 0,035) sur fond blanc ; ici un trait de 7 points,
     /// assez marqué pour être vu sans relief.
-    private func trackLayer(projection: HecJourneyProjection, size: CGSize) -> some View {
+    private func trackLayer(points: [CGPoint]) -> some View {
         Path { path in
-            for (order, index) in projection.visibleIndices(size: size).enumerated() {
-                let point = projection.point(at: index, size: size)
+            for (order, point) in points.enumerated() {
                 let shifted = CGPoint(x: point.x, y: point.y + HecJourneyMetrics.trackOffset)
                 if order == 0 {
                     path.move(to: shifted)
@@ -111,9 +119,8 @@ struct HecJourneySceneView: View {
     // MARK: Blocs
 
     @ViewBuilder
-    private func blockLayer(index: Int, projection: HecJourneyProjection, size: CGSize) -> some View {
+    private func blockLayer(index: Int, point: CGPoint, projection: HecJourneyProjection) -> some View {
         let block = blocks[index]
-        let point = projection.point(at: index, size: size)
         Group {
             if block.type.isAssessment {
                 HecJourneyAssessmentMarkerView(block: block, highlighted: index == activeIndex)

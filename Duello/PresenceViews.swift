@@ -105,6 +105,29 @@ enum SocPresenceProtocol {
     }
 }
 
+// MARK: - Présence par item
+
+/// État de présence d'**un seul** identifiant public.
+///
+/// Lot PF7 (#58) : un écran qui n'affiche qu'une pastille observe ce proxy
+/// plutôt que le store partagé ; le changement de statut d'un autre compte ne
+/// l'invalide donc plus et les listes ne sont plus ré-évaluées en entier.
+/// L'objet est mémorisé par le store, si bien que SwiftUI compare bien item par
+/// item.
+final class SocPresenceMember: ObservableObject {
+    /// Vrai lorsque cet identifiant est connecté.
+    @Published private(set) var isOnline: Bool
+
+    init(isOnline: Bool) {
+        self.isOnline = isOnline
+    }
+
+    /// Publie uniquement si l'état change réellement (comparaison par item).
+    fileprivate func setOnline(_ value: Bool) {
+        if value != isOnline { isOnline = value }
+    }
+}
+
 // MARK: - Source de vérité
 
 /// État de présence de la session active (`PresenceProvider.tsx`,
@@ -134,6 +157,13 @@ final class SocPresenceStore: ObservableObject {
     /// Vrai lorsque la socket de présence est authentifiée.
     @Published private(set) var isConnected = false
 
+    /// Proxys par identifiant public, mémorisés : le même objet est rendu d'un
+    /// appel à l'autre, si bien qu'une vue abonnée n'est ré-évaluée que si
+    /// **son** identifiant change d'état (section 4 #58).
+    private var members: [String: SocPresenceMember] = [:]
+    /// Proxy de repli pour un identifiant absent (`nil` ou vide).
+    private static let offlineMember = SocPresenceMember(isOnline: false)
+
     /// Délai avant une nouvelle tentative après une coupure involontaire
     /// (`RECONNECT_DELAY_MS` de `usePresenceConnection.ts`).
     static let reconnectDelayNanoseconds: UInt64 = 5_000_000_000
@@ -148,12 +178,32 @@ final class SocPresenceStore: ObservableObject {
         return onlineIds.contains(publicId)
     }
 
+    /// Proxy de présence d'un identifiant public, pour n'observer que celui-ci
+    /// plutôt que le store partagé (section 4 #58). Absent ou vide : le proxy de
+    /// repli, jamais en ligne.
+    func member(_ publicId: String?) -> SocPresenceMember {
+        guard let publicId, !publicId.isEmpty else { return Self.offlineMember }
+        if let existing = members[publicId] { return existing }
+        let created = SocPresenceMember(isOnline: onlineIds.contains(publicId))
+        members[publicId] = created
+        return created
+    }
+
     /// Applique un événement serveur à l'ensemble courant.
+    ///
+    /// Comparaison **par item** (section 4 #58) : seuls les proxies dont l'état
+    /// change publient, les listes ne sont plus ré-évaluées en entier.
     @MainActor
     func apply(_ event: SocPresenceEvent) {
         if case .ready = event { isConnected = true }
         if case .error = event { isConnected = false }
-        onlineIds = SocPresenceProtocol.applying(event, to: onlineIds)
+        let previous = onlineIds
+        let next = SocPresenceProtocol.applying(event, to: previous)
+        guard next != previous else { return }
+        onlineIds = next
+        for (id, member) in members {
+            member.setOnline(next.contains(id))
+        }
     }
 
     /// Ouvre la socket de la session active.
@@ -239,7 +289,10 @@ final class SocPresenceStore: ObservableObject {
 struct SocialPresenceProvider<Content: View>: View {
     @EnvironmentObject private var session: SessionStore
     @Environment(\.scenePhase) private var scenePhase
-    @ObservedObject private var presence: SocPresenceStore = SocPresenceStore.shared
+    /// Instance partagée, **non observée** : le fournisseur ne dessine aucun
+    /// état de présence et l'observer ré-évaluerait tout l'arbre de l'application
+    /// à chaque connexion (section 4 #58).
+    private let presence = SocPresenceStore.shared
     private let content: Content
 
     init(@ViewBuilder content: () -> Content) {
@@ -291,7 +344,7 @@ enum SocPresencePalette {
 /// placement par défaut (coin inférieur droit) appartient à l'enveloppe
 /// (`SocialAvatarPresence`), et un appelant qui vise un autre bord — le blason
 /// retournable de la vitrine de profil — fournit son propre alignement.
-struct SocOnlineDot: View {
+struct SocOnlineDot: View, Equatable {
     /// Absent ou faux : rien n'est dessiné, comme `if (!online) return null`.
     var online: Bool? = nil
     var size: CGFloat = SocPresencePalette.dotSize
@@ -339,7 +392,9 @@ struct SocialAvatarPresence<Content: View>: View {
     var body: some View {
         content
             .overlay(alignment: dotAlignment) {
-                SocOnlineDot(online: online, size: dotSize ?? SocPresencePalette.dotSize)
+                // Comparaison par item : la pastille n'est pas ré-évaluée tant
+                // que l'état de **cette** personne ne change pas (section 4 #58).
+                SocOnlineDot(online: online, size: dotSize ?? SocPresencePalette.dotSize).equatable()
             }
     }
 }

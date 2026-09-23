@@ -3,13 +3,15 @@
 //  Duello
 //
 //  Portage de `src/hooks/useDictation.ts` (états `isListening`/`isFormatting`/
-//  `processingStage`/`engine`/`error`/`notice`) et des libellés du bouton micro
-//  de `src/components/event/EventAnswerFields.tsx`.
+//  `processingStage`/`engine`/`error`/`notice`, `toggle`/`stop`/`cancel`) et des
+//  libellés du bouton micro de `src/components/event/EventAnswerFields.tsx`.
 //
 //  Le bouton réutilise `MathKbActionKey` (MathKbControls.swift) pour son chrome
-//  et ses états. Le moteur réel n'étant pas vérifiable ici, le modèle utilise
-//  `DictSimulatedEngine` par défaut ; `DictSpeechEngine` peut être injecté sur
-//  l'appareil via l'initialiseur.
+//  et ses états. Le moteur branché par défaut est le moteur réel : le relais
+//  temps réel `DictAsrRelay` quand une configuration premium est fournie
+//  (`configurationRelais`), sinon le moteur natif de l'appareil
+//  (`DictEngineFactory.moteurParDefaut`). `DictSimulatedEngine` ne reste que
+//  comme repli documenté des cibles sans Speech/AVFoundation.
 //
 //  Cible : iOS 16. Aucune dépendance externe.
 //
@@ -33,17 +35,26 @@ final class DictControlModel: ObservableObject {
     @Published private(set) var error = ""
     @Published private(set) var notice = ""
 
+    /// Invite affichée pendant l'écoute (`useDictation`).
+    static let noticeEcoute =
+        "Écoute en cours : parle jusqu’au bout, puis appuie sur Arrêter. La phrase complète apparaîtra ensuite."
+
     private var moteurActif: DictEngine?
     private var transcription = ""
+    private var phrases = DictTranscriptState.empty
+    private var texteComplet = ""
     private let permission: () async -> Bool
     private let fabriquerMoteur: () -> DictEngine
+    private let configurationRelais: () -> DictRelayConfig?
 
     init(
         permission: @escaping () async -> Bool = { true },
-        fabriquerMoteur: @escaping () -> DictEngine = { DictSimulatedEngine() }
+        fabriquerMoteur: @escaping () -> DictEngine = { DictEngineFactory.moteurParDefaut() },
+        configurationRelais: @escaping () -> DictRelayConfig? = { nil }
     ) {
         self.permission = permission
         self.fabriquerMoteur = fabriquerMoteur
+        self.configurationRelais = configurationRelais
     }
 
     /// Démarre la dictée, ou l'arrête si elle est déjà en cours — `toggle`.
@@ -55,7 +66,7 @@ final class DictControlModel: ObservableObject {
         await demarrer(permissionMessage: permissionMessage)
     }
 
-    /// Résout l'accès puis lance le moteur.
+    /// Résout l'accès puis lance le moteur (relais premium, sinon appareil).
     func demarrer(permissionMessage: String) async {
         error = ""
         notice = ""
@@ -73,16 +84,33 @@ final class DictControlModel: ObservableObject {
             error = permissionMessage
             return
         case .unavailable:
-            error = "La dictée vocale n’est pas disponible dans ce navigateur. Ouvre Duello avec Chrome ou Safari, puis réessaie."
+            error = "La reconnaissance vocale n’est pas disponible sur cet appareil. Autorise la dictée dans les réglages iOS, puis réessaie."
             return
         }
 
         transcription = ""
-        let moteur = fabriquerMoteur()
-        moteur.onEvent = { [weak self] evenement in
-            Task { @MainActor in self?.recevoir(evenement) }
+        phrases = .empty
+        texteComplet = ""
+
+        // Mode premium : le relais temps réel d'abord, s'il est configuré.
+        if let relais = configurationRelais() {
+            let moteur = DictAsrRelay(config: relais)
+            brancher(moteur)
+            engine = relais.kind
+            do {
+                try await moteur.start()
+                isListening = true
+                notice = Self.noticeEcoute
+                return
+            } catch {
+                // Repli `device` : reconnaissance du téléphone (`fallbackToDevice`).
+                notice = DictError.engineUnavailable.errorDescription ?? ""
+                moteurActif = nil
+            }
         }
-        moteurActif = moteur
+
+        let moteur = fabriquerMoteur()
+        brancher(moteur)
         engine = .device
         do {
             try await moteur.start()
@@ -94,33 +122,59 @@ final class DictControlModel: ObservableObject {
             return
         }
         isListening = true
-        notice = "Écoute en cours : parle jusqu’au bout, puis appuie sur Arrêter. La phrase complète apparaîtra ensuite."
+        if notice.isEmpty { notice = Self.noticeEcoute }
+    }
+
+    /// Branche un moteur sur le fil des événements de l'interface.
+    private func brancher(_ moteur: DictEngine) {
+        moteur.onEvent = { [weak self] evenement in
+            Task { @MainActor in self?.recevoir(evenement) }
+        }
+        moteurActif = moteur
     }
 
     /// Applique un événement du moteur au fil courant.
     func recevoir(_ evenement: DictAsrEvent) {
         switch evenement {
+        case .authorized:
+            break
+        case let .ready(model, _):
+            engine = DictEngineKind.fromModel(model)
         case let .transcript(text, isFinal, _, _, _):
+            phrases = DictPolicy.applyTranscript(phrases, evenement)
             if isFinal { transcription = text }
+        case .refining:
+            isFormatting = true
+            stage = .alibaba
+        case let .fullTranscript(text, _):
+            texteComplet = text
+        case .refinementError:
+            notice = "La finalisation de la transcription est indisponible."
         case let .error(code, message):
             if !code.isEmpty {
                 error = message.isEmpty
                     ? "La dictée n’a pas abouti. Tu peux réessayer ou écrire directement."
                     : message
             }
-        default:
+        case .done:
             break
         }
     }
 
     /// Arrête le moteur et ajoute la transcription rendue au champ.
     func arreter(currentText: String, math: Bool, apply: @escaping (String) -> Void) async {
-        moteurActif?.stop()
+        let moteur = moteurActif
+        moteur?.stop()
+        // Le relais rend la phrase complète après la seconde passe : on attend
+        // sa fin (`done` ou délai) avant de lire le résultat.
+        if let relais = moteur as? DictAsrRelay { await relais.attendreFin() }
         moteurActif = nil
         isListening = false
         engine = nil
 
-        let brut = transcription.trimmingCharacters(in: .whitespacesAndNewlines)
+        let choisie = DictPolicy.selectCompletedTranscript(phrases, fullText: texteComplet).text
+        let brut = (choisie.isEmpty ? transcription : choisie)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
         guard !brut.isEmpty else {
             error = "Aucune parole exploitable n’a été reconnue. Tu peux réessayer ou écrire directement."
             notice = ""
@@ -135,6 +189,8 @@ final class DictControlModel: ObservableObject {
         stage = nil
         notice = ""
         error = ""
+        phrases = .empty
+        texteComplet = ""
     }
 
     /// Annule la dictée sans transcription — `cancel`.
@@ -143,6 +199,9 @@ final class DictControlModel: ObservableObject {
         moteurActif = nil
         isListening = false
         engine = nil
+        transcription = ""
+        phrases = .empty
+        texteComplet = ""
     }
 }
 

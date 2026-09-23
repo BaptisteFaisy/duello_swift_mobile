@@ -147,7 +147,7 @@ enum ChalRunFormat {
     static func deadline(_ milliseconds: Double) -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "fr_FR")
-        formatter.dateFormat = "HH:mm"
+        formatter.dateFormat = "HH'h'mm"
         return formatter.string(from: Date(timeIntervalSince1970: milliseconds / 1000))
     }
 }

@@ -127,7 +127,7 @@ struct AcctSearchMemberShowcase: View {
             }
             Spacer(minLength: 0)
             if let badge = leagueBadgeURL {
-                AsyncImage(url: badge) { image in
+                CachedRemoteImage(url: badge) { image in
                     image.resizable().scaledToFit()
                 } placeholder: {
                     Color.clear

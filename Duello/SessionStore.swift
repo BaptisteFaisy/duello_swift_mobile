@@ -23,11 +23,39 @@ extension ServerSession {
     }
 }
 
-/// Compte local et profil, persistés dans le trousseau et les préférences.
-final class SessionStore: ObservableObject {
+/// État de connexion et profil, isolés du reste de la session.
+///
+/// Lot PF7 (#57) : ces deux valeurs changent à chaque connexion ou édition de
+/// profil. Les regrouper dans ce sous-store dédié — exposé tel quel par
+/// `SessionStore` (`session.accountStore`) — permet aux vues feuilles de n'observer
+/// que ce dont elles ont besoin, au lieu d'être ré-évaluées par toute écriture
+/// de la session (jeton, chargement initial).
+final class SessionAccountStore: ObservableObject {
     @Published var isSignedIn: Bool = false
     @Published var profile: UserProfile = UserProfile()
+}
+
+/// Compte local et profil, persistés dans le trousseau et les préférences.
+final class SessionStore: ObservableObject {
+    /// État de connexion et profil, isolés dans leur propre objet observable.
+    /// Les vues feuilles peuvent observer ce sous-store (`session.accountStore`)
+    /// pour ne réagir qu'aux changements de compte.
+    let accountStore = SessionAccountStore()
+
     @Published var isLoadingSession: Bool = true
+
+    /// Relais de `accountStore.isSignedIn` : l'API publique ne change pas.
+    var isSignedIn: Bool {
+        get { accountStore.isSignedIn }
+        set { accountStore.isSignedIn = newValue }
+    }
+
+    /// Relais de `accountStore.profile` (lecture et écriture, `$session.profile`
+    /// compris).
+    var profile: UserProfile {
+        get { accountStore.profile }
+        set { accountStore.profile = newValue }
+    }
 
     /// Écriture réservée au module : `installSession`/`signOut` ici, et le mode
     /// capture (`ScreenshotTour`, outil de dev) qui sème une session factice.
@@ -37,7 +65,16 @@ final class SessionStore: ObservableObject {
     private static let account = "session-v1"
     private static let profileKey = "com.duello.ios.profile"
 
+    /// Relais des changements du sous-store : voir `init()`.
+    private var cancellables = Set<AnyCancellable>()
+
     init() {
+        // Les vues qui observent `SessionStore` (injecté à la racine) restent
+        // notifiées des changements de profil et de connexion : le sous-store
+        // les relaie, comportement inchangé.
+        accountStore.objectWillChange
+            .sink { [weak self] in self?.objectWillChange.send() }
+            .store(in: &cancellables)
         restoreSession()
         // Mode capture (outil de développement) : une session factice remplace
         // celle restaurée pour que les écrans authentifiés s'affichent dans un

@@ -20,8 +20,8 @@ struct PasswordResetView: View {
                 VStack(alignment: .leading, spacing: 14) {
                     header
                     if !email.isEmpty { emailCard }
-                    DuelloTextField(title: "Nouveau mot de passe", text: $password, isSecure: true)
-                    DuelloTextField(title: "Confirme le mot de passe", text: $confirmation, isSecure: true)
+                    passwordField(title: "Nouveau mot de passe", text: $password)
+                    passwordField(title: "Confirme le mot de passe", text: $confirmation)
                     if !errorMessage.isEmpty { errorCard }
                     saveButton
                 }
@@ -49,11 +49,45 @@ struct PasswordResetView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Nouveau mot de passe")
                 .font(.system(size: 11, weight: .black))
+                .tracking(1.5)
                 .textCase(.uppercase)
-                .foregroundStyle(Theme.inkSoft)
-            Text("Choisis ton nouveau mot de passe")
-                .font(.system(size: 24, weight: .black))
                 .foregroundStyle(Theme.ink)
+            Text("Choisis ton nouveau mot de passe")
+                .font(.system(size: 30, weight: .black))
+                .foregroundStyle(Theme.ink)
+        }
+    }
+
+    /// Champ local (`PasswordResetForm.tsx:57-101`) : légende 13/800
+    /// `Theme.ink`, icône `key-outline` 20, placeholder = libellé, bordure 1.5
+    /// `Theme.border`, fond `Theme.surface`. La bascule œil de la source n'est
+    /// pas reprise ici (changement de comportement non spécifié).
+    private func passwordField(title: String, text: Binding<String>) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.system(size: 13, weight: .heavy))
+                .foregroundStyle(Theme.ink)
+
+            HStack(spacing: 10) {
+                Image(systemName: "key")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(Theme.inkSoft)
+
+                SecureField(title, text: text)
+                    .textContentType(.newPassword)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Theme.ink)
+            }
+            .padding(.horizontal, 15)
+            .frame(minHeight: 55)
+            .background(Theme.surface)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.radiusMedium)
+                    .stroke(Theme.border, lineWidth: 1.5)
+            )
         }
     }
 

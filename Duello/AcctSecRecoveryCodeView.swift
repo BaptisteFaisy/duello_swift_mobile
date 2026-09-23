@@ -7,11 +7,10 @@ import SwiftUI
 // L'appareil n'envoie aucun courriel : ce code est le seul moyen de rouvrir un
 // compte administrateur dont le mot de passe est oublié. Il n'est donc affiché
 // qu'une fois — le compte n'en garde que l'empreinte — et la carte reste
-// bloquante jusqu'à l'accusé de réception. La copie passe par le
-// presse-papiers système.
+// bloquante jusqu'à l'accusé de réception.
 
-/// Carte de remise du code de secours : le code en clair, un avertissement, la
-/// copie et le bouton d'accusé de réception.
+/// Carte de remise du code de secours : le code en clair, un avertissement et
+/// le bouton d'accusé de réception.
 struct AcctSecRecoveryCodeView: View {
     /// Code en clair, affiché une seule fois.
     let code: String
@@ -19,22 +18,21 @@ struct AcctSecRecoveryCodeView: View {
     var description: String = "Il remplace le précédent, qui ne fonctionne plus. Il est réservé à la récupération du compte administrateur."
     var onDismiss: () -> Void = {}
 
-    @State private var copied = false
-
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             iconShell
             Text(title)
                 .font(.system(size: 21, weight: .black))
+                .tracking(-0.5)
                 .foregroundStyle(Theme.ink)
                 .fixedSize(horizontal: false, vertical: true)
             Text(description)
-                .font(.system(size: 14, weight: .semibold))
+                .font(.system(size: 14))
+                .lineSpacing(4)
                 .foregroundStyle(Theme.inkSoft)
                 .fixedSize(horizontal: false, vertical: true)
             codeShell
             warning
-            copyButton
             dismissButton
         }
         .padding(22)
@@ -51,7 +49,7 @@ struct AcctSecRecoveryCodeView: View {
         ZStack {
             RoundedRectangle(cornerRadius: 15).fill(Theme.primaryLight)
             Image(systemName: "key")
-                .font(.system(size: 20, weight: .bold))
+                .font(.system(size: 23, weight: .bold))
                 .foregroundStyle(Theme.ink)
         }
         .frame(width: 44, height: 44)
@@ -75,9 +73,9 @@ struct AcctSecRecoveryCodeView: View {
     }
 
     private var warning: some View {
-        HStack(alignment: .top, spacing: 9) {
+        HStack(alignment: .center, spacing: 9) {
             Image(systemName: "exclamationmark.circle")
-                .font(.system(size: 16, weight: .bold))
+                .font(.system(size: 17, weight: .bold))
                 .foregroundStyle(Theme.ink)
             Text("Ce code ne sera plus affiché. Note-le hors de l’application.")
                 .font(.system(size: 12, weight: .bold))
@@ -90,28 +88,6 @@ struct AcctSecRecoveryCodeView: View {
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
     }
 
-    private var copyButton: some View {
-        Button {
-            copyCode()
-        } label: {
-            HStack(spacing: 8) {
-                Image(systemName: copied ? "checkmark" : "doc.on.doc")
-                    .font(.system(size: 14, weight: .bold))
-                Text(copied ? "Code copié" : "Copier le code")
-                    .font(.system(size: 14, weight: .heavy))
-            }
-            .frame(maxWidth: .infinity, minHeight: 46)
-            .foregroundStyle(Theme.ink)
-            .background(Theme.surfaceMuted)
-            .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
-            .overlay(
-                RoundedRectangle(cornerRadius: Theme.radiusMedium)
-                    .stroke(Theme.border, lineWidth: 1)
-            )
-        }
-        .buttonStyle(.plain)
-    }
-
     private var dismissButton: some View {
         Button {
             onDismiss()
@@ -120,10 +96,5 @@ struct AcctSecRecoveryCodeView: View {
                 .frame(maxWidth: .infinity, minHeight: 52)
         }
         .buttonStyle(DuelloPrimaryButton())
-    }
-
-    private func copyCode() {
-        UIPasteboard.general.string = code
-        copied = true
     }
 }

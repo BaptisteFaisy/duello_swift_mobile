@@ -240,7 +240,7 @@ extension LoginScrScreen {
         }
         switch AcctSecBiometricPolicy.availability() {
         case .noHardware, .notEnrolled:
-            errorMessage = account.passwordHash != nil
+            biometricAlert = account.passwordHash != nil
                 ? LoginScrCopy.biometricSetupWithPassword
                 : LoginScrCopy.biometricSetup
             return nil

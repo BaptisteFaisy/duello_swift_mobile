@@ -29,6 +29,8 @@ struct ChartEloChart: View {
 
     /// Amplitude minimale de l'axe (`MIN_ELO_PADDING`).
     private static let minimumPadding = 20.0
+    /// `TOOLTIP_WIDTH`.
+    private static let tooltipWidth: CGFloat = 104
 
     var body: some View {
         if points.isEmpty { EmptyView() } else { content }
@@ -45,7 +47,8 @@ struct ChartEloChart: View {
         let linePoints = points.map { point in
             ChartLinePoint(
                 value: point.elo,
-                tooltip: "\(eloText(point.elo)) Elo · \(ChartDateFormat.pointDate(point.at, granularity))"
+                tooltip: "\(eloText(point.elo)) Elo",
+                tooltipAnnotation: " · \(ChartDateFormat.pointDate(point.at, granularity))"
             )
         }
         return ChartSmoothLineChart(
@@ -58,15 +61,15 @@ struct ChartEloChart: View {
             lastAxisLabel: ChartDateFormat.pointDate(last.at, granularity),
             accessibility: "Évolution \(granularity.name) de l’Elo, de \(eloText(points[0].elo)) à \(eloText(last.elo))",
             axisWidth: 32,
-            // Ordre de déclaration de `ChartSmoothLineChart` : `showsDateRange`
-            // (l. 44) précède `tooltipLeading` (l. 46) dans l'initialiseur
-            // membre-à-membre.
             showsDateRange: showsDateRange,
-            tooltipLeading: 38
+            tooltipLeading: 38,
+            tooltipWidth: Self.tooltipWidth,
+            xAxisTopPadding: 8,
+            xAxisLeading: 38
         )
     }
 
-    /// Un Elo s'affiche en entier, sans décimale.
+    /// Un Elo s'affiche en entier, sans décimale (la source l'arrondit déjà).
     private func eloText(_ value: Double) -> String {
         String(Int(value.rounded()))
     }

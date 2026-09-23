@@ -16,17 +16,16 @@ extension AnnCopyCorrectionSheet {
                 ZStack(alignment: .topTrailing) {
                     VStack(alignment: .leading, spacing: 0) {
                         Group {
-                            if let image = page.image {
-                                Image(uiImage: image)
-                                    .resizable()
-                                    .scaledToFill()
-                            } else {
-                                ZStack {
-                                    Theme.surfaceMuted
-                                    Image(systemName: "doc.text")
-                                        .font(.system(size: 22, weight: .semibold))
-                                        .foregroundStyle(Theme.inkFaint)
+                            if let data = page.imageData {
+                                CachedImage(.data(data, key: page.cacheKey)) { image in
+                                    image
+                                        .resizable()
+                                        .scaledToFill()
+                                } placeholder: {
+                                    pagePlaceholder
                                 }
+                            } else {
+                                pagePlaceholder
                             }
                         }
                         .frame(height: 145)
@@ -59,6 +58,16 @@ extension AnnCopyCorrectionSheet {
                     .accessibilityLabel("Supprimer la page \(index + 1)")
                 }
             }
+        }
+    }
+
+    /// Repli d'une vignette sans image : fond muet et icône document.
+    private var pagePlaceholder: some View {
+        ZStack {
+            Theme.surfaceMuted
+            Image(systemName: "doc.text")
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(Theme.inkFaint)
         }
     }
 

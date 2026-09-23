@@ -18,38 +18,50 @@ struct WelcomeView: View {
             ZStack {
                 Color.black.ignoresSafeArea()
 
-                VStack(spacing: 0) {
-                    Spacer(minLength: 0)
+                // `ElasticScrollView` de la source : le contenu reste centré
+                // quand il tient, et peut défiler sur petit écran / grande
+                // taille de police.
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(spacing: 0) {
+                        Spacer(minLength: 0)
 
-                    Image("DuelloLogo")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: min(96, proxy.size.width * 0.4), height: 96)
-                        .accessibilityLabel("Marque Duello")
+                        Image("DuelloLogo")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: min(96, proxy.size.width * 0.4), height: 96)
+                            .accessibilityLabel("Marque Duello")
 
-                    Spacer(minLength: 0)
+                        Spacer(minLength: 0)
 
-                    VStack(spacing: 11) {
-                        Button {
-                            onCreateAccount()
-                        } label: {
-                            Text("Créer un compte")
-                                .frame(maxWidth: .infinity, minHeight: 54)
+                        VStack(spacing: 11) {
+                            Button {
+                                onCreateAccount()
+                            } label: {
+                                Text("Créer un compte")
+                                    .frame(maxWidth: .infinity, minHeight: 54)
+                            }
+                            .buttonStyle(DuelloWelcomeButton())
+
+                            Button {
+                                showLogin = true
+                            } label: {
+                                Text("Me connecter")
+                                    .frame(maxWidth: .infinity, minHeight: 54)
+                            }
+                            .buttonStyle(DuelloWelcomeButton())
                         }
-                        .buttonStyle(DuelloWelcomeButton())
-
-                        Button {
-                            showLogin = true
-                        } label: {
-                            Text("Me connecter")
-                                .frame(maxWidth: .infinity, minHeight: 54)
-                        }
-                        .buttonStyle(DuelloWelcomeButton())
+                        .padding(.horizontal, 22)
+                        .padding(.bottom, 20)
                     }
-                    .padding(.horizontal, 22)
-                    .padding(.bottom, 20)
+                    // `content.paddingTop: 20` de la source : le centre du
+                    // logo descend de 10 pt (centre = safeTop + (hauteur −
+                    // actions) / 2).
+                    .padding(.top, 20)
+                    .frame(minHeight: proxy.size.height)
                 }
             }
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel("Écran de bienvenue")
         }
         .sheet(isPresented: $showLogin) {
             LoginView()
@@ -76,6 +88,11 @@ struct GoogleAuthButton: View {
     /// Pseudo éventuellement collecté avant l'inscription, transmis au
     /// serveur (`username`) comme dans l'Expo.
     var username: String? = nil
+    /// `onGoogleAuthenticated` : quand elle est fournie, l'identité et la
+    /// session sont rendues à l'appelant (arbitrage de réouverture de compte /
+    /// refus administrateur) au lieu d'ouvrir la session ici — même contrat
+    /// que le bouton Expo (`GoogleAuthButton.native.tsx`).
+    var onAuthenticated: ((GoogleIdentity, DuelloAPI.SessionPayload) -> Void)? = nil
 
     @EnvironmentObject private var session: SessionStore
     @State private var isLoading = false
@@ -98,6 +115,15 @@ struct GoogleAuthButton: View {
             .disabled(isLoading)
             .accessibilityLabel("Continuer avec Google")
 
+            // `status` de la source : le texte d'état s'ajoute **sous** le
+            // bouton, en plus du libellé échangé dans le bouton.
+            if isLoading {
+                Text("Connexion à Google…")
+                    .font(.system(size: 11))
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(appearance == .dark ? Color(hex: 0xA3A3A3) : Theme.inkSoft)
+            }
+
             if let errorMessage {
                 Text(errorMessage)
                     .font(.system(size: 11))
@@ -115,8 +141,12 @@ struct GoogleAuthButton: View {
         Task {
             do {
                 let auth = try await GoogleAuthService.shared.authenticate(username: username)
-                try session.signInWithGoogle(identity: auth.identity, payload: auth.session)
-                // RootView bascule vers les onglets dès que isSignedIn change.
+                if let onAuthenticated {
+                    onAuthenticated(auth.identity, auth.session)
+                } else {
+                    try session.signInWithGoogle(identity: auth.identity, payload: auth.session)
+                    // RootView bascule vers les onglets dès que isSignedIn change.
+                }
             } catch {
                 // Une annulation volontaire n'est pas une erreur à afficher.
                 errorMessage = googleAuthErrorMessage(error)
@@ -205,7 +235,7 @@ struct GoogleGLogo: View {
 struct DuelloWelcomeButton: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 15, weight: .heavy))
+            .font(.system(size: 15, weight: .black))
             .foregroundStyle(.black)
             .background(Color.white)
             .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))

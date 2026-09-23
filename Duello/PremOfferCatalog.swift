@@ -31,6 +31,9 @@ struct PremOffer: Identifiable {
     let id: PremOfferId
     /// Libellé d'accessibilité de la carte, repris de la source.
     let accessibilityLabel: String
+    /// Titre visible de la carte (« Gratuite », « Annuelle », « Hebdomadaire »),
+    /// exigence stores : titre, durée et prix sur chaque formule.
+    let name: String
     /// Prix affiché, sans le symbole « € » : la carte l'ajoute à côté.
     let price: String
     let period: String?
@@ -52,16 +55,19 @@ enum PremOfferCatalog {
         PremOfferFeature(available: true, label: "Correcteur IA 24 h/24"),
         PremOfferFeature(available: true, label: "Génération illimitée de flashcards"),
         PremOfferFeature(available: true, label: "Accès complet aux défis"),
+        PremOfferFeature(available: true, label: "Accès complet aux classements"),
         PremOfferFeature(available: true, label: "1 événement / mois"),
     ]
 
     /// Bénéfices de l'offre gratuite : l'essai offert à la création du compte,
-    /// puis ses limites — dont « Aucune correction », qui motive la barrière.
+    /// puis ses limites — dont « Aucune correction » et « Aucun classement »,
+    /// qui motivent la barrière.
     static let freeFeatures: [PremOfferFeature] = [
         PremOfferFeature(available: true, label: "\(trialDays) jours Premium"),
         PremOfferFeature(available: true, label: "1 événement / mois"),
         PremOfferFeature(available: true, label: "1 exercice par jour"),
         PremOfferFeature(available: false, label: "Aucune correction"),
+        PremOfferFeature(available: false, label: "Aucun classement"),
     ]
 
     /// `PREMIUM_OFFERS` : la carte gratuite reste la première, l'annuelle
@@ -70,6 +76,7 @@ enum PremOfferCatalog {
         PremOffer(
             id: .free,
             accessibilityLabel: "Offre gratuite à 0 euro",
+            name: "Gratuite",
             price: "0",
             period: nil,
             equivalent: nil,
@@ -80,6 +87,7 @@ enum PremOfferCatalog {
         PremOffer(
             id: .annual,
             accessibilityLabel: "Offre annuelle à 103 euros et 99 centimes par an",
+            name: "Annuelle",
             price: "103,99",
             period: "/ an",
             equivalent: "Soit 2 € par semaine",
@@ -90,6 +98,7 @@ enum PremOfferCatalog {
         PremOffer(
             id: .weekly,
             accessibilityLabel: "Offre hebdomadaire à 3 euros et 99 centimes par semaine",
+            name: "Hebdomadaire",
             price: "3,99",
             period: "/ semaine",
             equivalent: nil,

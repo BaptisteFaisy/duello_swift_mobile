@@ -30,7 +30,9 @@ enum TrainCourseStatus: String, CaseIterable {
         switch self {
         case .notStarted: return Theme.inkFaint
         case .inProgress: return Theme.inkSoft
-        case .completed: return Theme.progress
+        // `COURSE_STATUS_COLORS.completed = colors.mastery` (#22C55E), le vert
+        // commun de réussite — et non `colors.progress` (#16A34A).
+        case .completed: return Theme.mastery
         }
     }
 
@@ -84,5 +86,38 @@ final class TrainCourseStatusStore: ObservableObject {
     private func persist() {
         guard let data = try? JSONEncoder().encode(statuses) else { return }
         UserDefaults.standard.set(data, forKey: Self.storageKey)
+    }
+}
+
+/// Visibilité persistée de la légende du statut de cours (`useCourseLegendVisibility`
+/// de `hooks/useCourseLegendVisibility.ts`).
+///
+/// L'écran Expo range le masquage sous `ACCOUNT_STORAGE_KEYS.courseProgressLegendDismissed`,
+/// par compte : une fois l'encart refermé, il ne revient ni à la réouverture
+/// d'une matière ni au redémarrage. Le port n'a pas encore de stockage par
+/// compte, ce store local tient le même drapeau dans un JSON séparé, sous la
+/// même convention de persistance que `TrainCourseStatusStore`.
+///
+/// Le drapeau gouverne **les deux** usages de la légende : l'encart explicatif
+/// animé (tête de matière) et le rappel statique (pied de la liste).
+final class TrainCourseLegendStore: ObservableObject {
+    /// Vrai tant que l'élève n'a pas refermé l'encart.
+    @Published private(set) var isVisible: Bool = true
+
+    private static let storageKey = "com.duello.ios.training.course-legend-dismissed"
+
+    init() {
+        restore()
+    }
+
+    /// Referme l'encart et retient le masquage (équivalent de `dismiss` du hook).
+    func dismiss() {
+        guard isVisible else { return }
+        isVisible = false
+        UserDefaults.standard.set(true, forKey: Self.storageKey)
+    }
+
+    private func restore() {
+        isVisible = !UserDefaults.standard.bool(forKey: Self.storageKey)
     }
 }

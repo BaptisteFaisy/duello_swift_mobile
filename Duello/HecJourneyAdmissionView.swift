@@ -158,7 +158,7 @@ struct HecJourneyAdmissionView: View {
     // MARK: Écoles
 
     private var schoolGrid: some View {
-        VStack(spacing: 8) {
+        LazyVStack(spacing: 8) {
             ForEach(schools) { school in
                 schoolRow(school)
             }

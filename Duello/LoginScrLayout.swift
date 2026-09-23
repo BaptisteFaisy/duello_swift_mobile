@@ -45,6 +45,10 @@ struct LoginScrProps {
     var onPasswordLogin: (String, String) async throws -> Void
     /// `onAppleAuthenticated` — session Duello déjà validée par le serveur.
     var onAppleAuthenticated: (AppleAuthIdentity, DuelloAPI.SessionPayload) -> Void
+    /// `onGoogleAuthenticated` — identité et session Google validées par le
+    /// serveur ; l'appelant arbitre la réouverture du compte (le bouton
+    /// Google n'ouvre plus la session lui-même).
+    var onGoogleAuthenticated: (GoogleIdentity, DuelloAPI.SessionPayload) -> Void
     /// `onOpenPasswordReset(email)` — parcours serveur de réinitialisation.
     var onOpenPasswordReset: (String) -> Void
     /// `saveAccount(account)` — enregistre le compte rouvert ou activé.
@@ -70,6 +74,9 @@ struct LoginScrScreen: View {
     @State var isAuthenticating = false
     @State var isResetting = false
     @State var issued: LoginScrIssuedCode?
+    /// `Alert.alert('Biométrie indisponible', …)` : alerte native du matériel
+    /// biométrique absent (distincte du bandeau d'erreur inline).
+    @State var biometricAlert: String?
 
     init(props: LoginScrProps) {
         self.props = props
@@ -82,13 +89,28 @@ struct LoginScrScreen: View {
 
             VStack(spacing: 0) {
                 topBar
-                ScrollView {
-                    content
+                // `scrollContent` de la source : `flexGrow: 1` +
+                // `justifyContent: 'center'` — le contenu se centre quand il
+                // tient, et défile sinon.
+                GeometryReader { proxy in
+                    ScrollView {
+                        VStack(spacing: 0) {
+                            Spacer(minLength: 0)
+                            content
+                            Spacer(minLength: 0)
+                        }
+                        .frame(maxWidth: .infinity, minHeight: proxy.size.height)
+                    }
                 }
                 footer
             }
         }
         .overlay { recoveryOverlay }
+        .alert("Biométrie indisponible", isPresented: biometricAlertPresented) {
+            Button("OK", role: .cancel) { biometricAlert = nil }
+        } message: {
+            Text(biometricAlert ?? "")
+        }
     }
 
     // MARK: Dérivés
@@ -209,11 +231,13 @@ private extension LoginScrScreen {
                 goBack()
             } label: {
                 Image(systemName: "chevron.left")
-                    .font(.system(size: 19, weight: .semibold))
+                    .font(.system(size: 21, weight: .semibold))
                     .foregroundStyle(LoginScrPalette.onDark)
-                    .frame(width: 44, height: 44)
+                    .frame(width: 40, height: 40)
+                    .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(LoginScrPressStyle(pressedOpacity: 0.6, pressedScale: 1))
+            .offset(x: -12)
             .accessibilityLabel("Revenir en arrière")
 
             Spacer(minLength: 0)
@@ -260,7 +284,12 @@ private extension LoginScrScreen {
                 LoginScrErrorCard(message: errorMessage)
             }
 
-            GoogleAuthButton(appearance: .dark)
+            GoogleAuthButton(
+                appearance: .dark,
+                onAuthenticated: { identity, payload in
+                    props.onGoogleAuthenticated(identity, payload)
+                }
+            )
 
             AppleAuthView(appearance: .dark) { identity, payload in
                 props.onAppleAuthenticated(identity, payload)
@@ -391,13 +420,21 @@ private extension LoginScrScreen {
             .padding(.bottom, 10)
     }
 
+    /// `biometricAlert != nil` ⇔ alerte « Biométrie indisponible » présentée.
+    var biometricAlertPresented: Binding<Bool> {
+        Binding(
+            get: { biometricAlert != nil },
+            set: { presented in if !presented { biometricAlert = nil } }
+        )
+    }
+
     /// Remise du nouveau code de secours (`RecoveryCodeModal` de la source,
     /// déjà porté par `AcctSecRecoveryCodeView`). L'accusé de réception ouvre
     /// ensuite le compte retenu, comme la source.
     @ViewBuilder var recoveryOverlay: some View {
         if let issued {
             ZStack {
-                Color.black.opacity(0.62).ignoresSafeArea()
+                Color(hex: 0x0A0D0C).opacity(0.45).ignoresSafeArea()
                 AcctSecRecoveryCodeView(code: issued.code) {
                     self.issued = nil
                     Task { @MainActor in

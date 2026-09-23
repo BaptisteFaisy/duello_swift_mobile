@@ -37,10 +37,53 @@ open class AVCaptureDevice: NSObject {
 
 public typealias AVAudioNodeBus = UInt32
 public typealias AVAudioFrameCount = UInt32
+public typealias AVAudioChannelCount = UInt32
+public typealias AVAudioPacketCount = UInt32
 public typealias AVAudioNodeTapBlock = (AVAudioPCMBuffer, AVAudioTime) -> Void
 
-open class AVAudioFormat: NSObject {}
-open class AVAudioPCMBuffer: NSObject {}
+/// Format d'échantillonnage commun (`AVAudioCommonFormat`) — seul
+/// `.pcmFormatInt16` est utilisé par `DictAsrRelay`.
+public enum AVAudioCommonFormat: UInt, Sendable {
+    case otherFormat = 0
+    case pcmFormatFloat32 = 1
+    case pcmFormatFloat64 = 2
+    case pcmFormatInt16 = 3
+    case pcmFormatInt32 = 4
+}
+
+open class AVAudioFormat: NSObject {
+    public var sampleRate: Double = 0
+    public var channelCount: AVAudioChannelCount = 0
+    public var commonFormat: AVAudioCommonFormat = .pcmFormatFloat32
+    public var isInterleaved: Bool = false
+
+    public convenience init?(
+        commonFormat: AVAudioCommonFormat,
+        sampleRate: Double,
+        channels: AVAudioChannelCount,
+        interleaved: Bool
+    ) {
+        self.init()
+        self.commonFormat = commonFormat
+        self.sampleRate = sampleRate
+        self.channelCount = channels
+        self.isInterleaved = interleaved
+    }
+}
+
+open class AVAudioBuffer: NSObject {}
+
+open class AVAudioPCMBuffer: AVAudioBuffer {
+    public var format: AVAudioFormat
+    public var frameLength: AVAudioFrameCount = 0
+    public var int16ChannelData: UnsafeMutablePointer<UnsafeMutablePointer<Int16>>?
+
+    public init?(pcmFormat: AVAudioFormat, frameCapacity: AVAudioFrameCount) {
+        self.format = pcmFormat
+        super.init()
+    }
+}
+
 open class AVAudioTime: NSObject {}
 
 open class AVAudioNode: NSObject {
@@ -59,8 +102,41 @@ open class AVAudioInputNode: AVAudioNode {}
 
 open class AVAudioEngine: NSObject {
     public var inputNode: AVAudioInputNode { AVAudioInputNode() }
+    public var isRunning: Bool = false
 
     public func prepare() {}
     public func start() throws {}
     public func stop() {}
+}
+
+// MARK: - Convertisseur de format (AVAudioConverter)
+
+/// État d'entrée rendu par le bloc d'alimentation du convertisseur.
+public enum AVAudioConverterInputStatus: Int, Sendable {
+    case haveData = 0
+    case noDataNow = 1
+    case endOfStream = 2
+}
+
+/// État de sortie rendu par `AVAudioConverter.convert(to:error:withInputFrom:)`.
+public enum AVAudioConverterOutputStatus: Int, Sendable {
+    case haveData = 0
+    case inputRanDry = 1
+    case endOfStream = 2
+    case error = 3
+}
+
+public typealias AVAudioConverterInputBlock =
+    (AVAudioPacketCount, UnsafeMutablePointer<AVAudioConverterInputStatus>) -> AVAudioBuffer?
+
+open class AVAudioConverter: NSObject {
+    public init?(from: AVAudioFormat, to: AVAudioFormat) { super.init() }
+
+    public func convert(
+        to outputBuffer: AVAudioBuffer,
+        error outError: UnsafeMutablePointer<NSError?>?,
+        withInputFrom inputBlock: @escaping AVAudioConverterInputBlock
+    ) -> AVAudioConverterOutputStatus {
+        .haveData
+    }
 }

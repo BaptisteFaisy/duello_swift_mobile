@@ -56,6 +56,26 @@ struct TrainingStat: Equatable {
     }
 }
 
+/// Gain d'XP horodaté (`XpEntry` de `types.ts` réduit au tracé), pour la courbe
+/// d'XP de la vitrine (`ChartXpSeries.build`).
+struct ProgressXpEntry: Codable, Equatable {
+    /// XP du gain.
+    var xp: Double
+    /// Instant du gain, en millisecondes depuis l'époque Unix.
+    var at: Double
+}
+
+/// Déplacement d'Elo horodaté (`history` de `useSubjectElo`), pour la courbe
+/// d'Elo de la vitrine.
+struct ProgressEloEntry: Codable, Equatable {
+    /// Matière du déplacement.
+    var subject: String
+    /// Cote de la matière après le déplacement.
+    var elo: Int
+    /// Instant du déplacement, en millisecondes depuis l'époque Unix.
+    var at: Double
+}
+
 /// Défis joués et gagnés dans une matière (voir `DuelStat` d'Expo).
 struct DuelStat: Codable, Equatable {
     var played: Int = 0
@@ -107,6 +127,19 @@ final class ProgressStore: ObservableObject {
     /// Cote Elo par matière (clé = nom affiché de la matière).
     @Published private(set) var subjectElos: [String: Int] = [:]
 
+    // MARK: XP, programme et historiques
+
+    /// XP totale acquise (`activityXp(activity)` = `buildXpSummary(activity).total`).
+    @Published private(set) var totalXp: Double = 0
+    /// Couverture du programme menant aux concours, en pourcentage
+    /// (`competitionProgramPercent`).
+    @Published private(set) var competitionProgramPercent: Int = 0
+    /// Gains d'XP horodatés (`activity.history`), pour la courbe d'XP.
+    @Published private(set) var xpHistory: [ProgressXpEntry] = []
+    /// Déplacements d'Elo horodatés (`history` de `useSubjectElo`), pour la
+    /// courbe d'Elo.
+    @Published private(set) var eloHistory: [ProgressEloEntry] = []
+
     /// Cote de départ d'une matière jamais défiée (`INITIAL_SUBJECT_ELO`).
     static let initialElo = 1100
 
@@ -129,7 +162,8 @@ final class ProgressStore: ObservableObject {
         itemId: String,
         outcome: ItemOutcome,
         minutes: Int? = nil,
-        subject: String? = nil
+        subject: String? = nil,
+        xp: Double = 0
     ) {
         let id = itemId.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !id.isEmpty else { return }
@@ -137,6 +171,7 @@ final class ProgressStore: ObservableObject {
         items[id] = Self.applyOutcome(items[id], outcome: outcome, minutes: minutes)
         exercisesCompleted += 1
         credit(minutes: minutes, to: subject)
+        creditXp(xp)
         markActiveDay()
         persist()
     }
@@ -144,7 +179,7 @@ final class ProgressStore: ObservableObject {
     /// Enregistre un défi joué, gagné ou perdu, puis persiste : le compteur
     /// global, le bilan de la matière et la journée travaillée
     /// (voir `applySession` d'`activity.ts`).
-    func recordDuel(subject: String, won: Bool, minutes: Int = 0) {
+    func recordDuel(subject: String, won: Bool, minutes: Int = 0, xp: Double = 0) {
         challengesCompleted += 1
         if won { challengesWon += 1 }
 
@@ -156,23 +191,44 @@ final class ProgressStore: ObservableObject {
         }
 
         credit(minutes: minutes, to: subject)
+        creditXp(xp)
         markActiveDay()
         persist()
     }
 
     /// Crédite une question réussie (voir `recordCorrectQuestionXp` d'Expo).
-    func recordCorrectQuestion() {
+    func recordCorrectQuestion(xp: Double = 0) {
         correctQuestions += 1
+        creditXp(xp)
         markActiveDay()
+        persist()
+    }
+
+    /// Crédite un gain d'XP horodaté et le retient pour la courbe d'XP
+    /// (`activity.history` / `activityXp` d'Expo).
+    func recordXp(_ amount: Double) {
+        creditXp(amount)
+        persist()
+    }
+
+    /// Fixe la couverture du programme menant aux concours
+    /// (`competitionProgramPercent`), bornée à [0, 100].
+    func setCompetitionProgramPercent(_ percent: Int) {
+        competitionProgramPercent = min(100, max(0, percent))
         persist()
     }
 
     /// Fixe la cote d'une matière. Le déplacement est calculé par l'arbitrage
     /// des défis (`developmentEloDelta` côté Expo) ; le store ne fait que la
-    /// retenir pour l'affichage, par matière et par compte.
+    /// retenir pour l'affichage, par matière et par compte, et l'horodate pour
+    /// la courbe d'Elo.
     func recordElo(subject: String, elo: Int) {
         guard let name = Self.subjectKey(subject) else { return }
-        subjectElos[name] = max(0, elo)
+        let clamped = max(0, elo)
+        subjectElos[name] = clamped
+        eloHistory.append(
+            ProgressEloEntry(subject: name, elo: clamped, at: Self.nowMilliseconds())
+        )
         persist()
     }
 
@@ -222,6 +278,37 @@ final class ProgressStore: ObservableObject {
     /// Nombre de journées travaillées (`activity.activeDays.length`).
     func activeDayCount() -> Int {
         activeDays.count
+    }
+
+    /// Jours travaillés consécutifs se terminant aujourd'hui ou, à défaut, hier
+    /// (`currentStreak` d'`activity.ts`) : 0 quand ni aujourd'hui ni hier ne
+    /// sont actifs.
+    func currentStreak(at date: Date = Date()) -> Int {
+        guard !activeDays.isEmpty else { return 0 }
+
+        let days = Set(activeDays)
+        let calendar = Calendar.current
+        // Midi, pour qu'un changement d'heure ne fasse pas basculer le jour.
+        var cursor = calendar.date(bySettingHour: 12, minute: 0, second: 0, of: date) ?? date
+
+        // Une série reste vivante tant que la journée en cours n'est pas terminée.
+        if !days.contains(Self.dayKey(at: cursor)) {
+            guard let yesterday = calendar.date(byAdding: .day, value: -1, to: cursor) else {
+                return 0
+            }
+            cursor = yesterday
+            if !days.contains(Self.dayKey(at: cursor)) { return 0 }
+        }
+
+        var streak = 0
+        while days.contains(Self.dayKey(at: cursor)) {
+            streak += 1
+            guard let previous = calendar.date(byAdding: .day, value: -1, to: cursor) else {
+                break
+            }
+            cursor = previous
+        }
+        return streak
     }
 
     /// Temps d'entraînement cumulé, formaté (« 3 h 20 »).
@@ -300,6 +387,18 @@ final class ProgressStore: ObservableObject {
         subjectMinutes[name, default: 0] += spent
     }
 
+    /// Ajoute un gain d'XP au total et l'horodate pour la courbe d'XP.
+    private func creditXp(_ amount: Double) {
+        guard amount.isFinite, amount > 0 else { return }
+        totalXp += amount
+        xpHistory.append(ProgressXpEntry(xp: amount, at: Self.nowMilliseconds()))
+    }
+
+    /// Instant courant, en millisecondes depuis l'époque Unix (`Date.now()`).
+    private static func nowMilliseconds() -> Double {
+        Date().timeIntervalSince1970 * 1000
+    }
+
     /// Nom de matière utilisable comme clé, `nil` quand il est vide.
     private static func subjectKey(_ subject: String?) -> String? {
         let trimmed = subject?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
@@ -323,6 +422,10 @@ final class ProgressStore: ObservableObject {
         items = snapshot.items
         duels = snapshot.duels
         subjectElos = snapshot.subjectElos
+        totalXp = snapshot.totalXp
+        competitionProgramPercent = snapshot.competitionProgramPercent
+        xpHistory = snapshot.xpHistory
+        eloHistory = snapshot.eloHistory
     }
 
     private func persist() {
@@ -337,6 +440,10 @@ final class ProgressStore: ObservableObject {
         snapshot.items = items
         snapshot.duels = duels
         snapshot.subjectElos = subjectElos
+        snapshot.totalXp = totalXp
+        snapshot.competitionProgramPercent = competitionProgramPercent
+        snapshot.xpHistory = xpHistory
+        snapshot.eloHistory = eloHistory
 
         guard let data = try? JSONEncoder().encode(snapshot) else { return }
         UserDefaults.standard.set(data, forKey: Self.storageKey)
@@ -359,10 +466,15 @@ private struct ProgressSnapshot: Codable {
     var items: [String: ItemProgress] = [:]
     var duels: [String: DuelStat] = [:]
     var subjectElos: [String: Int] = [:]
+    var totalXp: Double = 0
+    var competitionProgramPercent: Int = 0
+    var xpHistory: [ProgressXpEntry] = []
+    var eloHistory: [ProgressEloEntry] = []
 
     enum CodingKeys: String, CodingKey {
         case exercisesCompleted, challengesCompleted, challengesWon, correctQuestions
         case exerciseMinutes, activeDays, subjectMinutes, items, duels, subjectElos
+        case totalXp, competitionProgramPercent, xpHistory, eloHistory
     }
 
     init() {}
@@ -380,6 +492,13 @@ private struct ProgressSnapshot: Codable {
         items = (try? container.decode([String: ItemProgress].self, forKey: .items)) ?? [:]
         duels = (try? container.decode([String: DuelStat].self, forKey: .duels)) ?? [:]
         subjectElos = (try? container.decode([String: Int].self, forKey: .subjectElos)) ?? [:]
+        totalXp = max(0, (try? container.decode(Double.self, forKey: .totalXp)) ?? 0)
+        competitionProgramPercent = min(
+            100,
+            max(0, (try? container.decode(Int.self, forKey: .competitionProgramPercent)) ?? 0)
+        )
+        xpHistory = (try? container.decode([ProgressXpEntry].self, forKey: .xpHistory)) ?? []
+        eloHistory = (try? container.decode([ProgressEloEntry].self, forKey: .eloHistory)) ?? []
     }
 
     /// Compteur relu sans erreur, jamais négatif.

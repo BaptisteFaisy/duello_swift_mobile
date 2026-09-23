@@ -112,6 +112,12 @@ extension DevReg {
         email: String?
     ) async throws -> PreflightOutcome {
         let normalizedEmail = email?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        // La source **omet** le champ quand l'adresse est vide
+        // (`...(normalizedEmail ? { email: normalizedEmail } : {})`,
+        // `accountRegistration.ts:52-55`) : envoyer `""` fait répondre au serveur
+        // 400 « Saisis une adresse e-mail valide. », ce qui bloque le parcours dès
+        // le montage — quand aucune adresse n'a encore été collectée.
+        let payloadEmail = normalizedEmail.flatMap { $0.isEmpty ? nil : $0 }
         var request = URLRequest(
             url: DuelloAPI.baseURL.appendingPathComponent("auth/registration/preflight")
         )
@@ -121,7 +127,7 @@ extension DevReg {
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try? DuelloAPI.encodeBody(
-            DevRegPreflightBody(deviceId: deviceId, email: normalizedEmail)
+            DevRegPreflightBody(deviceId: deviceId, email: payloadEmail)
         )
 
         let data: Data

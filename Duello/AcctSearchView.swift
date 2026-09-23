@@ -32,20 +32,28 @@ struct AcctSearchBar: View {
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: "magnifyingglass")
-                .font(.system(size: 16, weight: .semibold))
+                .font(.system(size: 19, weight: .semibold))
                 .foregroundStyle(Theme.inkSoft)
 
-            TextField(AcctSearchSettings.placeholder, text: $query)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(Theme.ink)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .submitLabel(.search)
-                .focused($focused)
-                .onChange(of: focused) { isFocused in
-                    if isFocused { onFocus() }
+            ZStack(alignment: .leading) {
+                if query.isEmpty {
+                    Text(AcctSearchSettings.placeholder)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Theme.inkFaint)
+                        .allowsHitTesting(false)
                 }
-                .accessibilityLabel("Rechercher par nom, filière, spécialité, Elo ou XP")
+                TextField("", text: $query)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Theme.ink)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .submitLabel(.search)
+                    .focused($focused)
+                    .onChange(of: focused) { isFocused in
+                        if isFocused { onFocus() }
+                    }
+                    .accessibilityLabel("Rechercher par nom, filière, spécialité, Elo ou XP")
+            }
 
             if !query.isEmpty {
                 Button(action: onClear) {

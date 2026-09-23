@@ -114,7 +114,11 @@ struct SignupFlowView: View {
             },
             onCancel: onFinish
         )
-        .overlay(alignment: .bottom) { errorBanner }
+        .alert("Création du compte impossible", isPresented: errorPresented) {
+            Button("OK", role: .cancel) { errorMessage = nil }
+        } message: {
+            Text(errorMessage ?? "")
+        }
     }
 
     /// `completeOnboarding` : ouvre le compte construit par le parcours.
@@ -152,20 +156,11 @@ struct SignupFlowView: View {
         }
     }
 
-    /// Bandeau d'échec, posé au-dessus du pied de page du parcours.
-    @ViewBuilder private var errorBanner: some View {
-        if let errorMessage {
-            Text(errorMessage)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Color.white)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .frame(maxWidth: .infinity)
-                .background(Theme.like)
-                .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
-                .padding(.horizontal, 22)
-                .padding(.bottom, 96)
-        }
+    /// `errorMessage != nil` ⇔ alerte d'échec de création de compte présentée.
+    private var errorPresented: Binding<Bool> {
+        Binding(
+            get: { errorMessage != nil },
+            set: { presented in if !presented { errorMessage = nil } }
+        )
     }
 }

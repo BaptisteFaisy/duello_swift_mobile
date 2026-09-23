@@ -84,6 +84,15 @@ struct ChartXpGainProgress: View {
                 Capsule()
                     .fill(exgMastery)
                     .frame(width: geo.size.width * min(max(level.progress, 0), 1))
+                    // `shine` de la source : reflet blanc à 30 % dans la barre.
+                    .overlay(alignment: .topLeading) {
+                        Capsule()
+                            .fill(Color.white.opacity(0.3))
+                            .frame(height: 4)
+                            .padding(.top, 3)
+                            .padding(.horizontal, 6)
+                    }
+                    .clipShape(Capsule())
             }
         }
         .frame(height: 18)
