@@ -6,21 +6,49 @@ import SwiftUI
 struct TrainingView: View {
     @EnvironmentObject private var session: SessionStore
 
+    /// Année du programme choisie dans le sélecteur de l'en-tête. `nil` = celle
+    /// du compte, comme `localProgramYear` de la source.
+    @State private var programYearOverride: Int?
+
     var body: some View {
         NavigationStack {
             Group {
                 if showsHecJourney {
                     SubjDeferredFeatureFallback(label: "Ouverture du parcours…")
+                        .navigationTitle("Entraînement")
+                        .navigationBarTitleDisplayMode(.inline)
+                } else if let maths = mathsSubject {
+                    // `SubjectsScreen.tsx:3793` : « Entraînement est désormais
+                    // directement la page Mathématiques. La liste des matières
+                    // … n'est plus une étape avant le programme de maths. »
+                    // La liste ne reste que comme repli (maths absente du
+                    // parcours) — exactement le `openedSubject ? [openedSubject]
+                    // : listedSubjects` de la source.
+                    TrainingCatalogView(
+                        subject: maths,
+                        programYear: programYear,
+                        profileYear: profileYear,
+                        onSelectYear: { programYearOverride = $0 }
+                    )
                 } else if subjects.isEmpty {
                     emptyState
+                        .navigationTitle("Entraînement")
+                        .navigationBarTitleDisplayMode(.inline)
                 } else {
                     subjectList
+                        .navigationTitle("Entraînement")
+                        .navigationBarTitleDisplayMode(.inline)
                 }
             }
             .background(Theme.background)
-            .navigationTitle("Entraînement")
-            .navigationBarTitleDisplayMode(.inline)
         }
+    }
+
+    /// La matière ouverte d'office par l'onglet Entraînement (`maths`), ou `nil`
+    /// si le parcours n'en propose pas — la liste des matières prend alors le
+    /// relais, comme `listedSubjects` côté Expo.
+    private var mathsSubject: TrackSubject? {
+        subjects.first { $0.id == SubjHecJourneyConstants.mathsSubjectId }
     }
 
     /// L'onglet Parcours ouvre le parcours HEC guidé des maths dans la variante
@@ -35,11 +63,23 @@ struct TrainingView: View {
         )
     }
 
+    /// Année du compte (`toProgramYear` de la source) : « 2 » dans le libellé
+    /// signifie 2e année, tout le reste est 1re.
+    private var profileYear: Int {
+        session.profile.year.lowercased().contains("2") ? 2 : 1
+    }
+
+    /// Année du programme affichée : celle choisie dans le sélecteur, à défaut
+    /// celle du compte.
+    private var programYear: Int {
+        programYearOverride ?? profileYear
+    }
+
     private var subjects: [TrackSubject] {
         DuelloProgram.subjects(
             track: session.profile.track,
             specialty: session.profile.specialty,
-            year: session.profile.year
+            year: programYear == 2 ? "2e année" : "1re"
         )
     }
 

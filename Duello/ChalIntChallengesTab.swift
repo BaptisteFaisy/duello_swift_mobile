@@ -44,8 +44,10 @@ struct ChalIntChallengesTab: View {
         NavigationStack {
             content
                 .background(Theme.background)
-                .navigationTitle("Défis")
-                .navigationBarTitleDisplayMode(.inline)
+                // La source n'a pas d'en-tête de navigation : l'accueil porte
+                // sa propre barre ELO + onglets Défis/Événements
+                // (`ChallengesScreen.tsx`, `ChallengeHomeOverview`). Un titre
+                // « Défis » centré serait un ajout.
         }
         .sheet(isPresented: $leaderboardOpen) { LeaderboardModalView() }
         .overlay(invitationOverlay)

@@ -108,7 +108,13 @@ struct ChalHome2QueuePanel: View {
         Group {
             switch queue.status {
             case .idle:
-                enterButton
+                // La source n'affiche **rien** au repos : l'entrée en file passe
+                // par les boutons Défi-Exercice / Défi-Cours de
+                // `ChallengeHomeActions` (qui ouvrent, dans Expo, le volet
+                // d'invitation). Le portage fait retomber ces boutons sur la
+                // file aléatoire — pas de bouton d'entrée séparé, il serait un
+                // ajout visible (`Trouver un adversaire`).
+                EmptyView()
             case .searching:
                 ChalRunSearchingCard(search: search, onCancel: { queue.cancel() })
             case .matched:
@@ -117,19 +123,6 @@ struct ChalHome2QueuePanel: View {
                 }
             }
         }
-    }
-
-    /// Bouton d'entrée dans la file, repris de l'accueil des défis du portage
-    /// (`ChallengesView`). La source ouvre, elle, le volet d'invitation.
-    private var enterButton: some View {
-        Button(action: onEnter) {
-            Label("Trouver un adversaire", systemImage: "bolt.fill")
-                .frame(maxWidth: .infinity, minHeight: 48)
-        }
-        .buttonStyle(DuelloPrimaryButton())
-        .disabled(disabled)
-        .opacity(disabled ? 0.5 : 1)
-        .accessibilityLabel("Trouver un adversaire")
     }
 
     /// Instantané de la file pour la carte de recherche (`queue` de la source).

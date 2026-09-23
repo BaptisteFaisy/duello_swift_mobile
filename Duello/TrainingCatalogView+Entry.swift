@@ -48,6 +48,13 @@ struct TrainingCatalogView: View {
     /// Matière dont on affiche le programme.
     let subject: TrackSubject
 
+    /// Année du programme affichée par le sélecteur de l'en-tête, et année du
+    /// compte (marquée « actuelle »). `nil` hors de l'onglet Entraînement —
+    /// repli ouvert depuis la liste des matières.
+    var programYear: Int? = nil
+    var profileYear: Int? = nil
+    var onSelectYear: ((Int) -> Void)? = nil
+
     @EnvironmentObject var session: SessionStore
     /// Avancement local, partagé avec les autres écrans (`ProgressView`).
     @EnvironmentObject var progress: ProgressStore
@@ -80,11 +87,13 @@ struct TrainingCatalogView: View {
     @State var legendHintVisible = true
     /// Feuille « Cartes » (flashcards) du sujet.
     @State var flashcardsOpen = false
+    /// Classement XP ouvert depuis la barre de métriques (maths).
+    @State var rankingOpen = false
 
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
-                subjectHeader
+                headerBlock
                 content
             }
             .padding(.horizontal, 20)
@@ -92,7 +101,9 @@ struct TrainingCatalogView: View {
             .padding(.bottom, 36)
         }
         .background(Theme.background)
-        .navigationTitle(subject.name)
+        // La source n'a pas de titre de navigation : la page d'une matière est
+        // coiffée par son propre en-tête (barre de métriques en maths, carte de
+        // matière ailleurs).
         .navigationBarTitleDisplayMode(.inline)
         // Écart assumé : la source ouvre les cartes d'un cours **depuis le
         // cours lui-même** (`coursePage === 'flashcards'`,
@@ -110,7 +121,27 @@ struct TrainingCatalogView: View {
             }
         }
         .sheet(isPresented: $flashcardsOpen) { flashcardsSheet }
+        .sheet(isPresented: $rankingOpen) { LeaderboardModalView() }
         .task { await loadManifest() }
+    }
+
+    /// En-tête de la page : en maths, la barre de métriques de la source
+    /// (année du programme, avancement, classement XP) ; ailleurs, la carte de
+    /// matière. `SubjectsScreen.tsx:9619-9687` branche la barre sur
+    /// `openedSubject.id === 'maths'`.
+    @ViewBuilder var headerBlock: some View {
+        if subject.id == "maths", let programYear, let profileYear {
+            SubjTrainingMetricsBar(
+                programYear: programYear,
+                profileYear: profileYear,
+                succeeded: subjectSuccess.succeeded,
+                total: subjectSuccess.total,
+                onSelectYear: { onSelectYear?($0) },
+                onOpenRanking: { rankingOpen = true }
+            )
+        } else {
+            subjectHeader
+        }
     }
 
     /// Feuille des cartes du cours (`CourseFlashcardsPanel`), présentée depuis

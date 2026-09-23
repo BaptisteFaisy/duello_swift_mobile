@@ -220,8 +220,9 @@ struct AcctInfoAccountPage: View {
     /// Off par défaut : le compte est public (source).
     @State private var isPrivateAccount = false
 
+    /// `informationContent` (`gap: 36`) puis `accountActionsGroup` (`gap: 8`).
     var body: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: 36) {
             securityCard
             accountActions
         }
@@ -252,9 +253,10 @@ struct AcctInfoAccountPage: View {
         .duelloCard()
     }
 
-    /// Actions du compte, dans l'ordre de la source.
+    /// Actions du compte, dans l'ordre de la source (`accountActionsGroup`,
+    /// `gap: 8`).
     private var accountActions: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: 8) {
             ConsentAiCard(iconSize: AcctInfoRowMetrics.iconSize)
             NotificationSettingsCard(store: notificationStore, isGuest: isGuest)
             AcctInfoToggleRow(

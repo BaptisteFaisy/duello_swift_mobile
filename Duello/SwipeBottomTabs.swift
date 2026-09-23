@@ -42,11 +42,12 @@ enum SwipeBottomTabs {
 
         var id: String { rawValue }
 
-        /// Libellé de la barre, repris de `MainTabView.swift` (déjà livré) :
-        /// mêmes mots que `BottomNavigation.tsx`.
+        /// Libellé de la barre, repris de `BottomNavigation.tsx` : `Profil`,
+        /// `Entraînement`, `Défis` (et non « Mon compte », qui était une erreur
+        /// de portage — la source écrit bien `Profil`).
         var label: String {
             switch self {
-            case .account: return "Mon compte"
+            case .account: return "Profil"
             case .training: return "Entraînement"
             case .challenges: return "Défis"
             }

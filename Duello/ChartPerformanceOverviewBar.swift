@@ -102,6 +102,9 @@ struct ChartPerformanceOverviewBar: View {
                 .tracking(0.35)
                 .foregroundStyle(Theme.inkSoft)
                 .lineLimit(1)
+                // `adjustsFontSizeToFit` de la source : le libellé se réduit
+                // plutôt que d'être coupé (« ENTRAÎNEMENT » dépassait).
+                .minimumScaleFactor(0.75)
         }
         .frame(maxWidth: .infinity)
         .accessibilityElement(children: .ignore)
