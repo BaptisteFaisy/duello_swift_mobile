@@ -12,10 +12,10 @@ import Foundation
 /// ni serveur. Ce mode sème donc une session et un profil factices, puis fige
 /// la racine sur l'écran demandé.
 ///
-/// Valeurs acceptées : `welcome`, `login`, `register`, `onboarding`,
-/// `profile`, `training`, `challenges`, puis les feuilles secondaires du
-/// profil — `progress`, `annales`, `plan`, `premium`, `messages`, `track`,
-/// `privacy`, `terms`, `feedback`, `blocked`, `settings`, `directory`.
+/// Valeurs acceptées : `welcome`, `login`, `register`, `onboarding`, `profile`,
+/// `training`, `challenges`, `notifications`, puis les écrans de réglages —
+/// `settings`, `settings-personal`, `settings-account`, `settings-duello`,
+/// `premium`, `feedback`, `privacy`, `terms`, `email`, `password`, `blocked`.
 enum ScreenshotTour {
     /// Écran demandé, ou `nil` hors mode capture.
     static var screen: String? {
@@ -48,25 +48,44 @@ enum ScreenshotTour {
         }
     }
 
-    /// Feuille secondaire du profil à ouvrir d'emblée
-    /// (`AccountView` / `AccountScreen.tsx`).
-    static var accountSheet: AccountSheet? {
+    /// Réglages à figer, ou `nil` si l'écran demandé n'en est pas un.
+    /// `AccountView` s'en sert pour ouvrir la feuille sans tap.
+    static var accountSettings: AccountSettingsCapture? {
         switch screen {
-        case "progress": return .progress
-        case "annales": return .annales
-        case "plan": return .plan
-        case "premium": return .premium
-        case "messages": return .messages
-        case "track": return .track
-        case "privacy": return .privacy
-        case "terms": return .terms
-        case "feedback": return .feedback
-        case "blocked": return .blocked
-        case "settings": return .info
-        case "directory": return .directory
+        case "settings": return AccountSettingsCapture()
+        case "settings-personal":
+            return AccountSettingsCapture(page: .personal)
+        case "settings-account":
+            return AccountSettingsCapture(page: .account)
+        case "settings-duello":
+            return AccountSettingsCapture(page: .duello)
+        case "premium":
+            return AccountSettingsCapture(tab: .premium)
+        case "feedback":
+            return AccountSettingsCapture(page: .duello, leaf: .feedback)
+        case "privacy":
+            return AccountSettingsCapture(page: .duello, leaf: .privacy)
+        case "terms":
+            return AccountSettingsCapture(page: .duello, leaf: .terms)
+        case "email":
+            return AccountSettingsCapture(page: .account, leaf: .email)
+        case "password":
+            return AccountSettingsCapture(page: .account, leaf: .password)
+        case "blocked":
+            return AccountSettingsCapture(page: .account, leaf: .blocked)
         default: return nil
         }
     }
+
+    static var opensAccountSettings: Bool { accountSettings != nil }
+}
+
+/// Réglages figés par le mode capture : onglet du ruban, sous-page du menu
+/// « informations » et feuille éventuellement ouverte par-dessus.
+struct AccountSettingsCapture {
+    var tab: SwipeSettingsTabs.Page = .informations
+    var page: AcctInfoPage = .menu
+    var leaf: AcctIntSettingsTarget? = nil
 }
 
 /// Destination de l'écran d'accueil en mode capture.
