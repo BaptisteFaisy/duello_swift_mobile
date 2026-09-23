@@ -8,7 +8,7 @@
 //  `src/screens/LoginScreen.tsx`) à `LoginScrScreen`, en les câblant sur
 //  l'application : `SessionStore` (connexion serveur), fermeture de la feuille
 //  (« lien de retour ») et réinitialisation serveur du mot de passe
-//  (`PasswordResetView`). C'est ce type que branche `LoginView(mode: .login)`.
+//  (`PasswordResetView`). C'est ce type que branche `LoginView`.
 //
 //  Limites assumées — le registre local (`utils/auth.ts` : `saveAccount` /
 //  `loadAccounts`) n'est pas porté, donc :

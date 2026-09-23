@@ -105,6 +105,11 @@ struct TrainingCatalogView: View {
         // coiffée par son propre en-tête (barre de métriques en maths, carte de
         // matière ailleurs).
         .navigationBarTitleDisplayMode(.inline)
+        // Écart assumé : la source ouvre les cartes d'un cours **depuis le
+        // cours lui-même** (`coursePage === 'flashcards'`,
+        // `SubjectsScreen.tsx:8064`) ; cet écran-là n'étant pas porté, la barre
+        // de navigation reste la seule entrée vers `TrainIntFlashcardsSection`
+        // — la retirer laisserait la surface « Cartes du cours » injoignable.
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {

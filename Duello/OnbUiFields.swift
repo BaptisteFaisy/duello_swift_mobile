@@ -24,6 +24,14 @@ struct OnbUiCredentials {
     var googleIdentity: GoogleIdentity? = nil
     /// Source : `AppleIdentity` ; équivalent Swift : `AppleAuthIdentity`.
     var appleIdentity: AppleAuthIdentity? = nil
+    /// Session serveur déjà validée par le fournisseur, remise à la complétion.
+    ///
+    /// Absente de la source, qui laisse l'application ouvrir le compte pendant
+    /// le parcours (`onGoogleAuthenticated` → `authenticateWithGoogle`,
+    /// `App.tsx`). Ici le bouton rend la session avec l'identité ; elle est
+    /// mémorisée puis posée d'un seul geste à la fin, pour que l'inscription
+    /// n'ouvre la session qu'une fois le parcours terminé.
+    var providerSession: DuelloAPI.SessionPayload? = nil
 }
 
 /// `OnboardingScreenProps` — entrées et rappels de l'écran d'inscription.
