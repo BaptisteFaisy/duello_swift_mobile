@@ -50,6 +50,21 @@ enum Theme {
     static let radiusMedium: CGFloat = 14
     static let radiusLarge: CGFloat = 18
 
+    /// Champ de fournisseur de l'étape `auth-method` (Google et Apple) :
+    /// hauteur, écart logo/libellé et taille du logo. Une seule source, pour
+    /// que les deux boutons d'une même paire ne puissent pas diverger — ils
+    /// partagent déjà leur peinture (`GoogleFieldButtonStyle`).
+    static let providerFieldMinHeight: CGFloat = 55
+    static let providerFieldSpacing: CGFloat = 10
+    static let providerLogoSize: CGFloat = 20
+
+    // MARK: Champ de fournisseur — états
+
+    /// Message d'échec sous le champ (`colors.prerequisitesMissing`, commun
+    /// aux deux boutons Expo).
+    static var providerError: Color { Color(hex: 0xB42318) }
+    static var providerErrorOnDark: Color { Color(hex: 0xFF8A80) }
+
     /// Prose d'étude : énoncé et corrigé en serif, comme un manuel.
     static let readingFont: Font = .system(size: 16, weight: .regular, design: .serif)
 }
