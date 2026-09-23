@@ -55,8 +55,6 @@ struct AcctIntSettingsSheet: View {
                 initialPage: ScreenshotTour.accountSettings?.page ?? .menu,
                 displayName: session.profile.displayName,
                 year: session.profile.year,
-                token: session.token,
-                premiumDaysLabel: premiumDaysLabel,
                 onOpenFeedback: { presented = .feedback },
                 onOpenPrivacy: { presented = .privacy },
                 onOpenTerms: { presented = .terms },
@@ -65,6 +63,8 @@ struct AcctIntSettingsSheet: View {
                 onOpenBlocked: { presented = .blocked },
                 onLogout: { Task { await session.signOut() } },
                 onDeleteAccount: {},
+                token: session.token,
+                premiumDaysLabel: premiumDaysLabel,
                 onClose: { dismiss() }
             )
             // Les réglages dessinent leur propre en-tête (retour + onglets) :
