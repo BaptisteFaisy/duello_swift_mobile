@@ -78,7 +78,10 @@ struct RootView: View {
                 SignupFlowView { signupOpen = false }
             } else if session.isSignedIn {
                 if needsOnboarding {
-                    OnboardingView {}
+                    // « Revenir à l'accueil » (première étape) : la racine ne
+                    // quitte l'onboarding que si la session est fermée —
+                    // sinon `RootView` le réafficherait aussitôt.
+                    OnboardingView(onCancel: { Task { @MainActor in await session.signOut() } }) {}
                 } else {
                     MainTabView()
                 }
