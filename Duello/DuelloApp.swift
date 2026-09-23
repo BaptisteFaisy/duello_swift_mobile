@@ -61,6 +61,11 @@ struct DuelloApp: App {
 struct RootView: View {
     @EnvironmentObject private var session: SessionStore
 
+    /// Inscription ouverte depuis l'accueil (`authStage === 'signup'` de la
+    /// source) : elle se joue **avant** toute session, et prend donc la main
+    /// sur la racine tant qu'elle n'est pas terminée.
+    @State private var signupOpen = false
+
     /// Vrai tant que le parcours n'a pas été choisi : l'inscription vient
     /// d'aboutir et l'élève doit passer par la première configuration.
     private var needsOnboarding: Bool {
@@ -69,14 +74,16 @@ struct RootView: View {
 
     var body: some View {
         Group {
-            if session.isSignedIn {
+            if signupOpen {
+                SignupFlowView { signupOpen = false }
+            } else if session.isSignedIn {
                 if needsOnboarding {
                     OnboardingView {}
                 } else {
                     MainTabView()
                 }
             } else {
-                WelcomeView()
+                WelcomeView(onCreateAccount: { signupOpen = true })
             }
         }
         .animation(.easeInOut(duration: 0.25), value: session.isSignedIn)

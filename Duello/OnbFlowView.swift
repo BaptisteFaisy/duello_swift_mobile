@@ -58,11 +58,12 @@ struct OnbFlowView: View {
     var body: some View {
         ZStack(alignment: .bottom) {
             VStack(spacing: 0) {
+                topBar
                 progressBar
                 stepTransition
                 footer
             }
-            .background(Theme.background)
+            .background(OnbFlowPalette.background)
 
             if handoff.isActive {
                 bloomLayer
@@ -94,13 +95,14 @@ struct OnbFlowView: View {
 
     // MARK: Coquille
 
-    /// `progressTrack` / `progressFill` : rail gris, remplissage vert.
+    /// `progressTrack` / `progressFill`, variante `guest*` : rail `#242424`,
+    /// remplissage blanc (`OnboardingScreen.tsx:1858-1859`).
     private var progressBar: some View {
         GeometryReader { proxy in
             ZStack(alignment: .leading) {
-                Rectangle().fill(Theme.surfaceMuted)
+                Rectangle().fill(OnbFlowPalette.progressTrack)
                 Rectangle()
-                    .fill(Theme.progress)
+                    .fill(OnbFlowPalette.progressFill)
                     .frame(
                         width: proxy.size.width
                             * OnbFlowSteps.progressFraction(
@@ -149,52 +151,54 @@ struct OnbFlowView: View {
                 .font(.system(size: 11, weight: .heavy))
                 .tracking(1.5)
                 .textCase(.uppercase)
-                .foregroundStyle(Theme.ink)
+                .foregroundStyle(OnbFlowPalette.onDark)
         }
     }
 
-    /// `footer` : retour discret + bouton principal.
+    /// `footer` : bouton principal seul.
     private var footer: some View {
-        HStack(spacing: 11) {
-            if coordinator.stepIndex > 0 || onCancel != nil {
-                Button(action: back) {
-                    HStack(spacing: 5) {
-                        Image(systemName: "chevron.left")
-                        Text("Retour")
-                    }
-                    .font(.system(size: 13, weight: .heavy))
-                    .foregroundStyle(Theme.inkSoft)
-                    .frame(minHeight: 54)
-                    .padding(.horizontal, 6)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .disabled(coordinator.isCompleting)
-                .accessibilityLabel(
-                    coordinator.stepIndex > 0 ? "Étape précédente" : "Revenir à l’accueil"
-                )
+        Button {
+            Task { @MainActor in await advance() }
+        } label: {
+            HStack(spacing: 9) {
+                Text(coordinator.continueLabel)
+                Image(systemName: coordinator.isLastStep ? "checkmark" : "arrow.right")
             }
-
-            Button {
-                Task { @MainActor in await advance() }
-            } label: {
-                HStack(spacing: 9) {
-                    Text(coordinator.continueLabel)
-                    Image(systemName: coordinator.isLastStep ? "checkmark" : "arrow.right")
-                }
-                .frame(maxWidth: .infinity, minHeight: 54)
-            }
-            .buttonStyle(DuelloPrimaryButton())
-            .disabled(coordinator.advanceBlocked)
-            .opacity(coordinator.advanceBlocked ? 0.45 : 1)
+            .frame(maxWidth: .infinity, minHeight: 54)
         }
+        .buttonStyle(DuelloPrimaryButton(onDark: true))
+        .disabled(coordinator.advanceBlocked)
+        .opacity(coordinator.advanceBlocked ? 0.45 : 1)
         .padding(.horizontal, 22)
         .padding(.top, 13)
         .padding(.bottom, OnbUiConstants.onboardingFooterBottomPadding)
-        .background(Theme.background)
-        .overlay(alignment: .top) {
-            Rectangle().fill(Theme.border).frame(height: 1)
+        .background(OnbFlowPalette.background)
+    }
+
+    /// `topBar` : retour en haut à gauche (`guestTopBackButton`).
+    ///
+    /// En thème sombre, la source **retire le retour du pied de page** et le
+    /// place ici (`{!usesDarkOnboardingAppearance && (step > 0 || onCancel)}`,
+    /// `OnboardingScreen.tsx:1544-1555`) : c'est le seul retour du parcours.
+    private var topBar: some View {
+        HStack(spacing: 0) {
+            Button(action: back) {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 24, weight: .semibold))
+                    .foregroundStyle(OnbFlowPalette.onDark)
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(coordinator.isCompleting)
+            .accessibilityLabel(
+                coordinator.stepIndex > 0 ? "Étape précédente" : "Revenir à l’accueil"
+            )
+            Spacer(minLength: 0)
         }
+        .padding(.horizontal, 22)
+        .padding(.top, 8)
+        .padding(.bottom, 14)
     }
 
     /// Le halo de passation, centré sur le bouton principal.
@@ -285,7 +289,8 @@ struct OnbFlowView: View {
             biometricVerified: coordinator.biometricVerified,
             pushEnabled: coordinator.pushNotificationsEnabled,
             google: coordinator.googleIdentity,
-            apple: coordinator.appleIdentity
+            apple: coordinator.appleIdentity,
+            providerSession: coordinator.providerSession
         )
         await surface
         onTrainingSurfaceReady()
@@ -295,7 +300,7 @@ struct OnbFlowView: View {
     // MARK: Fournisseurs et biométrie
 
     /// `authenticateWithGoogle` : fusionne l'identité et passe l'étape.
-    private func handleGoogle(_ identity: GoogleIdentity) {
+    private func handleGoogle(_ identity: GoogleIdentity, payload: DuelloAPI.SessionPayload) {
         coordinator.profile = OnbDataProviderAuth.googleProfile(
             coordinator.profile, identity: identity, mode: mode
         )
@@ -304,13 +309,14 @@ struct OnbFlowView: View {
         coordinator.appleIdentity = nil
         coordinator.providerEmail = identity.email
         coordinator.providerName = "Google"
+        coordinator.providerSession = payload
         coordinator.password = ""
         coordinator.biometricVerified = false
         advanceAfterProvider()
     }
 
     /// `authenticateWithApple` : symétrique de `handleGoogle`.
-    private func handleApple(_ identity: AppleAuthIdentity) {
+    private func handleApple(_ identity: AppleAuthIdentity, payload: DuelloAPI.SessionPayload) {
         coordinator.profile = OnbDataProviderAuth.appleProfile(
             coordinator.profile, identity: identity, mode: mode
         )
@@ -319,6 +325,7 @@ struct OnbFlowView: View {
         coordinator.googleIdentity = nil
         coordinator.providerEmail = identity.email
         coordinator.providerName = "Apple"
+        coordinator.providerSession = payload
         coordinator.password = ""
         coordinator.biometricVerified = false
         advanceAfterProvider()
@@ -344,4 +351,30 @@ struct OnbFlowView: View {
             }
         }
     }
+}
+
+/// Palette du parcours d'inscription.
+///
+/// La source force le thème sombre (`usesDarkOnboardingAppearance = true`,
+/// `OnboardingScreen.tsx:251`, en dur) : ce sont les styles `guest*` qui
+/// s'appliquent — fond noir, rail `#242424`, remplissage et surtitre blancs,
+/// bouton principal blanc sur texte noir.
+enum OnbFlowPalette {
+    /// `guestSafeArea` / `guestScrollContent` / `guestFooter` : `#000000`.
+    static let background = Color.black
+    /// `guestProgressTrack` : `#242424`.
+    static let progressTrack = Color(hex: 0x242424)
+    /// `guestProgressFill` : blanc.
+    static let progressFill = Color.white
+    /// `guestEyebrow` : blanc.
+    static let onDark = Color.white
+    /// `guestHelperText` : `#B8B8B8`.
+    static let helper = Color(white: 0.72)
+    /// `guestAuthDividerLine` : `#343434`.
+    static let divider = Color(hex: 0x343434)
+    /// `guestAuthDividerText` : `#8A8A8A`.
+    static let dividerText = Color(hex: 0x8A8A8A)
+    /// `guestFieldShell` : bordure `#3A3A3A`, fond `#111111`.
+    static let fieldBorder = Color(hex: 0x3A3A3A)
+    static let fieldSurface = Color(hex: 0x111111)
 }

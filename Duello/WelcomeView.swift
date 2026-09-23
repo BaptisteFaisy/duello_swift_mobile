@@ -5,8 +5,11 @@ import UIKit
 /// Reprend `src/screens/WelcomeScreen.tsx`.
 struct WelcomeView: View {
     @EnvironmentObject private var session: SessionStore
+    /// `onCreateAccount` de `WelcomeScreen.tsx` : ouvre le parcours
+    /// d'inscription, qui se joue **hors** de la feuille de connexion
+    /// (`authStage === 'signup'`).
+    var onCreateAccount: () -> Void = {}
     @State private var showLogin = false
-    @State private var showRegister = false
 
     var body: some View {
         GeometryReader { proxy in
@@ -26,7 +29,7 @@ struct WelcomeView: View {
 
                     VStack(spacing: 11) {
                         Button {
-                            showRegister = true
+                            onCreateAccount()
                         } label: {
                             Text("Créer un compte")
                                 .frame(maxWidth: .infinity, minHeight: 54)
@@ -36,15 +39,10 @@ struct WelcomeView: View {
                         Button {
                             showLogin = true
                         } label: {
-                            HStack(spacing: 9) {
-                                Image(systemName: "rectangle.portrait.and.arrow.right")
-                                Text("Me connecter")
-                            }
-                            .frame(maxWidth: .infinity, minHeight: 54)
+                            Text("Me connecter")
+                                .frame(maxWidth: .infinity, minHeight: 54)
                         }
                         .buttonStyle(DuelloWelcomeButton())
-
-                        GoogleAuthButton(appearance: .dark)
                     }
                     .padding(.horizontal, 22)
                     .padding(.bottom, 20)
@@ -52,10 +50,7 @@ struct WelcomeView: View {
             }
         }
         .sheet(isPresented: $showLogin) {
-            LoginView(mode: .login)
-        }
-        .sheet(isPresented: $showRegister) {
-            LoginView(mode: .register)
+            LoginView()
         }
     }
 }
@@ -63,6 +58,12 @@ struct WelcomeView: View {
 /// Connexion Google : variante « onboarding-field » de l'app Expo
 /// (`GoogleAuthButton.native.tsx`) — bouton sombre bordé de blanc, logo G,
 /// libellé échangé contre « Connexion à Google… » pendant l'échange serveur.
+///
+/// Libellé « Continuer avec Google » : c'est celui de la variante
+/// `onboarding-field` (`buttonLabel`, `GoogleAuthButton.native.tsx:105-109`),
+/// la seule qu'emploie l'écran de connexion (`LoginScreen.tsx`, étape
+/// « identité ») — seul appelant depuis que l'accueil n'a plus que ses deux
+/// boutons.
 struct GoogleAuthButton: View {
     enum Appearance {
         case dark
@@ -86,14 +87,14 @@ struct GoogleAuthButton: View {
                 HStack(spacing: Theme.providerFieldSpacing) {
                     GoogleGLogo()
                         .frame(width: Theme.providerLogoSize, height: Theme.providerLogoSize)
-                    Text(isLoading ? "Connexion à Google…" : "Se connecter avec Google")
+                    Text(isLoading ? "Connexion à Google…" : "Continuer avec Google")
                         .font(.system(size: 15, weight: .semibold))
                 }
                 .frame(maxWidth: .infinity, minHeight: Theme.providerFieldMinHeight)
             }
             .buttonStyle(GoogleFieldButtonStyle(appearance: appearance, isDimmed: isLoading))
             .disabled(isLoading)
-            .accessibilityLabel("Se connecter avec Google")
+            .accessibilityLabel("Continuer avec Google")
 
             if let errorMessage {
                 Text(errorMessage)
@@ -211,143 +212,36 @@ struct DuelloWelcomeButton: ButtonStyle {
     }
 }
 
-/// Connexion ou création de compte par e-mail et mot de passe.
+/// Feuille de connexion de l'accueil.
 ///
-/// `.login` branche l'écran de connexion **sombre** porté au lot 14-A
+/// Branche l'écran de connexion **sombre** porté au lot 14-A
 /// (`LoginScrScreen`, assemblé par `LoginIntAssembly`), fidèle à
 /// `src/screens/LoginScreen.tsx` : fond `#000`, texte blanc, champ à icône,
 /// œil d'affichage, bordure blanche, mot de passe oublié, lien de retour,
 /// bandeau d'erreur, séparateur « OU », bouton biométrie, en-tête
 /// eyebrow/titre/sous-titre, fournisseurs Google/Apple.
 ///
-/// `.register` conserve le formulaire clair historique : l'inscription ne fait
-/// pas partie de `LoginScreen.tsx` (hors périmètre du lot 20).
+/// L'inscription ne passe plus par cette feuille : la source la joue **avant**
+/// toute session (`onCreateAccount` → `authStage === 'signup'` →
+/// `OnboardingScreen`), elle vit donc dans `SignupFlowView`.
 struct LoginView: View {
-    enum Mode {
-        case login
-        case register
-
-        var title: String {
-            switch self {
-            case .login: return "Me connecter"
-            case .register: return "Créer un compte"
-            }
-        }
-    }
-
-    let mode: Mode
-
-    @EnvironmentObject private var session: SessionStore
-    @Environment(\.dismiss) private var dismiss
-
-    @State private var email = ""
-    @State private var password = ""
-    @State private var displayName = ""
-    @State private var isSubmitting = false
-    @State private var errorMessage = ""
-
     var body: some View {
-        if mode == .login {
-            LoginIntAssembly()
-        } else {
-            registerForm
-        }
-    }
-
-    // MARK: Inscription
-
-    private var registerForm: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
-                    Text(mode.title)
-                        .font(.system(size: 26, weight: .black))
-                        .foregroundStyle(Theme.ink)
-                        .padding(.top, 18)
-
-                    DuelloTextField(
-                        title: "Prénom ou pseudo",
-                        text: $displayName,
-                        textContentType: .name
-                    )
-                    DuelloTextField(
-                        title: "Adresse e-mail",
-                        text: $email,
-                        textContentType: .emailAddress,
-                        keyboard: .emailAddress
-                    )
-                    DuelloTextField(
-                        title: "Mot de passe",
-                        text: $password,
-                        isSecure: true
-                    )
-
-                    if !errorMessage.isEmpty {
-                        Text(errorMessage)
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(Theme.like)
-                    }
-
-                    Button {
-                        submit()
-                    } label: {
-                        HStack {
-                            if isSubmitting {
-                                ProgressView().tint(.white)
-                            }
-                            Text(mode.title)
-                        }
-                        .frame(maxWidth: .infinity, minHeight: 52)
-                    }
-                    .buttonStyle(DuelloPrimaryButton())
-                    .disabled(isSubmitting || !canSubmit)
-
-                    Spacer(minLength: 24)
-                }
-                .padding(.horizontal, 22)
-            }
-            .background(Theme.background)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Fermer") { dismiss() }
-                }
-            }
-        }
-    }
-
-    private var canSubmit: Bool {
-        !email.trimmingCharacters(in: .whitespaces).isEmpty
-            && !password.isEmpty
-            && !displayName.trimmingCharacters(in: .whitespaces).isEmpty
-    }
-
-    private func submit() {
-        isSubmitting = true
-        errorMessage = ""
-        let email = email.trimmingCharacters(in: .whitespaces).lowercased()
-        let password = password
-        let displayName = displayName.trimmingCharacters(in: .whitespaces)
-
-        Task {
-            defer { isSubmitting = false }
-            do {
-                try await session.signUp(email: email, password: password, displayName: displayName)
-                dismiss()
-            } catch {
-                errorMessage = error.localizedDescription
-            }
-        }
+        LoginIntAssembly()
     }
 }
 
 /// Bouton encre plein, style principal de l'app.
+///
+/// `onDark` : variante du parcours d'inscription en thème sombre — bouton
+/// blanc, texte noir (`guestContinueButton` / `guestContinueButtonText`).
 struct DuelloPrimaryButton: ButtonStyle {
+    var onDark: Bool = false
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.system(size: 15, weight: .heavy))
-            .foregroundStyle(Theme.surface)
-            .background(Theme.ink)
+            .foregroundStyle(onDark ? Color.black : Theme.surface)
+            .background(onDark ? Color.white : Theme.ink)
             .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
             .opacity(configuration.isPressed ? 0.84 : 1)
             .scaleEffect(configuration.isPressed ? 0.99 : 1)

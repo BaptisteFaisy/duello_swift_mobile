@@ -56,6 +56,12 @@ final class OnbFlowCoordinator: ObservableObject {
     /// E-mail et nom du fournisseur, pour le bandeau de récapitulatif.
     @Published var providerEmail: String?
     @Published var providerName: String?
+    /// Session serveur ouverte par le fournisseur pendant le parcours.
+    ///
+    /// Absente de la source, qui laisse l'application ouvrir le compte
+    /// (`onGoogleAuthenticated` → `authenticateWithGoogle`, `App.tsx`) : ici la
+    /// session est rendue avec l'identité par le bouton, puis mémorisée.
+    @Published var providerSession: DuelloAPI.SessionPayload?
 
     init(mode: OnbDataSteps.Mode, initialProfile: UserProfile) {
         self.mode = mode

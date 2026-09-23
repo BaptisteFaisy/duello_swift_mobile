@@ -16,9 +16,11 @@
 //    - kit partagé / données : `OnbUiConstants.years`, `OnbDataTargetSchools`,
 //      `GoogleAuthService`, `AppleAuthView`, `OnbDataProviderAuth`.
 //
-//  ⚠️ Écarts assumés :
-//   - la source force `usesDarkOnboardingAppearance = true` ; l'app Swift est
-//     claire, le contenu reprend donc le thème clair (`dark` laissé à faux) ;
+//  Thème : la source force `usesDarkOnboardingAppearance = true`
+//  (`OnboardingScreen.tsx:251`) ; le contenu reprend donc les variantes
+//  `dark` des briques `OnbUi` (`guest*` de la source).
+//
+//  ⚠️ Écart assumé :
 //   - `GoogleAuthButton` (Swift) ouvre la session : l'étape passe par
 //     `GoogleAuthService` pour rendre la main au parcours.
 //
@@ -29,8 +31,8 @@ import SwiftUI
 /// Contenu de l'étape courante, aiguillé sur `OnbFlowCoordinator.currentStep`.
 struct OnbFlowStepContent: View {
     @ObservedObject var coordinator: OnbFlowCoordinator
-    var onGoogle: (GoogleIdentity) -> Void
-    var onApple: (AppleAuthIdentity) -> Void
+    var onGoogle: (GoogleIdentity, DuelloAPI.SessionPayload) -> Void
+    var onApple: (AppleAuthIdentity, DuelloAPI.SessionPayload) -> Void
     var onBiometric: () -> Void
 
     var body: some View {
@@ -54,27 +56,28 @@ struct OnbFlowStepContent: View {
 
     /// `year` : l'année de prépa (`YEARS`).
     private var yearStep: some View {
-        OnbUiChoiceSection {
+        OnbUiChoiceSection(dark: true) {
             ForEach(OnbUiConstants.years, id: \.self) { year in
                 OnbUiChoiceChip(
                     label: year,
-                    isSelected: coordinator.profile.year == year
-                ) {
-                    coordinator.chooseYear(year)
-                }
+                    isSelected: coordinator.profile.year == year,
+                    action: { coordinator.chooseYear(year) },
+                    dark: true
+                )
             }
         }
     }
 
     /// `current-track` : la filière actuelle (filtre « ECG seulement »).
     private var currentTrackStep: some View {
-        OnbUiChoiceSection {
+        OnbUiChoiceSection(dark: true) {
             ForEach(coordinator.visibleCurrentTracks, id: \.self) { track in
                 OnbUiChoiceChip(
                     label: track,
                     isSelected: coordinator.path.currentTrack == track,
                     action: { coordinator.chooseCurrentTrack(track) },
-                    wide: true
+                    wide: true,
+                    dark: true
                 )
             }
         }
@@ -85,14 +88,15 @@ struct OnbFlowStepContent: View {
         VStack(alignment: .leading, spacing: 18) {
             Text("Nous gardons cette information pour tes révisions et tes prérequis de concours.")
                 .font(.system(size: 13))
-                .foregroundStyle(Theme.inkSoft)
-            OnbUiChoiceSection(label: "Quelle filière suivais-tu en 1re année ?") {
+                .foregroundStyle(OnbFlowPalette.helper)
+            OnbUiChoiceSection(label: "Quelle filière suivais-tu en 1re année ?", dark: true) {
                 ForEach(coordinator.originChoices, id: \.self) { track in
                     OnbUiChoiceChip(
                         label: track,
                         isSelected: coordinator.path.firstYearTrack == track,
                         action: { coordinator.chooseOrigin(track) },
-                        wide: true
+                        wide: true,
+                        dark: true
                     )
                 }
             }
@@ -101,13 +105,14 @@ struct OnbFlowStepContent: View {
 
     /// `options` : le niveau de mathématiques (`onboardingMathOptionChoices`).
     private var optionsStep: some View {
-        OnbUiChoiceSection {
+        OnbUiChoiceSection(dark: true) {
             ForEach(coordinator.mathOptions) { option in
                 OnbUiChoiceChip(
                     label: option.label,
                     isSelected: coordinator.path.currentOption.hasPrefix(option.label),
                     action: { coordinator.chooseOption(option) },
-                    wide: true
+                    wide: true,
+                    dark: true
                 )
             }
         }
@@ -134,7 +139,8 @@ struct OnbFlowStepContent: View {
                         !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 },
                 placeholder: "Ex. HEC Paris, CentraleSupélec…",
-                icon: "school"
+                icon: "school",
+                dark: true
             ))
             if coordinator.schoolSuggestionsVisible, !coordinator.schoolSuggestions.isEmpty {
                 OnbFlowSchoolSuggestions(schools: coordinator.schoolSuggestions) { school in
@@ -144,7 +150,7 @@ struct OnbFlowStepContent: View {
             }
             Text("Tu peux aussi conserver le nom saisi s’il n’apparaît pas dans la liste.")
                 .font(.system(size: 12))
-                .foregroundStyle(Theme.inkSoft)
+                .foregroundStyle(OnbFlowPalette.helper)
         }
     }
 
@@ -160,11 +166,12 @@ struct OnbFlowStepContent: View {
                     coordinator.profile.lastName = ""
                 },
                 placeholder: "Ex. Camille75",
-                autoCapitalize: .none
+                autoCapitalize: .none,
+                dark: true
             ))
             Text("Ton pseudo sera visible dans l’app et doit être unique.")
                 .font(.system(size: 12))
-                .foregroundStyle(Theme.inkSoft)
+                .foregroundStyle(OnbFlowPalette.helper)
         }
     }
 
@@ -174,7 +181,8 @@ struct OnbFlowStepContent: View {
             if let email = coordinator.providerEmail {
                 OnbUiProviderAccountSummary(
                     email: email,
-                    provider: coordinator.providerName == "Apple" ? .apple : .google
+                    provider: coordinator.providerName == "Apple" ? .apple : .google,
+                    dark: true
                 )
             } else {
                 OnbUiField(props: OnbUiFieldProps(
@@ -184,7 +192,8 @@ struct OnbFlowStepContent: View {
                     placeholder: "camille@email.fr",
                     icon: "mail",
                     keyboardType: .emailAddress,
-                    autoCapitalize: .none
+                    autoCapitalize: .none,
+                    dark: true
                 ))
             }
             OnbFlowProviderButtons(
@@ -201,7 +210,8 @@ struct OnbFlowStepContent: View {
             if let email = coordinator.providerEmail {
                 OnbUiProviderAccountSummary(
                     email: email,
-                    provider: coordinator.providerName == "Apple" ? .apple : .google
+                    provider: coordinator.providerName == "Apple" ? .apple : .google,
+                    dark: true
                 )
             } else {
                 OnbUiField(
@@ -216,6 +226,7 @@ struct OnbFlowStepContent: View {
                         placeholder: "",
                         icon: "key",
                         isSecure: !coordinator.showPassword,
+                        dark: true,
                         whiteBorder: false
                     )
                 ) {
@@ -224,7 +235,7 @@ struct OnbFlowStepContent: View {
                     } label: {
                         Image(systemName: coordinator.showPassword ? "eye.slash" : "eye")
                             .font(.system(size: 18))
-                            .foregroundStyle(Theme.inkSoft)
+                            .foregroundStyle(OnbFlowPalette.helper)
                             .frame(width: 36, height: 36)
                     }
                     .buttonStyle(.plain)

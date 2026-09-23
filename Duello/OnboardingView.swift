@@ -78,3 +78,83 @@ struct OnboardingView: View {
         onFinish()
     }
 }
+
+/// Inscription depuis l'accueil (`onCreateAccount` de `WelcomeScreen.tsx`).
+///
+/// La source joue le parcours d'onboarding **avant** toute session
+/// (`authStage === 'signup'` → `OnboardingScreen`, `App.tsx:2486`), puis ouvre
+/// le compte (`completeOnboarding`, `App.tsx:1734`). C'est l'inverse du chemin
+/// historique de l'app, où « Créer un compte » ouvrait un formulaire clair
+/// hérité (`LoginView(mode: .register)`) et où `RootView` ne jouait
+/// l'onboarding qu'**après** connexion.
+struct SignupFlowView: View {
+    /// Appelée quand le compte est ouvert, ou le parcours abandonné.
+    var onFinish: () -> Void
+
+    @EnvironmentObject private var session: SessionStore
+    @State private var errorMessage: String?
+
+    var body: some View {
+        OnbFlowView(
+            mode: .account,
+            initialProfile: session.profile,
+            onComplete: { profile, credentials in
+                await openAccount(profile: profile, credentials: credentials)
+            },
+            onCancel: onFinish
+        )
+        .overlay(alignment: .bottom) { errorBanner }
+    }
+
+    /// `completeOnboarding` : ouvre le compte construit par le parcours.
+    ///
+    /// Un mot de passe crée le compte serveur (`registerServerPassword`) ; un
+    /// fournisseur pose la session déjà validée pendant le parcours (le
+    /// `claimServerUsername` de la source n'a pas d'équivalent ici).
+    @MainActor
+    private func openAccount(profile: UserProfile, credentials: OnbUiCredentials) async {
+        do {
+            if let google = credentials.googleIdentity, let payload = credentials.providerSession {
+                try session.signInWithGoogle(identity: google, payload: payload)
+            } else if let apple = credentials.appleIdentity, let payload = credentials.providerSession {
+                try LoginIntSession.openAppleSession(
+                    session: session,
+                    identity: apple,
+                    payload: payload
+                )
+            } else if !credentials.password.isEmpty {
+                try await session.signUp(
+                    email: profile.email,
+                    password: credentials.password,
+                    displayName: profile.displayName
+                )
+            } else {
+                errorMessage = "Aucun moyen de connexion n’a été choisi."
+                return
+            }
+
+            session.profile = profile
+            session.persistProfile()
+            onFinish()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// Bandeau d'échec, posé au-dessus du pied de page du parcours.
+    @ViewBuilder private var errorBanner: some View {
+        if let errorMessage {
+            Text(errorMessage)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Color.white)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .frame(maxWidth: .infinity)
+                .background(Theme.like)
+                .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
+                .padding(.horizontal, 22)
+                .padding(.bottom, 96)
+        }
+    }
+}
