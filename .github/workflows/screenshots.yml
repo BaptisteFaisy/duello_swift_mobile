@@ -33,7 +33,7 @@ defaults:
 env:
   # Écrans photographiés. Ajouter une valeur ici suffit : le mode capture la
   # reconnaît côté app (Duello/ScreenshotTour.swift).
-  SHOT_SCREENS: welcome onboarding profile training challenges
+  SHOT_SCREENS: welcome login register onboarding profile training challenges progress annales plan premium messages track privacy terms feedback blocked settings directory
   BUNDLE_ID: com.prepapp.mobile.swift
   DEVICE: iPhone 16
 

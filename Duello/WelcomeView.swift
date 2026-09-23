@@ -5,8 +5,8 @@ import UIKit
 /// Reprend `src/screens/WelcomeScreen.tsx`.
 struct WelcomeView: View {
     @EnvironmentObject private var session: SessionStore
-    @State private var showLogin = false
-    @State private var showRegister = false
+    @State private var showLogin = ScreenshotTour.welcomeDestination == .login
+    @State private var showRegister = ScreenshotTour.welcomeDestination == .register
 
     var body: some View {
         GeometryReader { proxy in

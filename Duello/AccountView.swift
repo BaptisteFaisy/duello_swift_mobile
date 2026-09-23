@@ -11,7 +11,9 @@ struct AccountView: View {
     @EnvironmentObject private var session: SessionStore
 
     @State private var showProfileEditor = false
-    @State private var activeSheet: AccountSheet?
+    /// Feuille secondaire ouverte. En mode capture, `ScreenshotTour` la fige
+    /// d'emblée pour photographier un écran du hub sans tap.
+    @State private var activeSheet: AccountSheet? = ScreenshotTour.accountSheet
     @State private var notificationsOpen = false
     /// Annuaire de recherche de la page : la ligne de recherche vit en tête du
     /// profil, comme `searchQuery` / `directoryProfiles` de la source.

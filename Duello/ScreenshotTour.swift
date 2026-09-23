@@ -12,8 +12,10 @@ import Foundation
 /// ni serveur. Ce mode sème donc une session et un profil factices, puis fige
 /// la racine sur l'écran demandé.
 ///
-/// Valeurs acceptées : `welcome`, `onboarding`, `profile`, `training`,
-/// `challenges`.
+/// Valeurs acceptées : `welcome`, `login`, `register`, `onboarding`,
+/// `profile`, `training`, `challenges`, puis les feuilles secondaires du
+/// profil — `progress`, `annales`, `plan`, `premium`, `messages`, `track`,
+/// `privacy`, `terms`, `feedback`, `blocked`, `settings`, `directory`.
 enum ScreenshotTour {
     /// Écran demandé, ou `nil` hors mode capture.
     static var screen: String? {
@@ -34,6 +36,44 @@ enum ScreenshotTour {
         default: return nil
         }
     }
+
+    /// Écran d'accueil **signé-out** à figer : l'accueil lui-même, ou l'une des
+    /// deux feuilles d'authentification qu'il ouvre (`LoginScreen.tsx`).
+    static var welcomeDestination: WelcomeDestination? {
+        switch screen {
+        case "welcome": return .root
+        case "login": return .login
+        case "register": return .register
+        default: return nil
+        }
+    }
+
+    /// Feuille secondaire du profil à ouvrir d'emblée
+    /// (`AccountView` / `AccountScreen.tsx`).
+    static var accountSheet: AccountSheet? {
+        switch screen {
+        case "progress": return .progress
+        case "annales": return .annales
+        case "plan": return .plan
+        case "premium": return .premium
+        case "messages": return .messages
+        case "track": return .track
+        case "privacy": return .privacy
+        case "terms": return .terms
+        case "feedback": return .feedback
+        case "blocked": return .blocked
+        case "settings": return .info
+        case "directory": return .directory
+        default: return nil
+        }
+    }
+}
+
+/// Destination de l'écran d'accueil en mode capture.
+enum WelcomeDestination: Equatable {
+    case root
+    case login
+    case register
 }
 
 extension ScreenshotTour {
