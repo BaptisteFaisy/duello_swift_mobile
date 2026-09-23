@@ -218,7 +218,11 @@ struct AccountView: View {
 }
 
 /// Écrans secondaires présentés en feuille depuis « Mon compte ».
-private enum AccountSheet: String, Identifiable {
+///
+/// Non `private` : `ScreenshotTour` s'en sert pour figer une feuille en mode
+/// capture d'écran (`DUELLO_SHOT`), sans quoi ces écrans ne seraient pas
+/// photographiables en CI.
+enum AccountSheet: String, Identifiable {
     case progress, annales, plan, premium, messages, track, privacy, terms, feedback, blocked, info, directory
 
     var id: String { rawValue }
