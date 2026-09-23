@@ -667,6 +667,12 @@
 		9E78F1D7E5E871C29AE15E82 /* SubjTrainingMetricsBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC25F5960D4E288ADF6E761B /* SubjTrainingMetricsBar.swift */; };
 		FCD9DB439A913C3E330B8129 /* DictAsrRelay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FE073E209BFDBF21DF8F562 /* DictAsrRelay.swift */; };
 		43D8BA2BD73F315546C42F56 /* ImageCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41DBA0581EF780A37AB1DB6A /* ImageCache.swift */; };
+		735821A208B17218F683BC3B /* DictAsrRelay+Capture.swift in Sources */ = {isa = PBXBuildFile; fileRef = F41537CA3144FCD95A3722E0 /* DictAsrRelay+Capture.swift */; };
+		186740BC2EF149C4E51CFC66 /* DictAsrRelay+Connexion.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3B1C4F9550C9AE115C7F1EE /* DictAsrRelay+Connexion.swift */; };
+		8C29A9E31A0FEF1DD5E91D03 /* PresenceViews+Client.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9915522248CA9531C6A99712 /* PresenceViews+Client.swift */; };
+		E101427A24869E2119F30490 /* ProgressStore+Stats.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38E3B2BB060ED5DF8D61AD86 /* ProgressStore+Stats.swift */; };
+		85BD5C54874B57034480B560 /* ProgressStore+Training.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA648BC6F4B86B7D348E1C37 /* ProgressStore+Training.swift */; };
+		E5C3708DCA5CD5434C9EE967 /* WhiteboardWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F9E3F30E775CC5F19A2A73C /* WhiteboardWidgets.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -1331,6 +1337,12 @@
 		FC25F5960D4E288ADF6E761B /* SubjTrainingMetricsBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjTrainingMetricsBar.swift; sourceTree = "<group>"; };
 		4FE073E209BFDBF21DF8F562 /* DictAsrRelay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictAsrRelay.swift; sourceTree = "<group>"; };
 		41DBA0581EF780A37AB1DB6A /* ImageCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCache.swift; sourceTree = "<group>"; };
+		F41537CA3144FCD95A3722E0 /* DictAsrRelay+Capture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DictAsrRelay+Capture.swift"; sourceTree = "<group>"; };
+		C3B1C4F9550C9AE115C7F1EE /* DictAsrRelay+Connexion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DictAsrRelay+Connexion.swift"; sourceTree = "<group>"; };
+		9915522248CA9531C6A99712 /* PresenceViews+Client.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PresenceViews+Client.swift"; sourceTree = "<group>"; };
+		38E3B2BB060ED5DF8D61AD86 /* ProgressStore+Stats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProgressStore+Stats.swift"; sourceTree = "<group>"; };
+		BA648BC6F4B86B7D348E1C37 /* ProgressStore+Training.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProgressStore+Training.swift"; sourceTree = "<group>"; };
+		0F9E3F30E775CC5F19A2A73C /* WhiteboardWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhiteboardWidgets.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -2016,6 +2028,12 @@
 				FC25F5960D4E288ADF6E761B /* SubjTrainingMetricsBar.swift */,
 				4FE073E209BFDBF21DF8F562 /* DictAsrRelay.swift */,
 				41DBA0581EF780A37AB1DB6A /* ImageCache.swift */,
+				F41537CA3144FCD95A3722E0 /* DictAsrRelay+Capture.swift */,
+				C3B1C4F9550C9AE115C7F1EE /* DictAsrRelay+Connexion.swift */,
+				9915522248CA9531C6A99712 /* PresenceViews+Client.swift */,
+				38E3B2BB060ED5DF8D61AD86 /* ProgressStore+Stats.swift */,
+				BA648BC6F4B86B7D348E1C37 /* ProgressStore+Training.swift */,
+				0F9E3F30E775CC5F19A2A73C /* WhiteboardWidgets.swift */,
 			);
 			path = Duello;
 			sourceTree = "<group>";
@@ -2757,6 +2775,12 @@
 				9E78F1D7E5E871C29AE15E82 /* SubjTrainingMetricsBar.swift in Sources */,
 				FCD9DB439A913C3E330B8129 /* DictAsrRelay.swift in Sources */,
 				43D8BA2BD73F315546C42F56 /* ImageCache.swift in Sources */,
+				735821A208B17218F683BC3B /* DictAsrRelay+Capture.swift in Sources */,
+				186740BC2EF149C4E51CFC66 /* DictAsrRelay+Connexion.swift in Sources */,
+				8C29A9E31A0FEF1DD5E91D03 /* PresenceViews+Client.swift in Sources */,
+				E101427A24869E2119F30490 /* ProgressStore+Stats.swift in Sources */,
+				85BD5C54874B57034480B560 /* ProgressStore+Training.swift in Sources */,
+				E5C3708DCA5CD5434C9EE967 /* WhiteboardWidgets.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

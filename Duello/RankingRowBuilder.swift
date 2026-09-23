@@ -66,18 +66,17 @@ func leaderboardEntriesForScope(
     }
 }
 
-/// Agrège les profils publics par prépa (`buildPrepLeaderboard`) : cote moyenne
-/// pour l'Elo, somme des XP pour la semaine. La prépa du compte est mise en
-/// avant (`isCurrentUser`) ; les rangs restent strictement individuels.
-func prepLeaderboardRows(
+/// Accumule les cotes par prépa (`buildPrepLeaderboard`) : ignore les comptes
+/// anonymes ou exclus, additionne les scores et compte les élèves. La prépa du
+/// compte connecté garde son nom affiché d'origine.
+private func prepLeaderboardGroups(
     _ entries: [LeaderboardEntry],
+    currentPrep: String,
     currentPrepName: String,
     scoreFor: (LeaderboardEntry) -> Int,
     aggregation: PrepAggregation
-) -> [RankedLeaderboardRow] {
-    let currentPrep = normalizedPrepName(currentPrepName)
+) -> [String: (displayName: String, total: Int, count: Int)] {
     var groups: [String: (displayName: String, total: Int, count: Int)] = [:]
-
     for entry in entries where entry.isAnonymous != true {
         guard !entry.id.isEmpty, !excludedLeaderboardIds.contains(entry.id) else { continue }
         let key = normalizedPrepName(entry.prepName)
@@ -93,6 +92,26 @@ func prepLeaderboardRows(
         }
         groups[key] = group
     }
+    return groups
+}
+
+/// Agrège les profils publics par prépa (`buildPrepLeaderboard`) : cote moyenne
+/// pour l'Elo, somme des XP pour la semaine. La prépa du compte est mise en
+/// avant (`isCurrentUser`) ; les rangs restent strictement individuels.
+func prepLeaderboardRows(
+    _ entries: [LeaderboardEntry],
+    currentPrepName: String,
+    scoreFor: (LeaderboardEntry) -> Int,
+    aggregation: PrepAggregation
+) -> [RankedLeaderboardRow] {
+    let currentPrep = normalizedPrepName(currentPrepName)
+    let groups = prepLeaderboardGroups(
+        entries,
+        currentPrep: currentPrep,
+        currentPrepName: currentPrepName,
+        scoreFor: scoreFor,
+        aggregation: aggregation
+    )
 
     let valueLabel = aggregation == .sum ? "XP" : "ELO MOYEN"
     var aggregates: [(id: String, displayName: String, score: Int, count: Int, isCurrent: Bool)] = []
@@ -131,21 +150,12 @@ func prepLeaderboardRows(
     }
 }
 
-/// Libellé d'option ECG repris de `accountAcademicOptionLabel` : les anciennes
-/// spécialités « maths appliquées/approfondies » gardent leur nom lisible.
-private func academicOptionLabel(track: String, specialty: String) -> String {
-    let option = specialty.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard !option.isEmpty, track == "ECG" else { return option }
-    let normalized = option.lowercased()
-    if normalized.contains("appliqu") { return "Maths appliquées" }
-    if normalized.contains("approfond") { return "Maths approfondies" }
-    return option
-}
-
 /// Filière, année et, en ECG, option d'une ligne publique
 /// (`formatWeeklyXpAcademicLabel`). La filière réellement suivie
 /// (`currentTrack`) prime sur la filière historique (`track`) ; vide quand
-/// filière ou année manque.
+/// filière ou année manque. L'option ECG reprend `accountAcademicOptionLabel` :
+/// les anciennes spécialités « maths appliquées/approfondies » gardent leur nom
+/// lisible.
 private func weeklyAcademicLabel(
     currentTrack: String?,
     track: String?,
@@ -157,8 +167,14 @@ private func weeklyAcademicLabel(
     guard !trackValue.isEmpty, !yearValue.isEmpty else { return "" }
 
     var parts = [trackValue, yearValue]
-    let option = academicOptionLabel(track: trackValue, specialty: specialty ?? "")
+    var option = (specialty ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
     if trackValue == "ECG", !option.isEmpty {
+        let normalized = option.lowercased()
+        if normalized.contains("appliqu") {
+            option = "Maths appliquées"
+        } else if normalized.contains("approfond") {
+            option = "Maths approfondies"
+        }
         parts.append(option)
     }
     return parts.joined(separator: " · ")

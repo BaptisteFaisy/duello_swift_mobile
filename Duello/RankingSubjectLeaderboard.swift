@@ -142,61 +142,71 @@ struct SubjectLeaderboardView: View {
     @ViewBuilder
     private func leagueSection(_ league: EloLeague, rows leagueRows: [RankedLeaderboardRow]) -> some View {
         let content = VStack(alignment: .leading, spacing: 6) {
-            VStack(spacing: 5) {
-                Button {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        expandedLeagueId = expandedLeagueId == league.id ? nil : league.id
-                    }
-                } label: {
-                    LeagueBadgeImage(leagueId: league.id, size: 88)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Afficher le seuil Elo de la ligue \(league.label)")
-
-                if expandedLeagueId == league.id {
-                    Text("\(groupedNumber(league.minimumElo)) Elo")
-                        .font(.system(size: 11, weight: .heavy).monospacedDigit())
-                        .foregroundStyle(Theme.ink)
-                        .frame(maxWidth: .infinity)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 9)
-                        .background(Theme.surfaceMuted)
-                        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
-                }
-            }
-            .frame(maxWidth: .infinity)
-
-            if leagueRows.isEmpty {
-                Text(league.id == "ecricome"
-                     ? "Aucun joueur dans cette ligue."
-                     : "Aucun joueur dans cette ligue pour le moment.")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(Theme.inkSoft)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .padding(.horizontal, 14)
-            } else {
-                VStack(spacing: 0) {
-                    ForEach(leagueRows.indices, id: \.self) { index in
-                        if leagueRows[index].isCurrentUser {
-                            LeaderboardRowView(row: leagueRows[index])
-                                .swipeCurrentRowVisibility($currentRowVisible)
-                        } else {
-                            LeaderboardRowView(row: leagueRows[index])
-                        }
-                        if index < leagueRows.count - 1 {
-                            LeaderboardRowDivider()
-                        }
-                    }
-                }
-            }
+            leagueHeader(league)
+            leagueRowsContent(league, leagueRows)
         }
 
         if leagueRows.isEmpty {
             content
         } else {
             content.duelloCard()
+        }
+    }
+
+    /// En-tête d'une ligue : blason dépliable (tap) et seuil Elo révélé.
+    private func leagueHeader(_ league: EloLeague) -> some View {
+        VStack(spacing: 5) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    expandedLeagueId = expandedLeagueId == league.id ? nil : league.id
+                }
+            } label: {
+                LeagueBadgeImage(leagueId: league.id, size: 88)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Afficher le seuil Elo de la ligue \(league.label)")
+
+            if expandedLeagueId == league.id {
+                Text("\(groupedNumber(league.minimumElo)) Elo")
+                    .font(.system(size: 11, weight: .heavy).monospacedDigit())
+                    .foregroundStyle(Theme.ink)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 9)
+                    .background(Theme.surfaceMuted)
+                    .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    /// Corps d'une ligue : message de ligue vide, ou lignes classées.
+    @ViewBuilder
+    private func leagueRowsContent(_ league: EloLeague, _ leagueRows: [RankedLeaderboardRow]) -> some View {
+        if leagueRows.isEmpty {
+            Text(league.id == "ecricome"
+                 ? "Aucun joueur dans cette ligue."
+                 : "Aucun joueur dans cette ligue pour le moment.")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(Theme.inkSoft)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .padding(.horizontal, 14)
+        } else {
+            VStack(spacing: 0) {
+                ForEach(leagueRows.indices, id: \.self) { index in
+                    if leagueRows[index].isCurrentUser {
+                        LeaderboardRowView(row: leagueRows[index])
+                            .swipeCurrentRowVisibility($currentRowVisible)
+                    } else {
+                        LeaderboardRowView(row: leagueRows[index])
+                    }
+                    if index < leagueRows.count - 1 {
+                        LeaderboardRowDivider()
+                    }
+                }
+            }
         }
     }
 

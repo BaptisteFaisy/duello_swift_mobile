@@ -71,43 +71,14 @@ final class DictControlModel: ObservableObject {
         error = ""
         notice = ""
 
-        let acces = await DictPolicy.resolveAccess(
-            isWeb: false,
-            recognitionAvailable: { true },
-            requestWebMicrophonePermission: { await permission() },
-            requestNativeSpeechPermission: { await permission() }
-        )
-        switch acces {
-        case .granted:
-            break
-        case .denied:
-            error = permissionMessage
-            return
-        case .unavailable:
-            error = "La reconnaissance vocale n’est pas disponible sur cet appareil. Autorise la dictée dans les réglages iOS, puis réessaie."
-            return
-        }
+        guard await resoudreAcces(permissionMessage: permissionMessage) else { return }
 
         transcription = ""
         phrases = .empty
         texteComplet = ""
 
         // Mode premium : le relais temps réel d'abord, s'il est configuré.
-        if let relais = configurationRelais() {
-            let moteur = DictAsrRelay(config: relais)
-            brancher(moteur)
-            engine = relais.kind
-            do {
-                try await moteur.start()
-                isListening = true
-                notice = Self.noticeEcoute
-                return
-            } catch {
-                // Repli `device` : reconnaissance du téléphone (`fallbackToDevice`).
-                notice = DictError.engineUnavailable.errorDescription ?? ""
-                moteurActif = nil
-            }
-        }
+        if await demarrerMoteurRelais() { return }
 
         let moteur = fabriquerMoteur()
         brancher(moteur)
@@ -123,6 +94,47 @@ final class DictControlModel: ObservableObject {
         }
         isListening = true
         if notice.isEmpty { notice = Self.noticeEcoute }
+    }
+
+    /// Résout l'accès micro/reconnaissance. Renvoie vrai si l'accès est accordé ;
+    /// sinon pose `error` (message de permission ou d'indisponibilité) et renvoie faux.
+    private func resoudreAcces(permissionMessage: String) async -> Bool {
+        let acces = await DictPolicy.resolveAccess(
+            isWeb: false,
+            recognitionAvailable: { true },
+            requestWebMicrophonePermission: { await permission() },
+            requestNativeSpeechPermission: { await permission() }
+        )
+        switch acces {
+        case .granted:
+            return true
+        case .denied:
+            error = permissionMessage
+            return false
+        case .unavailable:
+            error = "La reconnaissance vocale n’est pas disponible sur cet appareil. Autorise la dictée dans les réglages iOS, puis réessaie."
+            return false
+        }
+    }
+
+    /// Tente le relais premium. Renvoie vrai s'il a démarré (dictée lancée) ;
+    /// sinon laisse le repli `device` s'appliquer au retour dans `demarrer`.
+    private func demarrerMoteurRelais() async -> Bool {
+        guard let relais = configurationRelais() else { return false }
+        let moteur = DictAsrRelay(config: relais)
+        brancher(moteur)
+        engine = relais.kind
+        do {
+            try await moteur.start()
+            isListening = true
+            notice = Self.noticeEcoute
+            return true
+        } catch {
+            // Repli `device` : reconnaissance du téléphone (`fallbackToDevice`).
+            notice = DictError.engineUnavailable.errorDescription ?? ""
+            moteurActif = nil
+            return false
+        }
     }
 
     /// Branche un moteur sur le fil des événements de l'interface.

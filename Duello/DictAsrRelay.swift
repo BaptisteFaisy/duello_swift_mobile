@@ -21,8 +21,16 @@
 //
 //  Cible : iOS 16. Aucune dépendance externe.
 //
+//  Découpage (limites de complexité) : la résolution de la route WebSocket et
+//  les attentes de connexion / de fin vivent dans `DictAsrRelay+Connexion.swift` ;
+//  la capture PCM16 dans `DictAsrRelay+Capture.swift`. Les quelques membres
+//  partagés entre fichiers sont `internal` (commentés ci-dessous).
+//
 
 import Foundation
+#if canImport(AVFoundation)
+import AVFoundation
+#endif
 #if canImport(FoundationNetworking)
 import FoundationNetworking
 #endif
@@ -57,7 +65,8 @@ final class DictAsrRelay: DictEngine {
     private let session: URLSession
     private var socket: URLSessionWebSocketTask?
     private var receiveTask: Task<Void, Never>?
-    private var connectTimeoutTask: Task<Void, Never>?
+    /// `internal` : annulé/posé aussi par `DictAsrRelay+Connexion.swift`.
+    var connectTimeoutTask: Task<Void, Never>?
     private var finishTimeoutTask: Task<Void, Never>?
 
     private var enCours = false
@@ -68,43 +77,21 @@ final class DictAsrRelay: DictEngine {
     private var pendingPcm: [Data] = []
     private var pendingPcmBytes = 0
 
-    private var connexionContinuation: CheckedContinuation<Void, Error>?
-    private var finContinuation: CheckedContinuation<Void, Never>?
-    private var finAtteinte = false
+    /// `internal` : continuations résolues dans `DictAsrRelay+Connexion.swift`.
+    var connexionContinuation: CheckedContinuation<Void, Error>?
+    var finContinuation: CheckedContinuation<Void, Never>?
+    var finAtteinte = false
 
     #if canImport(AVFoundation)
-    private let audioEngine = AVAudioEngine()
-    private var format16k: AVAudioFormat?
-    private var convertisseur: AVAudioConverter?
+    /// `internal` : lus/écrits par la capture (`DictAsrRelay+Capture.swift`).
+    let audioEngine = AVAudioEngine()
+    var format16k: AVAudioFormat?
+    var convertisseur: AVAudioConverter?
     #endif
 
     init(config: DictRelayConfig, session: URLSession = .shared) {
         self.config = config
         self.session = session
-    }
-
-    // MARK: Endpoint par moteur
-
-    /// Route WebSocket du relais pour un moteur voulu — `realtimeAsrWebSocketUrl`.
-    ///
-    /// La source ne sert qu'une seule route vocale (`<endpoint>/asr`) : le relais
-    /// y choisit lui-même Fun-ASR, Qwen-ASR puis Scribe v2. `kind` désigne donc
-    /// le moteur *préféré* du client ; `DictEngineKind.device` n'emprunte pas le
-    /// relais et rend `nil` (repli sur le moteur natif de l'appareil).
-    static func endpoint(for kind: DictEngineKind, relayEndpoint: String) throws -> URL? {
-        guard kind != .device else { return nil }
-        guard let url = URL(string: try DictPolicy.realtimeAsrUrl(relayEndpoint)) else {
-            throw DictError.invalidRelay
-        }
-        return url
-    }
-
-    /// Route WebSocket effective de la configuration.
-    static func webSocketURL(for config: DictRelayConfig) throws -> URL {
-        guard let url = try endpoint(for: config.kind, relayEndpoint: config.endpoint) else {
-            throw DictError.invalidRelay
-        }
-        return url
     }
 
     // MARK: Cycle de vie
@@ -149,15 +136,6 @@ final class DictAsrRelay: DictEngine {
 
     func cancel() {
         fermer(fin: false)
-    }
-
-    /// Attend la fin du relais (`done` ou délai de finalisation) — `stop()` async.
-    func attendreFin() async {
-        if finAtteinte { return }
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            if finAtteinte { continuation.resume(); return }
-            finContinuation = continuation
-        }
     }
 
     // MARK: Boucle de réception
@@ -214,7 +192,9 @@ final class DictAsrRelay: DictEngine {
     }
 
     /// Envoie un fragment PCM16 mono, ou le met en file pendant l'initialisation.
-    private func envoyer(_ pcm: Data) {
+    ///
+    /// `internal` : appelé aussi par la capture (`DictAsrRelay+Capture.swift`).
+    func envoyer(_ pcm: Data) {
         guard let socket, !stopSent else { return }
         if providerReady {
             socket.send(.data(pcm)) { _ in }
@@ -230,6 +210,8 @@ final class DictAsrRelay: DictEngine {
             ))
         }
     }
+
+    // MARK: Fermeture
 
     /// Ferme la socket et signale la fin, en émettant `done` une seule fois.
     private func fermer(fin: Bool) {
@@ -254,100 +236,4 @@ final class DictAsrRelay: DictEngine {
         }
         signalerFin()
     }
-
-    // MARK: Connexion / fin (continuations)
-
-    private func attendreConnexion() async throws {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            connexionContinuation = continuation
-            connectTimeoutTask = Task { [weak self] in
-                try? await Task.sleep(nanoseconds: UInt64(Self.connectTimeout * 1_000_000_000))
-                guard !Task.isCancelled else { return }
-                self?.signalerConnexion(erreur: DictError.engineUnavailable)
-            }
-        }
-    }
-
-    private func signalerConnexion(erreur: Error?) {
-        guard let continuation = connexionContinuation else { return }
-        connexionContinuation = nil
-        connectTimeoutTask?.cancel()
-        connectTimeoutTask = nil
-        if let erreur { continuation.resume(throwing: erreur) } else { continuation.resume() }
-    }
-
-    private func signalerFin() {
-        finAtteinte = true
-        if let continuation = finContinuation {
-            finContinuation = nil
-            continuation.resume()
-        }
-    }
 }
-
-#if canImport(AVFoundation)
-import AVFoundation
-
-extension DictAsrRelay {
-    /// Démarre la capture PCM16 mono 16 kHz
-    /// (`useAudioStream({sampleRate:16_000, channels:1, encoding:'int16'})`).
-    func demarrerCapture() {
-        let entree = audioEngine.inputNode
-        let formatEntree = entree.outputFormat(forBus: 0)
-        let cible = AVAudioFormat(
-            commonFormat: .pcmFormatInt16,
-            sampleRate: Self.sampleRate,
-            channels: 1,
-            interleaved: true
-        )
-        format16k = cible
-        convertisseur = cible.flatMap { AVAudioConverter(from: formatEntree, to: $0) }
-        entree.installTap(onBus: 0, bufferSize: 1024, format: formatEntree) { [weak self] buffer, _ in
-            guard let self, let data = self.pcm16(from: buffer) else { return }
-            self.envoyer(data)
-        }
-        audioEngine.prepare()
-        try? audioEngine.start()
-    }
-
-    /// Arrête la capture et retire le tap.
-    func arreterCapture() {
-        guard audioEngine.isRunning else { return }
-        audioEngine.stop()
-        audioEngine.inputNode.removeTap(onBus: 0)
-    }
-
-    /// Convertit un buffer capté en PCM16 mono, moyenné sans écrêtage.
-    private func pcm16(from buffer: AVAudioPCMBuffer) -> Data? {
-        guard let format16k, let convertisseur else { return nil }
-        let ratio = format16k.sampleRate / buffer.format.sampleRate
-        let capacite = AVAudioFrameCount(Double(buffer.frameLength) * ratio) + 1
-        guard let sortie = AVAudioPCMBuffer(pcmFormat: format16k, frameCapacity: capacite) else {
-            return nil
-        }
-        var erreur: NSError?
-        var fourni = false
-        let statut = convertisseur.convert(to: sortie, error: &erreur) { _, etatSortie in
-            if fourni {
-                etatSortie.pointee = .noDataNow
-                return nil
-            }
-            fourni = true
-            etatSortie.pointee = .haveData
-            return buffer
-        }
-        guard statut != .error, let canal = sortie.int16ChannelData else { return nil }
-        let trames = Int(sortie.frameLength)
-        let brut = Data(bytes: canal[0], count: trames * MemoryLayout<Int16>.size)
-        return DictPolicy.monoPcm16(brut, channels: Int(format16k.channelCount))
-    }
-}
-#else
-extension DictAsrRelay {
-    /// Sans `AVFoundation`, aucune capture audio n'est possible : le relais ne
-    /// peut pas alimenter le relais et le modèle bascule sur le repli `device`.
-    func demarrerCapture() {}
-    /// Sans `AVFoundation`, il n'y a aucun tap à retirer.
-    func arreterCapture() {}
-}
-#endif
