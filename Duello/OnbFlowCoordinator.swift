@@ -68,10 +68,23 @@ final class OnbFlowCoordinator: ObservableObject {
     /// session est rendue avec l'identité par le bouton, puis mémorisée.
     @Published var providerSession: DuelloAPI.SessionPayload?
 
-    init(mode: OnbDataSteps.Mode, initialProfile: UserProfile) {
+    /// `requiresRegistrationPreflight` (surcharge) : force le verdict du
+    /// pré-vol. Un parcours ouvert sur une **session déjà ouverte** (profil
+    /// incomplet à compléter, cf. `RootView`) ne crée aucun compte : il n'y a
+    /// rien à pré-voler, et le contrôle répondrait 409 « Un compte existe déjà
+    /// avec cette adresse e-mail » sur l'adresse de l'utilisateur — ce qui
+    /// bloquait définitivement l'avance (`advanceBlocked` inclut
+    /// `!preflightReady`, sans chemin de reprise). `nil` = règle de la source
+    /// (`mode != .guest`).
+    init(
+        mode: OnbDataSteps.Mode,
+        initialProfile: UserProfile,
+        requiresRegistrationPreflight override: Bool? = nil
+    ) {
+        let requiresPreflight = override ?? (mode != .guest)
         self.mode = mode
-        self.requiresRegistrationPreflight = mode != .guest
-        self.preflightState = mode != .guest ? .checking : .ready
+        self.requiresRegistrationPreflight = requiresPreflight
+        self.preflightState = requiresPreflight ? .checking : .ready
         let path = OnbFlowAcademic.normalizePath(initialProfile)
         self.path = path
         self.profile = OnbFlowAcademic.synchronizedProfile(initialProfile, path: path)
@@ -342,7 +355,7 @@ final class OnbFlowCoordinator: ObservableObject {
                 return
             }
         }
-        if currentStep == .authMethod, !hasProviderIdentity {
+        if currentStep == .authMethod, requiresRegistrationPreflight, !hasProviderIdentity {
             isCheckingRegistrationDetails = true
             let alert = await OnbFlowSteps.checkRegistrationPreflight(email: profile.email)
             isCheckingRegistrationDetails = false

@@ -26,9 +26,12 @@
 //   - la filière « actuelle » expose toutes celles de l'année
 //     (`OnbFlowCoordinator.currentTrackChoices`), comme la source ; le lycée
 //     passe par les pages « niveau » puis « spécialité » ;
-//   - en mode `.account`, le pré-vol d'inscription interroge le serveur au
-//     montage (`OnbFlowSteps.checkRegistrationPreflight`) : hors ligne, l'avance
-//     reste bloquée (« Création de compte indisponible ») ;
+//   - le pré-vol d'inscription (`OnbFlowSteps.checkRegistrationPreflight`)
+//     n'est joué que pour un parcours **sans session** (`SignupFlowView`) : il
+//     est désactivé quand la session est déjà ouverte, puisque ce parcours
+//     complète un profil sans créer de compte (sinon le serveur répond 409
+//     « Un compte existe déjà avec cette adresse e-mail » et l'avance reste
+//     bloquée) ;
 //   - les identifiants collectés (mot de passe, biométrie, fournisseur) ne sont
 //     pas transmis au serveur ici : seul le profil local est écrit à la
 //     complétion.
@@ -71,6 +74,12 @@ struct OnboardingView: View {
         OnbFlowView(
             mode: mode,
             initialProfile: session.profile,
+            // Session déjà ouverte : ce parcours complète un profil, il ne crée
+            // aucun compte. Le pré-vol d'inscription n'a donc rien à vérifier —
+            // et il répondait 409 « Un compte existe déjà avec cette adresse
+            // e-mail » sur l'adresse de l'utilisateur, ce qui bloquait l'avance
+            // définitivement (« Continuer » désactivé, sans reprise possible).
+            requiresRegistrationPreflight: !session.isSignedIn,
             onComplete: { profile, _ in commit(profile) },
             onCancel: onCancel
         )
