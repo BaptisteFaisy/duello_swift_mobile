@@ -665,6 +665,8 @@
 		06C47F37FECC536A1229CE90 /* AcctIntNotificationsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FD9D4CA30D61FB7410A560D /* AcctIntNotificationsSheet.swift */; };
 		5F26C59D8E7D986266A341B3 /* AcctIntSearchRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8276ED1B0008EC96E15FA14 /* AcctIntSearchRow.swift */; };
 		9E78F1D7E5E871C29AE15E82 /* SubjTrainingMetricsBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC25F5960D4E288ADF6E761B /* SubjTrainingMetricsBar.swift */; };
+		FCD9DB439A913C3E330B8129 /* DictAsrRelay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FE073E209BFDBF21DF8F562 /* DictAsrRelay.swift */; };
+		43D8BA2BD73F315546C42F56 /* ImageCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41DBA0581EF780A37AB1DB6A /* ImageCache.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -1327,6 +1329,8 @@
 		9FD9D4CA30D61FB7410A560D /* AcctIntNotificationsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctIntNotificationsSheet.swift; sourceTree = "<group>"; };
 		C8276ED1B0008EC96E15FA14 /* AcctIntSearchRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctIntSearchRow.swift; sourceTree = "<group>"; };
 		FC25F5960D4E288ADF6E761B /* SubjTrainingMetricsBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjTrainingMetricsBar.swift; sourceTree = "<group>"; };
+		4FE073E209BFDBF21DF8F562 /* DictAsrRelay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictAsrRelay.swift; sourceTree = "<group>"; };
+		41DBA0581EF780A37AB1DB6A /* ImageCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCache.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -2010,6 +2014,8 @@
 				9FD9D4CA30D61FB7410A560D /* AcctIntNotificationsSheet.swift */,
 				C8276ED1B0008EC96E15FA14 /* AcctIntSearchRow.swift */,
 				FC25F5960D4E288ADF6E761B /* SubjTrainingMetricsBar.swift */,
+				4FE073E209BFDBF21DF8F562 /* DictAsrRelay.swift */,
+				41DBA0581EF780A37AB1DB6A /* ImageCache.swift */,
 			);
 			path = Duello;
 			sourceTree = "<group>";
@@ -2749,6 +2755,8 @@
 				06C47F37FECC536A1229CE90 /* AcctIntNotificationsSheet.swift in Sources */,
 				5F26C59D8E7D986266A341B3 /* AcctIntSearchRow.swift in Sources */,
 				9E78F1D7E5E871C29AE15E82 /* SubjTrainingMetricsBar.swift in Sources */,
+				FCD9DB439A913C3E330B8129 /* DictAsrRelay.swift in Sources */,
+				43D8BA2BD73F315546C42F56 /* ImageCache.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
