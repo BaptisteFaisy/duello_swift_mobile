@@ -143,22 +143,15 @@ struct OnbFlowProviderButtons: View {
             Button {
                 signInWithGoogle()
             } label: {
-                HStack(spacing: 10) {
+                HStack(spacing: Theme.providerFieldSpacing) {
                     GoogleGLogo()
-                        .frame(width: 20, height: 20)
+                        .frame(width: Theme.providerLogoSize, height: Theme.providerLogoSize)
                     Text(isGoogleLoading ? "Connexion à Google…" : "Continuer avec Google")
                         .font(.system(size: 15, weight: .semibold))
                 }
-                .foregroundStyle(Theme.ink)
-                .frame(maxWidth: .infinity, minHeight: 52)
-                .background(Theme.surface)
-                .clipShape(RoundedRectangle(cornerRadius: 14))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .strokeBorder(Theme.border, lineWidth: 1.5)
-                )
+                .frame(maxWidth: .infinity, minHeight: Theme.providerFieldMinHeight)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(GoogleFieldButtonStyle(appearance: .light, isDimmed: isGoogleLoading))
             .disabled(isGoogleLoading)
             .accessibilityLabel("Continuer avec Google")
 
@@ -171,8 +164,9 @@ struct OnbFlowProviderButtons: View {
 
             if let googleError {
                 Text(googleError)
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(Theme.like)
+                    .font(.system(size: 11))
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(Theme.providerError)
             }
         }
     }

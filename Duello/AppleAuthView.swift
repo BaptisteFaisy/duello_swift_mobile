@@ -12,8 +12,11 @@
 //    - src/components/SocialAuthFallbackButton.tsx (`SocialAuthFallbackButton`,
 //                                                 `unavailableMessage`)
 //
-//  `AppleAuthView` reproduit le bouton natif : apparence claire/sombre, état
-//  de chargement « Connexion à Apple… », message d'erreur, et silence total
+//  `AppleAuthView` porte le bouton « Continuer avec Apple » **dans la peinture
+//  du champ d'onboarding** (`GoogleFieldButtonStyle`), la même que le bouton
+//  Google : les deux fournisseurs de l'étape `auth-method` forment une paire,
+//  cotes et couleurs dans `Theme.provider*`. États : libellé échangé contre
+//  « Connexion à Apple… » pendant l'échange, message d'erreur, silence total
 //  sur une annulation. `AppleAuthFallbackButton` couvre le repli web.
 //
 //  Limite assumée : `AuthenticationServices` n'est pas vérifiable hors Apple ;
@@ -51,39 +54,35 @@ struct AppleAuthView: View {
             } label: {
                 label
             }
-            .buttonStyle(.plain)
+            .buttonStyle(GoogleFieldButtonStyle(
+                appearance: appearance == .dark ? .dark : .light,
+                isDimmed: disabled || isLoading
+            ))
             .disabled(disabled || isLoading)
-            .opacity(disabled || isLoading ? 0.55 : 1)
             .accessibilityLabel("Continuer avec Apple")
 
-            if isLoading {
-                Text("Connexion à Apple…")
-                    .font(.system(size: 11))
-                    .foregroundStyle(appearance == .dark ? AppleAuthPalette.statusOnDark : Theme.inkSoft)
-                    .multilineTextAlignment(.center)
-            }
             if let errorMessage {
                 Text(errorMessage)
                     .font(.system(size: 11))
-                    .foregroundStyle(appearance == .dark ? AppleAuthPalette.errorOnDark : AppleAuthPalette.error)
+                    .foregroundStyle(appearance == .dark ? Theme.providerErrorOnDark : Theme.providerError)
                     .multilineTextAlignment(.center)
             }
         }
         .frame(maxWidth: .infinity)
     }
 
-    /// Corps du bouton : logo Apple + libellé, encre pleine sur fond clair.
+    /// Corps du bouton : logo Apple + libellé, posés dans la peinture du champ
+    /// d'onboarding partagée avec le bouton Google (`GoogleFieldButtonStyle`).
+    /// Le libellé s'échange contre « Connexion à Apple… » pendant l'échange,
+    /// comme celui du bouton Google : rien à lire sous le bouton.
     private var label: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: Theme.providerFieldSpacing) {
             Image(systemName: "apple.logo")
-                .font(.system(size: 17, weight: .medium))
-            Text("Continuer avec Apple")
+                .font(.system(size: Theme.providerLogoSize, weight: .medium))
+            Text(isLoading ? "Connexion à Apple…" : "Continuer avec Apple")
                 .font(.system(size: 15, weight: .semibold))
         }
-        .frame(maxWidth: .infinity, minHeight: 55)
-        .foregroundStyle(appearance == .dark ? AppleAuthPalette.inkOnLight : AppleAuthPalette.lightOnInk)
-        .background(appearance == .dark ? AppleAuthPalette.lightOnInk : AppleAuthPalette.inkOnLight)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .frame(maxWidth: .infinity, minHeight: Theme.providerFieldMinHeight)
     }
 
     /// Preuve native puis vérification serveur ; l'annulation ne laisse
@@ -140,7 +139,7 @@ struct AppleAuthFallbackButton: View {
             if let errorMessage {
                 Text(errorMessage)
                     .font(.system(size: 11))
-                    .foregroundStyle(appearance == .dark ? AppleAuthPalette.errorOnDark : AppleAuthPalette.error)
+                    .foregroundStyle(appearance == .dark ? Theme.providerErrorOnDark : Theme.providerError)
                     .multilineTextAlignment(.center)
             }
         }
@@ -158,13 +157,10 @@ struct AppleAuthFallbackButton: View {
     }
 }
 
-/// Teintes du bouton Apple, reprises de `appleErrorMessage` et des styles de
-/// `AppleAuthButton.tsx` / `SocialAuthFallbackButton.tsx`.
+/// Teintes du repli web (`AppleAuthFallbackButton`), reprises de
+/// `SocialAuthFallbackButton.tsx`. Les teintes des états du bouton (statut,
+/// échec) vivent dans `Theme.provider*`, partagées avec le bouton Google.
 private enum AppleAuthPalette {
-    /// `colors.prerequisitesMissing` (`#B42318`).
-    static let error = Color(hex: 0xB42318)
-    static let errorOnDark = Color(hex: 0xFF8A80)
-    static let statusOnDark = Color(hex: 0xA3A3A3)
     static let inkOnLight = Color(hex: 0x1F1F1F)
     static let lightOnInk = Color(hex: 0xFFFFFF)
     static let fallbackBorder = Color(hex: 0x747775)

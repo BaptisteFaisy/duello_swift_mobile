@@ -83,23 +83,23 @@ struct GoogleAuthButton: View {
             Button {
                 authenticate()
             } label: {
-                HStack(spacing: 10) {
+                HStack(spacing: Theme.providerFieldSpacing) {
                     GoogleGLogo()
-                        .frame(width: 20, height: 20)
+                        .frame(width: Theme.providerLogoSize, height: Theme.providerLogoSize)
                     Text(isLoading ? "Connexion à Google…" : "Se connecter avec Google")
                         .font(.system(size: 15, weight: .semibold))
                 }
-                .frame(maxWidth: .infinity, minHeight: 55)
+                .frame(maxWidth: .infinity, minHeight: Theme.providerFieldMinHeight)
             }
-            .buttonStyle(GoogleFieldButtonStyle(appearance: appearance))
+            .buttonStyle(GoogleFieldButtonStyle(appearance: appearance, isDimmed: isLoading))
             .disabled(isLoading)
             .accessibilityLabel("Se connecter avec Google")
 
             if let errorMessage {
                 Text(errorMessage)
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.system(size: 11))
                     .multilineTextAlignment(.center)
-                    .foregroundStyle(appearance == .dark ? Color(hex: 0xFF8A80) : Theme.like)
+                    .foregroundStyle(appearance == .dark ? Theme.providerErrorOnDark : Theme.providerError)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -125,8 +125,15 @@ struct GoogleAuthButton: View {
 
 /// Style du champ d'onboarding Expo : fond sombre, bordure blanche 1.5,
 /// rayon 14, pressé : #1D1D1D.
+///
+/// C'est le style **commun** des deux fournisseurs de l'étape `auth-method` :
+/// `GoogleAuthButton` et `AppleAuthView` le partagent, donc les deux boutons
+/// d'une même paire ne peuvent pas diverger. Les cotes qu'il ne porte pas
+/// (hauteur, écart, logo) vivent dans `Theme.providerField*`.
 struct GoogleFieldButtonStyle: ButtonStyle {
     var appearance: GoogleAuthButton.Appearance
+    /// Bouton hors service : 55 %, le `styles.disabled` des deux boutons Expo.
+    var isDimmed: Bool = false
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -139,8 +146,14 @@ struct GoogleFieldButtonStyle: ButtonStyle {
                 RoundedRectangle(cornerRadius: 14)
                     .strokeBorder(appearance == .dark ? Color.white : Theme.border, lineWidth: 1.5)
             )
-            .opacity(configuration.isPressed && appearance == .light ? 0.84 : 1)
+            .opacity(restingOpacity(configuration))
             .scaleEffect(configuration.isPressed ? 0.99 : 1)
+    }
+
+    /// 55 % hors service, 84 % à l'appui en clair, 100 % sinon.
+    private func restingOpacity(_ configuration: Configuration) -> Double {
+        if isDimmed { return 0.55 }
+        return configuration.isPressed && appearance == .light ? 0.84 : 1
     }
 }
 
