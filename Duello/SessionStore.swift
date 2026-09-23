@@ -29,7 +29,9 @@ final class SessionStore: ObservableObject {
     @Published var profile: UserProfile = UserProfile()
     @Published var isLoadingSession: Bool = true
 
-    private(set) var session: ServerSession?
+    /// Écriture réservée au module : `installSession`/`signOut` ici, et le mode
+    /// capture (`ScreenshotTour`, outil de dev) qui sème une session factice.
+    var session: ServerSession?
 
     private static let service = "com.duello.ios.session"
     private static let account = "session-v1"
@@ -37,6 +39,12 @@ final class SessionStore: ObservableObject {
 
     init() {
         restoreSession()
+        // Mode capture (outil de développement) : une session factice remplace
+        // celle restaurée pour que les écrans authentifiés s'affichent dans un
+        // simulateur CI sans compte. Hors de ce mode, `ScreenshotTour.screen`
+        // vaut `nil` et rien de ceci ne s'exécute. La logique vit dans
+        // `ScreenshotTour.swift` — outil de dev, jamais livré à l'usage.
+        ScreenshotTour.seedSessionIfNeeded(self)
     }
 
     var token: String? { session?.token }

@@ -1,0 +1,212 @@
+# codemagic.yaml — CI iOS de duello_swift_mobile, hors GitHub Actions.
+#
+# Pourquoi ce fichier existe
+# --------------------------
+# Les runners macOS hébergés par GitHub sont facturés ×10 (0,062 $/min contre
+# 0,006 $ en Linux) : les 2 000 min gratuites du plan valent donc ~200 min
+# macOS/mois. Mesure sur septembre : 195,6 min macOS consommées par
+# `screenshots` (85,2), `ios-build` (66,8), `testflight` (25,2) et `ios-adhoc`
+# (18,4) — soit 97,8 % du quota en trois jours. Sans moyen de paiement, GitHub
+# bloque alors TOUT job GitHub-hosted du compte (annotation mesurée :
+# « recent account payments have failed or your spending limit needs to be
+# increased »).
+#
+# Ce qui n'est PAS touché : les runners auto-hébergés du ZenBook (`Batterie`,
+# `hermes`, `hermes-watchdog`) restent gratuits et illimités — et la protection
+# de `main` n'exige qu'un seul check, « Hermes », produit par le gate
+# auto-hébergé. Les PR continuent donc de fusionner ; seuls le build iOS et les
+# captures étaient perdus.
+#
+# Codemagic : 500 min macOS M2/mois rechargées chaque mois, repo privé accepté.
+# Besoin mesuré ~196 min/mois ⇒ marge 2,5×. `mac_mini_m2` (M2 8 cœurs / 12 Go)
+# est la machine couverte par l'offre gratuite ; `mac_mini_m4` est facturée
+# 0,114 $/min sans franchise.
+#
+# Workflows
+# ---------
+#   ios-screenshots : build simulateur + 19 captures. AUCUN secret requis :
+#                     fonctionne dès que le dépôt est connecté.
+#   ios-testflight  : archive signée + envoi TestFlight. Exige une clé
+#                     App Store Connect ajoutée dans Codemagic
+#                     (Team settings > Developer Portal > Manage keys),
+#                     nommée exactement « Duello ASC » (voir `integrations`).
+#
+# Déclenchement volontairement MANUEL : c'est le déclenchement automatique sur
+# chaque PR qui a vidé le quota GitHub. Pour l'activer, décommenter `triggering`
+# dans le workflow voulu.
+
+workflows:
+
+  ios-screenshots:
+    name: Captures simulateur
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+
+    environment:
+      # Xcode 26.3 (17C529) : la MÊME build que celle qu'utilisait le runner
+      # GitHub macos-15, pour que les captures restent comparables.
+      xcode: 26.3
+      vars:
+        # Écrans photographiés. Ajouter une valeur ici suffit : le mode capture
+        # la reconnaît côté app (Duello/ScreenshotTour.swift).
+        SHOT_SCREENS: welcome login register onboarding profile training challenges settings settings-personal settings-account settings-duello premium feedback privacy terms email password blocked notifications
+        BUNDLE_ID: com.prepapp.mobile.swift
+        # Modèles de simulateur par ordre de préférence. L'image Codemagic
+        # Xcode 26.3 liste iPhone 16e / 17 / 17 Pro / 17 Pro Max / iPhone Air —
+        # « iPhone 16 » (celui des captures GitHub, 1179×2556) n'est pas dans
+        # cette liste : le script crée le device si le *type* existe encore,
+        # sinon il retombe sur le suivant et l'annonce dans le journal.
+        DEVICE_PREFS: iPhone 16,iPhone 16e,iPhone 17,iPhone Air
+
+    scripts:
+
+      - name: Outillage
+        script: |
+          set -e
+          xcodebuild -version
+          xcrun simctl list runtimes
+
+      - name: Dépendances SwiftPM (GoogleSignIn-iOS)
+        script: |
+          set -e
+          xcodebuild -resolvePackageDependencies \
+            -project "$CM_BUILD_DIR/Duello.xcodeproj" -scheme Duello
+
+      - name: Build simulateur (sans signature)
+        script: |
+          set -e
+          # Destination générique : on construit pour le simulateur sans
+          # dépendre d'un modèle précis, et on installera le .app sur le
+          # device créé juste après.
+          xcodebuild build \
+            -project "$CM_BUILD_DIR/Duello.xcodeproj" \
+            -scheme Duello \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$CM_BUILD_DIR/build" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY=""
+
+      - name: Simulateur — création et démarrage
+        script: |
+          set -e
+          UDID="$(python3 - <<'PY'
+          import json, os, subprocess
+          def sh(*a):
+              return subprocess.check_output(a, text=True)
+
+          types = {t["name"]: t["identifier"] for t in
+                   json.loads(sh("xcrun", "simctl", "list", "devicetypes", "--json"))["devicetypes"]}
+
+          rts = [r for r in json.loads(sh("xcrun", "simctl", "list", "runtimes", "--json"))["runtimes"]
+                 if r.get("isAvailable") and r["identifier"].startswith("com.apple.CoreSimulator.SimRuntime.iOS")]
+          if not rts:
+              raise SystemExit("aucun runtime iOS disponible")
+          rts.sort(key=lambda r: [int(x) for x in r["version"].split(".")])
+          rt = rts[-1]
+
+          prefs = [p.strip() for p in os.environ.get("DEVICE_PREFS", "").split(",") if p.strip()]
+          name = next((p for p in prefs if p in types), None)
+          if name is None:
+              raise SystemExit("aucun device type parmi %s ; disponibles : %s"
+                               % (prefs, sorted(t for t in types if "iPhone" in t)))
+
+          # Trace explicite : si l'on retombe sur un autre modèle que le
+          # premier choix, la géométrie des captures change (1179×2556 pour
+          # iPhone 16) et il faut le savoir en lisant le journal.
+          if name != prefs[0]:
+              print("ATTENTION : %s introuvable, repli sur %s" % (prefs[0], name))
+          else:
+              print("Modèle demandé disponible : %s" % name)
+
+          print(sh("xcrun", "simctl", "create", "Duello-capture",
+                   types[name], rt["identifier"]).strip())
+          PY
+          )"
+          echo "Simulateur : $UDID"
+          echo "DEVICE_UDID=$UDID" >> "$CM_ENV"
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+
+      - name: Photographier chaque écran
+        script: |
+          set -e
+          APP="$(find "$CM_BUILD_DIR/build/Build/Products" -maxdepth 2 -name 'Duello.app' -type d | head -1)"
+          echo "App : $APP"
+          xcrun simctl install "$DEVICE_UDID" "$APP"
+          mkdir -p "$CM_BUILD_DIR/shots"
+          for SCREEN in $SHOT_SCREENS; do
+            echo "— écran : $SCREEN"
+            xcrun simctl terminate "$DEVICE_UDID" "$BUNDLE_ID" >/dev/null 2>&1 || true
+            # Laisse le premier rendu, les polices et un éventuel appel réseau
+            # se poser : un écran capturé trop tôt est un écran vide.
+            SIMCTL_CHILD_DUELLO_SHOT="$SCREEN" \
+              xcrun simctl launch "$DEVICE_UDID" "$BUNDLE_ID" >/dev/null
+            sleep 8
+            xcrun simctl io "$DEVICE_UDID" screenshot "$CM_BUILD_DIR/shots/$SCREEN.png"
+          done
+          ls -la "$CM_BUILD_DIR/shots"
+          # Émulation de l'échec `if-no-files-found: error` du workflow GitHub.
+          test "$(ls -1 "$CM_BUILD_DIR"/shots/*.png | wc -l)" -ge 19
+
+    artifacts:
+      - $CM_BUILD_DIR/shots/*.png
+
+  ios-testflight:
+    name: Archive + TestFlight
+    instance_type: mac_mini_m2
+    max_build_duration: 90
+
+    integrations:
+      # Nom de la clé App Store Connect créée dans l'UI Codemagic
+      # (Team settings > Developer Portal > Manage keys). La clé existe déjà :
+      # Key ID J4PAPR5539, .p8 au coffre (vault-T7/apple-p8/).
+      app_store_connect: Duello ASC
+
+    environment:
+      xcode: 26.3
+      ios_signing:
+        # Codemagic va chercher (ou créer) le certificat de distribution et le
+        # profil App Store de ce bundle ID via la clé ASC ci-dessus, puis
+        # `xcode-project use-profiles` réécrit les réglages de signature du
+        # projet — c'est nécessaire car le projet porte une signature MANUELLE
+        # (CODE_SIGN_STYLE=Manual + PROVISIONING_PROFILE_SPECIFIER=duello-swift-appstore)
+        # qui ne correspondrait à aucun profil créé côté Codemagic.
+        distribution_type: app_store
+        bundle_identifier: com.prepapp.mobile.swift
+
+    scripts:
+
+      - name: Dépendances SwiftPM (GoogleSignIn-iOS)
+        script: |
+          set -e
+          xcodebuild -resolvePackageDependencies \
+            -project "$CM_BUILD_DIR/Duello.xcodeproj" -scheme Duello
+
+      - name: Installation des profils de provisionnement
+        script: |
+          set -e
+          xcode-project use-profiles
+
+      - name: Archive + export IPA
+        script: |
+          set -e
+          BN="${BUILD_NUMBER:-$(date -u +%Y%m%d%H%M)}"
+          echo "CFBundleVersion = $BN"
+          xcode-project build-ipa \
+            --project "$CM_BUILD_DIR/Duello.xcodeproj" \
+            --scheme Duello \
+            --archive-flags "-destination generic/platform=iOS CURRENT_PROJECT_VERSION=$BN"
+          ls -la "$CM_BUILD_DIR/build/ios/ipa"
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+
+    publishing:
+      app_store_connect:
+        auth: integration
+        # Envoi direct à TestFlight : l'iPhone 8 et l'iPad Pro sont testeurs
+        # internes (groupe « Testeurs internes »), donc installables par les
+        # airs — plus de câble, plus de profil ad hoc, plus de zsign.
+        submit_to_testflight: true
