@@ -114,6 +114,17 @@ jobs:
 
           GH = os.environ["GH_TOKEN"]
           KEY = os.environ.get("AGNES_API_KEY", "")
+
+          # [HERMES-LLM-ROUTER] Passerelle LLM locale (mini-router, port 18100,
+          # joignable par Tailscale) : elle porte les cles et le failover
+          # (inferhub-qwen -> combo/cheap -> meta -> agnes) et applique elle-meme ce
+          # que Muse exige. Fournie par l'environnement du runner (~/hermes/env,
+          # HERMES_LLM_BASE) ; absente => repli sur l'appel direct a Agnes.
+          LLM_BASE = (os.environ.get("LLM_BASE") or os.environ.get("HERMES_LLM_BASE") or "").strip().rstrip("/")
+          LLM_KEY = (os.environ.get("LLM_KEY") or os.environ.get("HERMES_LLM_KEY") or "").strip()
+          LLM_MODEL = (os.environ.get("LLM_MODEL") or os.environ.get("HERMES_LLM_MODEL") or "").strip() or "muse-spark-1.3-contributor"
+          LLM_MODEL_FALLBACK = (os.environ.get("LLM_MODEL_FALLBACK") or os.environ.get("HERMES_LLM_MODEL_FALLBACK") or "").strip() or "combo/cheap"
+          AGNES_URL = "https://apihub.agnes-ai.com/v1/chat/completions"
           AUTO_MERGE = (os.environ.get("HERMES_AUTO_MERGE", "1").strip().lower()
                         not in ("0", "false", "no", "off"))
           REPO = os.environ["GITHUB_REPOSITORY"]
@@ -157,9 +168,58 @@ jobs:
                       time.sleep(2 * (attempt + 1))
               return {"_error": 0, "_body": "reseau: %r" % last}
 
+          def _llm_chat(sysmsg, user_text, label, task, max_tokens, temperature=0.0, timeout=300):
+              """Un appel LLM : passerelle locale d'abord, Agnes direct en repli.
+
+              [HERMES-LLM-ROUTER] La passerelle porte les cles et le failover
+              (inferhub-qwen -> combo/cheap -> meta -> agnes) et applique elle-meme ce
+              que Muse exige (User-Agent muse-build, reasoning_effort=max, plancher de
+              max_tokens). Rend le texte, ou None si aucun leg n'a servi.
+              """
+              legs = []
+              if LLM_BASE:
+                  legs.append((LLM_BASE + "/chat/completions", LLM_MODEL, "router"))
+                  if LLM_MODEL_FALLBACK and LLM_MODEL_FALLBACK != LLM_MODEL:
+                      legs.append((LLM_BASE + "/chat/completions", LLM_MODEL_FALLBACK, "router"))
+              if KEY:
+                  legs.append((AGNES_URL, "agnes-3.0-flash", "agnes"))
+              for url, model, prov in legs:
+                  payload = {"model": model,
+                             "messages": [{"role": "system", "content": sysmsg},
+                                          {"role": "user", "content": user_text}],
+                             "max_tokens": max_tokens, "temperature": temperature}
+                  req = urllib.request.Request(url, data=json.dumps(payload).encode(), method="POST")
+                  if prov == "agnes":
+                      req.add_header("Authorization", "Bearer " + KEY)
+                  elif LLM_KEY:
+                      req.add_header("Authorization", "Bearer " + LLM_KEY)
+                  req.add_header("Content-Type", "application/json")
+                  try:
+                      with urllib.request.urlopen(req, data=None, timeout=(timeout if prov == "router" else 120)) as r:
+                          d = json.loads(r.read())
+                  except urllib.error.HTTPError as e:
+                      print("[llm] %s (%s/%s): HTTP %s %s" % (label, prov, model, e.code, e.read().decode()[:300]))
+                      continue
+                  except Exception as e:
+                      print("[llm] %s (%s/%s): %s" % (label, prov, model, e))
+                      continue
+                  _log = globals().get("log_agnes_usage")
+                  if _log:
+                      try:
+                          _log(d, task=task, model=model, provider=prov)
+                      except Exception:
+                          pass
+                  msg = d["choices"][0]["message"]
+                  out = (msg.get("content") or msg.get("reasoning_content") or "").strip()
+                  if not out:
+                      print("[llm] %s (%s/%s): reponse vide" % (label, prov, model))
+                      continue
+                  return out
+              return None
+
           def ai_review(title, body_text, diff_text):
-              if not KEY:
-                  print("[agnes] pas de cle AGNES_API_KEY — revue ignoree")
+              if not KEY and not LLM_BASE:
+                  print("[llm] ni cle AGNES_API_KEY ni passerelle — revue ignoree")
                   return None
               sysmsg = (
                   "Tu es Hermes, agent reviewer automatique du projet Duello, en intensite MAXIMALE. "
@@ -173,28 +233,7 @@ jobs:
               )
               user = "TITRE: %s\n\nDESCRIPTION:\n%s\n\nDIFF (tronqué):\n%s" % (
                   title, (body_text or "")[:4000], diff_text)
-              payload = {
-                  "model": "agnes-3.0-flash",
-                  "messages": [{"role": "system", "content": sysmsg},
-                               {"role": "user", "content": user}],
-                  "max_tokens": 1600,
-                  "temperature": 0.2,
-              }
-              req = urllib.request.Request("https://apihub.agnes-ai.com/v1/chat/completions",
-                                           data=json.dumps(payload).encode(), method="POST")
-              req.add_header("Authorization", "Bearer " + KEY)
-              req.add_header("Content-Type", "application/json")
-              try:
-                  with urllib.request.urlopen(req, data=None, timeout=120) as r:
-                      d = json.loads(r.read())
-                  msg = d["choices"][0]["message"]
-                  return (msg.get("content") or msg.get("reasoning_content") or "").strip()
-              except urllib.error.HTTPError as e:
-                  print("[agnes] erreur HTTP %s: %s" % (e.code, e.read().decode()[:500]))
-                  return None
-              except Exception as e:
-                  print("[agnes] erreur: %s" % e)
-                  return None
+              return _llm_chat(sysmsg, user, "gate", "gate-review", max_tokens=1600, temperature=0.2)
 
           def ensure_label(name, color, desc):
               r = api("POST", "/repos/%s/labels" % REPO,
