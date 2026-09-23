@@ -5,9 +5,14 @@
 //  LOT 12-B — déroulé de l'inscription : la machine à états du parcours.
 //
 //  Fichier source Expo porté : `src/screens/OnboardingScreen.tsx`
-//  (état `useState` de l'écran, `chooseYear`, `chooseCurrentTrack`,
-//  `chooseOrigin`, `setAcademicPath`, `advance`/`continueOnboarding` pour la
-//  partie navigation, `goBack`, `updateProfile`).
+//  (état `useState` de l'écran, `chooseYear`, `chooseOnboardingLevel`,
+//  `chooseCurrentTrack`, `chooseOrigin`, `chooseLyceeSpecialty`,
+//  `setAcademicPath`, `advance`/`continueOnboarding` pour la partie navigation,
+//  `goBack`, `updateProfile`).
+//
+//  Monde lycée (lot « onb-lycee-rn », 2026-09-23) : `isLyceeFlow`, `yearChoices`,
+//  `lyceeSpecialtyChoices`, `asksForMathOption` et `asksForOrigin` reproduisent
+//  les dérivés de l'écran (lignes 253-286).
 //
 //  Équivalent `ObservableObject` de l'écran à hooks, compatible iOS 16 (pas de
 //  `@Observable`). La logique d'affichage reste dans `OnbFlowStepContent`, les
@@ -76,7 +81,12 @@ final class OnbFlowCoordinator: ObservableObject {
 
     /// Étapes réellement parcourues (`resolveOnboardingSteps`).
     var steps: [OnbDataSteps.Step] {
-        OnbDataSteps.resolve(asksForMathOption: !mathOptions.isEmpty, mode: mode)
+        OnbDataSteps.resolve(
+            asksForMathOption: asksForMathOption,
+            asksForOrigin: asksForOrigin,
+            isLyceeTrack: isLyceeFlow,
+            mode: mode
+        )
     }
 
     /// Étape courante, bornée comme la source (`steps[step] ?? last`).
@@ -91,11 +101,46 @@ final class OnbFlowCoordinator: ObservableObject {
         OnbFlowAcademic.mathOptionChoices(currentTrack: path.currentTrack)
     }
 
-    /// Filières proposées à l'étape « filière actuelle ». La source ne rend
-    /// cliquables que les filières ECG pendant les essais d'onboarding
-    /// (lignes 1087-1108) : le filtre est conservé ici.
-    var visibleCurrentTracks: [String] {
-        OnbFlowAcademic.currentTrackChoices(year: profile.year).filter { $0 == "ECG" }
+    /// `isLyceeFlow` : le parcours lycée remplace filière/option par niveau
+    /// puis spécialité (`isLyceeTrack(academicPath.currentTrack)`).
+    var isLyceeFlow: Bool { OnbFlowAcademic.isLyceeTrack(path.currentTrack) }
+
+    /// `onboardingSpecialtyChoices(profile.year)` : choix de la page
+    /// « TA SPÉCIALITÉ » (vide en 2de, où la page n'existe pas).
+    var lyceeSpecialtyChoices: [OnbFlowOption] {
+        OnbFlowAcademic.lyceeSpecialtyChoices(year: profile.year)
+    }
+
+    /// `asksForMathOption` : la prépa n'a pas de page niveau, son drapeau
+    /// d'option reste celui de la filière ; le lycée demande une spécialité dès
+    /// que le niveau en propose une.
+    var asksForMathOption: Bool {
+        isLyceeFlow ? !lyceeSpecialtyChoices.isEmpty : !mathOptions.isEmpty
+    }
+
+    /// `asksForOrigin` : un PSI vient de quatre filières de 1re année
+    /// possibles, son parcours précédent est demandé sur une page dédiée.
+    var asksForOrigin: Bool { !isLyceeFlow && path.currentTrack == "PSI" }
+
+    /// `yearChoices` : la page « TON ANNÉE » ne montre que les années du monde
+    /// choisi sur « TON NIVEAU ».
+    var yearChoices: [String] {
+        isLyceeFlow ? OnbFlowAcademic.lyceeYears : OnbUiConstants.years
+    }
+
+    /// `onboardingCurrentTrackChoices(profile.year)` : filières proposées à
+    /// l'étape « filière actuelle » — toutes celles de l'année.
+    ///
+    /// Correction de fidélité (lot « onb-lycee-rn », 2026-09-23) : le port ne
+    /// proposait que `ECG`, au motif de « lignes 1087-1108 » de la source qui
+    /// ne rendraient cliquables que les filières ECG. Vérifié sur la source
+    /// courante (`OnboardingScreen.tsx:1189`) : la page liste
+    /// `onboardingCurrentTrackChoices(profile.year)` **sans filtre** — MPSI,
+    /// MP2I, PCSI, PTSI, BCPST, B/L, ECG en 1re année, MP, MPI, PC, PT, PSI,
+    /// BCPST, B/L, ECG en 2e. Sans cette correction, la page « origine » d'un
+    /// PSI (2e année) restait inatteignable.
+    var currentTrackChoices: [String] {
+        OnbFlowAcademic.currentTrackChoices(year: profile.year)
     }
 
     /// `originChoices` de la filière courante.
@@ -118,12 +163,19 @@ final class OnbFlowCoordinator: ObservableObject {
             : nil
     }
 
-    /// `programSelectionComplete` : les choix de programme sont figés.
+    /// `programSelectionComplete` : les choix de programme sont figés
+    /// (`lastProgramSelectionStep` : filière, origine, spécialité ou option).
     var programSelectionComplete: Bool {
         let list = steps
         let last = max(
-            list.firstIndex(of: .currentTrack) ?? -1,
-            list.firstIndex(of: .options) ?? -1
+            max(
+                list.firstIndex(of: .currentTrack) ?? -1,
+                list.firstIndex(of: .origin) ?? -1
+            ),
+            max(
+                list.firstIndex(of: .specialty) ?? -1,
+                list.firstIndex(of: .options) ?? -1
+            )
         )
         return last < 0 || stepIndex > last
     }
@@ -149,7 +201,7 @@ final class OnbFlowCoordinator: ObservableObject {
     var validationState: OnbFlowValidationState {
         OnbFlowValidationState(
             step: currentStep,
-            asksForMathOption: !mathOptions.isEmpty,
+            asksForMathOption: asksForMathOption,
             currentOption: path.currentOption,
             targetSchool: profile.targetSchool,
             displayName: profile.displayName,
@@ -175,13 +227,29 @@ final class OnbFlowCoordinator: ObservableObject {
         profile = OnbFlowAcademic.synchronizedProfile(profile, path: next)
     }
 
+    /// `chooseOnboardingLevel` : le monde choisi sur « TON NIVEAU » repart d'une
+    /// année par défaut propre — la dernière du lycée (Terminale), la première
+    /// de prépa (1re année).
+    func chooseOnboardingLevel(_ level: String) {
+        chooseYear(level == "Lycée" ? "Terminale" : "1re année")
+    }
+
     /// `chooseYear` : change d'année et abandonne une filière devenue invalide.
+    /// Un changement de monde (lycée <-> prépa) repart du monde choisi ; au
+    /// lycée, une spécialité absente du nouveau niveau est vidée (une paire de
+    /// 1re n'est pas une option de terminale).
     func chooseYear(_ year: String) {
         let choices = OnbFlowAcademic.currentTrackChoices(year: year)
         let kept = choices.contains(path.currentTrack) ? path.currentTrack : nil
         let currentTrack = kept ?? OnbFlowAcademic.fallbackTrack(year: year, previous: path.currentTrack)
         let options = OnbFlowAcademic.trackOptions[currentTrack] ?? []
-        let currentOption = options.contains(path.currentOption) ? path.currentOption : ""
+        let chosenOption = options.contains(path.currentOption) ? path.currentOption : ""
+        let currentOption =
+            OnbFlowAcademic.isLyceeYear(year)
+                && !OnbFlowAcademic.lyceeSpecialtyChoices(year: year)
+                    .contains { $0.value == chosenOption }
+            ? ""
+            : chosenOption
         profile.year = year
         profile.track = OnbFlowAcademic.programTrackFor(currentTrack)
         profile.specialty = currentOption
@@ -220,6 +288,15 @@ final class OnbFlowCoordinator: ObservableObject {
         var next = path
         next.firstYearTrack = firstYearTrack
         next.firstYearOption = firstYearOption
+        applyPath(next)
+    }
+
+    /// `chooseLyceeSpecialty` : la spécialité pilote directement le programme
+    /// lycée — elle occupe les deux emplacements d'option du parcours.
+    func chooseLyceeSpecialty(_ specialty: String) {
+        var next = path
+        next.currentOption = specialty
+        next.firstYearOption = specialty
         applyPath(next)
     }
 

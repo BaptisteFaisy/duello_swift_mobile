@@ -39,14 +39,29 @@ struct TrainChapterGroup: Identifiable {
 
     /// Port de `groupChaptersByDomain` : domaines connus dans l'ordre du
     /// programme, puis un groupe sans domaine pour les chapitres restants.
+    ///
+    /// Correction de fidélité (lot « onb-lycee-rn », 2026-09-23) : les
+    /// programmes portés nomment leurs domaines avec leur **libellé** affiché
+    /// (« Analyse », « Probabilités »…, `CHAPTER_DOMAIN_LABELS` de la source),
+    /// là où `TrainDomain.rawValue` est la clé minuscule. La comparaison est
+    /// donc faite sans tenir compte de la casse : sans cela, tous les chapitres
+    /// tombaient dans « Autres chapitres » et plus aucun titre de domaine ne
+    /// s'affichait (écart visible sur « Matières », `SubjectsScreen.tsx`).
     static func grouped(_ chapters: [TrackChapter]) -> [TrainChapterGroup] {
+        func domainKey(_ value: String) -> String {
+            value.folding(options: [.diacriticInsensitive], locale: Locale(identifier: "fr_FR"))
+                .lowercased()
+        }
         var groups: [TrainChapterGroup] = TrainDomain.allCases.compactMap { domain -> TrainChapterGroup? in
-            let matching = chapters.filter { $0.domain == domain.rawValue }
+            let matching = chapters.filter { chapter in
+                guard let value = chapter.domain else { return false }
+                return domainKey(value) == domainKey(domain.label)
+            }
             return matching.isEmpty ? nil : TrainChapterGroup(domain: domain, chapters: matching)
         }
         let others = chapters.filter { chapter in
             guard let domain = chapter.domain else { return true }
-            return TrainDomain(rawValue: domain) == nil
+            return !TrainDomain.allCases.contains { domainKey($0.label) == domainKey(domain) }
         }
         if !others.isEmpty {
             groups.append(TrainChapterGroup(domain: nil, chapters: others))

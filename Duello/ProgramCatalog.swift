@@ -13,6 +13,9 @@ enum DuelloProgram {
         let normalized = Self.normalize(track)
         let isFirstYear = !year.lowercased().contains("2")
 
+        // Le lycée n'a qu'une matière, dont le programme dépend de la
+        // spécialité (et non de `year`) : `lyceeProgram` de la source.
+        if normalized.contains("lycee") { return lyceeSubjects(specialty: specialty) }
         if normalized.contains("ecg") {
             return ecgSubjects(
                 isFirstYear: isFirstYear,

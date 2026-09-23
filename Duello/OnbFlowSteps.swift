@@ -94,6 +94,15 @@ enum OnbFlowSteps {
     /// `validateStep` : l'alerte bloquante de l'étape courante, ou `nil`.
     static func validationAlert(_ state: OnbFlowValidationState) -> OnbFlowAlert? {
         switch state.step {
+        case .specialty:
+            // Étape du monde lycée : la spécialité (ou l'option de terminale)
+            // est obligatoire, indépendamment du drapeau d'option de la source.
+            if state.currentOption.isEmpty {
+                return OnbFlowAlert(
+                    title: "Spécialité manquante",
+                    message: "Choisis la spécialité que tu suis."
+                )
+            }
         case .options:
             if state.asksForMathOption && state.currentOption.isEmpty {
                 return OnbFlowAlert(

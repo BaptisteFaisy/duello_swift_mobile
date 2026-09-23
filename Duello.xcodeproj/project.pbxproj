@@ -659,6 +659,8 @@
 		4B2BAA1024A339376C1F9561 /* AcctSecEmailValidation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44980A5EB1186F6EA408EB60 /* AcctSecEmailValidation.swift */; };
 		D684A5DF66737A30472488F0 /* MsgBubbleShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3BDBD73E02971991D89399F /* MsgBubbleShape.swift */; };
 		4847E4FA3CAAFB89012F6FAE /* AcctSecResetLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49D0C4F26706B8CE611E30CE /* AcctSecResetLink.swift */; };
+		0080619A79C27AD5C8022207 /* ProgramLycee.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92C9D34ABF1FB4ACD8FFAE42 /* ProgramLycee.swift */; };
+		13B1148B29135E4A231A4317 /* OnbFlowAcademicLycee.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAF65FECAC4B43394EC820EC /* OnbFlowAcademicLycee.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -1315,6 +1317,8 @@
 		44980A5EB1186F6EA408EB60 /* AcctSecEmailValidation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctSecEmailValidation.swift; sourceTree = "<group>"; };
 		B3BDBD73E02971991D89399F /* MsgBubbleShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MsgBubbleShape.swift; sourceTree = "<group>"; };
 		49D0C4F26706B8CE611E30CE /* AcctSecResetLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctSecResetLink.swift; sourceTree = "<group>"; };
+		92C9D34ABF1FB4ACD8FFAE42 /* ProgramLycee.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgramLycee.swift; sourceTree = "<group>"; };
+		FAF65FECAC4B43394EC820EC /* OnbFlowAcademicLycee.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnbFlowAcademicLycee.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1992,6 +1996,8 @@
 				44980A5EB1186F6EA408EB60 /* AcctSecEmailValidation.swift */,
 				B3BDBD73E02971991D89399F /* MsgBubbleShape.swift */,
 				49D0C4F26706B8CE611E30CE /* AcctSecResetLink.swift */,
+				92C9D34ABF1FB4ACD8FFAE42 /* ProgramLycee.swift */,
+				FAF65FECAC4B43394EC820EC /* OnbFlowAcademicLycee.swift */,
 			);
 			path = Duello;
 			sourceTree = "<group>";
@@ -2725,6 +2731,8 @@
 				4B2BAA1024A339376C1F9561 /* AcctSecEmailValidation.swift in Sources */,
 				D684A5DF66737A30472488F0 /* MsgBubbleShape.swift in Sources */,
 				4847E4FA3CAAFB89012F6FAE /* AcctSecResetLink.swift in Sources */,
+				0080619A79C27AD5C8022207 /* ProgramLycee.swift in Sources */,
+				13B1148B29135E4A231A4317 /* OnbFlowAcademicLycee.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

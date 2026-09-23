@@ -23,10 +23,9 @@
 //
 //  ⚠️ Écarts / limites assumés (aucune correction possible dans ce lot, les
 //  fichiers concernés étant hors périmètre) :
-//   - la filière « actuelle » n'expose que **ECG** (`OnbFlowCoordinator`
-//     `visibleCurrentTracks`, fidèle aux lignes 1087-1108 de la source) : plus
-//     étroit que l'ancienne vue, qui proposait MPSI / MP2I / ECG / MP / MPI /
-//     PSI ;
+//   - la filière « actuelle » expose toutes celles de l'année
+//     (`OnbFlowCoordinator.currentTrackChoices`), comme la source ; le lycée
+//     passe par les pages « niveau » puis « spécialité » ;
 //   - en mode `.account`, le pré-vol d'inscription interroge le serveur au
 //     montage (`OnbFlowSteps.checkRegistrationPreflight`) : hors ligne, l'avance
 //     reste bloquée (« Création de compte indisponible ») ;
