@@ -37,9 +37,13 @@ struct OnbFlowView: View {
     @StateObject private var coordinator: OnbFlowCoordinator
     @StateObject private var handoff = OnbFlowHandoffDriver()
 
+    /// `requiresRegistrationPreflight` : surcharge du pré-vol d'inscription.
+    /// `false` pour un parcours ouvert sur une session déjà ouverte (aucun
+    /// compte à créer). `nil` = règle de la source (`mode != .guest`).
     init(
         mode: OnbDataSteps.Mode,
         initialProfile: UserProfile,
+        requiresRegistrationPreflight: Bool? = nil,
         onComplete: @escaping (UserProfile, OnbUiCredentials) async -> Void,
         onProgramSelected: @escaping (UserProfile) -> Void = { _ in },
         onTrainingSurfaceReady: @escaping () -> Void = {},
@@ -51,7 +55,11 @@ struct OnbFlowView: View {
         self.onTrainingSurfaceReady = onTrainingSurfaceReady
         self.onCancel = onCancel
         _coordinator = StateObject(
-            wrappedValue: OnbFlowCoordinator(mode: mode, initialProfile: initialProfile)
+            wrappedValue: OnbFlowCoordinator(
+                mode: mode,
+                initialProfile: initialProfile,
+                requiresRegistrationPreflight: requiresRegistrationPreflight
+            )
         )
     }
 
