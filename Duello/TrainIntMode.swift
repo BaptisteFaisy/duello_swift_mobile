@@ -38,10 +38,13 @@ extension TrainingCatalogView {
         modeOverride ?? TrainIntProgram.defaultMode(forSubjectId: subject.id)
     }
 
-    /// Onglets réellement proposés pour la matière. Les annales des maths ne
-    /// sont pas servies ici, donc l'onglet reste masqué (`hasMathsAnnales`).
+    /// Onglets réellement proposés pour la matière. L'onglet Annales des maths
+    /// suit `hasAnnaleBank` : présent en ECG et MPSI, comme la source.
     var modeOptions: [SubjTrainingModeOption] {
-        SubjTrainingModeCatalog.options(forSubjectId: subject.id, hasMathsAnnales: false)
+        SubjTrainingModeCatalog.options(
+            forSubjectId: subject.id,
+            hasMathsAnnales: SubjTrainingModeCatalog.hasAnnaleBank(track: session.profile.track)
+        )
     }
 
     /// Barre d'onglets : le retour visuel reste sous le doigt, le contenu se

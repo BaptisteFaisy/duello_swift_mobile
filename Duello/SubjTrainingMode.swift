@@ -94,6 +94,14 @@ enum SubjTrainingModeCatalog {
     static let all: [SubjTrainingModeOption] =
         SubjTrainingMode.allCases.map(SubjTrainingModeOption.init)
 
+    /// `hasAnnaleBank` de `data/chapterItemBasics.ts` : seules l'ECG et la MPSI
+    /// sont pourvues d'une banque d'annales — l'onglet Annales des maths ne
+    /// dépend ni de l'année ni de l'option.
+    static func hasAnnaleBank(track: String) -> Bool {
+        let normalized = track.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        return normalized == "ECG" || normalized == "MPSI"
+    }
+
     /// Onglets d'une matière : le Cours et les Annales ne concernent que les
     /// maths (les Annales seulement si elles sont servies), et les
     /// dissertations remplacent les exercices en ESH et HGG.
@@ -150,18 +158,50 @@ struct SubjTrainingModeTabs: View {
     }
 
     var body: some View {
-        HStack(spacing: compact ? 4 : 6) {
-            ForEach(availableModes) { option in
-                tab(option)
+        GeometryReader { proxy in
+            HStack(spacing: compact ? 2 : 5) {
+                ForEach(availableModes) { option in
+                    tab(option, width: tabWidth(for: option, total: proxy.size.width))
+                }
             }
         }
+        .frame(height: compact ? 42 : 52)
+        .padding(compact ? 3 : 4)
+        .background(Theme.surfaceMuted)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
         .onChange(of: mode) { newValue in
             if displayedMode != newValue { displayedMode = newValue }
         }
     }
 
-    /// Un onglet : pastille sélectionnée en encre pleine, les autres en gris.
-    private func tab(_ option: SubjTrainingModeOption) -> some View {
+    /// Poids `flex` de l'onglet : `modeTabExercises` = 1,28 et
+    /// `modeTabAnnales` = 1,1 dans la source — les libellés longs gardent leur
+    /// place au lieu d'être coupés. Les autres onglets valent 1.
+    private func weight(for option: SubjTrainingModeOption) -> CGFloat {
+        switch option.mode {
+        case .exercices: return 1.28
+        case .annales: return 1.1
+        default: return 1
+        }
+    }
+
+    /// Largeur d'un onglet : la place restante après les intervalles, répartie
+    /// au prorata des poids.
+    private func tabWidth(for option: SubjTrainingModeOption, total: CGFloat) -> CGFloat {
+        guard !availableModes.isEmpty else { return total }
+        let gaps = CGFloat(availableModes.count - 1) * (compact ? 2 : 5)
+        let usable = max(0, total - gaps)
+        let sum = availableModes.reduce(CGFloat(0)) { $0 + weight(for: $1) }
+        guard sum > 0 else { return usable / CGFloat(availableModes.count) }
+        return usable * weight(for: option) / sum
+    }
+
+    /// Un onglet : `modeTab` de la source — icône + libellé centrés, pastille
+    /// choisie en encre pleine. L'icône est bridée à 18 points (les symboles SF
+    /// sont plus larges que les Ionicons d'origine) et le libellé se réduit
+    /// (`minimumScaleFactor` 0,7) plutôt que d'être coupé, comme
+    /// `adjustsFontSizeToFit` de la source.
+    private func tab(_ option: SubjTrainingModeOption, width: CGFloat) -> some View {
         let selected = displayedMode == option.mode
         return Button {
             guard option.mode != displayedMode else { return }
@@ -170,17 +210,18 @@ struct SubjTrainingModeTabs: View {
         } label: {
             HStack(spacing: 5) {
                 Image(systemName: option.systemImage)
-                    .font(.system(size: compact ? 12 : 14, weight: .semibold))
+                    .font(.system(size: compact ? 13 : 15, weight: .semibold))
+                    .frame(width: 18)
                 Text(option.label)
-                    .font(.system(size: compact ? 12 : 13, weight: .heavy))
+                    .font(.system(size: compact ? 11 : 12.5, weight: .heavy))
                     .lineLimit(1)
-                    .minimumScaleFactor(0.75)
+                    .minimumScaleFactor(0.7)
             }
             .foregroundStyle(selected ? Color.white : Theme.inkSoft)
-            .padding(.horizontal, compact ? 8 : 10)
-            .padding(.vertical, compact ? 5 : 7)
-            .background(selected ? Theme.ink : Theme.surfaceMuted)
-            .clipShape(Capsule())
+            .padding(.horizontal, 3)
+            .frame(width: width, height: compact ? 36 : 44)
+            .background(selected ? Theme.primary : Color.clear)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(option.label) — \(subjectName)")

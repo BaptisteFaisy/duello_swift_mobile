@@ -9,7 +9,9 @@ struct WelcomeView: View {
     /// d'inscription, qui se joue **hors** de la feuille de connexion
     /// (`authStage === 'signup'`).
     var onCreateAccount: () -> Void = {}
-    @State private var showLogin = false
+    /// Mode capture : la feuille de connexion peut s'ouvrir d'elle-même
+    /// (`DUELLO_SHOT=login`) ; l'inscription, elle, passe par `onCreateAccount`.
+    @State private var showLogin = ScreenshotTour.welcomeDestination == .login
 
     var body: some View {
         GeometryReader { proxy in

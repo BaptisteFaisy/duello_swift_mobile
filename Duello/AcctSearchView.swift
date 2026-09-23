@@ -58,7 +58,7 @@ struct AcctSearchBar: View {
             }
         }
         .padding(.horizontal, 14)
-        .frame(minHeight: 46)
+        .frame(height: 40)
         .background(Theme.surface)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
         .overlay(
@@ -306,16 +306,26 @@ struct AcctSearchView: View {
     let onProposeChallenge: (AcctSearchMember) -> Void
     let onBlock: (AcctSearchMember) -> Void
     let onReport: (AcctSearchMember) -> Void
+    /// Accessoire de droite de la ligne de recherche. L'onglet « Mon compte »
+    /// y place la cloche des notifications et la roue des réglages
+    /// (`searchRow` de `AccountScreen.tsx`, l. 2404-2516) ; la feuille
+    /// « Annuaire » n'en met aucun.
+    var rowAccessory: AnyView? = nil
 
     @State private var premiumMessageVisible = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            AcctSearchBar(
-                query: $model.query,
-                onFocus: { model.openSearchMenu() },
-                onClear: { model.query = "" }
-            )
+            HStack(spacing: 9) {
+                AcctSearchBar(
+                    query: $model.query,
+                    onFocus: { model.openSearchMenu() },
+                    onClear: { model.query = "" }
+                )
+                if let rowAccessory {
+                    rowAccessory
+                }
+            }
 
             if model.menuOpen {
                 AcctSearchResultsMenu(
