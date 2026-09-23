@@ -5,8 +5,9 @@
 //  LOT 12-B — déroulé de l'inscription : le contenu de chaque étape.
 //
 //  Fichier source Expo porté : `src/screens/OnboardingScreen.tsx` (JSX des
-//  étapes `year`, `current-track`, `origin`, `options`, `ready`, `premium-gift`,
-//  `target`, `identity`, `auth-method`, `credentials`, lignes 1051-1428).
+//  étapes `level`, `year`, `current-track`, `origin`, `specialty`, `options`,
+//  `ready`, `premium-gift`, `target`, `identity`, `auth-method`, `credentials`,
+//  lignes 1051-1428).
 //
 //  Réutilise sans les redéfinir :
 //    - lot `OnbUi` : `OnbUiChoiceSection`, `OnbUiChoiceChip`, `OnbUiField`
@@ -38,9 +39,11 @@ struct OnbFlowStepContent: View {
     var body: some View {
         Group {
             switch coordinator.currentStep {
+            case .level: levelStep
             case .year: yearStep
             case .currentTrack: currentTrackStep
             case .origin: originStep
+            case .specialty: specialtyStep
             case .options: optionsStep
             case .ready: OnbGiftMathProgressChart()
             case .premiumGift: premiumGiftStep
@@ -54,10 +57,31 @@ struct OnbFlowStepContent: View {
 
     // MARK: Étapes de programme
 
-    /// `year` : l'année de prépa (`YEARS`).
+    /// `level` : le monde scolaire (`ONBOARDING_LEVELS`), qui précède l'année.
+    /// La puce reste sélectionnée tant que l'année appartient au monde choisi
+    /// (`(level === 'Lycée') === isLyceeFlow` et année connue de ce monde).
+    private var levelStep: some View {
+        OnbUiChoiceSection(dark: true) {
+            ForEach(OnbUiConstants.onboardingLevels, id: \.self) { level in
+                OnbUiChoiceChip(
+                    label: level,
+                    isSelected: (level == "Lycée") == coordinator.isLyceeFlow
+                        && (coordinator.isLyceeFlow
+                            || OnbUiConstants.years.contains(coordinator.profile.year)
+                            || OnbFlowAcademic.lyceeYears.contains(coordinator.profile.year)),
+                    action: { coordinator.chooseOnboardingLevel(level) },
+                    wide: true,
+                    dark: true
+                )
+            }
+        }
+    }
+
+    /// `year` : l'année du monde choisi sur « TON NIVEAU » (`yearChoices` :
+    /// `LYCEE_YEARS` au lycée, `YEARS` en prépa).
     private var yearStep: some View {
         OnbUiChoiceSection(dark: true) {
-            ForEach(OnbUiConstants.years, id: \.self) { year in
+            ForEach(coordinator.yearChoices, id: \.self) { year in
                 OnbUiChoiceChip(
                     label: year,
                     isSelected: coordinator.profile.year == year,
@@ -68,10 +92,10 @@ struct OnbFlowStepContent: View {
         }
     }
 
-    /// `current-track` : la filière actuelle (filtre « ECG seulement »).
+    /// `current-track` : la filière actuelle (`onboardingCurrentTrackChoices`).
     private var currentTrackStep: some View {
         OnbUiChoiceSection(dark: true) {
-            ForEach(coordinator.visibleCurrentTracks, id: \.self) { track in
+            ForEach(coordinator.currentTrackChoices, id: \.self) { track in
                 OnbUiChoiceChip(
                     label: track,
                     isSelected: coordinator.path.currentTrack == track,
@@ -99,6 +123,23 @@ struct OnbFlowStepContent: View {
                         dark: true
                     )
                 }
+            }
+        }
+    }
+
+    /// `specialty` : la spécialité du lycée (`onboardingSpecialtyChoices`) —
+    /// paire de spécialités en 1re, option de mathématiques en terminale. La
+    /// page n'existe pas en 2de (aucun choix).
+    private var specialtyStep: some View {
+        OnbUiChoiceSection(dark: true) {
+            ForEach(coordinator.lyceeSpecialtyChoices) { choice in
+                OnbUiChoiceChip(
+                    label: choice.label,
+                    isSelected: coordinator.path.currentOption == choice.value,
+                    action: { coordinator.chooseLyceeSpecialty(choice.value) },
+                    wide: true,
+                    dark: true
+                )
             }
         }
     }

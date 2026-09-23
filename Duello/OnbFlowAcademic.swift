@@ -4,6 +4,12 @@
 //
 //  LOT 12-B — déroulé de l'inscription : le chemin scolaire.
 //
+//  Monde lycée (lot « onb-lycee-rn », 2026-09-23) : `LYCEE_LEVELS`,
+//  `isLyceeTrack`, `isLyceeYear`, `LYCEE_LEVEL_OPTIONS`,
+//  `LYCEE_SPE_PLUS_EXPERTES_VALUE`, `onboardingLyceeSpecialtyChoices` et
+//  `onboardingSpecialtyChoices` sont désormais portés ; la page « TON NIVEAU »
+//  distingue lycée et prépa, le lycée enchaîne niveau -> année -> spécialité.
+//
 //  Fichiers source Expo portés :
 //    - src/utils/academicPath.ts (`FIRST_YEAR_TRACKS`, `SECOND_YEAR_TRACKS`,
 //      `FIRST_YEAR_ORIGINS`, `TRACK_OPTIONS`, `FIRST_YEAR_OPTIONS`,
@@ -11,8 +17,11 @@
 //      `defaultCurrentTrack`, `normalizeAcademicPath`,
 //      `synchronizeLegacyAcademicFields`)
 //    - src/screens/OnboardingScreen.tsx (`chooseYear` / `chooseCurrentTrack` /
-//      `chooseOrigin` pour la règle de repli, et le filtre « ECG seulement »
-//      des lignes 1087-1108)
+//      `chooseOrigin` pour la règle de repli)
+//
+//  Le monde lycée (`LYCEE_YEARS`, `isLyceeTrack`, `LYCEE_LEVEL_OPTIONS`,
+//  `lyceeSpecialtyChoices`…) vit dans `OnbFlowAcademicLycee.swift` : le fichier
+//  reste sous la limite de 10 fonctions par fichier du projet.
 //
 //  ⚠️ Écart de modèle assumé : le `UserProfile` Swift (Models.swift) ne porte
 //  pas le champ `academicPath` de la source. Les quatre champs dérivés
@@ -52,8 +61,7 @@ enum OnbFlowAcademic {
     /// `SECOND_YEAR_TRACKS`.
     static let secondYearTracks = ["MP", "MPI", "PC", "PT", "PSI", "BCPST", "B/L", "ECG"]
 
-    /// `TRACK_OPTIONS` ; `Lycée` reste vide, les niveaux lycée étant hors
-    /// périmètre de l'inscription.
+    /// `TRACK_OPTIONS` ; le lycée porte les spécialités de ses niveaux.
     static let trackOptions: [String: [String]] = [
         "MPSI": ["Sciences industrielles", "Informatique"],
         "MP2I": ["Informatique", "Sciences industrielles"],
@@ -72,7 +80,7 @@ enum OnbFlowAcademic {
             "Maths appliquées + ESH",
             "Maths appliquées + HGG",
         ],
-        "Lycée": [],
+        "Lycée": lyceeTrackOptions,
     ]
 
     /// `FIRST_YEAR_ORIGINS` : filières de 1re année menant à une 2e année.
@@ -93,12 +101,14 @@ enum OnbFlowAcademic {
         "BCPST": [],
         "B/L": [],
         "ECG": trackOptions["ECG"] ?? [],
-        "Lycée": [],
+        "Lycée": lyceeTrackOptions,
     ]
 
     /// `onboardingCurrentTrackChoices` : filières proposées pour une année.
+    /// Une année de lycée n'offre que le monde `Lycée` (`LYCEE_TRACKS`).
     static func currentTrackChoices(year: String) -> [String] {
-        year == "1re année" ? firstYearTracks : secondYearTracks
+        if isLyceeYear(year) { return ["Lycée"] }
+        return year == "1re année" ? firstYearTracks : secondYearTracks
     }
 
     /// `originChoices` : filières de 1re année compatibles avec la filière
@@ -133,9 +143,11 @@ enum OnbFlowAcademic {
     }
 
     /// Repli de `chooseYear` : un changement d'année qui invalide la filière
-    /// courante repart de la filière par défaut de l'année. Le monde lycée
-    /// (<-> prépa) reste hors périmètre : seules les années prépa sont offertes.
+    /// courante repart de la filière par défaut de l'année. Un changement de
+    /// monde (lycée <-> prépa) repart du monde choisi : aucune filière de prépa
+    /// ne reste sélectionnée pour un élève de lycée, et réciproquement.
     static func fallbackTrack(year: String, previous: String) -> String {
+        if isLyceeYear(year) { return "Lycée" }
         if previous == "ECG" { return "ECG" }
         if previous == "PT" && year == "1re année" { return "PTSI" }
         return year == "1re année" ? "MPSI" : "MP"
@@ -163,9 +175,12 @@ enum OnbFlowAcademic {
     }
 
     /// `normalizeAcademicPath` : reconstruit un chemin cohérent depuis le
-    /// profil. Les champs `academicPath` de la source étant absents du profil
-    /// Swift, filière et origine sont dérivées, et seules les options sont
-    /// relues depuis `specialty`.
+    /// profil. Les niveaux lycée sont couverts : `currentTrackChoices` ne
+    /// renvoie que `Lycée` et la spécialité est relue dans `specialty`.
+    ///
+    /// Les champs `academicPath` de la source étant absents du profil Swift,
+    /// filière et origine sont dérivées, et seules les options sont relues
+    /// depuis `specialty`.
     static func normalizePath(_ profile: UserProfile) -> OnbFlowAcademicPath {
         let allowed = currentTrackChoices(year: profile.year)
         let fallback = defaultCurrentTrack(track: profile.track, year: profile.year)

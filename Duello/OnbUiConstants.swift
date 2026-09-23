@@ -4,7 +4,8 @@
 //
 //  Constantes, étapes et libellés de l'écran d'inscription.
 //  Porté de `src/screens/OnboardingScreen.tsx`, plage 95-163 :
-//    `YEARS`, `TRAINING_BLOOM_SIZE`, `TRAINING_BLOOM_RADIUS`,
+//    `YEARS`, `ONBOARDING_LEVELS`, `LYCEE_YEARS` (via `OnbFlowAcademic`),
+//    `TRAINING_BLOOM_SIZE`, `TRAINING_BLOOM_RADIUS`,
 //    `CONTINUE_BUTTON_HEIGHT`, `ONBOARDING_FOOTER_BOTTOM_PADDING`,
 //    `WEB_GUEST_ACTION_WIDTH`, `TRAINING_BLOOM_CENTER_ABOVE_SAFE_AREA`,
 //    `TRAINING_HANDOFF_DURATION_MS`, `TRAINING_HANDOFF_REVEAL_DURATION_MS`,
@@ -22,9 +23,14 @@ import Foundation
 enum OnbUiConstants {
     // MARK: Étapes
 
-    /// `YEARS` — niveaux proposés. La prépa seulement : les niveaux lycée sont
-    /// masqués côté source (JP 2026-09-16), les types restant en place.
+    /// `YEARS` — années de prépa (`PREPA_YEARS`). Les années du lycée vivent
+    /// dans `OnbFlowAcademic.lyceeYears` (`LYCEE_YEARS` de la source) : la page
+    /// « TON ANNÉE » affiche les années du monde choisi sur « TON NIVEAU ».
     static let years: [String] = ["1re année", "2e année"]
+
+    /// `ONBOARDING_LEVELS` — mondes proposés par la page « TON NIVEAU », la
+    /// prépa au-dessus du lycée (JP 2026-09-18).
+    static let onboardingLevels: [String] = ["Prépa", "Lycée"]
 
     /// `STEP_COPY` — surtitres d'étape (`OnboardingStepKey` → `eyebrow`).
     ///
