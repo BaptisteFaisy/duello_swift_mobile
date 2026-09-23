@@ -39,5 +39,12 @@
 	     questionnaire de conformité d'export à chaque upload TestFlight. -->
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<!-- 120 fps : sans cette clé, iOS plafonne toute app à 60 Hz sur les dalles
+	     ProMotion (iPhone 13 Pro et suivants). L'app tourne alors à la fréquence
+	     maximale supportée par l'écran (120 Hz) — 60 Hz sur les appareils non
+	     ProMotion (iPhone 8, cible de référence du portage). Aligne le portage
+	     Swift sur le RN. -->
+	<key>CADisableMinimumFrameDurationOnPhone</key>
+	<true/>
 </dict>
 </plist>
