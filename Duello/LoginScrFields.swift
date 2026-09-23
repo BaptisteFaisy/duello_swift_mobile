@@ -82,7 +82,7 @@ struct LoginScrField: View {
             HStack(spacing: 10) {
                 if let icon = props.icon {
                     Image(systemName: icon)
-                        .font(.system(size: 17, weight: .semibold))
+                        .font(.system(size: 20, weight: .semibold))
                         .foregroundStyle(LoginScrPalette.icon)
                 }
                 input
@@ -116,7 +116,7 @@ struct LoginScrField: View {
         .keyboardType(props.keyboard)
         .autocorrectionDisabled()
         .textContentType(contentType)
-        .font(.system(size: 15, weight: .semibold))
+        .font(.system(size: 15, weight: .regular))
         .foregroundStyle(LoginScrPalette.onDark)
         .onChange(of: text) { _ in onEdit() }
     }
@@ -143,7 +143,7 @@ struct LoginScrRevealToggle: View {
             isRevealed.toggle()
         } label: {
             Image(systemName: isRevealed ? "eye.slash" : "eye")
-                .font(.system(size: 17, weight: .semibold))
+                .font(.system(size: 21, weight: .semibold))
                 .foregroundStyle(LoginScrPalette.icon)
                 .frame(width: 36, height: 36)
                 .background(LoginScrPalette.action)
@@ -161,9 +161,9 @@ struct LoginScrErrorCard: View {
     let message: String
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .center, spacing: 10) {
             Image(systemName: "exclamationmark.circle")
-                .font(.system(size: 17, weight: .semibold))
+                .font(.system(size: 19, weight: .semibold))
                 .foregroundStyle(LoginScrPalette.onDark)
             Text(message)
                 .font(.system(size: 12, weight: .bold))
@@ -179,6 +179,7 @@ struct LoginScrErrorCard: View {
             RoundedRectangle(cornerRadius: Theme.radiusMedium)
                 .stroke(LoginScrPalette.errorCardBorder, lineWidth: 1)
         )
+        .padding(.top, -6)
     }
 }
 
@@ -190,10 +191,11 @@ struct LoginScrDivider: View {
         HStack(spacing: 10) {
             rule
             Text("OU")
-                .font(.system(size: 10, weight: .heavy))
+                .font(.system(size: 10, weight: .black))
                 .foregroundStyle(LoginScrPalette.placeholder)
             rule
         }
+        .padding(.vertical, -4)
     }
 
     private var rule: some View {
@@ -205,6 +207,20 @@ struct LoginScrDivider: View {
 
 // MARK: - Boutons
 
+/// Effet d'appui commun aux commandes de l'écran de connexion : opacité et
+/// échelle réduites à l'appui (`pressed` de la source : 0.84 / 0.99 ; le
+/// bouton retour de la source n'abaisse que l'opacité, à 0.6).
+struct LoginScrPressStyle: ButtonStyle {
+    var pressedOpacity: Double = 0.84
+    var pressedScale: Double = 0.99
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(configuration.isPressed ? pressedOpacity : 1)
+            .scaleEffect(configuration.isPressed ? pressedScale : 1)
+    }
+}
+
 /// `biometricButton` de la source : contour blanc, icône d'empreinte.
 struct LoginScrBiometricButton: View {
     var isLoading: Bool = false
@@ -214,9 +230,9 @@ struct LoginScrBiometricButton: View {
         Button(action: action) {
             HStack(spacing: 10) {
                 Image(systemName: "touchid")
-                    .font(.system(size: 21, weight: .semibold))
+                    .font(.system(size: 23, weight: .semibold))
                 Text(isLoading ? "Vérification…" : "Continuer avec la biométrie")
-                    .font(.system(size: 13, weight: .heavy))
+                    .font(.system(size: 13, weight: .black))
             }
             .foregroundStyle(LoginScrPalette.onDark)
             .frame(maxWidth: .infinity, minHeight: 54)
@@ -227,7 +243,7 @@ struct LoginScrBiometricButton: View {
                     .stroke(LoginScrPalette.onDark, lineWidth: 1.5)
             )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(LoginScrPressStyle())
         .disabled(isLoading)
         .opacity(isLoading ? 0.55 : 1)
         .accessibilityLabel("Continuer avec la biométrie")
@@ -264,7 +280,7 @@ struct LoginScrFooterPrimary: View {
             HStack(spacing: 9) {
                 Text(title)
                 Image(systemName: "arrow.right")
-                    .font(.system(size: 18, weight: .bold))
+                    .font(.system(size: 20, weight: .bold))
             }
             .frame(maxWidth: .infinity, minHeight: 54)
         }
@@ -292,10 +308,12 @@ struct LoginScrEyebrowHeader: View {
             Text(title)
                 .font(.system(size: 30, weight: .black))
                 .tracking(-0.8)
+                .lineSpacing(5)
                 .foregroundStyle(LoginScrPalette.onDark)
                 .fixedSize(horizontal: false, vertical: true)
             Text(subtitle)
                 .font(.system(size: 15))
+                .lineSpacing(7)
                 .foregroundStyle(LoginScrPalette.muted)
                 .fixedSize(horizontal: false, vertical: true)
         }

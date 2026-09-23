@@ -444,7 +444,6 @@
 		772AD342B531A5AA9445794B /* PushNotifPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06B8FB3858E0CF0E7E725CFF /* PushNotifPolicy.swift */; };
 		A87155D623737268E2476451 /* PushNotifReconciliation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91F52A59FE074398B57E38E0 /* PushNotifReconciliation.swift */; };
 		393C5D38DA5CE55561BCB289 /* PushNotifRouting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8582F2C3BE8D87DC8A2351EB /* PushNotifRouting.swift */; };
-		56B825557EFF6926AE8B6DEA /* PushNotifSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF485E3E62C33500F09973FE /* PushNotifSettingsView.swift */; };
 		A830E73D1B481EBDA2632284 /* PushNotifTokenState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20F886EC9DB8D82658DEA550 /* PushNotifTokenState.swift */; };
 		DB2ED563B382CFDA27C08AB0 /* RemPhotoAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDE9C76B0B3E67222744CD54 /* RemPhotoAPI.swift */; };
 		E11569B713E55A4150668202 /* RemPhotoCameraPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDBEEEE7C52C986A4ADBA406 /* RemPhotoCameraPicker.swift */; };
@@ -1107,7 +1106,6 @@
 		06B8FB3858E0CF0E7E725CFF /* PushNotifPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushNotifPolicy.swift; sourceTree = "<group>"; };
 		91F52A59FE074398B57E38E0 /* PushNotifReconciliation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushNotifReconciliation.swift; sourceTree = "<group>"; };
 		8582F2C3BE8D87DC8A2351EB /* PushNotifRouting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushNotifRouting.swift; sourceTree = "<group>"; };
-		DF485E3E62C33500F09973FE /* PushNotifSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushNotifSettingsView.swift; sourceTree = "<group>"; };
 		20F886EC9DB8D82658DEA550 /* PushNotifTokenState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushNotifTokenState.swift; sourceTree = "<group>"; };
 		CDE9C76B0B3E67222744CD54 /* RemPhotoAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemPhotoAPI.swift; sourceTree = "<group>"; };
 		EDBEEEE7C52C986A4ADBA406 /* RemPhotoCameraPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemPhotoCameraPicker.swift; sourceTree = "<group>"; };
@@ -1792,7 +1790,6 @@
 				06B8FB3858E0CF0E7E725CFF /* PushNotifPolicy.swift */,
 				91F52A59FE074398B57E38E0 /* PushNotifReconciliation.swift */,
 				8582F2C3BE8D87DC8A2351EB /* PushNotifRouting.swift */,
-				DF485E3E62C33500F09973FE /* PushNotifSettingsView.swift */,
 				20F886EC9DB8D82658DEA550 /* PushNotifTokenState.swift */,
 				CDE9C76B0B3E67222744CD54 /* RemPhotoAPI.swift */,
 				EDBEEEE7C52C986A4ADBA406 /* RemPhotoCameraPicker.swift */,
@@ -2532,7 +2529,6 @@
 				772AD342B531A5AA9445794B /* PushNotifPolicy.swift in Sources */,
 				A87155D623737268E2476451 /* PushNotifReconciliation.swift in Sources */,
 				393C5D38DA5CE55561BCB289 /* PushNotifRouting.swift in Sources */,
-				56B825557EFF6926AE8B6DEA /* PushNotifSettingsView.swift in Sources */,
 				A830E73D1B481EBDA2632284 /* PushNotifTokenState.swift in Sources */,
 				DB2ED563B382CFDA27C08AB0 /* RemPhotoAPI.swift in Sources */,
 				E11569B713E55A4150668202 /* RemPhotoCameraPicker.swift in Sources */,

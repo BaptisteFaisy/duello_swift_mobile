@@ -30,8 +30,9 @@ enum AcctInfoSettingsStyle {
     static let bottomPadding: CGFloat = 36
     /// `settingsHeader.marginBottom`.
     static let headerBottom: CGFloat = 12
-    /// `settingsBackButton` : carré du bouton de retour.
-    static let backButtonSize: CGFloat = 38
+    /// `settingsBackButton` : carré du bouton de retour. La source pose 38 pt,
+    /// mais le `BackButton` impose `minWidth/minHeight: 40`, qui l'emporte.
+    static let backButtonSize: CGFloat = 40
     /// `settingsTabs` : écart entre onglets et retrait après le bouton.
     static let tabsSpacing: CGFloat = 8
     static let tabsLeading: CGFloat = 10
@@ -141,7 +142,11 @@ struct AcctInfoSettingsView: View {
     private var header: some View {
         HStack(spacing: 0) {
             backButton
-            tabs
+            // `settingsTabsVisible` : le ruban disparaît dès qu'une sous-page
+            // est ouverte — le retour suffit.
+            if tab != .informations || page == .menu {
+                tabs
+            }
         }
         .padding(.bottom, AcctInfoSettingsStyle.headerBottom)
         .background(AcctInfoSettingsStyle.surface)
@@ -151,7 +156,7 @@ struct AcctInfoSettingsView: View {
     private var backButton: some View {
         Button(action: leaveSettingsOrInformationPage) {
             Image(systemName: "chevron.left")
-                .font(.system(size: 18, weight: .semibold))
+                .font(.system(size: 21))
                 .foregroundStyle(Theme.ink)
                 .frame(
                     width: AcctInfoSettingsStyle.backButtonSize,
@@ -281,6 +286,9 @@ struct AcctInfoSettingsView: View {
                 PremPremiumBadge(size: 12)
                 Text(premiumDaysLabel)
                     .font(.system(size: AcctInfoSettingsStyle.premiumCounterTextSize, weight: .heavy))
+                    // `premiumDaysCounterText.lineHeight: 16` : SwiftUI n'expose pas
+                    // d'interligne explicite pour un `Text` ; le défaut système
+                    // (≈ 15,5 pt à 13 pt) en est à moins d'un point.
                     .foregroundStyle(Theme.primary)
             }
             .frame(maxWidth: .infinity)

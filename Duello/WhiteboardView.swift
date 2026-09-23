@@ -185,6 +185,25 @@ final class WbHistoryModel: ObservableObject {
     }
 }
 
+/// Calque des tracés validés. `Equatable` : via `.equatable()`, il n'est pas
+/// redessiné pendant la saisie du brouillon — seul le décalage (mode
+/// « Déplacer ») ou la liste des tracés validés le relance. `.drawingGroup()`
+/// rasterise l'ensemble des tracés validés en une seule passe.
+private struct WbCommittedLayer: View, Equatable {
+    let strokes: [WbStroke]
+    let offset: CGSize
+
+    var body: some View {
+        Canvas { context, _ in
+            context.translateBy(x: offset.width, y: offset.height)
+            for stroke in strokes {
+                WbCanvas.draw(stroke, into: &context)
+            }
+        }
+        .drawingGroup()
+    }
+}
+
 // MARK: - Plateau
 
 /// Zone de dessin : `Canvas` + un unique `DragGesture` aiguillé par le mode.
@@ -201,41 +220,50 @@ struct WbCanvas: View {
     @State private var offset: CGSize = .zero
     @State private var panBase: CGSize = .zero
 
-    /// Tracés affichés : le brouillon en cours est rendu comme un tracé de plus.
-    private var renderedStrokes: [WbStroke] {
-        guard !draft.isEmpty else { return strokes }
-        return strokes + [WbStroke(points: draft, colorHex: draftColorHex, width: draftWidth)]
-    }
-
     var body: some View {
-        Canvas { context, _ in
-            context.translateBy(x: offset.width, y: offset.height)
-            for stroke in renderedStrokes {
-                let points = stroke.points
-                guard let first = points.first else { continue }
-                let color = Color(hex: stroke.colorHex)
-                if points.count == 1 {
-                    let radius = stroke.width / 2
-                    let frame = CGRect(x: first.x - radius, y: first.y - radius, width: stroke.width, height: stroke.width)
-                    context.fill(Path(ellipseIn: frame), with: .color(color))
-                    continue
-                }
-                var path = Path()
-                path.move(to: CGPoint(x: first.x, y: first.y))
-                for index in 1..<points.count {
-                    let previous = points[index - 1]
-                    let current = points[index]
-                    let middle = CGPoint(x: (previous.x + current.x) / 2, y: (previous.y + current.y) / 2)
-                    path.addQuadCurve(to: middle, control: CGPoint(x: previous.x, y: previous.y))
-                }
-                if let last = points.last { path.addLine(to: CGPoint(x: last.x, y: last.y)) }
-                context.stroke(path, with: .color(color), style: StrokeStyle(lineWidth: stroke.width, lineCap: .round, lineJoin: .round))
+        // Rendu incrémental : les tracés validés vivent dans un calque
+        // `Equatable` qui n'est pas redessiné pendant que le brouillon évolue ;
+        // seule la couche du brouillon est reconstruite à chaque point.
+        ZStack {
+            WbCommittedLayer(strokes: strokes, offset: offset)
+                .equatable()
+            Canvas { context, _ in
+                guard !draft.isEmpty else { return }
+                context.translateBy(x: offset.width, y: offset.height)
+                WbCanvas.draw(
+                    WbStroke(points: draft, colorHex: draftColorHex, width: draftWidth),
+                    into: &context
+                )
             }
         }
         .background(Color(hex: WbPalette.backgroundHex))
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .contentShape(Rectangle())
         .gesture(DragGesture(minimumDistance: 0).onChanged { handle($0, isEnd: false) }.onEnded { handle($0, isEnd: true) })
+    }
+
+    /// Dessine un tracé dans un contexte (chemin lissé, ou pastille si le tracé
+    /// n'a qu'un point). Extrait pour être partagé par les deux calques.
+    static func draw(_ stroke: WbStroke, into context: inout GraphicsContext) {
+        let points = stroke.points
+        guard let first = points.first else { return }
+        let color = Color(hex: stroke.colorHex)
+        if points.count == 1 {
+            let radius = stroke.width / 2
+            let frame = CGRect(x: first.x - radius, y: first.y - radius, width: stroke.width, height: stroke.width)
+            context.fill(Path(ellipseIn: frame), with: .color(color))
+            return
+        }
+        var path = Path()
+        path.move(to: CGPoint(x: first.x, y: first.y))
+        for index in 1..<points.count {
+            let previous = points[index - 1]
+            let current = points[index]
+            let middle = CGPoint(x: (previous.x + current.x) / 2, y: (previous.y + current.y) / 2)
+            path.addQuadCurve(to: middle, control: CGPoint(x: previous.x, y: previous.y))
+        }
+        if let last = points.last { path.addLine(to: CGPoint(x: last.x, y: last.y)) }
+        context.stroke(path, with: .color(color), style: StrokeStyle(lineWidth: stroke.width, lineCap: .round, lineJoin: .round))
     }
 
     /// Aiguillage du geste par le mode. Le zoom est hors périmètre : seul le

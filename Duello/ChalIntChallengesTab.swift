@@ -61,7 +61,9 @@ struct ChalIntChallengesTab: View {
     // MARK: Contenu
 
     @ViewBuilder private var content: some View {
-        if let duelMatch {
+        if queue.status == .searching {
+            searchingScreen
+        } else if let duelMatch {
             ChalIntDuelFlow(match: duelMatch, onFinish: { finishDuel() })
         } else {
             ChalHome2HomeSurface(
@@ -72,6 +74,23 @@ struct ChalIntChallengesTab: View {
                 events: { eventsPage }
             )
         }
+    }
+
+    /// Pendant la recherche d'adversaire, la source remplace **tout** l'écran
+    /// par la seule carte : ni barre ELO, ni onglets Défis / Événements.
+    private var searchingScreen: some View {
+        ScrollView {
+            ChalHome2QueuePanel(
+                queue: queue,
+                subject: ChalHome2Launch.challengeSubjectName,
+                durationMinutes: ChalMatchmaking.challengeDurationMinutes,
+                disabled: true,
+                onEnter: {}
+            )
+            .padding(.horizontal, 16)
+            .padding(.top, 16)
+        }
+        .background(Theme.background)
     }
 
     private var homePage: some View {

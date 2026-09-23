@@ -51,6 +51,7 @@ struct AcctSubBlockedUsersView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
+                backButton
                 header
                 explanationCard
                 stateContent
@@ -84,6 +85,19 @@ struct AcctSubBlockedUsersView: View {
         )
     }
 
+    /// Chevron de retour en tête de contenu : sans lui, l'écran présenté en
+    /// feuille n'est pas refermable (`BackButton` de la source).
+    private var backButton: some View {
+        Button { dismiss() } label: {
+            Image(systemName: "chevron.left")
+                .font(.system(size: 20, weight: .bold))
+                .foregroundStyle(Theme.ink)
+                .frame(width: 40, height: 40, alignment: .leading)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Retour aux paramètres")
+    }
+
     private var header: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text("SÉCURITÉ")
@@ -100,7 +114,7 @@ struct AcctSubBlockedUsersView: View {
     private var explanationCard: some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: "nosign")
-                .font(.system(size: 18, weight: .bold))
+                .font(.system(size: 21, weight: .bold))
                 .foregroundStyle(Theme.ink)
             Text("Tu ne peux plus trouver ni suivre ces comptes, recevoir leurs notifications ou les inviter à un défi, et réciproquement. Ils sont aussi retirés de tes espaces sociaux.")
                 .font(.system(size: 13, weight: .semibold))
@@ -108,7 +122,9 @@ struct AcctSubBlockedUsersView: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .duelloCard()
+        .padding(15)
+        .background(Theme.surfaceMuted)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
     }
 
     @ViewBuilder
@@ -154,7 +170,7 @@ struct AcctSubBlockedUsersView: View {
                     .padding(.horizontal, 16)
                     .frame(minHeight: 36)
             }
-            .buttonStyle(DuelloPrimaryButton())
+            .buttonStyle(SubBlockedRetryButtonStyle())
         }
         .frame(maxWidth: .infinity)
         .padding(24)
@@ -163,9 +179,19 @@ struct AcctSubBlockedUsersView: View {
     }
 
     private var emptyCard: some View {
-        DuelloEmptyState(icon: "checkmark.circle", title: "Aucun compte bloqué.")
-            .background(Theme.surfaceMuted)
-            .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
+        VStack(spacing: 9) {
+            Image(systemName: "checkmark.circle")
+                .font(.system(size: 24, weight: .semibold))
+                .foregroundStyle(Theme.ink)
+            Text("Aucun compte bloqué.")
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(Theme.inkSoft)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(24)
+        .background(Theme.surfaceMuted)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
     }
 
     private var memberList: some View {
@@ -200,7 +226,14 @@ struct AcctSubBlockedUsersView: View {
             Spacer(minLength: 8)
             unblockButton(member)
         }
-        .duelloCard()
+        .padding(11)
+        .frame(maxWidth: .infinity, minHeight: 66, alignment: .leading)
+        .background(Theme.surface)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.radiusMedium)
+                .stroke(Theme.border, lineWidth: 1)
+        )
     }
 
     /// Avatar : initiale, photo facultative (`AsyncImage`) et point de présence.
@@ -294,3 +327,16 @@ struct AcctSubBlockedUsersView: View {
         #endif
     }
 }
+
+/// Bouton « Réessayer » de la carte d'erreur : encre pleine, rayon 12
+/// (`retryButton` de la source), distinct du rayon 18 de `DuelloPrimaryButton`.
+private struct SubBlockedRetryButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundStyle(Theme.surface)
+            .background(Theme.ink)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .opacity(configuration.isPressed ? 0.84 : 1)
+    }
+}
+

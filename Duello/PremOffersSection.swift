@@ -41,6 +41,7 @@ struct PremOffersSection: View {
                 Task { await promo.submit(token: token) }
             }
             reassurance
+            PremSubscriptionLegalFooter()
         }
     }
 
@@ -80,18 +81,11 @@ struct PremOffersSection: View {
     }
 
     /// Les garanties, sous la carte promo : la source les aligne sur 300 points
-    /// centrés. Quand la facturation native est absente, une dernière ligne
-    /// explique pourquoi le bouton reste inerte.
+    /// centrés.
     private var reassurance: some View {
         VStack(alignment: .leading, spacing: 9) {
             PremReassuranceRow(label: "Résiliable à tout moment")
             PremReassuranceRow(label: "Paiement sécurisé via l’App Store et Google Play")
-            if !PremPurchaseService.isAvailable {
-                PremReassuranceRow(
-                    label: PremPurchaseService.paywallUnavailableMessage,
-                    icon: "info.circle"
-                )
-            }
         }
         .frame(maxWidth: 300, alignment: .leading)
         .frame(maxWidth: .infinity)
@@ -124,6 +118,70 @@ struct PremReassuranceRow: View {
             Spacer(minLength: 0)
         }
     }
+}
+
+/// `SubscriptionLegalFooter` de la source : la mention de reconduction puis les
+/// deux liens légaux, qui ouvrent les écrans embarqués.
+struct PremSubscriptionLegalFooter: View {
+    @State private var page: PremLegalPage?
+
+    var body: some View {
+        VStack(spacing: 10) {
+            Text(
+                "Le paiement est débité via l’App Store ou Google Play. "
+                + "L’abonnement se renouvelle automatiquement sauf résiliation "
+                + "au plus tard 24 h avant la fin de la période en cours."
+            )
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(Theme.inkSoft)
+            .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
+
+            HStack(spacing: 10) {
+                PremLegalLink(label: "Conditions d’utilisation") { page = .terms }
+                Text("•")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Theme.inkSoft)
+                PremLegalLink(label: "Politique de confidentialité") { page = .privacy }
+            }
+        }
+        .padding(.horizontal, 8)
+        .sheet(item: $page) { target in
+            switch target {
+            case .terms:
+                TermsOfUseView()
+            case .privacy:
+                PrivacyPolicyView()
+            }
+        }
+    }
+}
+
+/// Un lien légal souligné (`styles.link` / `styles.linkText` de la source).
+private struct PremLegalLink: View {
+    let label: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(label)
+                .font(.system(size: 12, weight: .heavy))
+                .foregroundStyle(Theme.ink)
+                .underline()
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(.isLink)
+    }
+}
+
+/// Page légale ouverte depuis le pied de page (`legalPage` de la source).
+private enum PremLegalPage: String, Identifiable {
+    case terms
+    case privacy
+
+    var id: String { rawValue }
 }
 
 /// Largeur mesurée du carrousel, remontée par préférence.

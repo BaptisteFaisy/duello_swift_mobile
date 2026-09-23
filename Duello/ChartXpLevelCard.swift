@@ -122,7 +122,7 @@ struct ChartXpLevelCard: View {
             Spacer(minLength: 0)
             if showsGain {
                 HStack(spacing: 4) {
-                    Image(systemName: "arrow.up").font(.system(size: 10, weight: .heavy))
+                    Image(systemName: "arrow.up").font(.system(size: 12, weight: .heavy))
                     Text("\(ExGFormat.xp(highlightedGain ?? 0)) XP")
                         .font(.system(size: 10, weight: .black))
                 }
@@ -135,7 +135,7 @@ struct ChartXpLevelCard: View {
             if showsElo, let eloDelta {
                 HStack(spacing: 4) {
                     Image(systemName: eloDelta < 0 ? "arrow.down" : "arrow.up")
-                        .font(.system(size: 10, weight: .heavy))
+                        .font(.system(size: 12, weight: .heavy))
                     Text("\(eloDelta < 0 ? "" : "+")\(eloDelta) Elo")
                         .font(.system(size: 10, weight: .black))
                 }
@@ -146,7 +146,7 @@ struct ChartXpLevelCard: View {
             }
             if !showsGain && !showsElo {
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .bold))
+                    .font(.system(size: 17, weight: .bold))
                     .foregroundStyle(Color.white.opacity(0.45))
             }
         }
@@ -186,33 +186,65 @@ struct ChartXpLevelCard: View {
         .fixedSize(horizontal: false, vertical: true)
     }
 
+    /// Compteurs rangés par rangées de `columns` (le `flexWrap` de la source).
+    private var statRows: [[ChartXpCardStat]] {
+        guard !stats.isEmpty else { return [] }
+        let size = max(1, columns)
+        return stride(from: 0, to: stats.count, by: size).map {
+            Array(stats[$0..<min($0 + size, stats.count)])
+        }
+    }
+
     private var statsGrid: some View {
-        LazyVGrid(
-            columns: Array(repeating: GridItem(.flexible(), spacing: 0), count: max(1, columns)),
-            spacing: 14
-        ) {
-            ForEach(stats) { stat in
-                VStack(spacing: 4) {
-                    Image(systemName: stat.icon)
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Color.white.opacity(0.55))
-                    Text(stat.value)
-                        .font(.system(size: 13, weight: .black))
-                        .foregroundStyle(Color.white)
-                        .lineLimit(1)
-                    Text(stat.label)
-                        .font(.system(size: 8, weight: .heavy))
-                        .textCase(.uppercase)
-                        .tracking(0.5)
-                        .foregroundStyle(Color.white.opacity(0.5))
-                        .lineLimit(1)
+        VStack(spacing: 0) {
+            ForEach(Array(statRows.enumerated()), id: \.offset) { rowIndex, row in
+                if rowIndex > 0 {
+                    // `statNewRow` : trait horizontal au-dessus de chaque rangée.
+                    Rectangle()
+                        .fill(Color.white.opacity(0.16))
+                        .frame(height: 0.5)
+                        .padding(.top, 15)
                 }
-                .frame(maxWidth: .infinity)
+                HStack(spacing: 0) {
+                    ForEach(Array(row.enumerated()), id: \.element.id) { columnIndex, stat in
+                        statCell(stat)
+                            .frame(maxWidth: .infinity)
+                            .overlay(alignment: .trailing) {
+                                // `statDivider` : pas de trait après le dernier
+                                // compteur d'une rangée.
+                                if columnIndex < row.count - 1 {
+                                    Rectangle()
+                                        .fill(Color.white.opacity(0.16))
+                                        .frame(width: 0.5)
+                                }
+                            }
+                    }
+                }
+                .padding(.top, rowIndex > 0 ? 15 : 0)
             }
         }
         .padding(.top, 15)
         .overlay(alignment: .top) {
             Rectangle().fill(Color.white.opacity(0.16)).frame(height: 0.5)
         }
+    }
+
+    private func statCell(_ stat: ChartXpCardStat) -> some View {
+        VStack(spacing: 4) {
+            Image(systemName: stat.icon)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(Color.white.opacity(0.55))
+            Text(stat.value)
+                .font(.system(size: 13, weight: .black))
+                .foregroundStyle(Color.white)
+                .lineLimit(1)
+            Text(stat.label)
+                .font(.system(size: 8, weight: .heavy))
+                .textCase(.uppercase)
+                .tracking(0.5)
+                .foregroundStyle(Color.white.opacity(0.5))
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity)
     }
 }

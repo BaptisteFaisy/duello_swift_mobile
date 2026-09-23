@@ -29,53 +29,83 @@ struct AcctSecEmailView: View {
     @State private var isSaving = false
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
-                    DuelloTextField(
-                        title: "Nouvelle adresse e-mail",
-                        text: $nextEmail,
-                        textContentType: .emailAddress,
-                        keyboard: .emailAddress
-                    )
-                    .onChange(of: nextEmail) { _ in errorMessage = "" }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                backButton
+                emailField
 
-                    if !errorMessage.isEmpty { errorCard }
-                    saveButton
-                    Spacer(minLength: 24)
+                if !errorMessage.isEmpty {
+                    Text(errorMessage)
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(Theme.ink)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 12)
-                .padding(.bottom, 24)
+                saveButton
+                Spacer(minLength: 24)
             }
-            .background(Theme.background)
-            .navigationTitle("Adresse e-mail")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Fermer") { dismiss() }
-                }
-            }
-            .onAppear {
-                if nextEmail.isEmpty { nextEmail = initialEmail ?? session.profile.email }
-            }
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+            .padding(.bottom, 24)
+        }
+        .background(Theme.background)
+        .onAppear {
+            if nextEmail.isEmpty { nextEmail = initialEmail ?? session.profile.email }
         }
     }
 
     // MARK: Sous-vues
 
-    private var errorCard: some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 18, weight: .bold))
-                .foregroundStyle(Theme.like)
-            Text(errorMessage)
-                .font(.system(size: 12, weight: .bold))
+    /// Bouton retour gauche (`BackButton` « Retour aux paramètres » de la
+    /// source) : `AccountEmailScreen.tsx` n'a pas de barre de navigation.
+    private var backButton: some View {
+        Button {
+            dismiss()
+        } label: {
+            Image(systemName: "chevron.backward")
+                .font(.system(size: 20, weight: .semibold))
                 .foregroundStyle(Theme.ink)
-                .fixedSize(horizontal: false, vertical: true)
+                .frame(width: 44, height: 44, alignment: .leading)
+                .contentShape(Rectangle())
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .duelloCard()
+        .buttonStyle(.plain)
+        .accessibilityLabel("Retour aux paramètres")
+    }
+
+    /// Champ local à icône (`AccountEmailScreen.tsx:124-135`) : légende
+    /// `Theme.ink`/700, icône `mail-outline` 20, bordure 1.5 `Theme.ink`, fond
+    /// blanc, hauteur 50. `DuelloTextField` (hors périmètre) ne porte ni icône
+    /// ni ces valeurs.
+    private var emailField: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Nouvelle adresse e-mail")
+                .font(.system(size: 12, weight: .bold))
+                .textCase(.uppercase)
+                .foregroundStyle(Theme.ink)
+
+            HStack(spacing: 10) {
+                Image(systemName: "envelope")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(Theme.inkSoft)
+
+                TextField("", text: $nextEmail)
+                    .textContentType(.emailAddress)
+                    .keyboardType(.emailAddress)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Theme.ink)
+                    .onSubmit { submit() }
+            }
+            .padding(.horizontal, 14)
+            .frame(minHeight: 50)
+            .background(Color.white)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.radiusSmall)
+                    .stroke(Theme.ink, lineWidth: 1.5)
+            )
+        }
+        .onChange(of: nextEmail) { _ in errorMessage = "" }
     }
 
     private var saveButton: some View {

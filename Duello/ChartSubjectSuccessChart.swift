@@ -8,7 +8,9 @@
 //    - src/components/SubjectSuccessChart.tsx (`SubjectSuccessChart`,
 //      `successPercent`, `accessibilityLabel`)
 //
-//  Échelle fixe 0 à 100 %, un point tactile par matière. Cible iOS 16.
+//  Échelle fixe 0 à 100 %, un point tactile par matière. La source relie les
+//  points par des **segments droits** (vues pivotées) : `straightSegments`.
+//  Cible iOS 16.
 //
 import SwiftUI
 
@@ -32,6 +34,9 @@ struct ChartSubjectSuccess: Identifiable, Hashable {
 struct ChartSubjectSuccessChart: View {
     let entries: [ChartSubjectSuccess]
 
+    /// `TOOLTIP_WIDTH`.
+    private static let tooltipWidth: CGFloat = 148
+
     var body: some View {
         if entries.isEmpty { EmptyView() } else { content }
     }
@@ -42,8 +47,11 @@ struct ChartSubjectSuccessChart: View {
         let linePoints = entries.map { entry in
             ChartLinePoint(
                 value: entry.percent,
-                tooltip: entry.subject,
-                tooltipDetail: tooltipDetail(for: entry)
+                tooltip: entry.total > 0 ? "\(Int(entry.percent)) %" : "À venir",
+                tooltipTitle: entry.subject,
+                tooltipAnnotation: entry.total > 0
+                    ? " · \(entry.succeeded)/\(entry.total) réussis"
+                    : nil
             )
         }
         return ChartSmoothLineChart(
@@ -57,13 +65,16 @@ struct ChartSubjectSuccessChart: View {
             accessibility: "Réussites par matière, de \(accessibility(first)) à \(accessibility(last))",
             dotSize: 8,
             axisWidth: 32,
-            showsLastAxisLabel: entries.count > 1
+            tooltipHeight: 46,
+            tooltipLeading: 38,
+            showsLastAxisLabel: entries.count > 1,
+            strongLastDot: true,
+            tooltipWidth: Self.tooltipWidth,
+            xAxisTopPadding: 8,
+            xAxisLeading: 38,
+            straightSegments: true,
+            tooltipTitleFont: .system(size: 10, weight: .black)
         )
-    }
-
-    private func tooltipDetail(for entry: ChartSubjectSuccess) -> String {
-        guard entry.total > 0 else { return "À venir" }
-        return "\(Int(entry.percent)) % · \(entry.succeeded)/\(entry.total) réussis"
     }
 
     private func accessibility(_ entry: ChartSubjectSuccess) -> String {

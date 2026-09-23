@@ -11,15 +11,15 @@
 //  `summaryFromTotal`), `viewedOverallElo` (l. 1838), `viewedLeague` (l. 1839)
 //  et `showcasePath` (l. 2773-2790).
 //
-//  Replis documentés — donnée absente du portage local (jamais inventée) :
-//    - XP totale : aucun store d'XP n'est exposé → `unavailableXp` (0) ; le
-//      niveau affiché est donc celui du palier 1.
-//    - Complétion de programme : `ProgressStore` ne publie pas la couverture du
-//      programme menant aux concours → `unavailableProgramPercent` (0).
+//  Repli documenté — donnée absente du portage local (jamais inventée) :
 //    - Succès par matière : le regroupement item → matière dépend du catalogue
-//      d'exercices, non relié ici → liste vide côté vitrine (état vide affiché).
-//    - Séries XP / Elo horodatées : `ProgressStore` ne conserve pas d'historique
-//      → listes vides (les sections affichent leur état vide).
+//      d'exercices, non relié ici → liste vide côté vitrine (la section n'est
+//      toutefois plus rendue, la source la masquant).
+//
+//  XP totale, complétion de programme, courbes XP et Elo proviennent désormais
+//  de `ProgressStore` (`totalXp`, `competitionProgramPercent`, `xpHistory`,
+//  `eloHistory`), comme `buildOwnPerformance`/`competitionProgramPercent` de la
+//  source.
 //
 //  Cible : iOS 16, aucune API iOS 17.
 //
@@ -27,11 +27,6 @@ import Foundation
 
 /// Données de la vitrine de l'onglet « Mon compte », dérivées de l'état local.
 enum AcctIntData {
-    /// XP totale : non suivie par le portage local (voir en-tête).
-    static let unavailableXp: Double = 0
-    /// Complétion de programme : non exposée par `ProgressStore` (voir en-tête).
-    static let unavailableProgramPercent: Int = 0
-
     /// Lignes du parcours publié (`showcasePath` : filière, année, option).
     static func pathLines(_ profile: UserProfile) -> [String] {
         [profile.track, profile.year, profile.specialty]

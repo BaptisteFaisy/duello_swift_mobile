@@ -76,6 +76,8 @@ struct OnbFlowView: View {
                 }
             }
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Parcours de bienvenue")
         .onAppear {
             Task { @MainActor in await runPreflight() }
         }
@@ -86,8 +88,8 @@ struct OnbFlowView: View {
             coordinator.pendingAlert?.title ?? "",
             isPresented: alertPresented,
             presenting: coordinator.pendingAlert
-        ) { _ in
-            Button("OK", role: .cancel) {}
+        ) { alert in
+            alertButtons(alert)
         } message: { alert in
             Text(alert.message)
         }
@@ -101,7 +103,7 @@ struct OnbFlowView: View {
         GeometryReader { proxy in
             ZStack(alignment: .leading) {
                 Rectangle().fill(OnbFlowPalette.progressTrack)
-                Rectangle()
+                RoundedRectangle(cornerRadius: 2)
                     .fill(OnbFlowPalette.progressFill)
                     .frame(
                         width: proxy.size.width
@@ -113,9 +115,6 @@ struct OnbFlowView: View {
             }
         }
         .frame(height: 4)
-        .accessibilityElement()
-        .accessibilityLabel("Progression")
-        .accessibilityValue(Text("Étape \(coordinator.stepIndex + 1) sur \(coordinator.steps.count)"))
     }
 
     /// `OnboardingStepTransition` : balayage horizontal entre les étapes.
@@ -125,21 +124,32 @@ struct OnbFlowView: View {
             onSwipeForward: canSwipeForward ? { Task { @MainActor in await advance() } } : nil,
             onSwipeBackward: canSwipeBackward ? { back() } : nil
         ) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
-                    eyebrow
-                    OnbFlowStepContent(
-                        coordinator: coordinator,
-                        onGoogle: handleGoogle,
-                        onApple: handleApple,
-                        onBiometric: handleBiometric
+            GeometryReader { proxy in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 24) {
+                        eyebrow
+                        OnbFlowStepContent(
+                            coordinator: coordinator,
+                            onGoogle: handleGoogle,
+                            onApple: handleApple,
+                            onBiometric: handleBiometric
+                        )
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 22)
+                    .padding(.vertical, 30)
+                    .frame(minHeight: proxy.size.height, alignment: .center)
+                    .padding(
+                        .bottom,
+                        coordinator.currentStep == .target && coordinator.schoolSearchFocused ? 280 : 0
                     )
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 22)
-                .padding(.vertical, 30)
+                .scrollDismissesKeyboard(
+                    coordinator.schoolSearchFocused || coordinator.currentStep == .target
+                        ? .never
+                        : .interactively
+                )
             }
-            .scrollDismissesKeyboard(coordinator.currentStep == .target ? .never : .interactively)
         }
     }
 
@@ -157,18 +167,23 @@ struct OnbFlowView: View {
 
     /// `footer` : bouton principal seul.
     private var footer: some View {
-        Button {
-            Task { @MainActor in await advance() }
-        } label: {
-            HStack(spacing: 9) {
-                Text(coordinator.continueLabel)
-                Image(systemName: coordinator.isLastStep ? "checkmark" : "arrow.right")
+        Group {
+            // `{!premiumGiftOpenPending && (…)}` : sur l'étape cadeau, le bouton
+            // principal n'est pas rendu tant que le cadeau n'est pas ouvert.
+            if !coordinator.premiumGiftOpenPending {
+                Button {
+                    Task { @MainActor in await advance() }
+                } label: {
+                    HStack(spacing: 9) {
+                        Text(coordinator.continueLabel)
+                        Image(systemName: coordinator.isLastStep ? "checkmark" : "arrow.right")
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 54)
+                }
+                .buttonStyle(DuelloPrimaryButton(onDark: true))
+                .disabled(coordinator.advanceBlocked)
             }
-            .frame(maxWidth: .infinity, minHeight: 54)
         }
-        .buttonStyle(DuelloPrimaryButton(onDark: true))
-        .disabled(coordinator.advanceBlocked)
-        .opacity(coordinator.advanceBlocked ? 0.45 : 1)
         .padding(.horizontal, 22)
         .padding(.top, 13)
         .padding(.bottom, OnbUiConstants.onboardingFooterBottomPadding)
@@ -186,19 +201,20 @@ struct OnbFlowView: View {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 24, weight: .semibold))
                     .foregroundStyle(OnbFlowPalette.onDark)
-                    .frame(width: 44, height: 44)
+                    .frame(width: 40, height: 40)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .disabled(coordinator.isCompleting)
+            .offset(x: -12)
             .accessibilityLabel(
                 coordinator.stepIndex > 0 ? "Étape précédente" : "Revenir à l’accueil"
             )
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 22)
-        .padding(.top, 8)
-        .padding(.bottom, 14)
+        .padding(.top, 0)
+        .padding(.bottom, 12)
     }
 
     /// Le halo de passation, centré sur le bouton principal.
@@ -232,6 +248,35 @@ struct OnbFlowView: View {
             get: { coordinator.pendingAlert != nil },
             set: { if !$0 { coordinator.pendingAlert = nil } }
         )
+    }
+
+    /// Un bouton par action d'alerte ; « OK » quand la source n'en donne aucun.
+    @ViewBuilder
+    private func alertButtons(_ alert: OnbFlowAlert) -> some View {
+        if alert.actions.isEmpty {
+            Button("OK", role: .cancel) {}
+        } else {
+            ForEach(alert.actions) { action in
+                Button(action.title, role: action.isCancel ? .cancel : nil) {
+                    perform(action)
+                }
+            }
+        }
+    }
+
+    /// Exécute l'action choisie puis referme l'alerte.
+    private func perform(_ action: OnbFlowAlertAction) {
+        coordinator.pendingAlert = nil
+        switch action.kind {
+        case .retry:
+            Task { @MainActor in await runPreflight() }
+        case .backToWelcome:
+            onCancel?()
+        case .openSettings:
+            OnbFlowPushNotifications.openSettings()
+        case .dismiss:
+            break
+        }
     }
 
     /// `continueOnboarding` : avance d'une étape, ou clôt le parcours.
@@ -278,6 +323,18 @@ struct OnbFlowView: View {
         Task { @MainActor in
             let status = await OnbFlowPushNotifications.request()
             coordinator.pushNotificationsEnabled = status != .denied
+            // Alerte de rattrapage quand l'autorisation est refusée.
+            if status == .denied {
+                coordinator.pendingAlert = OnbFlowAlert(
+                    title: "Notifications désactivées",
+                    message: "Ton téléphone les refuse actuellement. Autorise-les dans les "
+                        + "réglages, puis reviens dans Duello.",
+                    actions: [
+                        OnbFlowAlertAction(title: "Plus tard", isCancel: true),
+                        OnbFlowAlertAction(title: "Ouvrir les réglages", kind: .openSettings),
+                    ]
+                )
+            }
         }
 
         // Le module Entraînement s'évalue derrière le halo, en parallèle de la

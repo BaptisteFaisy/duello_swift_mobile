@@ -17,7 +17,7 @@ struct EvEventStatementPane: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
+            LazyVStack(alignment: .leading, spacing: 14) {
                 Text(title)
                     .font(.system(size: 17, weight: .black))
                     .foregroundStyle(Theme.ink)

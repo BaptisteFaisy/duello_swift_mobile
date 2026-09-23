@@ -50,8 +50,7 @@ struct ChalIntHomePage: View {
             VStack(spacing: 0) {
                 ChalHome2HomeNotices(
                     playable: playable,
-                    launchError: launchError,
-                    inviteOutcome: queue.inviteOutcome
+                    launchError: launchError
                 )
                 .padding(.horizontal, 20)
 
@@ -66,15 +65,12 @@ struct ChalIntHomePage: View {
                     onOpenCourse: onOpenCourse
                 )
 
-                ChalHome2QueuePanel(
-                    queue: queue,
-                    subject: ChalHome2Launch.challengeSubjectName,
-                    durationMinutes: ChalMatchmaking.challengeDurationMinutes,
-                    disabled: disabled,
-                    onEnter: onEnter
-                )
-                .padding(.horizontal, 16)
-                .padding(.top, 16)
+                // Le retour d'invitation vient **après** la carte d'accueil,
+                // comme la source (`queue.inviteOutcome`).
+                if let inviteOutcome = queue.inviteOutcome {
+                    ChalHome2InviteOutcomeCard(outcome: inviteOutcome)
+                        .padding(.horizontal, 20)
+                }
             }
             .padding(.bottom, 24)
         }

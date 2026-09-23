@@ -73,7 +73,7 @@ struct ChalIncomingSheet: View {
             if let error {
                 Text(error)
                     .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(Theme.like)
+                    .foregroundStyle(Color(hex: 0xB42318))
                     .multilineTextAlignment(.center)
                     .padding(.top, 12)
             }
@@ -187,7 +187,7 @@ struct ChalIncomingSheet: View {
                             .stroke(Theme.border, lineWidth: 1)
                     )
             }
-            .buttonStyle(.plain)
+            .buttonStyle(ChalIncomingPressStyle())
             .disabled(responding)
             Button(action: onAccept) {
                 Group {
@@ -207,9 +207,19 @@ struct ChalIncomingSheet: View {
                 .background(Theme.ink)
                 .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium, style: .continuous))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(ChalIncomingPressStyle())
             .disabled(responding)
         }
         .padding(.top, 20)
+    }
+}
+
+/// Effet d'appui des boutons Refuser / Accepter (`pressed` de la source) :
+/// opacité 0,72 et échelle 0,98 tant que le doigt reste posé.
+private struct ChalIncomingPressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(configuration.isPressed ? 0.72 : 1)
+            .scaleEffect(configuration.isPressed ? 0.98 : 1)
     }
 }

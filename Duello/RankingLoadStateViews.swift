@@ -27,6 +27,10 @@ struct RankingStatusCard: View {
     let icon: String
     let title: String
     var message: String? = nil
+    /// Notice locale affichée sous le message d'erreur (`localEloNotice`,
+    /// `localNotice`) : rappelle que la cote ou les XP locaux restent pris en
+    /// compte malgré la panne du classement.
+    var notice: String? = nil
     var showsProgress: Bool = false
     var retry: (() -> Void)? = nil
 
@@ -53,6 +57,12 @@ struct RankingStatusCard: View {
                     Text(message)
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(Theme.inkSoft)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                if let notice {
+                    Text(notice)
+                        .font(.system(size: 12, weight: .heavy))
+                        .foregroundStyle(Theme.ink)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }

@@ -85,7 +85,7 @@ struct AcctBadgeFlippable: View {
     @ViewBuilder
     private var badgeImage: some View {
         if let badgeURL {
-            AsyncImage(url: badgeURL) { image in
+            CachedRemoteImage(url: badgeURL) { image in
                 image.resizable().scaledToFit()
             } placeholder: {
                 Color.clear

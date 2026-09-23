@@ -58,8 +58,10 @@ enum OnbFlowAcademic {
     /// `FIRST_YEAR_TRACKS`.
     static let firstYearTracks = ["MPSI", "MP2I", "PCSI", "PTSI", "BCPST", "B/L", "ECG"]
 
-    /// `SECOND_YEAR_TRACKS`.
-    static let secondYearTracks = ["MP", "MPI", "PC", "PT", "PSI", "BCPST", "B/L", "ECG"]
+    /// `SECOND_YEAR_TRACKS`. La source contient **`'PT'` deux fois** (doublon
+    /// RN) : il est reproduit ici pour la fidélité — `currentTrackStep` indexe
+    /// les puces par position pour l'absorber.
+    static let secondYearTracks = ["MP", "MPI", "PC", "PT", "PSI", "PT", "BCPST", "B/L", "ECG"]
 
     /// `TRACK_OPTIONS` ; le lycée porte les spécialités de ses niveaux.
     static let trackOptions: [String: [String]] = [

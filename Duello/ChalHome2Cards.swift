@@ -40,11 +40,12 @@ enum ChalHome2NoticeTone {
         }
     }
 
-    /// Couleur de l'icône : encre pour l'information, rouge pour l'échec.
+    /// Couleur de l'icône : encre dans les deux cas (`colors.danger` de la
+    /// source vaut `#0A0D0C`, l'encre).
     var color: Color {
         switch self {
         case .info: return Theme.ink
-        case .error: return Theme.like
+        case .error: return Theme.ink
         }
     }
 }
@@ -64,7 +65,7 @@ struct ChalHome2NoticeCard: View {
                 .foregroundStyle(tone.color)
                 .frame(width: 22)
             Text(text)
-                .font(.system(size: 12, weight: .semibold))
+                .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(Theme.inkSoft)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .fixedSize(horizontal: false, vertical: true)
@@ -132,11 +133,12 @@ struct ChalHome2InviteOutcomeCard: View {
 }
 
 /// Les annonces de l'accueil, dans l'ordre de la source : avis d'exercices
-/// jouables, échec de lancement, puis retour d'invitation.
+/// jouables, puis échec de lancement. Le retour d'invitation
+/// (`ChalHome2InviteOutcomeCard`) est posé **après** la carte d'accueil, par
+/// l'appelant, comme dans la source.
 struct ChalHome2HomeNotices: View {
     var playable: ChalHome2PlayableNotice = .none
     var launchError: String?
-    var inviteOutcome: ChalQueueController.InviteOutcome?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -145,9 +147,6 @@ struct ChalHome2HomeNotices: View {
             }
             if let launchError = launchError, !launchError.isEmpty {
                 ChalHome2NoticeCard(tone: .error, text: launchError)
-            }
-            if let inviteOutcome {
-                ChalHome2InviteOutcomeCard(outcome: inviteOutcome)
             }
         }
     }

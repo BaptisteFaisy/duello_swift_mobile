@@ -46,10 +46,45 @@ enum ChartXpSeries {
     ///
     /// L'historique est borné : quand ses entrées ne remontent pas jusqu'à
     /// l'inscription, le premier point reprend le total déjà acquis avant.
+    ///
+    /// Le pipeline `filter` + `sorted` + `reduce` était rejoué à chaque rendu du
+    /// graphe (`AcctIntShowcase.xpSeriesPoints`) : il est mémoïsé par
+    /// `(history, total, registeredAt)`.
     static func build(
         history: [ChartXpEntry],
         total: Double,
         registeredAt: Double = 0
+    ) -> [ChartXpSeriesPoint] {
+        let key = BuildKey(history: history, total: total, registeredAt: registeredAt)
+        cacheLock.lock()
+        let cached = cache[key]
+        cacheLock.unlock()
+        if let cached { return cached }
+
+        let result = compute(history: history, total: total, registeredAt: registeredAt)
+
+        cacheLock.lock()
+        if cache.count >= cacheLimit { cache.removeAll(keepingCapacity: true) }
+        cache[key] = result
+        cacheLock.unlock()
+        return result
+    }
+
+    /// Clé de mémoïsation : tout ce qui détermine la série produite.
+    private struct BuildKey: Hashable {
+        var history: [ChartXpEntry]
+        var total: Double
+        var registeredAt: Double
+    }
+
+    private static let cacheLimit = 8
+    private static let cacheLock = NSLock()
+    private static var cache: [BuildKey: [ChartXpSeriesPoint]] = [:]
+
+    private static func compute(
+        history: [ChartXpEntry],
+        total: Double,
+        registeredAt: Double
     ) -> [ChartXpSeriesPoint] {
         let gains = history
             .filter { $0.at.isFinite && $0.at > 0 && $0.xp.isFinite && $0.xp > 0 }

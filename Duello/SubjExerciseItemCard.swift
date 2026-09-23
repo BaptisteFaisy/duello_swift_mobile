@@ -301,7 +301,7 @@ private extension SubjItemCard {
     @ViewBuilder
     func achieverAvatar(_ achiever: SubjItemAchiever) -> some View {
         if let url = achiever.photoURL {
-            AsyncImage(url: url) { image in
+            CachedRemoteImage(url: url) { image in
                 image.resizable().scaledToFill()
             } placeholder: {
                 DuelloAvatar(initial: achiever.initial, size: 28)

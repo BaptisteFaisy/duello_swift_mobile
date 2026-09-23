@@ -27,6 +27,7 @@
 //
 import Foundation
 import LocalAuthentication
+import UIKit
 import UserNotifications
 
 /// Finalisation du profil et des identifiants (`prepareOnboarding`).
@@ -43,11 +44,9 @@ enum OnbFlowCredentialsBuilder {
 
     /// `isAdminEmail` : adresse réservée au compte administrateur.
     ///
-    /// ⚠️ La source lit `ADMIN_ACCOUNT_EMAIL` (`utils/auth.ts`), qui vit dans une
-    /// variable d'environnement Expo et n'est pas recopiée dans le code. Aucun
-    /// équivalent Swift n'a été trouvé : la liste reste vide, donc la règle ne
-    /// bloque rien tant que l'adresse n'est pas fournie par la configuration.
-    static let reservedAddresses: Set<String> = []
+    /// La source lit `ADMIN_EMAILS` (`utils/accountIdentity.ts`) ; la même
+    /// liste est déjà portée par `AppleAuthAccountResolver.adminEmails`.
+    static let reservedAddresses: Set<String> = Set(AppleAuthAccountResolver.adminEmails)
 
     static func isReservedEmail(_ value: String) -> Bool {
         let email = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -184,5 +183,12 @@ enum OnbFlowPushNotifications {
         default:
             return .undetermined
         }
+    }
+
+    /// Ouvre les réglages système de l'app (`openAppNotificationSettings`).
+    @MainActor
+    static func openSettings() {
+        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+        UIApplication.shared.open(url)
     }
 }

@@ -3,9 +3,8 @@ import SwiftUI
 /// Écran « Nouveau mot de passe » du compte.
 ///
 /// Porté de `src/screens/AccountPasswordScreen.tsx` (champ unique, bascule
-/// d'affichage œil, politique de robustesse) et de
-/// `src/components/PasswordResetForm.tsx` (champ « Confirme le mot de passe »).
-/// Politique alignée sur `shared/new-password-policy.mjs` : 8 à 128 caractères.
+/// d'affichage œil, politique de robustesse). Politique alignée sur
+/// `shared/new-password-policy.mjs` : 8 à 128 caractères.
 ///
 /// Le changement passe par `POST /auth/password/change` (`changeServerPassword`
 /// de `src/utils/serverSession.ts`), replié dans le helper local
@@ -20,47 +19,37 @@ struct AcctSecPasswordView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var password = ""
-    @State private var confirmation = ""
     @State private var showPassword = false
     @State private var errorMessage = ""
     @State private var isSaving = false
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
-                    AcctSecPasswordField(
-                        title: "Nouveau mot de passe",
-                        text: $password,
-                        isVisible: showPassword,
-                        onToggle: { showPassword.toggle() }
-                    )
-                    .onChange(of: password) { _ in errorMessage = "" }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                backButton
+                AcctSecPasswordField(
+                    title: "Nouveau mot de passe",
+                    text: $password,
+                    isVisible: showPassword,
+                    onToggle: { showPassword.toggle() },
+                    onSubmit: { submit() }
+                )
+                .onChange(of: password) { _ in errorMessage = "" }
 
-                    AcctSecPasswordField(
-                        title: "Confirme le mot de passe",
-                        text: $confirmation,
-                        isVisible: showPassword
-                    )
-                    .onChange(of: confirmation) { _ in errorMessage = "" }
-
-                    if !errorMessage.isEmpty { errorCard }
-                    saveButton
-                    Spacer(minLength: 24)
+                if !errorMessage.isEmpty {
+                    Text(errorMessage)
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(Theme.ink)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 12)
-                .padding(.bottom, 24)
+                saveButton
+                Spacer(minLength: 24)
             }
-            .background(Theme.background)
-            .navigationTitle("Mot de passe")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Fermer") { dismiss() }
-                }
-            }
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+            .padding(.bottom, 24)
         }
+        .background(Theme.background)
     }
 
     // MARK: Politique de mot de passe (voir `new-password-policy.mjs`)
@@ -74,26 +63,34 @@ struct AcctSecPasswordView: View {
 
     // MARK: Sous-vues
 
-    private var errorCard: some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 18, weight: .bold))
-                .foregroundStyle(Theme.like)
-            Text(errorMessage)
-                .font(.system(size: 12, weight: .bold))
+    /// Bouton retour gauche (`BackButton` « Retour aux paramètres » de la
+    /// source) : `AccountPasswordScreen.tsx` n'a pas de barre de navigation.
+    private var backButton: some View {
+        Button {
+            dismiss()
+        } label: {
+            Image(systemName: "chevron.backward")
+                .font(.system(size: 20, weight: .semibold))
                 .foregroundStyle(Theme.ink)
-                .fixedSize(horizontal: false, vertical: true)
+                .frame(width: 44, height: 44, alignment: .leading)
+                .contentShape(Rectangle())
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .duelloCard()
+        .buttonStyle(.plain)
+        .accessibilityLabel("Retour aux paramètres")
     }
 
     private var saveButton: some View {
         Button {
             submit()
         } label: {
-            Text(isSaving ? "Enregistrement…" : "Enregistrer")
-                .frame(maxWidth: .infinity, minHeight: 52)
+            Group {
+                if isSaving {
+                    ProgressView().tint(.white)
+                } else {
+                    Text("Enregistrer")
+                }
+            }
+            .frame(maxWidth: .infinity, minHeight: 52)
         }
         .buttonStyle(DuelloPrimaryButton())
         .disabled(isSaving)
@@ -104,10 +101,6 @@ struct AcctSecPasswordView: View {
     private func submit() {
         guard Self.isValidNewPassword(password) else {
             errorMessage = Self.policyMessage
-            return
-        }
-        guard password == confirmation else {
-            errorMessage = "Les deux mots de passe ne correspondent pas."
             return
         }
         isSaving = true
@@ -143,17 +136,18 @@ private struct AcctSecPasswordField: View {
     @Binding var text: String
     let isVisible: Bool
     var onToggle: (() -> Void)? = nil
+    var onSubmit: (() -> Void)? = nil
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 10) {
             Text(title)
-                .font(.system(size: 12, weight: .heavy))
+                .font(.system(size: 12, weight: .bold))
                 .textCase(.uppercase)
-                .foregroundStyle(Theme.inkFaint)
+                .foregroundStyle(Theme.ink)
 
             HStack(spacing: 10) {
                 Image(systemName: "key")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: 20, weight: .semibold))
                     .foregroundStyle(Theme.inkSoft)
 
                 Group {
@@ -165,25 +159,29 @@ private struct AcctSecPasswordField: View {
                 }
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
-                .font(.system(size: 16, weight: .semibold))
+                .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(Theme.ink)
+                .onSubmit { onSubmit?() }
 
                 if let onToggle {
                     Button(action: onToggle) {
                         Image(systemName: isVisible ? "eye.slash" : "eye")
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(.system(size: 20, weight: .semibold))
                             .foregroundStyle(Theme.inkSoft)
+                            .frame(width: 38, height: 38)
                     }
+                    .buttonStyle(.plain)
                     .accessibilityLabel(isVisible ? "Masquer le mot de passe" : "Afficher le mot de passe")
                 }
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
-            .background(Theme.surfaceMuted)
+            .padding(.leading, 14)
+            .padding(.trailing, 5)
+            .frame(minHeight: 50)
+            .background(Color.white)
             .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
             .overlay(
                 RoundedRectangle(cornerRadius: Theme.radiusSmall)
-                    .stroke(Theme.border, lineWidth: 1)
+                    .stroke(Theme.ink, lineWidth: 1.5)
             )
         }
     }

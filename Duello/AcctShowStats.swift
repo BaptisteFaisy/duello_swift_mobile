@@ -74,12 +74,12 @@ struct AcctShowLevelProgress: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 12) {
                 Text("\(compactTitle ? "Niveau" : "Progression du niveau") \(summary.level)")
-                    .font(.system(size: 13, weight: .heavy))
+                    .font(.system(size: 11, weight: .black))
                     .foregroundStyle(Theme.ink)
                 Spacer(minLength: 0)
                 Text("\(ExGFormat.xp(summary.total)) XP")
-                    .font(.system(size: 13, weight: .heavy))
-                    .foregroundStyle(Theme.inkSoft)
+                    .font(.system(size: 11, weight: .black))
+                    .foregroundStyle(Theme.ink)
             }
 
             ChartXpProgressBar(
@@ -90,7 +90,7 @@ struct AcctShowLevelProgress: View {
             )
 
             Text(legend)
-                .font(.system(size: 11, weight: .semibold))
+                .font(.system(size: 9, weight: .semibold))
                 .foregroundStyle(Theme.inkSoft)
                 .fixedSize(horizontal: false, vertical: true)
         }

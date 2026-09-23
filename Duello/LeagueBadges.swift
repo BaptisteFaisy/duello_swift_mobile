@@ -18,6 +18,7 @@
 //  Cible : iOS 16, aucune API iOS 17.
 //
 import Foundation
+import SwiftUI
 
 /// Blasons de ligue : identifiants et noms de fichiers servis (`leagueBadges.ts`).
 enum LeagueBadges {
@@ -125,5 +126,36 @@ enum LeagueBadges {
     static func displaySize(forLeague id: String, baseSize: Double) -> Double {
         _ = id
         return baseSize.rounded()
+    }
+}
+
+// MARK: - Vue
+
+/// Blason d'une ligue servi à distance (`leagueBadgeSourceForLeague` de la
+/// source Expo, ramené ici à sa seule forme exploitable : l'image distante).
+///
+/// Sans PNG embarqué, le blason passe par `CachedRemoteImage` (`AsyncImage`
+/// remplacé par le cache partagé) ; un identifiant inconnu retombe sur le
+/// symbole bouclier, comme les autres vues de blason de l'application.
+struct LeagueBadgeImage: View {
+    /// Identifiant de ligue (`EloLeague.id`, `WeeklyXpLeague.id`).
+    let leagueId: String
+    /// Côté du blason, en points.
+    let size: CGFloat
+
+    var body: some View {
+        if let url = LeagueBadges.badgeURL(forLeague: leagueId) {
+            CachedRemoteImage(url: url) { image in
+                image.resizable().scaledToFit()
+            } placeholder: {
+                Color.clear
+            }
+            .frame(width: size, height: size)
+        } else {
+            Image(systemName: "shield")
+                .font(.system(size: size * 0.7, weight: .semibold))
+                .foregroundStyle(Theme.ink)
+                .frame(width: size, height: size)
+        }
     }
 }

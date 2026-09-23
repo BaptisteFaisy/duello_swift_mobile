@@ -189,3 +189,101 @@ struct AcctShowEloSeriesSection: View {
             : "Ta courbe démarre à ton premier défi. Chaque duel gagné ou perdu déplace ton Elo dans la matière jouée."
     }
 }
+
+/// Section « Évolution des notes » de la vitrine (`AccountScreen.tsx`,
+/// l. 3222-3330) : onglets de période, courbe `ChartCorrectionGradeChart` ou
+/// état vide.
+struct AcctShowGradeSeriesSection: View {
+    /// Moyennes de notes par période (`gradeSeries`).
+    let points: [ChartCorrectionPeriodPoint]
+    /// Période affichée, liée à l'état de l'écran.
+    @Binding var granularity: ChartTimeGranularity
+    /// Variation relative entre les deux dernières périodes.
+    var evolutionPercentage: Double = 0
+    /// Variation absolue entre les deux dernières périodes.
+    var evolutionAbsolute: Double = 0
+    /// Vrai lorsque la vitrine affiche le profil d'un autre membre.
+    var isMember: Bool = false
+
+    var body: some View {
+        AcctShowSectionCard(
+            icon: "chart.bar.xaxis",
+            iconColor: ChartGoogleGColors.yellow,
+            title: "Évolution des notes",
+            subtitle: nil,
+            trailing: pill
+        ) {
+            content
+        }
+    }
+
+    /// Pastille d'évolution, en points de note (`unit: .grade`).
+    private var pill: AnyView {
+        AnyView(AcctEvoPerformanceEvolutionPill(
+            percentage: evolutionPercentage,
+            absolute: evolutionAbsolute,
+            unit: .grade
+        ))
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            AcctShowGranularityTabs(value: granularity) { granularity = $0 }
+            if !points.isEmpty {
+                ChartCorrectionGradeChart(points: points, granularity: granularity)
+            } else {
+                AcctShowChartEmpty(icon: "chart.bar.xaxis", message: emptyMessage)
+            }
+        }
+    }
+
+    /// Explique ce qui déclenchera la courbe (`chartEmptyText`).
+    private var emptyMessage: String {
+        isMember
+            ? "Sa courbe démarrera dès sa première note publiée."
+            : "Ta courbe démarrera dès ton premier exercice ou défi, ou ta première colle ou annale."
+    }
+}
+
+/// Section « Évolution du temps » de la vitrine (`AccountScreen.tsx`,
+/// l. 3332-3416) : onglets de période, `ChartSubjectTimeTrendChart` ou état vide.
+struct AcctShowTimeSeriesSection: View {
+    /// Temps d'entraînement par période (`timeBuckets`).
+    let buckets: [ChartTimeBucket]
+    /// Période affichée, liée à l'état de l'écran.
+    @Binding var granularity: ChartTimeGranularity
+    /// Vrai lorsque la vitrine affiche le profil d'un autre membre.
+    var isMember: Bool = false
+
+    var body: some View {
+        AcctShowSectionCard(
+            icon: "timer",
+            iconColor: ChartGoogleGColors.red,
+            title: "Évolution du temps",
+            subtitle: nil,
+            trailing: nil
+        ) {
+            content
+        }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            AcctShowGranularityTabs(value: granularity) { granularity = $0 }
+            if !buckets.isEmpty {
+                ChartSubjectTimeTrendChart(buckets: buckets, granularity: granularity)
+            } else {
+                AcctShowChartEmpty(icon: "timer", message: emptyMessage)
+            }
+        }
+    }
+
+    /// Explique ce qui déclenchera la courbe (`chartEmptyText`).
+    private var emptyMessage: String {
+        isMember
+            ? "Sa courbe démarrera dès son premier exercice, défi ou flashcard."
+            : "Ta courbe démarrera dès ton premier exercice, défi ou flashcard."
+    }
+}

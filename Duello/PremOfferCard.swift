@@ -3,8 +3,8 @@ import SwiftUI
 // MARK: - Carte d'offre Premium
 
 /// Portage de `src/components/premium-offers/PremiumOfferCard.tsx` : la carte
-/// sombre d'une offre — fond dégradé, badges de remise, prix, bénéfices et
-/// bouton d'abonnement.
+/// sombre d'une offre — fond noir uni, badges de remise, nom de la formule,
+/// prix, bénéfices et bouton d'abonnement.
 ///
 /// absent : l'agrandissement au survol (`onPointerEnter` + `scale(1.025)`),
 /// réservé au client de bureau téléchargé, sans objet sur iOS.
@@ -27,6 +27,17 @@ struct PremOfferCard: View {
                 }
             }
             .frame(minHeight: 25)
+
+            // `planName` : le titre de la formule (« Gratuite », « Annuelle »,
+            // « Hebdomadaire »), exigence stores reprise par la source.
+            Text(offer.name)
+                .font(.system(size: 12, weight: .black))
+                .kerning(1.1)
+                .textCase(.uppercase)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.top, 12)
 
             PremOfferPriceRow(offer: offer, discount: discount)
 
@@ -53,7 +64,7 @@ struct PremOfferCard: View {
         }
         .padding(18)
         .frame(maxWidth: .infinity, minHeight: 500, alignment: .topLeading)
-        .background(PremOfferBackdrop(annual: offer.id == .annual))
+        .background(Color.black)
         .clipShape(RoundedRectangle(cornerRadius: 20))
         .accessibilityElement(children: .contain)
         .accessibilityLabel(offer.accessibilityLabel)
@@ -152,37 +163,6 @@ struct PremOfferCallToAction: View {
     }
 }
 
-/// `OfferBackdrop` : dégradé sombre, et pour l'offre annuelle un projecteur
-/// radial qui l'éclaire par le haut.
-///
-/// Le projecteur de la source est une ellipse SVG (`rx` 167, `ry` 113 dans une
-/// boîte de 100 × 100) ; SwiftUI ne trace qu'un rayon circulaire, le portage
-/// retient donc le plus grand des deux et éclaire un peu plus large sur les
-/// côtés.
-struct PremOfferBackdrop: View {
-    let annual: Bool
-
-    var body: some View {
-        GeometryReader { geo in
-            ZStack {
-                LinearGradient(
-                    gradient: Gradient(stops: PremOfferPalette.stops(annual: annual)),
-                    startPoint: UnitPoint(x: 0.15, y: 0),
-                    endPoint: UnitPoint(x: 0.85, y: 1)
-                )
-                if annual {
-                    RadialGradient(
-                        gradient: Gradient(stops: PremOfferPalette.spotlight),
-                        center: UnitPoint(x: 0.5, y: -0.08),
-                        startRadius: 0,
-                        endRadius: max(geo.size.width, geo.size.height) * 1.67
-                    )
-                }
-            }
-        }
-    }
-}
-
 /// Badge translucide de remise (« −50 % », « −25 % »).
 struct PremSavingBadge: View {
     let text: String
@@ -200,28 +180,6 @@ struct PremSavingBadge: View {
 
 /// Couleurs des cartes d'offre, relevées sur `PremiumOfferCard.tsx`.
 enum PremOfferPalette {
-    /// `DARK_GRADIENT` et `ANNUAL_GRADIENT`, avec leurs positions.
-    static func stops(annual: Bool) -> [Gradient.Stop] {
-        annual
-            ? [
-                Gradient.Stop(color: Color(hex: 0x5A5A5A), location: 0),
-                Gradient.Stop(color: Color(hex: 0x242424), location: 0.48),
-                Gradient.Stop(color: Color(hex: 0x030303), location: 1),
-            ]
-            : [
-                Gradient.Stop(color: Color(hex: 0x383838), location: 0),
-                Gradient.Stop(color: Color(hex: 0x161616), location: 0.52),
-                Gradient.Stop(color: Color(hex: 0x050505), location: 1),
-            ]
-    }
-
-    /// `ANNUAL_SPOTLIGHT_STOPS` : blanc 24 %, gris 13 %, puis transparent.
-    static let spotlight: [Gradient.Stop] = [
-        Gradient.Stop(color: Color.white.opacity(0.24), location: 0),
-        Gradient.Stop(color: Color(hex: 0x9D9D9D).opacity(0.13), location: 0.32),
-        Gradient.Stop(color: Color(hex: 0x9D9D9D).opacity(0), location: 0.58),
-    ]
-
     /// `stylesVars.limitedColor` : bénéfice absent de la formule.
     static let limited = Color.white.opacity(0.58)
 

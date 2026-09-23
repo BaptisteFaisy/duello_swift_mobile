@@ -222,7 +222,7 @@ struct ChallengePlayerView: View {
 
     private var writingBody: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
+            LazyVStack(alignment: .leading, spacing: 14) {
                 if let exercise {
                     VStack(alignment: .leading, spacing: 8) {
                         Label("Énoncé", systemImage: "doc.text")

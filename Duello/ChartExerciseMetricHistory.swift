@@ -41,7 +41,7 @@ struct ChartExerciseMetricHistory: View {
             if let onBack {
                 Button(action: onBack) {
                     Image(systemName: "chevron.left")
-                        .font(.system(size: 18, weight: .bold))
+                        .font(.system(size: 22, weight: .bold))
                         .foregroundStyle(Theme.ink)
                         .frame(width: 44, height: 44)
                 }
@@ -120,6 +120,7 @@ struct ChartExerciseMetricHistory: View {
                 .minimumScaleFactor(0.75)
         }
         .frame(maxWidth: .infinity)
+        .padding(.horizontal, 2)
         .padding(.vertical, 9)
         .background(Theme.surfaceMuted)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))

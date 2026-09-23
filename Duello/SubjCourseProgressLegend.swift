@@ -159,7 +159,7 @@ struct SubjCourseProgressLegend: View {
     /// Rappel « Statut cours » sous la liste des chapitres.
     private var staticLegend: some View {
         VStack(alignment: .leading, spacing: 0) {
-            DuelloSectionHeader(title: subjCourseLegendTitle)
+            legendTitle
             HStack(spacing: 8) {
                 ForEach(TrainCourseStatus.allCases, id: \.self) { status in
                     legendItem(status)
@@ -172,6 +172,19 @@ struct SubjCourseProgressLegend: View {
             Rectangle().fill(Theme.border).frame(height: 1)
         }
         .padding(.top, 16)
+    }
+
+    /// Titre du rappel statique : 10 pt noir, capitales, `tracking` 0,5
+    /// (`styles.legendTitle` de `SubjectsScreen.tsx`) — plus petit que le titre
+    /// de section partagé (`DuelloSectionHeader`, 13 pt), que ce rappel
+    /// n'emploie donc pas.
+    private var legendTitle: some View {
+        Text(subjCourseLegendTitle)
+            .font(.system(size: 10, weight: .black))
+            .textCase(.uppercase)
+            .tracking(0.5)
+            .foregroundStyle(Theme.inkSoft)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     /// Pastille de légende : petit rond de statut + libellé.

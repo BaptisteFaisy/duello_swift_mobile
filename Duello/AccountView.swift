@@ -34,7 +34,7 @@ struct AccountView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 14) {
+                VStack(spacing: 0) {
                     AcctIntSearchRow(
                         model: search,
                         onOpenNotifications: { notificationsOpen = true },
@@ -47,9 +47,9 @@ struct AccountView: View {
                         AcctIntShowcase()
                     }
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
-                .padding(.bottom, 24)
+                .padding(.horizontal, 24)
+                .padding(.top, 4)
+                .padding(.bottom, 36)
             }
             .background(Theme.background)
             // La source n'a pas d'en-tête de navigation : la page commence par

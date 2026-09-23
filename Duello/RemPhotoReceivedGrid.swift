@@ -93,14 +93,16 @@ struct RemPhotoReceivedPhotoCard: View {
     }
 
     @ViewBuilder private var preview: some View {
-        if let image = UIImage(data: photo.data) {
-            Image(uiImage: image)
+        // Décodage hors main thread + cache : `photo.id` identifie le contenu,
+        // l'aperçu n'est décodé qu'une fois même si la cellule réapparaît.
+        CachedImage(.data(photo.data, key: "rem-received-\(photo.id)")) { image in
+            image
                 .resizable()
                 .scaledToFill()
                 .frame(height: 110)
                 .clipped()
                 .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
-        } else {
+        } placeholder: {
             RoundedRectangle(cornerRadius: Theme.radiusSmall)
                 .fill(Theme.surfaceMuted)
                 .frame(height: 110)

@@ -77,6 +77,10 @@ enum ChartGradeSeries {
                     date: $0.date
                 )
             }
+            // `buildGradePoints` écarte aussi les dates non finies
+            // (`gradeChart.ts:34`) ; une `Date` Swift l'est toujours, la garde
+            // reste pour rester aligné sur la source.
+            .filter { $0.date.timeIntervalSince1970.isFinite }
             .sorted { $0.date < $1.date }
         return Array(mapped.suffix(16))
     }

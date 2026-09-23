@@ -23,6 +23,9 @@ struct AdmUsersScreen: View {
     @State private var isLoading = true
     @State private var errorMessage = ""
     @State private var reloadKey = 0
+    /// `visibleUsers` mémoïsé : recalculé uniquement quand `users` ou `query`
+    /// change, au lieu de l'être à chaque évaluation de `body`.
+    @State private var visibleUsers: [AdmUserRecord] = []
 
     var body: some View {
         Group {
@@ -35,6 +38,8 @@ struct AdmUsersScreen: View {
             }
         }
         .task(id: AdmLoadKey(reload: reloadKey, token: token)) { await load() }
+        .onChange(of: users) { _ in refreshVisibleUsers() }
+        .onChange(of: query) { _ in refreshVisibleUsers() }
     }
 
     private var list: some View {
@@ -70,7 +75,7 @@ struct AdmUsersScreen: View {
                     : "Aucun utilisateur ne correspond."
             )
         } else {
-            VStack(spacing: 10) {
+            LazyVStack(spacing: 10) {
                 ForEach(visibleUsers) { user in
                     row(user)
                 }
@@ -79,10 +84,13 @@ struct AdmUsersScreen: View {
     }
 
     /// `visibleUsers` : filtre insensible à la casse sur les champs du compte.
-    private var visibleUsers: [AdmUserRecord] {
+    private func refreshVisibleUsers() {
         let normalized = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !normalized.isEmpty else { return users }
-        return users.filter { AdmUserText.searchable($0).contains(normalized) }
+        guard !normalized.isEmpty else {
+            visibleUsers = users
+            return
+        }
+        visibleUsers = users.filter { AdmUserText.searchable($0).contains(normalized) }
     }
 
     private func row(_ user: AdmUserRecord) -> some View {

@@ -18,10 +18,33 @@
 //
 import Foundation
 
+/// Bouton d'une alerte d'écran (`Alert.alert` de la source). Le titre porte
+/// l'action, le genre dit quoi exécuter.
+struct OnbFlowAlertAction: Identifiable, Equatable {
+    enum Kind: Equatable {
+        /// Ferme l'alerte (bouton « Compris » / « Plus tard »).
+        case dismiss
+        /// Relance la vérification de pré-vol (« Réessayer »).
+        case retry
+        /// Quitte le parcours (« Revenir à l'accueil »).
+        case backToWelcome
+        /// Ouvre les réglages système de l'app (« Ouvrir les réglages »).
+        case openSettings
+    }
+
+    let title: String
+    var kind: Kind = .dismiss
+    /// Bouton de style « annuler » (`style: 'cancel'` de la source).
+    var isCancel: Bool = false
+    var id: String { title }
+}
+
 /// Message d'alerte de l'écran (`Alert.alert` de la source) : titre + corps.
 struct OnbFlowAlert: Identifiable, Equatable {
     let title: String
     let message: String
+    /// Boutons de l'alerte. Vide ⇒ un unique « OK » (défaut `Alert.alert`).
+    var actions: [OnbFlowAlertAction] = []
     var id: String { "\(title)|\(message)" }
 }
 
@@ -54,10 +77,15 @@ struct OnbFlowValidationState {
 
 /// Règles pures des étapes d'inscription (`OnboardingScreen.tsx`).
 enum OnbFlowSteps {
-    /// Titre de l'alerte de pré-vol d'inscription. La source le dérive de
-    /// `accountRegistrationAlertTitle(error)` (`utils/accountRegistration.ts`) :
-    /// ce helper n'est pas porté côté Swift, le titre est donc fixé ici.
-    static let registrationAlertTitle = "Création de compte indisponible"
+    /// Titre de l'alerte de pré-vol d'inscription, dérivé du statut HTTP
+    /// (`accountRegistrationAlertTitle(error)`, `utils/authHttpError.ts`) :
+    /// 409 → « Création du compte impossible », sinon « Vérification de
+    /// l'inscription impossible ».
+    static func registrationAlertTitle(status: Int?) -> String {
+        status == 409
+            ? "Création du compte impossible"
+            : "Vérification de l’inscription impossible"
+    }
 
     /// Surtitre d'étape (`STEP_COPY`), délégué au module d'étapes déjà porté.
     static func eyebrow(for step: OnbDataSteps.Step) -> String? {
@@ -123,7 +151,8 @@ enum OnbFlowSteps {
                     title: "Pseudo invalide",
                     message: "Choisis un pseudo unique de 3 à 24 caractères, sans espace. "
                         + "Tu peux utiliser des lettres, des chiffres, des points, des tirets "
-                        + "et des tirets bas."
+                        + "et des tirets bas.",
+                    actions: [OnbFlowAlertAction(title: "Compris")]
                 )
             }
         case .authMethod:
@@ -140,13 +169,18 @@ enum OnbFlowSteps {
     private static func emailAlert(_ state: OnbFlowValidationState) -> OnbFlowAlert? {
         let email = state.email.trimmingCharacters(in: .whitespacesAndNewlines)
         if !OnbFlowCredentialsBuilder.isValidEmail(email) {
-            return OnbFlowAlert(title: "E-mail invalide", message: "Saisis une adresse e-mail valide.")
+            return OnbFlowAlert(
+                title: "E-mail invalide",
+                message: "Saisis une adresse e-mail valide.",
+                actions: [OnbFlowAlertAction(title: "Compris")]
+            )
         }
         if OnbFlowCredentialsBuilder.isReservedEmail(email) {
             return OnbFlowAlert(
                 title: "Adresse réservée",
                 message: "Cette adresse appartient au compte administrateur. "
-                    + "Utilise l’écran de connexion."
+                    + "Utilise l’écran de connexion.",
+                actions: [OnbFlowAlertAction(title: "Compris")]
             )
         }
         if let provider = state.providerEmail,
@@ -154,7 +188,8 @@ enum OnbFlowSteps {
             return OnbFlowAlert(
                 title: "Compte externe incohérent",
                 message: "Recommence la connexion avec ton fournisseur afin de confirmer "
-                    + "ton adresse e-mail."
+                    + "ton adresse e-mail.",
+                actions: [OnbFlowAlertAction(title: "Compris")]
             )
         }
         return nil
@@ -200,10 +235,19 @@ enum OnbFlowSteps {
             )
             return nil
         } catch {
+            let status = (error as? DevRegPreflightError)?.status
             return OnbFlowAlert(
-                title: registrationAlertTitle,
+                title: registrationAlertTitle(status: status),
                 message: (error as? LocalizedError)?.errorDescription
-                    ?? "La création de compte est momentanément indisponible."
+                    ?? "La création de compte est momentanément indisponible.",
+                actions: [
+                    OnbFlowAlertAction(title: "Réessayer", kind: .retry),
+                    OnbFlowAlertAction(
+                        title: "Revenir à l’accueil",
+                        kind: .backToWelcome,
+                        isCancel: true
+                    ),
+                ]
             )
         }
     }

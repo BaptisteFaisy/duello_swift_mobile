@@ -7,19 +7,19 @@
 //  Assemble les composants du lot 10-E (`AcctShow*`, `AcctEvo*`) dans l'ordre
 //  de `src/screens/AccountScreen.tsx` : vitrine de ligue (l. 2738-2810),
 //  bandeau de repères (l. 2905), « Évolution de l’XP » (l. 2918), « Évolution
-//  de l’Elo » (l. 3027), « Exos réussis par matière » (l. 3355) et pied de
-//  période (l. 3444).
+//  de l’Elo » (l. 3027), « Évolution des notes » (l. 3222) et « Évolution du
+//  temps » (l. 3332).
 //
 //  Composants branchés indirectement : `AcctShowLeagueBadge` (dessiné par
-//  `AcctShowLeagueCard`), `AcctShowGranularityTabs` (dans les deux sections de
+//  `AcctShowLeagueCard`), `AcctShowGranularityTabs` (dans les sections de
 //  série) et `AcctShowLevelProgress` (dans `AcctShowStatsPanel`).
 //
-//  Replis documentés (voir `AcctIntData`) : XP, complétion de programme, succès
-//  par matière et séries horodatées ne sont pas exposés localement ; les
-//  sections concernées reçoivent des listes vides et affichent leur état vide.
-//  L'abonnement Premium n'ayant pas de drapeau local, la coche est masquée
-//  (`isPremium: false`). La présence en ligne n'étant pas publiée non plus, la
-//  pastille de présence reste éteinte (`online: false`).
+//  Repli documenté (voir `AcctIntData`) : les succès par matière dépendent du
+//  catalogue d'exercices, non relié ici. La section correspondante n'est plus
+//  rendue (la source la masque : `AccountScreen.tsx`, l. 3418-3456).
+//  L'abonnement Premium n'ayant pas de drapeau local, la coche reste masquée
+//  (`isPremium: false`). La présence en ligne est lue sur
+//  `SocPresenceStore` (PR #426).
 //
 //  Cible : iOS 16, aucune API iOS 17.
 //
@@ -43,32 +43,40 @@ struct AcctIntShowcase: View {
             identityCard
             AcctShowStatsPanel(
                 overview: AcctIntData.overviewStats(
-                    totalXp: AcctIntData.unavailableXp,
+                    totalXp: progress.totalXp,
                     elo: elo,
-                    streakDays: progress.activeDayCount(),
-                    programPercent: AcctIntData.unavailableProgramPercent
+                    streakDays: progress.currentStreak(),
+                    programPercent: progress.competitionProgramPercent
                 ),
                 details: AcctIntData.detailStats(level: xpSummary.level, progress: progress),
                 xpSummary: xpSummary
             )
             AcctShowXpSeriesSection(
-                points: [],
+                points: xpSeriesPoints,
                 granularity: $granularity,
                 evolutionPercentage: 0,
                 evolutionAbsolute: 0,
                 name: name
             )
             AcctShowEloSeriesSection(
-                points: [],
+                points: eloSeriesPoints,
                 granularity: $granularity,
                 subjects: AcctIntData.eloSubjects(progress),
                 subject: $eloSubject,
                 evolutionPercentage: 0,
                 evolutionAbsolute: 0
             )
-            AcctShowSubjectSuccessSection(entries: [])
-            AcctShowPeriodFooter(value: granularity) { granularity = $0 }
+            AcctShowGradeSeriesSection(
+                points: [],
+                granularity: $granularity
+            )
+            AcctShowTimeSeriesSection(
+                buckets: [],
+                granularity: $granularity
+            )
         }
+        .padding(.horizontal, 4)
+        .padding(.top, 14)
     }
 
     /// Carte d'identité et blason de ligue (`showcaseIdentityRow`).
@@ -77,7 +85,10 @@ struct AcctIntShowcase: View {
             name: name,
             pathLines: AcctIntData.pathLines(session.profile),
             league: league,
-            photoUri: session.profile.photoUri
+            photoUri: session.profile.photoUri,
+            online: SocPresenceStore.shared.isOnline(
+                DuelloAPI.publicProfileId(email: session.profile.email)
+            )
         )
     }
 
@@ -111,6 +122,30 @@ struct AcctIntShowcase: View {
 
     /// Résumé de niveau d'XP (`viewedXpSummary`).
     private var xpSummary: ChartXpSummary {
-        AcctIntData.xpSummary(totalXp: AcctIntData.unavailableXp)
+        AcctIntData.xpSummary(totalXp: progress.totalXp)
+    }
+
+    /// Courbe d'XP cumulée, regroupée par période (`xpSeries` de la source).
+    private var xpSeriesPoints: [ChartXpSeriesPoint] {
+        let raw = ChartXpSeries.build(
+            history: progress.xpHistory.map { ChartXpEntry(xp: $0.xp, at: $0.at) },
+            total: progress.totalXp
+        )
+        return ChartXpSeries.groupByPeriod(raw, granularity: granularity)
+    }
+
+    /// Courbe d'Elo par période, matière choisie (`eloSeries` de la source) :
+    /// la valeur de clôture de chaque période est retenue.
+    private var eloSeriesPoints: [ChartEloSeriesPoint] {
+        let history = progress.eloHistory
+            .filter { eloSubject == nil || $0.subject == eloSubject }
+            .sorted { $0.at < $1.at }
+
+        var closingByPeriod: [Double: ChartEloSeriesPoint] = [:]
+        for entry in history where entry.at > 0 {
+            let start = ChartTimeSeries.bucketStart(entry.at, granularity)
+            closingByPeriod[start] = ChartEloSeriesPoint(elo: Double(entry.elo), at: start)
+        }
+        return closingByPeriod.values.sorted { $0.at < $1.at }
     }
 }

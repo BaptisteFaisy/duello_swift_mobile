@@ -85,13 +85,16 @@ enum ChartPerformanceWindow {
         at: (T) -> Double,
         empty: ((Double) -> T)? = nil
     ) -> [T] {
-        let visible = points.filter { at($0) >= window.start && at($0) < window.end }
-        guard let empty else { return visible }
+        // Pré-calcul : l'abscisse de chaque point est évaluée une seule fois
+        // (le filtre l'appelait deux fois par point, puis la boucle encore une).
+        let dated = points.map { (value: at($0), point: $0) }
+        let visible = dated.filter { $0.value >= window.start && $0.value < window.end }
+        guard let empty else { return visible.map { $0.point } }
 
         var byPeriod: [Double: [T]] = [:]
-        for point in visible {
-            byPeriod[ChartTimeSeries.bucketStart(at(point), window.granularity), default: []]
-                .append(point)
+        for entry in visible {
+            byPeriod[ChartTimeSeries.bucketStart(entry.value, window.granularity), default: []]
+                .append(entry.point)
         }
 
         var complete: [T] = []

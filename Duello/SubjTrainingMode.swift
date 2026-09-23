@@ -159,7 +159,7 @@ struct SubjTrainingModeTabs: View {
 
     var body: some View {
         GeometryReader { proxy in
-            HStack(spacing: compact ? 2 : 5) {
+            HStack(spacing: compact ? 2 : 6) {
                 ForEach(availableModes) { option in
                     tab(option, width: tabWidth(for: option, total: proxy.size.width))
                 }
@@ -189,7 +189,7 @@ struct SubjTrainingModeTabs: View {
     /// au prorata des poids.
     private func tabWidth(for option: SubjTrainingModeOption, total: CGFloat) -> CGFloat {
         guard !availableModes.isEmpty else { return total }
-        let gaps = CGFloat(availableModes.count - 1) * (compact ? 2 : 5)
+        let gaps = CGFloat(availableModes.count - 1) * (compact ? 2 : 6)
         let usable = max(0, total - gaps)
         let sum = availableModes.reduce(CGFloat(0)) { $0 + weight(for: $1) }
         guard sum > 0 else { return usable / CGFloat(availableModes.count) }
@@ -213,12 +213,12 @@ struct SubjTrainingModeTabs: View {
                     .font(.system(size: compact ? 13 : 15, weight: .semibold))
                     .frame(width: 18)
                 Text(option.label)
-                    .font(.system(size: compact ? 11 : 12.5, weight: .heavy))
+                    .font(.system(size: compact ? 11 : 13, weight: .heavy))
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
             }
             .foregroundStyle(selected ? Color.white : Theme.inkSoft)
-            .padding(.horizontal, 3)
+            .padding(.horizontal, 4)
             .frame(width: width, height: compact ? 36 : 44)
             .background(selected ? Theme.primary : Color.clear)
             .clipShape(RoundedRectangle(cornerRadius: 12))

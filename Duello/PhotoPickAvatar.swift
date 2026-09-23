@@ -20,21 +20,35 @@ struct PhotoPickAvatar: View {
     var body: some View {
         ZStack {
             Circle().fill(Theme.primaryLight)
-            if let image = decodedImage {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: size, height: size)
-                    .clipShape(Circle())
-            } else {
-                Text(initial)
-                    .font(.system(size: size * 0.38, weight: .black))
-                    .foregroundStyle(Theme.ink)
-            }
+            photoLayer
             Circle().stroke(Theme.surface, lineWidth: 3)
             Circle().stroke(Theme.border, lineWidth: 1.25)
         }
         .frame(width: size, height: size)
+    }
+
+    /// Photo découpée en cercle, sinon l'initiale.
+    @ViewBuilder private var photoLayer: some View {
+        if let source = localPhotoSource {
+            CachedImage(source) { image in
+                image
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: size, height: size)
+                    .clipShape(Circle())
+            } placeholder: {
+                initialLabel
+            }
+        } else {
+            initialLabel
+        }
+    }
+
+    /// Initiale du nom, centrée dans le disque.
+    private var initialLabel: some View {
+        Text(initial)
+            .font(.system(size: size * 0.38, weight: .black))
+            .foregroundStyle(Theme.ink)
     }
 
     /// Première lettre du nom, en capitale.
@@ -43,12 +57,12 @@ struct PhotoPickAvatar: View {
         return String(first).uppercased()
     }
 
-    /// Décode la seule URI admise à la publication (miniature JPEG base64).
-    private var decodedImage: UIImage? {
+    /// Décode la seule URI admise à la publication (miniature JPEG base64) :
+    /// octets + clé de cache, le décodage passe par `CachedImage` (une fois).
+    private var localPhotoSource: CachedImageSource? {
         guard let uri = PhotoPickUri.publicProfilePhotoUri(photoUri),
-              let comma = uri.firstIndex(of: ",") else { return nil }
-        let base64 = String(uri[uri.index(after: comma)...])
-        guard let data = Data(base64Encoded: base64) else { return nil }
-        return UIImage(data: data)
+              let comma = uri.firstIndex(of: ","),
+              let data = Data(base64Encoded: String(uri[uri.index(after: comma)...])) else { return nil }
+        return .data(data, key: ImageCache.key(for: uri))
     }
 }

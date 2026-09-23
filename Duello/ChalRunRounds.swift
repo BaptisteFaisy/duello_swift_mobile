@@ -88,6 +88,8 @@ struct ChalRunRounds: View {
     let match: MatchView
     /// Identifiant public du joueur (clé de dépôt de la copie côté serveur).
     let userId: String
+    /// Titre de l'exercice servi, pour le signalement de l'énoncé.
+    var exerciseTitle: String = ""
     /// Énoncé et réponses de la manche ; l'appelant les conserve pour enchaîner
     /// les exercices d'une même série.
     @Binding var state: ChalRunRoundState
@@ -128,57 +130,43 @@ struct ChalRunRounds: View {
     private var timeIsUp: Bool { snapshot.remainingSeconds == 0 }
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
-            ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
-                    ChalRunSectionLabel(text: state.progressLabel)
-                    if startedPenalty > 0 {
-                        ChalRunNotice(
-                            icon: "exclamationmark.circle",
-                            text: "Tu avais déjà commencé cet exercice : ta note finale aura une pénalité de \(startedPenalty) points."
-                        )
-                    }
-                    if opponentStartedBonus > 0 {
-                        ChalRunNotice(
-                            icon: "plus.circle",
-                            text: "Ton adversaire avait déjà commencé cet exercice : ta note finale recevra un bonus de \(opponentStartedBonus) points."
-                        )
-                    }
-                    statement
-                    response
-                    submitButton
-                    if let waitingDeadline { waitNote(waitingDeadline) }
-                    cancelButton
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                ChalUiDuelChrono(
+                    startedAt: match.startedAt,
+                    stoppedAt: state.submittedAt,
+                    totalSeconds: totalSeconds,
+                    onTimeUp: { tick() }
+                )
+                Text("Exercice \(state.exerciseIndex + 1)/\(state.seriesCount)")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(Theme.inkSoft)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                if startedPenalty > 0 {
+                    ChalRunNotice(
+                        icon: "exclamationmark.circle",
+                        text: "Tu avais déjà commencé cet exercice : ta note finale aura une pénalité de \(startedPenalty) points."
+                    )
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 12)
-                .padding(.bottom, 24)
+                if opponentStartedBonus > 0 {
+                    ChalRunNotice(
+                        icon: "plus.circle",
+                        text: "Ton adversaire avait déjà commencé cet exercice : ta note finale recevra un bonus de \(opponentStartedBonus) points."
+                    )
+                }
+                statement
+                response
+                submitButton
+                if let waitingDeadline { waitNote(waitingDeadline) }
+                cancelButton
             }
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+            .padding(.bottom, 24)
         }
         .background(Theme.background)
         .onReceive(timer) { _ in tick() }
         .onDisappear { gradeTask?.cancel() }
-    }
-
-    // MARK: En-tête
-
-    private var header: some View {
-        HStack(spacing: 10) {
-            VStack(alignment: .leading, spacing: 1) {
-                Text("Défi — \(match.opponent.displayName)")
-                    .font(.system(size: 15, weight: .heavy))
-                    .foregroundStyle(Theme.ink)
-                Text("\(match.subject) · \(match.durationMinutes) min")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Theme.inkFaint)
-            }
-            Spacer()
-            ChalRunChrono(remainingSeconds: snapshot.remainingSeconds)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(Theme.surface)
     }
 
     // MARK: Énoncé et réponse
@@ -186,13 +174,31 @@ struct ChalRunRounds: View {
     private var statement: some View {
         VStack(alignment: .leading, spacing: 8) {
             ChalRunSectionLabel(text: "ÉNONCÉ")
-            Text(LatexToUnicode.toUnicodeMath(state.exercise.context ?? ""))
-                .font(Theme.readingFont)
-                .foregroundStyle(Theme.ink)
-                .lineSpacing(4)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .textSelection(.enabled)
-                .duelloCard()
+            VStack(alignment: .trailing, spacing: 6) {
+                ReportExerciseButton.make(
+                    profile: session.profile,
+                    target: .statement,
+                    source: .challenge,
+                    exerciseId: state.exercise.id,
+                    exerciseTitle: exerciseTitle,
+                    subject: match.subject,
+                    compact: true
+                )
+                Text(LatexToUnicode.toUnicodeMath(state.exercise.context ?? ""))
+                    .font(Theme.readingFont)
+                    .foregroundStyle(Theme.ink)
+                    .lineSpacing(4)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .textSelection(.enabled)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(16)
+            .background(Theme.surface)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.radiusLarge, style: .continuous)
+                    .stroke(Theme.border, lineWidth: 1)
+            )
         }
     }
 
@@ -225,10 +231,10 @@ struct ChalRunRounds: View {
     private var answerEditor: some View {
         ZStack(alignment: .topLeading) {
             TextEditor(text: answerBinding)
-                .font(.system(size: 15))
-                .frame(minHeight: state.questions.count > 1 ? 140 : 200)
+                .font(.system(size: 13))
+                .frame(minHeight: 160)
                 .scrollContentBackground(.hidden)
-                .background(Theme.surfaceMuted)
+                .background(Theme.surface)
                 .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
                 .overlay(
                     RoundedRectangle(cornerRadius: Theme.radiusSmall)
@@ -237,7 +243,7 @@ struct ChalRunRounds: View {
                 .disabled(isSubmitting)
             if (state.answers[state.activeQuestionId] ?? "").isEmpty {
                 Text("Pose tes hypothèses et avance étape par étape, aussi loin que le temps le permet…")
-                    .font(.system(size: 15))
+                    .font(.system(size: 13))
                     .foregroundStyle(Theme.inkFaint)
                     .padding(.top, 8)
                     .padding(.leading, 5)
@@ -263,10 +269,13 @@ struct ChalRunRounds: View {
             HStack(spacing: 8) {
                 if isSubmitting {
                     ProgressView().tint(Theme.surface)
+                } else {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 18, weight: .semibold))
                 }
                 Text(isSubmitting ? submitProgressTitle : state.submitTitle(timeIsUp: timeIsUp))
             }
-            .frame(maxWidth: .infinity, minHeight: 48)
+            .frame(maxWidth: .infinity, minHeight: 52)
         }
         .buttonStyle(DuelloPrimaryButton())
         .disabled(isSubmitting || (!state.canSubmit && !timeIsUp))
@@ -279,8 +288,9 @@ struct ChalRunRounds: View {
 
     private func waitNote(_ deadline: Double) -> some View {
         Text("Ta copie est notée. \(match.opponent.displayName) a jusqu’à \(ChalRunFormat.deadline(deadline)) pour rendre la sienne, après quoi le défi t’est acquis par forfait.")
-            .font(.system(size: 12, weight: .semibold))
+            .font(.system(size: 10, weight: .semibold))
             .foregroundStyle(Theme.inkFaint)
+            .multilineTextAlignment(.center)
             .lineSpacing(2)
     }
 
@@ -289,8 +299,8 @@ struct ChalRunRounds: View {
             waitingDeadline == nil ? onAbandon() : onStopWaiting()
         } label: {
             Text(waitingDeadline == nil ? "Abandonner sans gagner d’XP" : "Ne pas attendre — défi non arbitré")
-                .font(.system(size: 13, weight: .heavy))
-                .foregroundStyle(Theme.inkSoft)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(Theme.ink)
                 .frame(maxWidth: .infinity, minHeight: 40)
         }
         .buttonStyle(.plain)
@@ -438,13 +448,13 @@ struct ChalRunNotice: View {
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(Theme.ink)
             Text(text)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(Theme.inkSoft)
                 .lineSpacing(2)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .background(Theme.surfaceMuted)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
+        .padding(14)
+        .background(Theme.primaryLight)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
     }
 }

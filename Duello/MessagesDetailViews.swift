@@ -21,7 +21,7 @@ struct ConversationDetailView: View {
             )
 
             ScrollView {
-                VStack(spacing: 0) {
+                LazyVStack(spacing: 0) {
                     Text("AUJOURD’HUI")
                         .font(.system(size: 8, weight: .black))
                         .tracking(1)
@@ -70,7 +70,7 @@ struct ForumTopicDetailView: View {
             )
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
+                LazyVStack(alignment: .leading, spacing: 0) {
                     questionCard
 
                     ForEach(replies) { reply in

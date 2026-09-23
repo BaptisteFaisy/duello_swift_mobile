@@ -82,6 +82,17 @@ struct HecJourneyCrestView: View {
                 .frame(width: width * 0.82)
         }
         .frame(width: width, height: height)
+        // L'ombre est rasterisée une seule fois (`drawingGroup`) au lieu d'être
+        // recomposée à chaque image de la scène animée. La marge interne lui
+        // laisse la place ; le cadre final garde la taille d'origine, donc le
+        // centrage par `.position` est inchangé.
+        .padding(Self.shadowMargin * scale)
+        .drawingGroup()
+        .frame(width: width, height: height)
         .accessibilityLabel(crest.schoolName)
     }
+
+    /// Marge (avant mise à l'échelle) réservée à l'ombre : couvre le rayon `12`
+    /// et le décalage vertical `7` de `.shadow`.
+    private static let shadowMargin: CGFloat = 24
 }

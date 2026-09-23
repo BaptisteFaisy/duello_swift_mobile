@@ -18,36 +18,74 @@ struct LegalDocument {
     let sections: [LegalSection]
 }
 
-/// Affichage générique d'un document juridique : titre centré, date de mise à
-/// jour, puis articles repliables. Reprend la présentation commune à
-/// `PrivacyPolicyScreen.tsx` et `TermsOfUseScreen.tsx` (`LegalSectionView.tsx`).
+/// Affichage générique d'un document juridique : chevron de retour en tête,
+/// titre centré, date de mise à jour, puis articles repliables. Reprend la
+/// présentation commune à `PrivacyPolicyScreen.tsx` et `TermsOfUseScreen.tsx`
+/// (`LegalSectionView.tsx`) : marge latérale `LEGAL_PAGE_CONTENT_INSET` (44),
+/// marge basse `LEGAL_PAGE_BOTTOM_INSET` (120), chevron de retour en tête de
+/// contenu (marge `LEGAL_PAGE_BACK_INSET` = 24) au lieu d'une barre de
+/// navigation, et espace de fin propre aux Conditions.
 struct LegalDocumentView: View {
     let document: LegalDocument
+    /// Retour arrière facultatif (`onBack` de la source). Fourni, il ajoute le
+    /// chevron en tête de contenu.
+    var onBack: (() -> Void)? = nil
+    /// Espace de 12 pt en fin de page (`backToSettingsSpacer`), propre aux
+    /// Conditions et affiché quand `onBack` est fourni.
+    var showsBackToSettingsSpacer: Bool = false
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                Text(document.title)
-                    .font(.system(size: 24, weight: .black))
-                    .foregroundStyle(Theme.ink)
-                    .frame(maxWidth: .infinity, alignment: .center)
-
-                Text("Dernière mise à jour : \(document.updatedAt)")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Theme.ink)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.top, 6)
-                    .padding(.bottom, 16)
-
-                ForEach(document.sections) { section in
-                    LegalSectionRow(section: section)
-                }
+        VStack(alignment: .leading, spacing: 0) {
+            if let onBack {
+                backButton(onBack)
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 8)
-            .padding(.bottom, 40)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(document.title)
+                        .font(.system(size: 24, weight: .black))
+                        .foregroundStyle(Theme.ink)
+                        // Interligne 29 pt de la source : la hauteur de ligne
+                        // native de la police système à 24 pt vaut ≈ 29 pt, la
+                        // valeur est donc déjà respectée (SwiftUI n'expose pas
+                        // de réglage exact de la hauteur de ligne).
+                        .frame(maxWidth: .infinity, alignment: .center)
+
+                    Text("Dernière mise à jour : \(document.updatedAt)")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Theme.ink)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.top, 6)
+                        .padding(.bottom, 16)
+
+                    ForEach(document.sections) { section in
+                        LegalSectionRow(section: section)
+                    }
+
+                    if showsBackToSettingsSpacer {
+                        Color.clear.frame(height: 12)
+                    }
+                }
+                .padding(.horizontal, 44)
+                .padding(.top, 8)
+                .padding(.bottom, 120)
+            }
         }
         .background(Theme.background)
+    }
+
+    /// Chevron de retour, aligné sur le bord `LEGAL_PAGE_BACK_INSET` (24).
+    private func backButton(_ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: "chevron.left")
+                .font(.system(size: 20, weight: .bold))
+                .foregroundStyle(Theme.ink)
+                .frame(width: 40, height: 40, alignment: .leading)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Retour aux paramètres")
+        .padding(.horizontal, 24)
+        .padding(.bottom, 4)
     }
 }
 
@@ -70,7 +108,7 @@ private struct LegalSectionRow: View {
                         .multilineTextAlignment(.leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 12, weight: .bold))
+                        .font(.system(size: 16, weight: .bold))
                         .foregroundStyle(Theme.inkFaint)
                         .rotationEffect(.degrees(expanded ? 90 : 0))
                 }
@@ -102,6 +140,7 @@ private struct LegalSectionRow: View {
                         .padding(.top, 6)
                     }
                 }
+                .padding(.top, 2)
             }
         }
         .padding(.top, 18)
@@ -113,15 +152,10 @@ struct PrivacyPolicyView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        NavigationStack {
-            LegalDocumentView(document: LegalContent.privacyPolicy)
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Fermer") { dismiss() }
-                    }
-                }
-        }
+        LegalDocumentView(
+            document: LegalContent.privacyPolicy,
+            onBack: { dismiss() }
+        )
     }
 }
 
@@ -130,14 +164,10 @@ struct TermsOfUseView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        NavigationStack {
-            LegalDocumentView(document: LegalContent.termsOfUse)
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Fermer") { dismiss() }
-                    }
-                }
-        }
+        LegalDocumentView(
+            document: LegalContent.termsOfUse,
+            onBack: { dismiss() },
+            showsBackToSettingsSpacer: true
+        )
     }
 }

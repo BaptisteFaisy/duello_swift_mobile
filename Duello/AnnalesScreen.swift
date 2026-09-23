@@ -69,6 +69,10 @@ struct AnnalesView: View {
 
     @State private var openedEntry: AnnEntry?
     @State private var selection: [AnnFilterGroup.Kind: Set<String>] = [:]
+    /// `filteredEntries` / `orderedEntries` mémoïsés : recalculés seulement quand
+    /// `selection` (filtres) ou `entries` (banque) change, jamais à chaque `body`.
+    @State private var filteredEntries: [AnnEntry] = []
+    @State private var orderedEntries: [AnnEntry] = []
 
     init(
         subject: String = "Mathématiques",
@@ -82,6 +86,9 @@ struct AnnalesView: View {
         self.track = track
         self.specialty = specialty
         self.entries = entries
+        // Sans filtre actif, la liste affichée est la banque entière.
+        _filteredEntries = State(initialValue: entries)
+        _orderedEntries = State(initialValue: Self.orderedByTheme(entries))
     }
 
     var body: some View {
@@ -121,6 +128,8 @@ struct AnnalesView: View {
         .onChange(of: session.token) { token in
             monitor.configure(token: token)
         }
+        .onChange(of: selection) { _ in refreshEntries() }
+        .onChange(of: entries) { _ in refreshEntries() }
         .fullScreenCover(item: $openedEntry) { entry in
             AnnReaderView(
                 entry: entry,
@@ -285,7 +294,7 @@ struct AnnalesView: View {
     // MARK: Liste
 
     private var list: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        LazyVStack(alignment: .leading, spacing: 10) {
             DuelloSectionHeader(
                 title: "Annales",
                 subtitle: "\(filteredEntries.count) sujet\(filteredEntries.count > 1 ? "s" : "")"
@@ -306,20 +315,15 @@ struct AnnalesView: View {
         }
     }
 
-    /// Sujets affichés, filtrés puis rangés par thème dans l'ordre fixe
-    /// Analyse → Algèbre → Probabilités (`groupItemsByTheme`).
-    private var orderedEntries: [AnnEntry] {
-        let filtered = filteredEntries
-        var ordered: [AnnEntry] = []
-        for theme in AnnTheme.allCases {
-            ordered.append(contentsOf: filtered.filter { $0.theme == theme })
-        }
-        ordered.append(contentsOf: filtered.filter { $0.theme == nil })
-        return ordered
+    /// Recalcule les listes mémoïsées (filtres ou banque modifiés).
+    private func refreshEntries() {
+        filteredEntries = computeFilteredEntries(from: entries)
+        orderedEntries = Self.orderedByTheme(filteredEntries)
     }
 
-    private var filteredEntries: [AnnEntry] {
-        entries.filter { entry in
+    /// Sujets filtrés par les groupes de filtres actifs.
+    private func computeFilteredEntries(from source: [AnnEntry]) -> [AnnEntry] {
+        source.filter { entry in
             for group in filterGroups {
                 let chosen = chosen(group.kind)
                 guard !chosen.isEmpty else { continue }
@@ -336,6 +340,17 @@ struct AnnalesView: View {
             }
             return true
         }
+    }
+
+    /// Sujets rangés par thème dans l'ordre fixe Analyse → Algèbre →
+    /// Probabilités (`groupItemsByTheme`).
+    private static func orderedByTheme(_ source: [AnnEntry]) -> [AnnEntry] {
+        var ordered: [AnnEntry] = []
+        for theme in AnnTheme.allCases {
+            ordered.append(contentsOf: source.filter { $0.theme == theme })
+        }
+        ordered.append(contentsOf: source.filter { $0.theme == nil })
+        return ordered
     }
 
     // MARK: Aides de sélection

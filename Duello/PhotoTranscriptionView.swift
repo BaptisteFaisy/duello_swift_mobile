@@ -341,16 +341,20 @@ struct PhotoTxCaptureStage: View {
 struct PhotoTxReadingStage: View {
     let imageUris: [String]
     let progress: PhotoTxProgress
-    private var preview: UIImage? {
+    private var previewSource: CachedImageSource? {
         let index = max(0, progress.current - 1)
         guard imageUris.indices.contains(index) else { return nil }
-        return UIImage(contentsOfFile: imageUris[index])
+        return .file(imageUris[index])
     }
     var body: some View {
         VStack(spacing: 14) {
-            if let preview {
-                Image(uiImage: preview).resizable().scaledToFit().frame(maxHeight: 220)
-                    .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
+            if let source = previewSource {
+                CachedImage(source) { image in
+                    image.resizable().scaledToFit().frame(maxHeight: 220)
+                        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
+                } placeholder: {
+                    EmptyView()
+                }
             }
             ProgressView().tint(Theme.primary)
             Text(progress.total > 1 ? "Analyse des images \(progress.current)/\(progress.total)…" : PhotoTxText.readingSingle)
@@ -382,9 +386,13 @@ struct PhotoTxReviewStage: View {
     }
     private var header: some View {
         HStack(alignment: .top, spacing: 12) {
-            if let first = state.imageUris.first, let image = UIImage(contentsOfFile: first) {
-                Image(uiImage: image).resizable().scaledToFill().frame(width: 54, height: 54)
-                    .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
+            if let first = state.imageUris.first {
+                CachedImage(.file(first)) { image in
+                    image.resizable().scaledToFill().frame(width: 54, height: 54)
+                        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
+                } placeholder: {
+                    EmptyView()
+                }
             }
             VStack(alignment: .leading, spacing: 5) {
                 DuelloPill(text: PhotoTxText.premiumSourceLabel(engine: state.engine, model: state.model), tone: .neutral, icon: "sparkles")

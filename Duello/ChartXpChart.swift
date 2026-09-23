@@ -8,7 +8,9 @@
 //    - src/components/XpChart.tsx (`XpChart`, `formatPointDate`)
 //
 //  Réutilise `ChartSmoothLineChart` (`ChartLinePlot.swift`) et `ExGFormat.xp`
-//  (`ExGXpFoundation.swift`) pour le formatage des XP. Cible iOS 16.
+//  (`ExGXpFoundation.swift`) pour le formatage des XP. La variante « application
+//  de bureau téléchargée » (`PLOT_HEIGHT` 196, `PLOT_INSET` 8) est conservée via
+//  `downloadedDesktop`. Cible iOS 16.
 //
 import SwiftUI
 
@@ -19,6 +21,11 @@ struct ChartXpChart: View {
     let points: [ChartXpSeriesPoint]
     let granularity: ChartTimeGranularity
     var showsDateRange: Bool = true
+    /// `isDownloadedDesktopApp()` : tracé plus haut et marge de point élargie.
+    var downloadedDesktop: Bool = false
+
+    /// `TOOLTIP_WIDTH`.
+    private static let tooltipWidth: CGFloat = 116
 
     var body: some View {
         if points.isEmpty { EmptyView() } else { content }
@@ -35,7 +42,8 @@ struct ChartXpChart: View {
         let linePoints = points.map { point in
             ChartLinePoint(
                 value: point.xp,
-                tooltip: "\(ExGFormat.xp(point.xp)) XP · \(ChartDateFormat.pointDate(point.at, granularity))"
+                tooltip: "\(ExGFormat.xp(point.xp)) XP",
+                tooltipAnnotation: " · \(ChartDateFormat.pointDate(point.at, granularity))"
             )
         }
         return ChartSmoothLineChart(
@@ -47,9 +55,13 @@ struct ChartXpChart: View {
             firstAxisLabel: ChartDateFormat.pointDate(points[0].at, granularity),
             lastAxisLabel: ChartDateFormat.pointDate(last.at, granularity),
             accessibility: "Évolution \(granularity.name) de l’XP, de \(ExGFormat.xp(points[0].xp)) à \(ExGFormat.xp(last.xp)) XP",
+            height: downloadedDesktop ? 196 : 128,
             axisWidth: 40,
             showsDateRange: showsDateRange,
-            tooltipLeading: 46
+            tooltipLeading: 46,
+            tooltipWidth: Self.tooltipWidth,
+            xAxisLeading: 40,
+            plotInset: downloadedDesktop ? 8 : nil
         )
     }
 }

@@ -72,6 +72,19 @@ struct LoginIntAssembly: View {
                     }
                 }
             },
+            onGoogleAuthenticated: { identity, payload in
+                Task { @MainActor in
+                    do {
+                        try LoginIntSession.openGoogleSession(
+                            session: session,
+                            identity: identity,
+                            payload: payload
+                        )
+                    } catch {
+                        providerError = error.localizedDescription
+                    }
+                }
+            },
             onOpenPasswordReset: { email in
                 resetEmail = email
             },

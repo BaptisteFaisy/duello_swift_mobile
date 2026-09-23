@@ -42,7 +42,6 @@ struct ChartMasteryPie: View {
             Circle().strokeBorder(ringColor, lineWidth: 1)
         }
         .frame(width: size, height: size)
-        .accessibilityLabel("Maîtrise : \(min(max(filled, 0), total)) sur \(total)")
     }
 }
 

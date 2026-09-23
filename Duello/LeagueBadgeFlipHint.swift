@@ -201,7 +201,7 @@ private struct LeagueFlipBadge: View {
     private var front: some View {
         Group {
             if let badgeURL {
-                AsyncImage(url: badgeURL) { image in
+                CachedRemoteImage(url: badgeURL) { image in
                     image.resizable().scaledToFit()
                 } placeholder: {
                     Color.clear

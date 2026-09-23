@@ -93,10 +93,19 @@ open class UIScrollView: UIView {
     public var contentInsetAdjustmentBehavior: ContentInsetAdjustmentBehavior = .automatic
 }
 
+/// `CGImage` : seule la surface utilisée par `ImageCache` (coût mémoire d'un
+/// bitmap décodé). CoreGraphics n'existe pas sous Linux.
+open class CGImage: NSObject {
+    public var bytesPerRow: Int = 0
+    public var height: Int = 0
+}
+
 /// `UIImage` : compléments utilisés par `PhotoPickService` (recadrage carré).
 extension UIImage {
     public var size: CGSize { CGSize(width: 0, height: 0) }
     public func draw(in rect: CGRect) {}
+    /// Bitmap décodé (`UIImage.cgImage`), lu par `ImageCache.cacheCost`.
+    public var cgImage: CGImage? { nil }
 }
 
 /// `UIViewController.dismiss(animated:)` : hérité du vrai UIKit, absent d'ici.

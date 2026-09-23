@@ -39,6 +39,8 @@ struct ChalIntDuelFlow: View {
 
     @State private var phase: Phase = .loading
     @State private var round: ChalRunRoundState = ChalIntDuelFlow.emptyRound
+    /// Titre de l'exercice servi, transmis au signalement de l'énoncé.
+    @State private var exerciseTitle = ""
 
     private static let emptyExercise = DuelExercise(
         id: "", subject: "", context: nil, questions: [], solution: nil
@@ -66,6 +68,7 @@ struct ChalIntDuelFlow: View {
                     ChalRunRounds(
                         match: match,
                         userId: userId,
+                        exerciseTitle: exerciseTitle,
                         state: $round,
                         onVerdict: { handleVerdict($0) },
                         onAbandon: { abandon() },
@@ -151,6 +154,7 @@ struct ChalIntDuelFlow: View {
                 questions: nil
             )
             let built = chapterItemAsDuelExercise(item, match.subject)
+            exerciseTitle = found.title
             round = ChalRunRoundState(
                 seriesCount: 1,
                 exerciseIndex: 0,

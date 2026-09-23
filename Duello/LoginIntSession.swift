@@ -50,4 +50,18 @@ enum LoginIntSession {
         )
         try session.signInWithGoogle(identity: bridge, payload: payload)
     }
+
+    /// Ouvre la session Google ; refuse l'adresse administrateur comme la
+    /// source (`onGoogleAuthenticated` arbitré par le parent).
+    @MainActor
+    static func openGoogleSession(
+        session: SessionStore,
+        identity: GoogleIdentity,
+        payload: DuelloAPI.SessionPayload
+    ) throws {
+        guard !AppleAuthAccountResolver.isAdminEmail(identity.email) else {
+            throw DirectoryError(message: AppleAuthAccountResolver.adminRejection)
+        }
+        try session.signInWithGoogle(identity: identity, payload: payload)
+    }
 }

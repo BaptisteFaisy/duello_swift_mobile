@@ -54,7 +54,7 @@ struct AcctIntSearchRow: View {
     ) -> some View {
         Button(action: action) {
             Image(systemName: icon)
-                .font(.system(size: 17, weight: .semibold))
+                .font(.system(size: 20, weight: .semibold))
                 .foregroundStyle(Theme.ink)
                 .frame(width: 40, height: 40)
                 .background(Theme.surface)

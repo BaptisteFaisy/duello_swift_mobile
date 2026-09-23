@@ -58,10 +58,12 @@ extension TrainingCatalogView {
     @ViewBuilder
     var chapterCatalogue: some View {
         VStack(alignment: .leading, spacing: 0) {
-            if subject.id != "maths" && subjectTotals.available > 0 {
+            if subject.id != SubjSubjectRules.mathsSubjectId
+                && activeMode != .colles
+                && subjectTotals.available > 0 {
                 availabilityBanner
             }
-            ForEach(TrainChapterGroup.grouped(subject.chapters)) { group in
+            ForEach(TrainChapterGroup.grouped(trainingChapters)) { group in
                 SubjDomainHeading(label: group.title ?? "Autres chapitres")
                 ForEach(group.chapters) { chapter in
                     chapterBlock(chapter)
@@ -70,19 +72,34 @@ extension TrainingCatalogView {
         }
     }
 
+    /// Chapitres du mode ouvert. Les colles ECG restent des interrogations de
+    /// mathématiques : les rares sujets du domaine « Informatique » sont rangés
+    /// dans Exercices et ne s'affichent donc pas en Colles
+    /// (`chaptersForTrainingMode` de `src/data/tracks.ts`).
+    private var trainingChapters: [TrackChapter] {
+        guard TrainContent.normalize(session.profile.track) == "ecg", activeMode == .colles else {
+            return subject.chapters
+        }
+        return subject.chapters.filter { chapter in
+            TrainContent.normalize(chapter.domain ?? "") != "informatique"
+        }
+    }
+
     /// Bandeau d'annonce de la matière, affiché hors mathématiques comme dans
     /// `SubjectsScreen` : « 12 exercices disponibles dans 4 chapitres · 3 avec
-    /// corrigé ».
+    /// corrigé ». Le nom du sujet suit le mode ouvert (`availabilityLabel`), la
+    /// nature venant du chapitre listé.
     private var availabilityBanner: some View {
         let totals = subjectTotals
-        var text = "\(TrainCopy.availability(.exercise, count: totals.available)) dans \(totals.chapters) chapitre\(totals.chapters > 1 ? "s" : "")"
+        let kind = activeMode.chapterMode?.kind ?? .exercise
+        var text = "\(TrainCopy.availability(kind, count: totals.available)) dans \(totals.chapters) chapitre\(totals.chapters > 1 ? "s" : "")"
         if totals.withSolution > 0 {
             text += " · \(totals.withSolution) avec corrigé"
         }
         return HStack(spacing: 10) {
             Image(systemName: "books.vertical")
-                .font(.system(size: 15, weight: .bold))
-                .foregroundStyle(Theme.progress)
+                .font(.system(size: 17))
+                .foregroundStyle(Theme.ink)
             Text(text)
                 .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(Theme.ink)

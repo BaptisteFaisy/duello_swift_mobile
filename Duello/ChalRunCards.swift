@@ -30,45 +30,57 @@ struct ChalRunSectionLabel: View {
 
     var body: some View {
         Text(text)
-            .font(.system(size: 13, weight: .heavy))
-            .textCase(.uppercase)
-            .foregroundStyle(Theme.inkSoft)
+            .font(.system(size: 9, weight: .heavy))
+            .tracking(1.4)
+            .foregroundStyle(Theme.inkFaint)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
-/// Carte du verdict (`verdictCard`), avec les notes d'arbitrage qui
-/// l'accompagnent : barème local de secours, ou défi non arbitré.
+/// Carte du verdict (`verdictCard`) : la phrase d'arbitrage, encadrée d'une
+/// icône. Les notes d'arbitrage (barème local, défi non arbitré) sont posées
+/// **hors** de la carte, par l'appelant.
 struct ChalRunVerdictCard: View {
     let result: ChalRunResult
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .top, spacing: 8) {
-                Image(systemName: result.verdict.source == .ai ? "sparkles" : "calculator")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Theme.ink)
-                Text(LatexToUnicode.toUnicodeMath(result.verdict.summary))
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Theme.ink)
-                    .lineSpacing(3)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            if result.verdict.source == .local && result.verdict.ranked {
-                Text("Service de notation IA injoignable : les deux copies ont été départagées par le barème local de l’application.")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Theme.inkFaint)
-                    .lineSpacing(2)
-            }
-            if !result.verdict.ranked {
-                Text(unrankedNote)
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Theme.inkFaint)
-                    .lineSpacing(2)
-            }
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: result.verdict.source == .ai ? "sparkles" : "calculator")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Theme.ink)
+                .frame(width: 30, height: 30)
+                .background(Theme.surface)
+                .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+            Text(LatexToUnicode.toUnicodeMath(result.verdict.summary))
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Theme.ink)
+                .lineSpacing(3)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .duelloCard()
+        .padding(15)
+        .background(Theme.primaryLight)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge, style: .continuous))
+    }
+}
+
+/// Note d'arbitrage du verdict (`verdictNote`) : barème local de secours, ou
+/// défi non arbitré. Posée sous la carte du verdict, jamais dedans.
+struct ChalRunVerdictNote: View {
+    let result: ChalRunResult
+
+    var body: some View {
+        if result.verdict.source == .local && result.verdict.ranked {
+            Text("Service de notation IA injoignable : les deux copies ont été départagées par le barème local de l’application.")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(Theme.inkSoft)
+                .lineSpacing(2)
+        } else if !result.verdict.ranked {
+            Text(unrankedNote)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(Theme.inkSoft)
+                .lineSpacing(2)
+        }
     }
 
     private var unrankedNote: String {
@@ -94,14 +106,14 @@ struct ChalRunProductionCard: View {
             HStack(spacing: 10) {
                 avatar
                 Text(name)
-                    .font(.system(size: 15, weight: .heavy))
+                    .font(.system(size: 13, weight: .heavy))
                     .foregroundStyle(Theme.ink)
                 if winner { winnerBadge }
                 Spacer(minLength: 8)
                 score
             }
             Text(LatexToUnicode.toUnicodeMath(assessment.note))
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(Theme.inkSoft)
                 .lineSpacing(2)
             if let production { productionBody(production) }
@@ -112,44 +124,52 @@ struct ChalRunProductionCard: View {
 
     private var avatar: some View {
         ZStack {
-            Circle().fill(Theme.primaryLight).frame(width: 30, height: 30)
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(winner ? Theme.primaryLight : Theme.surfaceMuted)
+                .frame(width: 34, height: 34)
             Text(initial)
-                .font(.system(size: 12, weight: .black))
+                .font(.system(size: 13, weight: .black))
                 .foregroundStyle(Theme.inkSoft)
         }
     }
 
     private var winnerBadge: some View {
-        HStack(spacing: 3) {
+        HStack(spacing: 4) {
             Image(systemName: "trophy")
-                .font(.system(size: 10, weight: .bold))
+                .font(.system(size: 11, weight: .bold))
             Text("Vainqueur")
-                .font(.system(size: 11, weight: .heavy))
+                .font(.system(size: 8, weight: .heavy))
+                .tracking(0.6)
         }
         .foregroundStyle(Theme.ink)
+        .padding(.vertical, 4)
+        .padding(.horizontal, 8)
+        .background(Theme.primaryLight)
+        .clipShape(Capsule())
     }
 
     private var score: some View {
         HStack(alignment: .firstTextBaseline, spacing: 0) {
             Text("\(assessment.score)")
-                .font(.system(size: 18, weight: .black))
+                .font(.system(size: 16, weight: .black))
+                .foregroundStyle(Theme.ink)
             Text("/100")
-                .font(.system(size: 11, weight: .heavy))
+                .font(.system(size: 10, weight: .heavy))
+                .foregroundStyle(Theme.inkFaint)
         }
-        .foregroundStyle(Theme.ink)
     }
 
     private func productionBody(_ raw: String) -> some View {
         let rendered = LatexToUnicode.toUnicodeMath(raw)
         let empty = rendered.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         return Text(empty ? "— Aucune réponse rendue —" : rendered)
-            .font(.system(size: 14))
+            .font(.system(size: 12))
             .foregroundStyle(empty ? Theme.inkFaint : Theme.ink)
             .lineSpacing(3)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(10)
-            .background(Theme.surfaceMuted)
-            .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
+            .padding(12)
+            .background(Theme.background)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
     }
 }
 
@@ -165,11 +185,14 @@ struct ChalRunQuestionReviewCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Question \(label)")
-                .font(.system(size: 13, weight: .heavy))
+                .font(.system(size: 12, weight: .heavy))
                 .foregroundStyle(Theme.ink)
             answerBlock(author: "Ta réponse", answer: myAnswer)
             if showOpponent {
-                Divider().padding(.vertical, 4)
+                Rectangle()
+                    .fill(Theme.border)
+                    .frame(height: 1)
+                    .padding(.vertical, 13)
                 answerBlock(author: "Réponse de \(opponentName)", answer: opponentAnswer ?? "")
             }
         }
@@ -182,10 +205,13 @@ struct ChalRunQuestionReviewCard: View {
         let empty = rendered.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         return VStack(alignment: .leading, spacing: 2) {
             Text(author)
-                .font(.system(size: 12, weight: .heavy))
+                .font(.system(size: 9, weight: .heavy))
+                .tracking(0.8)
+                .textCase(.uppercase)
                 .foregroundStyle(Theme.inkFaint)
             Text(empty ? "Aucune réponse rendue pour cette question." : rendered)
-                .font(.system(size: 14))
+                .font(.system(size: 12, weight: .medium))
+                .italic(empty)
                 .foregroundStyle(empty ? Theme.inkFaint : Theme.ink)
                 .lineSpacing(3)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -199,7 +225,7 @@ struct ChalRunEloLine: View {
 
     var body: some View {
         Text(text)
-            .font(.system(size: 14, weight: .heavy))
+            .font(.system(size: 12, weight: .heavy))
             .foregroundStyle(Theme.inkSoft)
             .frame(maxWidth: .infinity, alignment: .center)
     }

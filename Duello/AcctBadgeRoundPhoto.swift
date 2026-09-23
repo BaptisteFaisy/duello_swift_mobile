@@ -62,14 +62,18 @@ struct AcctBadgeRoundPhoto: View {
     /// Photo découpée en cercle, sinon l'initiale.
     @ViewBuilder
     private var photoLayer: some View {
-        if let image = decodedImage {
-            Image(uiImage: image)
-                .resizable()
-                .scaledToFill()
-                .frame(width: disc, height: disc)
-                .clipShape(Circle())
+        if let source = localPhotoSource {
+            CachedImage(source) { image in
+                image
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: disc, height: disc)
+                    .clipShape(Circle())
+            } placeholder: {
+                initialLabel
+            }
         } else if let url = remoteURL {
-            AsyncImage(url: url) { image in
+            CachedRemoteImage(url: url) { image in
                 image.resizable().scaledToFill()
             } placeholder: {
                 Color.clear
@@ -94,13 +98,13 @@ struct AcctBadgeRoundPhoto: View {
         return String(first).uppercased(with: Locale(identifier: "fr_FR"))
     }
 
-    /// Miniature JPEG `data:` décodée localement (`publicProfilePhotoUri`).
-    private var decodedImage: UIImage? {
+    /// Miniature JPEG `data:` décodée localement (`publicProfilePhotoUri`) :
+    /// octets + clé de cache, le décodage lui-même passe par `CachedImage`.
+    private var localPhotoSource: CachedImageSource? {
         guard let uri = PhotoPickUri.publicProfilePhotoUri(photoUri),
-              let comma = uri.firstIndex(of: ",") else { return nil }
-        let base64 = String(uri[uri.index(after: comma)...])
-        guard let data = Data(base64Encoded: base64) else { return nil }
-        return UIImage(data: data)
+              let comma = uri.firstIndex(of: ","),
+              let data = Data(base64Encoded: String(uri[uri.index(after: comma)...])) else { return nil }
+        return .data(data, key: ImageCache.key(for: uri))
     }
 
     /// Adresse distante, quand l'URI n'est pas une miniature `data:`.

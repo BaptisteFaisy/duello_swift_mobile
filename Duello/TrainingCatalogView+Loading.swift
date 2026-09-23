@@ -25,6 +25,14 @@ extension TrainingCatalogView {
                 specialty: session.profile.specialty,
                 year: session.profile.year
             )
+            // Décompte du catalogue, exercices servis, colles et annales réunis :
+            // c'est le dénominateur de l'en-tête de la matière.
+            catalogTotals = TrainContent.catalogCounts(
+                manifest: manifest,
+                track: session.profile.track,
+                specialty: session.profile.specialty,
+                year: session.profile.year
+            )
             state = .ready
         } catch {
             manifestError = TrainErrorMessage.text(for: error)
