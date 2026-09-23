@@ -44,6 +44,12 @@ struct OnboardingView: View {
     /// Appelée une fois le parcours terminé et le profil écrit.
     let onFinish: () -> Void
 
+    /// Appelée depuis la **première** étape (« Revenir à l'accueil »).
+    /// `nil` = aucun retour (le bouton n'apparaît pas). Le RN câble toujours
+    /// `onCancel` (`OnboardingScreen.tsx:883`) : sans lui, le parcours ouvert à
+    /// la racine (session ouverte + profil vide) n'a **aucune sortie**.
+    let onCancel: (() -> Void)?
+
     /// Mode d'entrée du parcours (`OnboardingMode`). Défaut `.account`, comme
     /// la source. Passer `.guest` pour ne garder que les étapes de programme
     /// (année, filière, option, prêt), sans détails de compte ni cadeau.
@@ -51,8 +57,13 @@ struct OnboardingView: View {
 
     @EnvironmentObject private var session: SessionStore
 
-    init(mode: OnbDataSteps.Mode = .account, onFinish: @escaping () -> Void) {
+    init(
+        mode: OnbDataSteps.Mode = .account,
+        onCancel: (() -> Void)? = nil,
+        onFinish: @escaping () -> Void
+    ) {
         self.mode = mode
+        self.onCancel = onCancel
         self.onFinish = onFinish
     }
 
@@ -60,7 +71,8 @@ struct OnboardingView: View {
         OnbFlowView(
             mode: mode,
             initialProfile: session.profile,
-            onComplete: { profile, _ in commit(profile) }
+            onComplete: { profile, _ in commit(profile) },
+            onCancel: onCancel
         )
     }
 
