@@ -25,14 +25,14 @@ struct OnbFlowDivider: View {
             line
             Text("OU")
                 .font(.system(size: 11, weight: .heavy))
-                .foregroundStyle(Theme.inkFaint)
+                .foregroundStyle(OnbFlowPalette.dividerText)
             line
         }
     }
 
     private var line: some View {
         Rectangle()
-            .fill(Theme.border)
+            .fill(OnbFlowPalette.divider)
             .frame(height: 1)
     }
 }
@@ -50,13 +50,15 @@ struct OnbFlowBiometricButton: View {
                 Text(verified ? "Biométrie validée" : "Créer mon compte avec la biométrie")
                     .font(.system(size: 14, weight: .heavy))
             }
-            .foregroundStyle(verified ? Theme.surface : Theme.ink)
+            // `guestBiometricButton` : bordure blanche, fond noir, texte blanc
+            // (l'état validé garde la bordure blanche, comme la source).
+            .foregroundStyle(Color.white)
             .frame(maxWidth: .infinity, minHeight: 50)
-            .background(verified ? Theme.ink : Theme.surface)
+            .background(verified ? Theme.primary : Color.black)
             .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
             .overlay(
                 RoundedRectangle(cornerRadius: Theme.radiusMedium)
-                    .stroke(verified ? Theme.ink : Theme.border, lineWidth: 1.5)
+                    .stroke(Color.white, lineWidth: 1.5)
             )
         }
         .buttonStyle(.plain)
@@ -132,8 +134,10 @@ struct OnbFlowSchoolSuggestions: View {
 /// déjà l'identité par rappel.
 struct OnbFlowProviderButtons: View {
     let username: String?
-    var onGoogle: (GoogleIdentity) -> Void
-    var onApple: (AppleAuthIdentity) -> Void
+    /// `onGoogleAuthenticated` : la session serveur accompagne l'identité
+    /// (la source ouvre le compte pendant le parcours).
+    var onGoogle: (GoogleIdentity, DuelloAPI.SessionPayload) -> Void
+    var onApple: (AppleAuthIdentity, DuelloAPI.SessionPayload) -> Void
 
     @State private var isGoogleLoading = false
     @State private var googleError: String?
@@ -151,15 +155,17 @@ struct OnbFlowProviderButtons: View {
                 }
                 .frame(maxWidth: .infinity, minHeight: Theme.providerFieldMinHeight)
             }
-            .buttonStyle(GoogleFieldButtonStyle(appearance: .light, isDimmed: isGoogleLoading))
+            // Variante sombre de la peinture partagée (`guestFieldShell` de la
+            // source) : fond `#111111`, bordure blanche 1.5.
+            .buttonStyle(GoogleFieldButtonStyle(appearance: .dark, isDimmed: isGoogleLoading))
             .disabled(isGoogleLoading)
             .accessibilityLabel("Continuer avec Google")
 
             AppleAuthView(
-                appearance: .light,
+                appearance: .dark,
                 disabled: isGoogleLoading,
                 username: username,
-                onAuthenticated: { identity, _ in onApple(identity) }
+                onAuthenticated: { identity, payload in onApple(identity, payload) }
             )
 
             if let googleError {
@@ -180,7 +186,7 @@ struct OnbFlowProviderButtons: View {
         Task {
             do {
                 let auth = try await GoogleAuthService.shared.authenticate(username: username)
-                onGoogle(auth.identity)
+                onGoogle(auth.identity, auth.session)
             } catch {
                 googleError = "La connexion à Google a échoué."
             }

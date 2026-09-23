@@ -77,7 +77,8 @@ enum OnbFlowCredentialsBuilder {
         biometricVerified: Bool,
         pushEnabled: Bool,
         google: GoogleIdentity?,
-        apple: AppleAuthIdentity?
+        apple: AppleAuthIdentity?,
+        providerSession: DuelloAPI.SessionPayload? = nil
     ) -> OnbUiCredentials {
         let hasProvider = google != nil || apple != nil
         return OnbUiCredentials(
@@ -85,7 +86,8 @@ enum OnbFlowCredentialsBuilder {
             biometricEnabled: hasProvider ? false : biometricVerified,
             pushNotificationsEnabled: pushEnabled,
             googleIdentity: google,
-            appleIdentity: apple
+            appleIdentity: apple,
+            providerSession: hasProvider ? providerSession : nil
         )
     }
 }

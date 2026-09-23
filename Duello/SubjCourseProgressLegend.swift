@@ -109,9 +109,12 @@ struct SubjCourseProgressLegend: View {
         .padding(.top, 8)
         .padding(.bottom, 30)
         .overlay(alignment: .topLeading) {
-            // Position d'origine : 15 px du bord gauche, 41 px du haut de la
-            // carte — soit ~4 px du bord du rond, aligné sur son centre.
-            hand.padding(.leading, 4).padding(.top, 6)
+            // `courseProgressHintHand` : `position: 'absolute', left: 15,
+            // top: 41` dans `SubjectsScreen.tsx`. Le repère est la ligne de
+            // chapitre entière (paddingHorizontal 11, paddingTop 8) : la main
+            // tombe donc **sous** le rond de statut (8 + 32 = 40), centrée sur
+            // son axe (11 + 4 = 15), et non par-dessus.
+            hand.padding(.leading, 15).padding(.top, 41)
         }
         .padding(.top, 4)
         .accessibilityElement(children: .ignore)

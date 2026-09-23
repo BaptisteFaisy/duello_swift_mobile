@@ -120,20 +120,35 @@ struct ChalHomeActions: View {
 
     @State private var hintVisible = true
 
+    /// Hauteur minimale de la zone de défi.
+    ///
+    /// `ChallengeHomeOverview.tsx` empile trois conteneurs flexibles
+    /// (`challengeHomeAction` : `flex: 1, minHeight: 330` → `actions` :
+    /// `flex: 1` → `actionsFull` : `flex: 1, justifyContent: 'center'`) : la
+    /// zone **remplit la fenêtre**, le blason et les boutons y sont centrés, et
+    /// l'encart — hors flux (`hintCard`, `position: 'absolute', top: 0`) — s'y
+    /// ancre en haut sans les recouvrir. `ScrollView` ne distribue pas de
+    /// hauteur résiduelle : on fige donc la hauteur minimale à celle qui laisse
+    /// le contenu centré **sous** l'encart (blason 176 + boutons 136 = 312 ;
+    /// encart 54 + 7 + 7 + 12 = 80 ⇒ 312 + 2 × 80 ≈ 472, arrondi à 480).
+    private static let zoneMinHeight: CGFloat = 480
+
     var body: some View {
-        VStack(spacing: 0) {
-            ChalFlippableBadge(
-                badgeURL: badgeURL,
-                leagueLabel: leagueLabel,
-                wins: wins,
-                losses: losses
-            )
-            if showKindActions {
-                kindActions
+        ZStack(alignment: .top) {
+            VStack(spacing: 0) {
+                ChalFlippableBadge(
+                    badgeURL: badgeURL,
+                    leagueLabel: leagueLabel,
+                    wins: wins,
+                    losses: losses
+                )
+                if showKindActions {
+                    kindActions
+                }
             }
-        }
-        .frame(maxWidth: .infinity)
-        .overlay(alignment: .top) {
+            .frame(maxWidth: .infinity)
+            .frame(minHeight: Self.zoneMinHeight)
+
             if hintVisible {
                 LeagueBadgeFlipHint(
                     accessibilityLabel: "Démonstration du blason retournable",
@@ -151,6 +166,10 @@ struct ChalHomeActions: View {
                 }
             }
         }
+        .frame(maxWidth: .infinity)
+        // `challengeHomeAction` : paddingTop 6, paddingBottom 20.
+        .padding(.top, 6)
+        .padding(.bottom, 20)
     }
 
     /// Défi-Exercice puis Défi-Cours, compacts, hauts et noir sur blanc.
