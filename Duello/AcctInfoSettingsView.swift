@@ -182,7 +182,8 @@ struct AcctInfoSettingsView: View {
     /// Un onglet : libellé 13/800, souligné quand il est ouvert.
     private func tabButton(_ item: SwipeSettingsTabs.Page) -> some View {
         let selected = item == tab
-        return Button { selectTab(item) } label: {
+        let index = SwipeSettingsTabs.pageIndex(for: item)
+        return Button { selectTab(index) } label: {
             Text(tabLabel(item))
                 .font(.system(size: AcctInfoSettingsStyle.tabTextSize, weight: .heavy))
                 .foregroundStyle(selected ? Theme.ink : Theme.inkFaint)
