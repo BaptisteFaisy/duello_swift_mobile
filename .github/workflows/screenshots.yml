@@ -35,7 +35,11 @@ env:
   # reconnaît côté app (Duello/ScreenshotTour.swift).
   SHOT_SCREENS: welcome login register onboarding profile training challenges settings settings-personal settings-account settings-duello premium feedback privacy terms email password blocked notifications
   BUNDLE_ID: com.prepapp.mobile.swift
-  DEVICE: iPhone 16
+  # Nom de simulateur PRÉFÉRÉ. Le nom exact des appareils dépend de l'image du
+  # runner et change dans le temps (iPhone 16 a disparu de `macos-15` en
+  # septembre 2026 → « Unable to find a device matching … name:iPhone 16 »).
+  # S'il n'existe pas, le premier iPhone disponible est retenu.
+  DEVICE_PREF: iPhone 16
 
 jobs:
   screenshots:
@@ -45,12 +49,42 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Xcode le plus récent du runner
+      - name: Xcode + simulateur iPhone disponibles
         run: |
           set -euo pipefail
-          LATEST="$(ls /Applications | grep -oE 'Xcode_[0-9]+(\.[0-9]+)*' | sort -V | tail -1)"
-          echo "Xcode retenu : $LATEST"
-          sudo xcode-select -s "/Applications/${LATEST}.app/Contents/Developer"
+          # On ne prend pas « le Xcode le plus récent » à l'aveugle : un Xcode
+          # tout neuf peut n'avoir AUCUN runtime iOS installé (et le nom exact
+          # des simulateurs change avec l'image). On retient donc le Xcode le
+          # plus récent qui expose au moins un iPhone simulable, et son UDID.
+          pick_xcode=""
+          pick_line=""
+          XCS="$(ls -d /Applications/Xcode*.app 2>/dev/null | sort -Vr || true)"
+          [ -n "$XCS" ] || XCS="/Applications/Xcode.app"
+          for XC in $XCS; do
+            sudo xcode-select -s "$XC/Contents/Developer" 2>/dev/null || continue
+            LINE="$(xcrun simctl list devices available -j 2>/dev/null | python3 -c '
+          import json, os, sys
+          try:
+              devs = json.load(sys.stdin)["devices"]
+          except Exception:
+              sys.exit(0)
+          iphones = [d for r in devs.values() for d in r if d["name"].startswith("iPhone")]
+          if not iphones:
+              sys.exit(0)
+          pref = [d for d in iphones if d["name"] == os.environ.get("DEVICE_PREF", "")]
+          pick = (pref or sorted(iphones, key=lambda d: d["name"]))[0]
+          print(pick["udid"], pick["name"])
+          ')"
+            if [ -n "$LINE" ]; then
+              pick_xcode="$XC"
+              pick_line="$LINE"
+              break
+            fi
+          done
+          [ -n "$pick_xcode" ] || { echo "::error::aucun Xcode du runner n'expose de simulateur iPhone"; exit 1; }
+          echo "Xcode retenu    : $pick_xcode"
+          echo "Simulateur retenu : $(echo "$pick_line" | cut -d' ' -f2-)"
+          echo "DEVICE_ID=$(echo "$pick_line" | cut -d' ' -f1)" >> "$GITHUB_ENV"
           xcodebuild -version
 
       - name: Dépendances SwiftPM (GoogleSignIn-iOS)
@@ -67,16 +101,16 @@ jobs:
             -scheme Duello \
             -configuration Debug \
             -sdk iphonesimulator \
-            -destination "platform=iOS Simulator,name=${DEVICE}" \
+            -destination "platform=iOS Simulator,id=${DEVICE_ID}" \
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY=""
 
       - name: Boot du simulateur
         run: |
           set -euo pipefail
-          DEVICE_ID="$(xcrun simctl list devices available -j \
-            | python3 -c "import json,sys;d=json.load(sys.stdin)['devices'];print(next(x['udid'] for v in d.values() for x in v if x['name']=='${DEVICE}'))")"
-          echo "DEVICE_ID=$DEVICE_ID" >> "$GITHUB_ENV"
+          # DEVICE_ID a été résolu par l'étape « Xcode + simulateur iPhone
+          # disponibles » et exporté dans $GITHUB_ENV.
+          echo "Simulateur : $DEVICE_ID"
           xcrun simctl boot "$DEVICE_ID" || true
           xcrun simctl bootstatus "$DEVICE_ID" -b
 

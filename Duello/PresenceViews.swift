@@ -155,7 +155,10 @@ final class SocPresenceStore: ObservableObject {
     /// Identifiants publics actuellement connectés.
     @Published private(set) var onlineIds: Set<String> = []
     /// Vrai lorsque la socket de présence est authentifiée.
-    @Published private(set) var isConnected = false
+    ///
+    /// Mutateur `internal` (et non `private(set)`) : le cycle de vie de la socket
+    /// qui le pilote vit dans `PresenceViews+Client.swift`.
+    @Published var isConnected = false
 
     /// Proxys par identifiant public, mémorisés : le même objet est rendu d'un
     /// appel à l'autre, si bien qu'une vue abonnée n'est ré-évaluée que si
@@ -168,8 +171,12 @@ final class SocPresenceStore: ObservableObject {
     /// (`RECONNECT_DELAY_MS` de `usePresenceConnection.ts`).
     static let reconnectDelayNanoseconds: UInt64 = 5_000_000_000
 
-    private var socket: URLSessionWebSocketTask?
-    private var receiveTask: Task<Void, Never>?
+    /// Socket de la session active et tâche de lecture associée.
+    ///
+    /// `internal` (et non `private`) : leur cycle de vie est piloté depuis
+    /// `PresenceViews+Client.swift`.
+    var socket: URLSessionWebSocketTask?
+    var receiveTask: Task<Void, Never>?
 
     /// Vrai lorsque l'identifiant public est actuellement connecté, faux pour
     /// tout autre cas (`isPublicIdOnline`).
@@ -206,74 +213,8 @@ final class SocPresenceStore: ObservableObject {
         }
     }
 
-    /// Ouvre la socket de la session active.
-    ///
-    /// Sans compte connecté — ou sans jeton, comme `usePresenceConnection` qui
-    /// attend une session serveur — rien ne s'ouvre : un invité local n'est
-    /// jamais annoncé en ligne.
-    ///
-    /// Volontairement non isolée : les appelants sont les rappels SwiftUI
-    /// (ouverture, retour au premier plan), qui s'exécutent déjà sur le fil
-    /// principal.
-    func connect(accountId: String, token: String?) {
-        guard !accountId.isEmpty, let token, socket == nil else { return }
-        guard let url = SocPresenceProtocol.socketURL(for: DuelloAPI.baseURL) else { return }
-
-        let task = URLSession.shared.webSocketTask(with: url)
-        socket = task
-        task.resume()
-
-        if let payload = try? JSONSerialization.data(withJSONObject: ["type": "authenticate", "token": token]),
-           let text = String(data: payload, encoding: .utf8) {
-            task.send(.string(text)) { _ in }
-        }
-
-        receiveTask = Task { [weak self] in
-            await self?.receiveLoop(task, accountId: accountId, token: token)
-        }
-    }
-
-    /// Ferme la socket : la personne n'est plus « en ligne ». La dernière
-    /// photographie des connectés reste affichée, comme côté Expo.
-    func disconnect() {
-        receiveTask?.cancel()
-        receiveTask = nil
-        socket?.cancel(with: .goingAway, reason: nil)
-        socket = nil
-        isConnected = false
-    }
-
-    /// Lit la socket jusqu'à sa fermeture et applique chaque événement.
-    @MainActor
-    private func receiveLoop(_ task: URLSessionWebSocketTask, accountId: String, token: String?) async {
-        while !Task.isCancelled && socket === task {
-            do {
-                let message = try await task.receive()
-                let raw: String?
-                switch message {
-                case let .string(value): raw = value
-                case let .data(value): raw = String(data: value, encoding: .utf8)
-                default: raw = nil
-                }
-                guard let raw, let event = SocPresenceProtocol.event(from: raw) else { continue }
-                apply(event)
-            } catch {
-                await handleDisconnect(accountId: accountId, token: token)
-                return
-            }
-        }
-    }
-
-    /// Coupure involontaire : la socket est abandonnée, puis une nouvelle
-    /// tentative est programmée (`scheduleReconnect`).
-    @MainActor
-    private func handleDisconnect(accountId: String, token: String?) async {
-        socket = nil
-        isConnected = false
-        try? await Task.sleep(nanoseconds: Self.reconnectDelayNanoseconds)
-        guard !Task.isCancelled else { return }
-        connect(accountId: accountId, token: token)
-    }
+    // Cycle de vie de la socket (connect/disconnect/receiveLoop/handleDisconnect)
+    // : voir `PresenceViews+Client.swift`.
 }
 
 // MARK: - Fournisseur
