@@ -90,6 +90,12 @@ jobs:
     # la file CI Typecheck/Batterie. Consequence : ne PAS retirer le label
     # `hermes-gate` de duello-vps-02 et ne PAS le remettre sur `duello` seul.
     runs-on: [self-hosted, zenbook]
+    # [GATE-TIMEOUT] Filet de securite : le gate ne doit JAMAIS tenir le groupe de
+    # concurrence `hermes-gate` des heures (constat 24/09 : job bloque sur une
+    # socket muette, ~0 s de CPU). Le delai TOTAL par appel reseau
+    # (_with_deadline) traite le cas courant ; ce plafond de job traite tout
+    # blocage residuel (kill GitHub -> groupe libere).
+    timeout-minutes: 30
     steps:
       - name: Hermes
         env:
@@ -110,7 +116,7 @@ jobs:
         run: |
           python3 - <<'PYEOF'
           # -*- coding: utf-8 -*-
-          import json, os, re, sys, time, urllib.request, urllib.error, urllib.parse, datetime, http.client
+          import json, os, re, sys, time, threading, urllib.request, urllib.error, urllib.parse, datetime, http.client
 
           GH = os.environ["GH_TOKEN"]
           KEY = os.environ.get("AGNES_API_KEY", "")
@@ -138,6 +144,30 @@ jobs:
           def now():
               return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
+          def _with_deadline(fn, seconds, label="reseau"):
+              # [RESEAU-DEADLINE] Le `timeout=` d'urllib borne chaque LECTURE socket
+              # (et ne borne PAS la resolution DNS) : une socket acceptee puis
+              # laissee ouverte et muette fait pendre l'appel INDEFINIMENT. Constat
+              # 24/09 : job `gate` bloque des heures, ~3 s de CPU, wchan=do_poll,
+              # socket ESTABLISHED vers 104.18.x.x:443 -> le groupe de concurrence
+              # `hermes-gate` reste tenu, plus aucun merge. On borne donc la duree
+              # TOTALE : l'appel tourne dans un thread daemon que l'on abandonne
+              # au-dela du delai (portable Linux/Windows).
+              box = {}
+              def _run():
+                  try:
+                      box["v"] = fn()
+                  except BaseException as exc:  # noqa: BLE001 - re-leve cote appelant
+                      box["e"] = exc
+              th = threading.Thread(target=_run, daemon=True)
+              th.start()
+              th.join(seconds)
+              if th.is_alive():
+                  raise TimeoutError("delai total %ss depasse (%s)" % (seconds, label))
+              if "e" in box:
+                  raise box["e"]
+              return box.get("v")
+
           def api(method, path, body=None, accept=True):
               req = urllib.request.Request(API + path, method=method)
               req.add_header("Authorization", "Bearer " + GH)
@@ -153,14 +183,22 @@ jobs:
               # run 35299243010 sur le runner Windows/reseau captif Wifirst).
               # 4 tentatives avec backoff, puis on rend une erreur geree (jamais
               # d'exception non rattrapee).
-              last = None
-              for attempt in range(4):
+              def _once():
+                  # [RESEAU-DEADLINE] TOUTE la conversation tient dans le delai :
+                  # connect + lecture du corps + lecture du corps d'erreur HTTP.
+                  # Avant, `e.read()` du corps d'erreur s'executait HORS delai ->
+                  # meme panne que l'origine (status envoye puis socket muette).
                   try:
                       with urllib.request.urlopen(req, data, timeout=60) as r:
                           raw = r.read()
                           return json.loads(raw) if raw else {}
                   except urllib.error.HTTPError as e:
                       return {"_error": e.code, "_body": e.read().decode()[:600]}
+              last = None
+              for attempt in range(4):
+                  try:
+                      # [RESEAU-DEADLINE] delai TOTAL, pas seulement par lecture.
+                      return _with_deadline(_once, 90, "%s %s" % (method, path))
                   except (urllib.error.URLError, OSError, http.client.HTTPException) as e:
                       last = e
                       print("[api] reseau KO (%s) %s %s — tentative %d/4" % (
@@ -194,9 +232,19 @@ jobs:
                   elif LLM_KEY:
                       req.add_header("Authorization", "Bearer " + LLM_KEY)
                   req.add_header("Content-Type", "application/json")
+                  def _do_post():
+                      # [RESEAU-DEADLINE] Corps d'erreur HTTP lu DANS le delai.
+                      try:
+                          with urllib.request.urlopen(req, data=None, timeout=(timeout if prov == "router" else 120)) as r:
+                              return json.loads(r.read())
+                      except urllib.error.HTTPError as e:
+                          return {"_http_error": e.code, "_body": e.read().decode()[:300]}
                   try:
-                      with urllib.request.urlopen(req, data=None, timeout=(timeout if prov == "router" else 120)) as r:
-                          d = json.loads(r.read())
+                      # [RESEAU-DEADLINE] delai TOTAL = 2x le timeout par lecture.
+                      d = _with_deadline(_do_post, (timeout if prov == "router" else 120) * 2, "%s/%s" % (prov, model))
+                      if isinstance(d, dict) and "_http_error" in d:
+                          print("[llm] %s (%s/%s): HTTP %s %s" % (label, prov, model, d["_http_error"], d["_body"]))
+                          continue
                   except urllib.error.HTTPError as e:
                       print("[llm] %s (%s/%s): HTTP %s %s" % (label, prov, model, e.code, e.read().decode()[:300]))
                       continue
