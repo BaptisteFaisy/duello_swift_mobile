@@ -224,10 +224,24 @@ enum OnbFlowSteps {
         }
     }
 
-    /// `ensureAccountRegistrationAvailable` : pré-vol de création de compte
-    /// avant de quitter l'étape `auth-method`. `nil` quand l'inscription reste
-    /// possible (y compris verdict indécis, cf. `DevReg`).
-    static func checkRegistrationPreflight(email: String) async -> OnbFlowAlert? {
+    /// `ensureAccountRegistrationAvailable` : pré-vol de création de compte.
+    ///
+    /// Deux appels dans la source, avec des arguments **différents** :
+    ///  - au montage, **sans adresse** (`OnboardingScreen.tsx:331`
+    ///    `ensureAccountRegistrationAvailable()`) ;
+    ///  - à l'étape `auth-method`, avec l'adresse saisie
+    ///    (`OnboardingScreen.tsx:913` `ensureAccountRegistrationAvailable(profile.email)`).
+    ///
+    /// Les boutons d'alerte diffèrent aussi : `Réessayer` (+ `Revenir à
+    /// l'accueil` quand un `onCancel` existe) au montage, `Compris` à
+    /// `auth-method` — d'où le paramètre `actions`.
+    ///
+    /// `nil` quand l'inscription reste possible (y compris verdict indécis,
+    /// cf. `DevReg`).
+    static func checkRegistrationPreflight(
+        email: String?,
+        actions: [OnbFlowAlertAction] = [OnbFlowAlertAction(title: "Compris")]
+    ) async -> OnbFlowAlert? {
         do {
             _ = try await DevReg.registrationPreflight(
                 deviceId: DevReg.registrationDeviceId(),
@@ -240,14 +254,7 @@ enum OnbFlowSteps {
                 title: registrationAlertTitle(status: status),
                 message: (error as? LocalizedError)?.errorDescription
                     ?? "La création de compte est momentanément indisponible.",
-                actions: [
-                    OnbFlowAlertAction(title: "Réessayer", kind: .retry),
-                    OnbFlowAlertAction(
-                        title: "Revenir à l’accueil",
-                        kind: .backToWelcome,
-                        isCancel: true
-                    ),
-                ]
+                actions: actions
             )
         }
     }
