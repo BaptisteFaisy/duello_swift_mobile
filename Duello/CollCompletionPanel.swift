@@ -41,7 +41,6 @@ struct CollCompletionPanel: View {
     @State private var gradingQuestionId: String?
     @State private var questionErrors: [String: String] = [:]
     @State private var pickerVisible = false
-    @State private var importFailedVisible = false
 
     /// `calculateColleScore(value.questions)`.
     private var score: CollGradingScore { CollGradingScore.colle(store.value.questions) }
@@ -71,11 +70,6 @@ struct CollCompletionPanel: View {
             allowsMultipleSelection: false,
             onCompletion: handlePickedFile
         )
-        .alert("Énoncé non importé", isPresented: $importFailedVisible) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text("Choisis un fichier PDF lisible, puis réessaie.")
-        }
     }
 
     // MARK: - Bouton d'en-tête
@@ -255,6 +249,12 @@ struct CollCompletionPanel: View {
         pickerVisible = true
     }
 
+    /// `Alert.alert('Énoncé non importé', 'Choisis un fichier PDF lisible, puis réessaie.')` :
+    /// fenêtre commune (bouton unique « Compris », style primaire), pas d'alerte native.
+    private func notifyImportFailed() {
+        AppAlert.alert("Énoncé non importé", "Choisis un fichier PDF lisible, puis réessaie.")
+    }
+
     /// PDF choisi, copié sous `duello-colles`, puis enregistré comme énoncé.
     private func handlePickedFile(_ result: Result<[URL], Error>) {
         defer { importing = false }
@@ -266,13 +266,13 @@ struct CollCompletionPanel: View {
     private func importStatement(from url: URL) {
         let name = url.lastPathComponent
         guard name.lowercased().hasSuffix(".pdf") else {
-            importFailedVisible = true
+            notifyImportFailed()
             return
         }
         let scoped = url.startAccessingSecurityScopedResource()
         defer { if scoped { url.stopAccessingSecurityScopedResource() } }
         guard let data = try? Data(contentsOf: url) else {
-            importFailedVisible = true
+            notifyImportFailed()
             return
         }
         let directory = CollStorage.importsDirectory()
@@ -283,7 +283,7 @@ struct CollCompletionPanel: View {
         do {
             try data.write(to: destination)
         } catch {
-            importFailedVisible = true
+            notifyImportFailed()
             return
         }
         let statement = CollStatementDocument(

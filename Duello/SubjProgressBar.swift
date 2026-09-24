@@ -12,11 +12,15 @@
 //          `subjectProgressTrack`, `subjectProgressFill`, `itemProgressBar`,
 //          `itemProgressValue`
 //
-//  `DuelloProgressTrack` (kit partagé) remplit sa barre au vert de la réussite
-//  (`Theme.progress`) : il ne convient donc pas ici. La source peint au
-//  contraire la part parcourue d'un gris très pâle et neutre
-//  (`PROGRESS_FILL_COLORS.current`, #D8D8D8), sans dominante colorée — c'est
-//  cette barre-ci que portent la fiche d'item et les lignes de chapitre.
+//  La géométrie de la barre (capsule de fond + remplissage borné, via
+//  `GeometryReader`) est portée par le composant partagé `DuelloProgressTrack`
+//  (`DuelloUI.swift`, vague 2) : on lui passe la piste blanche de la source
+//  (`progressTrack.backgroundColor: colors.white` → `track: Theme.surface`) et
+//  le remplissage neutre (`PROGRESS_FILL_COLORS.current` #D8D8D8 → `tint`), au
+//  lieu de ré-implémenter la piste localement. Le filet de 1 pt
+//  (`progressTrack.borderWidth: 1` / `borderColor: colors.border`) n'est pas
+//  couvert par le composant → il reste posé en `overlay` local (brief vague 3 :
+//  aligner le style d'écran quand le composant ne couvre pas le cas).
 //  Cible iOS 16, aucune API iOS 17.
 //
 import SwiftUI
@@ -36,7 +40,7 @@ enum SubjProgressFill {
 /// de marge haute (style `progressTrack`) — sert aux barres d'item et de
 /// matière.
 struct SubjProgressBar: View {
-    /// Part remplie, entre 0 et 1 (bornée avant dessin).
+    /// Part remplie, entre 0 et 1 (bornée par `DuelloProgressTrack`).
     let fraction: Double
     /// Version fine, pour les lignes de chapitre de la liste.
     var compact: Bool = false
@@ -48,20 +52,18 @@ struct SubjProgressBar: View {
     /// Marge haute de la version pleine (`styles.progressTrack.marginTop`).
     static let fullTopMargin: CGFloat = 12
 
-    private var clampedFraction: Double { min(1, max(0, fraction)) }
     private var trackHeight: CGFloat { compact ? Self.compactHeight : Self.fullHeight }
 
     var body: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .leading) {
-                Capsule().fill(Theme.surface)
-                Capsule()
-                    .fill(SubjProgressFill.current)
-                    .frame(width: clampedFraction * geometry.size.width)
-            }
-            .overlay(Capsule().stroke(Theme.border, lineWidth: 1))
-        }
-        .frame(height: trackHeight)
+        DuelloProgressTrack(
+            fraction: fraction,
+            tint: SubjProgressFill.current,
+            track: Theme.surface,
+            height: trackHeight
+        )
+        // `progressTrack.borderWidth: 1` / `borderColor: colors.border` : filet
+        // non porté par `DuelloProgressTrack` (composant sans bordure) → aligné ici.
+        .overlay(Capsule().stroke(Theme.border, lineWidth: 1))
         .padding(.top, compact ? 0 : Self.fullTopMargin)
         // La barre est décorative : le pourcentage et son libellé
         // d'accessibilité vivent sur la ligne qui la porte

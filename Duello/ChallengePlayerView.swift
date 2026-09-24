@@ -54,7 +54,7 @@ struct ChallengePlayerView: View {
                         .foregroundStyle(Theme.inkSoft)
                         .multilineTextAlignment(.center)
                     Button("Retour aux défis") { onFinished() }
-                        .buttonStyle(DuelloPrimaryButton())
+                        .buttonStyle(DuelloPrimaryButton(radius: 17, weight: .heavy))
                         .padding(.horizontal, 40)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -236,7 +236,7 @@ struct ChallengePlayerView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .textSelection(.enabled)
                     }
-                    .duelloCard()
+                    .duelloCard(padding: 16, shadow: false)
 
                     ForEach(Array(exercise.questions.enumerated()), id: \.element.id) { index, question in
                         answerField(exercise: exercise, index: index, question: question)
@@ -254,7 +254,7 @@ struct ChallengePlayerView: View {
                         Text("Rendre ma copie")
                             .frame(maxWidth: .infinity, minHeight: 48)
                     }
-                    .buttonStyle(DuelloPrimaryButton())
+                    .buttonStyle(DuelloPrimaryButton(radius: 17, weight: .heavy))
                 }
             }
             .padding(.horizontal, 16)
@@ -347,7 +347,7 @@ struct ChallengePlayerView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .duelloCard()
+                .duelloTintedCard()
 
                 let me = verdict.me
                 copyCard(title: "Ta copie — \(me.score)/100", body: me.note)
@@ -366,7 +366,7 @@ struct ChallengePlayerView: View {
                             .lineSpacing(3)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .duelloCard()
+                    .duelloCard(padding: 15, shadow: false)
                 }
 
                 if let exercise, let solution = exercise.solution, !solution.isEmpty {
@@ -380,7 +380,7 @@ struct ChallengePlayerView: View {
                             .lineSpacing(3)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .duelloCard()
+                    .duelloTintedCard()
                 }
 
                 Button {
@@ -389,7 +389,7 @@ struct ChallengePlayerView: View {
                     Text("Retour aux défis")
                         .frame(maxWidth: .infinity, minHeight: 48)
                 }
-                .buttonStyle(DuelloPrimaryButton())
+                .buttonStyle(DuelloPrimaryButton(radius: 17, weight: .heavy))
             }
             .padding(.horizontal, 16)
             .padding(.top, 12)
@@ -407,7 +407,7 @@ struct ChallengePlayerView: View {
                 .foregroundStyle(Theme.ink)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .duelloCard()
+        .duelloCard(padding: 15, shadow: false)
     }
 
     private func iconName(for verdict: DuelVerdict) -> String {
@@ -485,5 +485,31 @@ struct ChallengePlayerView: View {
             }
         }
         onFinished()
+    }
+}
+
+// MARK: Carte teintée du bilan de défi
+
+/// Carte « teinte primaire » du bilan — RN `verdictCard` (ChallengesScreen.tsx:3711-3718)
+/// et `correctionCard` (`:3734-3739`) : `padding 15`, rayon `radii.large` 18, fond
+/// `colors.primaryLight` (`Theme.primaryLight`), **ni bord ni ombre**.
+///
+/// `.duelloCard()` ne couvre pas ce cas : il fige le fond `surface`, un bord 1 `border`
+/// et l'ombre `cardShadow` (`Theme.swift:117-150`), alors que ces deux cartes RN sont
+/// `primaryLight`, sans `borderWidth` ni `...cardShadow`. L'écart est le même que celui
+/// relevé pour `stateCard` (`kit-theme.md` §4/§5.2 : paramètre `border: false` manquant) ;
+/// ici on aligne le style local faute de paramètre sur le composant partagé.
+private struct DuelloTintedCardBackground: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .padding(15)
+            .background(Theme.primaryLight)
+            .cornerRadius(Theme.radiusLarge)
+    }
+}
+
+private extension View {
+    func duelloTintedCard() -> some View {
+        modifier(DuelloTintedCardBackground())
     }
 }

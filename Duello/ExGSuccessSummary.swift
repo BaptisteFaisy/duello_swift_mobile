@@ -254,7 +254,7 @@ struct ExGSuccessSummary: View {
             Text(claiming ? "XP reçus" : "Recevoir mes XP")
                 .frame(maxWidth: .infinity, minHeight: 54)
         }
-        .buttonStyle(DuelloPrimaryButton())
+        .buttonStyle(DuelloPrimaryButton(radius: Theme.radiusLarge, weight: .heavy))
         .disabled(claiming)
     }
 

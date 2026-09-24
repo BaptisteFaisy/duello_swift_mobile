@@ -35,7 +35,13 @@ struct TrainChapterRow: View {
                         .foregroundStyle(Theme.ink)
                         .multilineTextAlignment(.leading)
                     if progressTotal > 0 {
-                        DuelloProgressTrack(fraction: progressFraction, height: 6)
+                        // Piste compacte : fond blanc + h5 (`progressTrack` +
+                        // `progressTrackCompact`, `SubjectsScreen.tsx:12440/12449`).
+                        DuelloProgressTrack(
+                            fraction: progressFraction,
+                            track: Theme.surface,
+                            height: 5
+                        )
                     }
                     Text(summaryText)
                         .font(.system(size: 11, weight: progressTotal > 0 ? .bold : .semibold))

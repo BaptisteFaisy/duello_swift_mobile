@@ -9,8 +9,8 @@
 //
 //  Fichier source Expo porté : `src/components/event/EventWorkspace.tsx`
 //  (aiguillage des phases, barre du haut `EventTopBar`, onglets `SectionTab`).
-//  Substitution SF Symbols : le chevron retour d'`AppPressable`/`BackButton`
-//  devient `chevron.left`.
+//  Le chevron retour de `EventTopBar` vient désormais du composant partagé
+//  `DuelloBackButton` (port de `BackButton.tsx`, volet kit-back).
 //
 //  Cible : iOS 16.
 //
@@ -80,15 +80,16 @@ struct EvEventTopBar: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Button(action: onBack) {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(Theme.ink)
-                    .frame(width: 32, height: 32)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Retour")
+            // Chevron retour : composant partagé (kit-back). La source RN pose
+            // `iconSize={21}` sur une boîte dont `minWidth`/`minHeight` 40
+            // neutralisent le `width/height 36` du style d'appel → 40 × 40,
+            // chevron décalé de −4 (porté par le composant). Aucune décoration
+            // locale (fond/bord/rayon/offset/frame) : ce serait un double.
+            DuelloBackButton(
+                iconSize: 21,
+                accessibilityLabel: "Retour",
+                action: onBack
+            )
 
             if let title {
                 Text(title)

@@ -40,22 +40,23 @@ struct AdmUserDetailView: View {
     private var metrics: AdmUserUsageMetrics { AdmUserUsageMetrics(usage: user.usage) }
 
     /// Retour à la liste (`BackButton` du source).
+    ///
+    /// Le composant RN neutralise le fond, le bord et le rayon posés par l'écran
+    /// (`styles.button`, appliqué **après** `styles.backButton`) : le rendu réel
+    /// est un chevron nu. Seul le `paddingHorizontal: 11` de l'écran subsiste
+    /// (porté ici par l'appelant, cf. `DuelloBackButton`). `iconSize` 20 et le
+    /// libellé « Users » (13 / `800`) reprennent `styles.backText`.
     private var backButton: some View {
-        Button(action: onBack) {
-            HStack(spacing: 4) {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 13, weight: .bold))
-                Text("Users")
-                    .font(.system(size: 13, weight: .heavy))
-            }
-            .foregroundStyle(Theme.ink)
-            .padding(.horizontal, 11)
-            .frame(minHeight: 40)
-            .background(Theme.surfaceMuted)
-            .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
+        DuelloBackButton(
+            iconSize: 20,
+            accessibilityLabel: "Revenir à la liste des utilisateurs",
+            action: onBack
+        ) {
+            Text("Users")
+                .font(.system(size: 13, weight: .heavy))
+                .foregroundStyle(Theme.ink)
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Revenir à la liste des utilisateurs")
+        .padding(.horizontal, 11)
     }
 
     private var identityCard: some View {

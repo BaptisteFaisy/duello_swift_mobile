@@ -39,14 +39,16 @@ struct ChartExerciseMetricHistory: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             if let onBack {
-                Button(action: onBack) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundStyle(Theme.ink)
-                        .frame(width: 44, height: 44)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(backLabel)
+                // Retour : composant partagé `DuelloBackButton` (`BackButton` de la
+                // source). `leaderboardPageStyles.backButton` pose 42 × 42 ; son fond
+                // `surfaceMuted` et son rayon 13 sont neutralisés par `styles.button`
+                // (appliqué après) → rendu = chevron nu, sans fond. Chevron 22, défaut
+                // de la source (`iconSize={22}` explicite dans `ExerciseMetricHistory`).
+                DuelloBackButton(
+                    iconSize: 22,
+                    accessibilityLabel: backLabel
+                ) { onBack() }
+                .frame(width: 42, height: 42)
                 .padding(.horizontal, 8)
             }
             if history.isEmpty {

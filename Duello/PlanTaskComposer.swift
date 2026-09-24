@@ -95,7 +95,6 @@ struct PlanTaskComposerCard: View {
                     Image(systemName: "arrow.right")
                         .font(.system(size: 18, weight: .bold))
                 }
-                .foregroundStyle(Theme.white)
                 .frame(maxWidth: .infinity, minHeight: 50)
             }
             .buttonStyle(PlanValidateButtonStyle())
@@ -103,28 +102,23 @@ struct PlanTaskComposerCard: View {
             .opacity(canValidate ? 1 : 0.35)
             .padding(.top, 14)
         }
-        // `wrapper` (TaskCaptureCard.tsx) : marge horizontale 20, `padding` 18,
-        // rayon `radii.large` 18, bord 1 et ombre de carte — et non le motif
-        // `.duelloCard()` (padding 16, rayon 14, sans ombre).
-        .padding(18)
-        .background(Theme.white)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
-        .overlay(
-            RoundedRectangle(cornerRadius: Theme.radiusLarge)
-                .stroke(Theme.border, lineWidth: 1)
-        )
-        .duelloShadow()
+        // `wrapper` (TaskCaptureCard.tsx:196-204) : `padding` 18, rayon `radii.large`
+        // 18, bord 1 `border`, fond blanc, ombre `cardShadow`, `marginHorizontal` 20.
+        // Le défaut de `.duelloCard()` porte désormais exactement ce motif (padding
+        // 18, rayon 18, bord, ombre) : plus de style local à maintenir.
+        .duelloCard()
         .padding(.horizontal, 20)
     }
 }
 
-/// `validateButton` (TaskCaptureCard.tsx) : fond encre, rayon 16, hauteur
-/// minimale 50, texte blanc 12 en gras ; à l'appui, opacité 0.75.
+/// `validateButton` (TaskCaptureCard.tsx:259-271) : peinture reprise de
+/// `DuelloPrimaryButton` (fond encre `colors.primary`, rayon **16**, texte blanc) ;
+/// seul l'appui `opacity: 0.75` du `Pressable` RN reste local — le bouton partagé
+/// ne porte aucun état d'appui (`AppPressable` fige `pressed` à `false`).
 struct PlanValidateButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .background(Theme.ink)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+        DuelloPrimaryButton(radius: 16)
+            .makeBody(configuration: configuration)
             .opacity(configuration.isPressed ? 0.75 : 1)
     }
 }

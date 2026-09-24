@@ -190,10 +190,8 @@ struct AcctInfoLogoutRow: View {
     var isBusy: Bool = false
     let onLogout: () -> Void
 
-    @State private var isConfirming = false
-
     var body: some View {
-        Button { isConfirming = true } label: {
+        Button { askLogoutConfirmation() } label: {
             HStack(spacing: 13) {
                 Image(systemName: "rectangle.portrait.and.arrow.right")
                     .font(.system(size: iconSize, weight: .semibold))
@@ -213,12 +211,21 @@ struct AcctInfoLogoutRow: View {
         .buttonStyle(.plain)
         .disabled(isBusy)
         .accessibilityLabel(actionLabel)
-        .alert("\(actionLabel) ?", isPresented: $isConfirming) {
-            Button("Annuler", role: .cancel) {}
-            Button(actionLabel, role: .destructive) { onLogout() }
-        } message: {
-            Text(description)
-        }
+    }
+
+    /// `LogoutControl.askLogoutConfirmation` : `AppAlert.alert` impératif
+    /// (Annuler / déconnexion destructive), `cancelable: true`. Remplace
+    /// l'`.alert` natif (rendu iOS standard, hors composant partagé).
+    private func askLogoutConfirmation() {
+        AppAlert.alert(
+            "\(actionLabel) ?",
+            description,
+            [
+                AppAlertButton("Annuler", style: .cancel),
+                AppAlertButton(actionLabel, style: .destructive) { onLogout() },
+            ],
+            options: AppAlertOptions(cancelable: true)
+        )
     }
 }
 
@@ -229,14 +236,12 @@ struct AcctInfoDeleteRow: View {
     var iconSize: CGFloat = AcctInfoRowMetrics.iconSize
     let onDelete: () -> Void
 
-    @State private var isConfirming = false
-
     /// `Alert.alert` de la source, titre et message repris mot pour mot.
     private static let confirmTitle = "Supprimer mon compte ?"
     private static let confirmMessage = "Cette action supprime définitivement ton compte serveur, ta progression, tes copies, ton profil public et tes appareils associés. Cette action est irréversible."
 
     var body: some View {
-        Button { isConfirming = true } label: {
+        Button { askDeleteConfirmation() } label: {
             HStack(spacing: 13) {
                 if isBusy {
                     ProgressView()
@@ -261,11 +266,20 @@ struct AcctInfoDeleteRow: View {
         .buttonStyle(.plain)
         .disabled(isBusy)
         .accessibilityLabel(isBusy ? "Suppression du compte en cours" : "Supprimer définitivement mon compte")
-        .alert(Self.confirmTitle, isPresented: $isConfirming) {
-            Button("Annuler", role: .cancel) {}
-            Button("Supprimer définitivement", role: .destructive) { onDelete() }
-        } message: {
-            Text(Self.confirmMessage)
-        }
+    }
+
+    /// `AccountScreen.handleDeleteAccount` via `AppAlert.alert` : titre, message
+    /// et boutons repris mot pour mot, `cancelable: true`. Remplace l'`.alert`
+    /// natif.
+    private func askDeleteConfirmation() {
+        AppAlert.alert(
+            Self.confirmTitle,
+            Self.confirmMessage,
+            [
+                AppAlertButton("Annuler", style: .cancel),
+                AppAlertButton("Supprimer définitivement", style: .destructive) { onDelete() },
+            ],
+            options: AppAlertOptions(cancelable: true)
+        )
     }
 }

@@ -104,7 +104,7 @@ struct ChalIntDuelFlow: View {
                 .foregroundStyle(Theme.inkSoft)
                 .multilineTextAlignment(.center)
             Button("Retour aux défis") { onFinish() }
-                .buttonStyle(DuelloPrimaryButton())
+                .buttonStyle(DuelloPrimaryButton(radius: 17, weight: .heavy))
                 .padding(.horizontal, 40)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

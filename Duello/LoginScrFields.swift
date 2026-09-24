@@ -212,12 +212,16 @@ struct LoginScrDivider: View {
 
 // MARK: - Boutons
 
-/// Effet d'appui commun aux commandes de l'écran de connexion : opacité et
-/// échelle réduites à l'appui (`pressed` de la source : 0.84 / 0.99 ; le
-/// bouton retour de la source n'abaisse que l'opacité, à 0.6).
+/// Effet d'appui commun aux commandes de l'écran de connexion.
+///
+/// La source fait passer ses `Pressable` par `AppPressable`, qui fige `pressed`
+/// à `false` (`RESTING_PRESS_STATE`, `AppPressable.tsx:14`) : le `styles.pressed`
+/// de `LoginScreen.tsx` (opacité 0.84 + échelle 0.99) est **mort** et ne doit
+/// pas être porté. Le défaut est donc **neutre** (aucun retour d'appui) ; seul
+/// le bouton retour demande explicitement l'opacité 0.6 (`BackButton.tsx:95`).
 struct LoginScrPressStyle: ButtonStyle {
-    var pressedOpacity: Double = 0.84
-    var pressedScale: Double = 0.99
+    var pressedOpacity: Double = 1
+    var pressedScale: Double = 1
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label

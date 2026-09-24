@@ -17,12 +17,12 @@ struct HecJourneyHeaderBar: View {
     var body: some View {
         HStack(spacing: 12) {
             if showsBackButton {
-                HecJourneySheet.IconButton(
-                    systemName: "chevron.left",
-                    label: HecJourneyCopy.a11yBackToParcours,
-                    size: 20,
-                    tint: Theme.ink,
-                    frame: 40,
+                // Retour : composant partagé `BackButton` (chevron nu, sans fond
+                // ni cadre) plutôt que le `IconButton` local de la feuille.
+                DuelloBackButton(
+                    alignChevronTip: true,
+                    iconColor: Theme.ink,
+                    accessibilityLabel: HecJourneyCopy.a11yBackToParcours,
                     action: onBack
                 )
             } else {

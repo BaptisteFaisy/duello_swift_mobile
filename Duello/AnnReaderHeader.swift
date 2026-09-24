@@ -8,16 +8,14 @@ extension AnnReaderView {
     var header: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top, spacing: 10) {
-                Button(action: onClose) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 17, weight: .bold))
-                        .foregroundStyle(Theme.ink)
-                        .frame(width: 34, height: 34)
-                        .background(Theme.surfaceMuted)
-                        .clipShape(Circle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Fermer le sujet")
+                // Retour : composant partagé (chevron nu, sans fond ni forme).
+                // Le `closeButton` RN (fond `surfaceMuted`, rayon 13) est
+                // neutralisé par `styles.button` du composant.
+                DuelloBackButton(
+                    iconSize: 22,
+                    accessibilityLabel: "Fermer le sujet",
+                    action: onClose
+                )
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(subject)
@@ -51,9 +49,13 @@ extension AnnReaderView {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(visibleModes) { candidate in
+                        // Onglet de document : gabarit `documentTab` RN
+                        // (minHeight 30, paddingHorizontal 14).
                         DuelloChip(
                             title: candidate.label,
-                            selected: mode == candidate
+                            selected: mode == candidate,
+                            minHeight: 30,
+                            paddingHorizontal: 14
                         ) {
                             if isEnabled(candidate) { mode = candidate }
                         }

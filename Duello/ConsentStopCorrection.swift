@@ -9,9 +9,10 @@
 //    - `src/components/correction-summary/confirmStopCorrection.ts`
 //      (`confirmStopCorrection(onQuit)`, via `AppAlert.alert`).
 //
-//  La source est impérative (elle ouvre l'alerte au moment de l'appel) ; en
-//  SwiftUI la présentation se fait depuis une vue, d'où le modificateur
-//  `ConsentStopCorrectionAlert` à poser sur l'écran de correction. Les libellés
+//  La source est impérative (elle ouvre l'alerte au moment de l'appel) ; le
+//  port suit cette forme : `ConsentStopCorrection.confirm(onQuit:)` passe par
+//  la fenêtre d'alerte commune `AppAlert` (montée une fois à la racine via
+//  `.appAlertHost()`), fermable par le fond (`cancelable: true`). Les libellés
 //  sont repris mot pour mot : « Continuer » est destructif (il arrête la
 //  correction), « Annuler » referme la boîte.
 //
@@ -33,35 +34,19 @@ enum ConsentStopCorrection {
 
     /// Bouton de confirmation (`style: 'destructive'`).
     static let confirmLabel = "Continuer"
-}
 
-// MARK: - Présentation
-
-/// Présente la confirmation d'arrêt quand `isPresented` passe à vrai.
-struct ConsentStopCorrectionAlert: ViewModifier {
-
-    /// Déclencheur de la boîte, piloté par l'écran de correction.
-    @Binding var isPresented: Bool
-    /// Action confirmée : arrêter la correction (`onQuit`).
-    let onQuit: () -> Void
-
-    func body(content: Content) -> some View {
-        content.alert(ConsentStopCorrection.title, isPresented: $isPresented) {
-            Button(ConsentStopCorrection.cancelLabel, role: .cancel) {}
-            Button(ConsentStopCorrection.confirmLabel, role: .destructive, action: onQuit)
-        } message: {
-            Text(ConsentStopCorrection.message)
-        }
-    }
-}
-
-extension View {
-    /// Pose la confirmation d'arrêt de correction sur un écran
-    /// (`confirmStopCorrection(onQuit:)`).
-    func consentStopCorrectionAlert(
-        isPresented: Binding<Bool>,
-        onQuit: @escaping () -> Void
-    ) -> some View {
-        modifier(ConsentStopCorrectionAlert(isPresented: isPresented, onQuit: onQuit))
+    /// `confirmStopCorrection(onQuit)` : ouvre la confirmation via la fenêtre
+    /// d'alerte commune (`AppAlert`), fermable par le fond (`cancelable: true`).
+    /// `onQuit` n'est appelé qu'à l'appui de « Continuer ».
+    static func confirm(onQuit: @escaping () -> Void) {
+        AppAlert.alert(
+            title,
+            message,
+            [
+                AppAlertButton(cancelLabel, style: .cancel),
+                AppAlertButton(confirmLabel, style: .destructive, onPress: onQuit),
+            ],
+            options: AppAlertOptions(cancelable: true)
+        )
     }
 }

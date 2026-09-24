@@ -1,5 +1,15 @@
 import SwiftUI
 
+/// Identité du menu du filtre de matières dans le registre des menus ancrés
+/// (`DropdownOverlay`) : l'`anchorRef`/`coordinationScope` du RN
+/// (`EnhancedProgressScreen.tsx:322-323`).
+enum ProgressSubjectPicker {
+    /// Identité du déclencheur (`subjectPickerTriggerRef`).
+    static let anchorID = "progress-subject-picker"
+    /// `coordinationScope="enhanced-progress"`.
+    static let scope = "enhanced-progress"
+}
+
 /// En-tête de l'écran « Progression » : filtre de matières à sélection multiple
 /// puis, en mode embarqué, résumé compact de toutes les matières. Extension de
 /// `DuelloProgressView` (voir `ProgressScreen.swift` pour le découpage).
@@ -35,16 +45,25 @@ extension DuelloProgressView {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-
-            if subjectPickerOpen {
-                subjectPickerPanel
-                    .padding(.top, 8)
-            }
+            // Déclencheur du menu ancré : sa position est publiée dans le
+            // registre pour que `DropdownOverlay` (posé à la racine de l'écran,
+            // `ProgressScreen.swift`) ancre le panneau juste dessous.
+            .dropdownAnchor(
+                ProgressSubjectPicker.anchorID,
+                in: pickerRegistry,
+                scope: ProgressSubjectPicker.scope,
+                onRequestOpen: { subjectPickerOpen = true }
+            )
         }
     }
 
     /// Panneau déplié du filtre : raccourcis, puis une case par matière.
-    private var subjectPickerPanel: some View {
+    ///
+    /// Rendu par `DropdownOverlay` (racine de l'écran) : le panneau porte le
+    /// `marginTop` de 8 de `pickerPanel` (RN) et son ombre ; l'écart de 6 du
+    /// voile s'y ajoute (écart réel déclencheur→panneau = 8 + 6 = 14), et le
+    /// voile rogne l'ombre comme l'`overflow: hidden` du RN.
+    var subjectPickerPanel: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 8) {
                 quickButton("Tout") { selectedSubjectNames = Set(subjectNames) }
@@ -75,6 +94,7 @@ extension DuelloProgressView {
         .background(Theme.surface)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
         .duelloShadow()
+        .padding(.top, 8)
     }
 
     /// Raccourci de sélection du filtre (« Tout », « Aucune »).

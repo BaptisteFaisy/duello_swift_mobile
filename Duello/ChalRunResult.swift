@@ -59,29 +59,25 @@ struct ChalRunResultView: View {
         .background(Theme.background)
     }
 
-    /// Retour aux défis (`resultBackButton`) : pastille bordée, chevron + libellé.
+    /// Retour aux défis (`resultBackButton`) : composant partagé
+    /// `DuelloBackButton` (port de `components/BackButton.tsx`). Il porte la boîte
+    /// 40, le chevron `iconSize 19` et son décalage `translateX(-4)`. Le style
+    /// d'écran `resultBackButton` déclare fond `surface`, bord `border` et rayon
+    /// `radii.medium`, mais `styles.button` du composant RN les **neutralise**
+    /// (appliqué après le style d'écran) : le rendu réel est un chevron nu, sans
+    /// décoration — les retirer ici. Seuls le libellé et le `paddingHorizontal: 11`
+    /// du style d'écran restent (le composant réimpose `gap: 4`).
     private var backButton: some View {
-        Button {
-            onBack()
-        } label: {
-            HStack(spacing: 5) {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 19, weight: .bold))
-                Text("Retour aux défis")
-                    .font(.system(size: 13, weight: .heavy))
-            }
-            .foregroundStyle(Theme.ink)
-            .frame(minHeight: 40)
-            .padding(.horizontal, 11)
-            .background(Theme.surface)
-            .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: Theme.radiusMedium, style: .continuous)
-                    .stroke(Theme.border, lineWidth: 1)
-            )
+        DuelloBackButton(
+            iconSize: 19,
+            accessibilityLabel: "Revenir à l’accueil des défis",
+            action: { onBack() }
+        ) {
+            Text("Retour aux défis")
+                .font(.system(size: 13, weight: .heavy))
+                .foregroundStyle(Theme.ink)
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Revenir à l’accueil des défis")
+        .padding(.horizontal, 11)
     }
 
     private var verdictSection: some View {
@@ -143,7 +139,7 @@ struct ChalRunResultView: View {
                         compact: true
                     )
                     Text(LatexToUnicode.toUnicodeMath(result.prompt))
-                        .font(.system(size: 11, design: .serif))
+                        .font(Theme.readingFont(size: Theme.readingSizeCompact))
                         .foregroundStyle(Theme.inkSoft)
                         .lineSpacing(6)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -252,7 +248,7 @@ struct ChalRunResultView: View {
                     }
                     .padding(.bottom, 12)
                     Text(LatexToUnicode.toUnicodeMath(solution))
-                        .font(.system(size: 14, design: .serif))
+                        .font(Theme.readingFont)
                         .foregroundStyle(Theme.ink)
                         .lineSpacing(7)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -280,7 +276,7 @@ struct ChalRunResultView: View {
                     }
                     .frame(maxWidth: .infinity, minHeight: 52)
                 }
-                .buttonStyle(DuelloPrimaryButton())
+                .buttonStyle(DuelloPrimaryButton(radius: 17, weight: .heavy))
                 .padding(.top, 17)
             }
             Button {
@@ -293,7 +289,7 @@ struct ChalRunResultView: View {
                 }
                 .frame(maxWidth: .infinity, minHeight: 52)
             }
-            .buttonStyle(DuelloPrimaryButton())
+            .buttonStyle(DuelloPrimaryButton(radius: 17, weight: .heavy))
             .padding(.top, 17)
         }
     }
@@ -419,7 +415,7 @@ struct ChalRunAbandonVictoryView: View {
                     }
                     .frame(maxWidth: .infinity, minHeight: 52)
                 }
-                .buttonStyle(DuelloPrimaryButton())
+                .buttonStyle(DuelloPrimaryButton(radius: 17, weight: .heavy))
                 .padding(.top, 17)
             }
             Button {
@@ -432,7 +428,7 @@ struct ChalRunAbandonVictoryView: View {
                 }
                 .frame(maxWidth: .infinity, minHeight: 52)
             }
-            .buttonStyle(DuelloPrimaryButton())
+            .buttonStyle(DuelloPrimaryButton(radius: 17, weight: .heavy))
             .padding(.top, 17)
         }
     }

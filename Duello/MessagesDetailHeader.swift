@@ -16,7 +16,11 @@ struct DetailHeader: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            DetailBackButton(action: onBack)
+            DuelloBackButton(
+                iconSize: 20,
+                accessibilityLabel: "Retour",
+                action: onBack
+            )
             avatarView
                 .padding(.leading, 9)
 
@@ -69,23 +73,9 @@ struct DetailHeader: View {
     }
 }
 
-/// Bouton de retour du `BackButton` d'Expo : chevron noir seul, **sans fond,
-/// cadre ni forme** — `styles.button` d'Expo (borderWidth 0, borderRadius 0,
-/// backgroundColor transparent) écrase le style passé par l'écran. Zone tactile
-/// 40 × 40 (`minWidth`/`minHeight` du composant), chevron décalé de −4 pt comme
-/// `transform: translateX(-4)`.
-struct DetailBackButton: View {
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: "chevron.left")
-                .font(.system(size: 20, weight: .bold))
-                .foregroundStyle(Theme.ink)
-                .frame(width: 40, height: 40)
-                .offset(x: -4)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Retour")
-    }
-}
+// Le bouton retour local (`DetailBackButton`) a été retiré en vague 3 : il
+// ré-implémentait ce que le composant partagé `DuelloBackButton`
+// (`DuelloBackButton.swift`, port de `BackButton.tsx`) porte désormais — boîte
+// 40 × 40, chevron `ink` décalé de −4 (`translateX`), sans fond/bord/rayon.
+// `DetailHeader` l'appelle directement (`iconSize: 20`, libellé « Retour »,
+// comme `MessagesScreen.tsx:428` / `:488`).

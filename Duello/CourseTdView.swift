@@ -29,8 +29,6 @@ struct CourseTdView: View {
     @State private var analyzing = false
     @State private var errorMessage = ""
     @State private var pickerVisible = false
-    @State private var importFailedVisible = false
-    @State private var consentVisible = false
     @State private var pendingAnalysis: CtdPendingAnalysis?
     /// Numéro du dernier lancement d'analyse : le résultat d'un lancement
     /// remplacé est ignoré (`analysisRun` de `CourseTdPanel.tsx`).
@@ -58,14 +56,6 @@ struct CourseTdView: View {
             allowsMultipleSelection: false,
             onCompletion: handlePickedFile
         )
-        // `requireAiDataSharingConsent` : l'analyse transmet la feuille et le
-        // cours au relais, donc l'accord de l'élève est demandé d'abord.
-        .alert(CtdAiConsent.title, isPresented: $consentVisible) {
-            Button(CtdAiConsent.denyLabel, role: .cancel) { resolveConsent(granted: false) }
-            Button(CtdAiConsent.allowLabel) { resolveConsent(granted: true) }
-        } message: {
-            Text(CtdAiConsent.message)
-        }
     }
 
     // MARK: - Corps du panneau
@@ -89,11 +79,6 @@ struct CourseTdView: View {
                     questionCount: store.document.questionCount
                 )
             }
-        }
-        .alert("TD non importé", isPresented: $importFailedVisible) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text("Choisis un PDF, une photo JPEG ou PNG de moins de 8 Mo, puis réessaie.")
         }
     }
 
@@ -188,13 +173,13 @@ struct CourseTdView: View {
         defer { importing = false }
         let name = url.lastPathComponent
         guard let mimeType = CtdMimeType(declared: nil, fileName: name) else {
-            importFailedVisible = true
+            presentImportFailedAlert()
             return
         }
         let scoped = url.startAccessingSecurityScopedResource()
         defer { if scoped { url.stopAccessingSecurityScopedResource() } }
         guard let data = try? Data(contentsOf: url) else {
-            importFailedVisible = true
+            presentImportFailedAlert()
             return
         }
         let directory = CtdStorage.importsDirectory()
@@ -206,7 +191,7 @@ struct CourseTdView: View {
         do {
             try data.write(to: destination)
         } catch {
-            importFailedVisible = true
+            presentImportFailedAlert()
             return
         }
         let source = CtdSource(
@@ -227,10 +212,39 @@ struct CourseTdView: View {
     private func runAnalysis(_ source: CtdSource, course: CtdStoredCourseDocument) {
         guard CtdAiConsent.isGranted else {
             pendingAnalysis = CtdPendingAnalysis(source: source, course: course)
-            consentVisible = true
+            presentConsentAlert()
             return
         }
         Task { await performAnalysis(source, course: course) }
+    }
+
+    /// `requireAiDataSharingConsent` : l'analyse transmet la feuille et le cours
+    /// au relais, donc l'accord de l'élève est demandé d'abord. L'alerte passe par
+    /// le composant partagé du kit (`AppAlert.alert`), jamais `.alert` natif —
+    /// `showAiConsentPrompt` de `aiDataSharingConsent.ts` : deux boutons, refus
+    /// (`cancel`) puis autorisation (primaire).
+    private func presentConsentAlert() {
+        AppAlert.alert(
+            CtdAiConsent.title,
+            CtdAiConsent.message,
+            [
+                AppAlertButton(CtdAiConsent.denyLabel, style: .cancel) {
+                    resolveConsent(granted: false)
+                },
+                AppAlertButton(CtdAiConsent.allowLabel) {
+                    resolveConsent(granted: true)
+                },
+            ]
+        )
+    }
+
+    /// `Alert.alert('TD non importé', …)` : sans bouton, le kit pose le bouton
+    /// unique « Compris » (défaut d'`AppAlert.alert`), comme côté Expo.
+    private func presentImportFailedAlert() {
+        AppAlert.alert(
+            "TD non importé",
+            "Choisis un PDF, une photo JPEG ou PNG de moins de 8 Mo, puis réessaie."
+        )
     }
 
     /// Réponse à la demande d'autorisation IA : accordée, l'analyse attendue

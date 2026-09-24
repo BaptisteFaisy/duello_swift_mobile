@@ -70,9 +70,13 @@ struct SubjCourseProgressLegend: View {
 
     /// Encart bordé, refermable, montré une seule fois en tête de matière.
     ///
-    /// La carte est dessinée à la main plutôt qu'avec `.duelloCard()` : le
-    /// rappel Expo a des marges internes propres (11 px) et un bas plus haut
-    /// (30 px) que le rembourrage uniforme de 16 px du modificateur partagé.
+    /// La carte reste dessinée à la main plutôt qu'avec `.duelloCard()` : le
+    /// rappel Expo (`courseProgressHint`) a des marges internes **asymétriques**
+    /// (11 px en haut, 8 px en bas), un rayon `radii.medium` (**14**) et
+    /// **aucune** ombre — là où le modificateur partagé impose un rembourrage
+    /// uniforme (18), le rayon 18 et la `cardShadow`. Aucun paramètre du kit ne
+    /// couvre ce cas ; les teintes et le rayon viennent des jetons
+    /// (`Theme.surface`, `Theme.border`, `Theme.radiusMedium`), sans valeur en dur.
     private func hintCard(onDismiss: @escaping () -> Void) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("Statut du cours : \(demoStatus.label)")

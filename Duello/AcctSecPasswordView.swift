@@ -79,19 +79,16 @@ struct AcctSecPasswordView: View {
 
     /// Bouton retour gauche (`BackButton` « Retour aux paramètres » de la
     /// source) : `AccountPasswordScreen.tsx` n'a pas de barre de navigation.
+    /// Repris du composant partagé `DuelloBackButton` — géométrie 40 × 40,
+    /// pictogramme 20 centré puis `translateX(-4)` ; le décalage X et l'appui
+    /// viennent du composant (ne pas les cumuler ici). `alignSelf: 'flex-start'`
+    /// de la source → forcé à gauche.
     private var backButton: some View {
-        Button {
-            dismiss()
-        } label: {
-            Image(systemName: "chevron.backward")
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundStyle(Theme.ink)
-                .frame(width: 40, height: 40)
-                .offset(x: -4)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Retour aux paramètres")
+        DuelloBackButton(
+            iconSize: 20,
+            accessibilityLabel: "Retour aux paramètres",
+            action: { dismiss() }
+        )
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
@@ -108,7 +105,7 @@ struct AcctSecPasswordView: View {
             }
             .frame(maxWidth: .infinity, minHeight: 52)
         }
-        .buttonStyle(DuelloPrimaryButton())
+        .buttonStyle(DuelloPrimaryButton(weight: .heavy))
         .disabled(isSaving)
         .opacity(isSaving ? 0.55 : 1)
     }

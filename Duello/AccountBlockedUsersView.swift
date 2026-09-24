@@ -34,7 +34,6 @@ struct BlockedUsersView: View {
     @State private var errorMessage = ""
     @State private var attempt = 0
     @State private var unblockingId: String? = nil
-    @State private var pendingUnblock: ReportBlockedProfile? = nil
 
     private static let loadErrorMessage = "Impossible de charger les comptes bloqués."
     private static let unblockErrorMessage = "Impossible de débloquer ce compte."
@@ -62,24 +61,6 @@ struct BlockedUsersView: View {
         }
         .background(Theme.background)
         .task(id: attempt) { await load() }
-        .alert(
-            "Débloquer \(pendingUnblock?.displayName ?? "") ?",
-            isPresented: confirmBinding,
-            presenting: pendingUnblock
-        ) { member in
-            Button("Annuler", role: .cancel) {}
-            Button("Débloquer") { performUnblock(member) }
-        } message: { _ in
-            Text(Self.unblockConfirmationMessage)
-        }
-    }
-
-    /// `pendingUnblock != nil` pilote la boîte de confirmation.
-    private var confirmBinding: Binding<Bool> {
-        Binding(
-            get: { pendingUnblock != nil },
-            set: { if !$0 { pendingUnblock = nil } }
-        )
     }
 
     /// En-tête (`header` de la source) : chevron puis chapeau « SÉCURITÉ » et
@@ -104,18 +85,14 @@ struct BlockedUsersView: View {
         .padding(.bottom, 8)
     }
 
-    /// Chevron de retour (`BackButton` de la source) : cadre 40×40, pictogramme
-    /// 20 pt décalé de 4 pt vers la gauche (`translateX(-4)` du RN).
+    /// Chevron de retour : composant partagé `DuelloBackButton` (chevron seul,
+    /// sans fond ni cadre — `styles.button` du RN neutralise la décoration ;
+    /// `iconSize` 20 comme la source, `iconColor` encre par défaut).
     private var backButton: some View {
-        Button { dismiss() } label: {
-            Image(systemName: "chevron.left")
-                .font(.system(size: 20, weight: .bold))
-                .foregroundStyle(Theme.ink)
-                .frame(width: 40, height: 40)
-                .offset(x: -4)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Retour aux paramètres")
+        DuelloBackButton(
+            iconSize: 20,
+            accessibilityLabel: "Retour aux paramètres"
+        ) { dismiss() }
     }
 
     private var explanationCard: some View {
@@ -180,7 +157,7 @@ struct BlockedUsersView: View {
                     .padding(.horizontal, 16)
                     .frame(minHeight: 36)
             }
-            .buttonStyle(BlockedRetryButtonStyle())
+            .buttonStyle(DuelloPrimaryButton(radius: 12))
         }
         .frame(maxWidth: .infinity)
         .padding(24)
@@ -280,7 +257,7 @@ struct BlockedUsersView: View {
 
     private func unblockButton(_ member: ReportBlockedProfile) -> some View {
         Button {
-            pendingUnblock = member
+            requestUnblock(member)
         } label: {
             Group {
                 if unblockingId == member.id {
@@ -315,8 +292,21 @@ struct BlockedUsersView: View {
         isLoading = false
     }
 
+    /// `requestUnblock` de la source : confirmation via la fenêtre commune
+    /// `AppAlert` (le RN n'utilise aucune alerte native). Deux boutons
+    /// `cancel`/`default`, non `cancelable`, comme `Alert.alert` d'origine.
+    private func requestUnblock(_ member: ReportBlockedProfile) {
+        AppAlert.alert(
+            "Débloquer \(member.displayName) ?",
+            Self.unblockConfirmationMessage,
+            [
+                AppAlertButton("Annuler", style: .cancel),
+                AppAlertButton("Débloquer") { performUnblock(member) },
+            ]
+        )
+    }
+
     private func performUnblock(_ member: ReportBlockedProfile) {
-        pendingUnblock = nil
         unblockingId = member.id
         errorMessage = ""
         Task {
@@ -338,17 +328,5 @@ struct BlockedUsersView: View {
         #if canImport(UIKit)
         UIAccessibility.post(notification: .announcement, argument: resolved)
         #endif
-    }
-}
-
-/// Bouton « Réessayer » de la carte d'erreur : encre pleine, rayon 12
-/// (`retryButton` de la source), distinct du rayon 18 de `DuelloPrimaryButton`.
-private struct BlockedRetryButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .foregroundStyle(Theme.surface)
-            .background(Theme.ink)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .opacity(configuration.isPressed ? 0.84 : 1)
     }
 }

@@ -25,8 +25,6 @@ struct EvEventLiveView: View {
     @Binding var photosVisible: Bool
     let onBack: () -> Void
 
-    @State private var confirmingSubmit = false
-
     var body: some View {
         GeometryReader { geo in
             VStack(spacing: 0) {
@@ -50,12 +48,21 @@ struct EvEventLiveView: View {
             .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
         }
         .background(Theme.surface)
-        .alert("Soumettre à la correction ?", isPresented: $confirmingSubmit) {
-            Button("Annuler", role: .cancel) {}
-            Button("Soumettre") { model.submit() }
-        } message: {
-            Text("Impossible de revenir en arrière après l’envoi de ta copie.")
-        }
+    }
+
+    /// `submitRequested` de la source : la confirmation passe par la fenêtre
+    /// d'alerte **commune** (`AppAlert.alert`, montée une fois à la racine),
+    /// plus jamais par `.alert` natif. Boutons « Annuler » (`cancel`) et
+    /// « Soumettre » (`default` → `session.submit()`), comme le RN.
+    private func submitRequested() {
+        AppAlert.alert(
+            "Soumettre à la correction ?",
+            "Impossible de revenir en arrière après l’envoi de ta copie.",
+            [
+                AppAlertButton("Annuler", style: .cancel),
+                AppAlertButton("Soumettre", style: .default, onPress: { model.submit() }),
+            ]
+        )
     }
 
     /// Temps de participation restant, affiché en en-tête de l'épreuve.
@@ -110,7 +117,7 @@ struct EvEventLiveView: View {
             }
             .buttonStyle(.plain)
 
-            Button { confirmingSubmit = true } label: {
+            Button { submitRequested() } label: {
                 Group {
                     if model.submission == .submitting {
                         ProgressView().tint(Color.white)

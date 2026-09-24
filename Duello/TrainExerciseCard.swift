@@ -38,7 +38,14 @@ struct TrainExerciseCard: View {
                 .multilineTextAlignment(.leading)
             if hasProgress {
                 HStack(spacing: 8) {
-                    DuelloProgressTrack(fraction: fraction, height: 6)
+                    // `trainingProgressTrack` (SubjectsScreen.tsx:12049) : h 6,
+                    // rayon 3 (capsule), fond `colors.background` — le défaut
+                    // `surfaceMuted` du composant ne vaut pas ici.
+                    DuelloProgressTrack(
+                        fraction: fraction,
+                        track: Theme.background,
+                        height: 6
+                    )
                     Text("\(percentage) %")
                         .font(.system(size: 11, weight: .heavy))
                         .foregroundStyle(Theme.inkSoft)

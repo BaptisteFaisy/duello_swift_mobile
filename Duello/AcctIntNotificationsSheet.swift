@@ -70,19 +70,14 @@ struct AcctIntNotificationsSheet: View {
         .padding(.bottom, 12)
     }
 
-    /// Retour : chevron 21 pt dans une boîte 38 × 38 blanche, sans bord
-    /// (`BackButton` + `styles.settingsBackButton`).
+    /// Retour : composant partagé `DuelloBackButton` (`BackButton` de la source),
+    /// chevron 21 pt dans sa boîte 40 × 40 **sans fond** — le blanc de
+    /// `styles.settingsBackButton` est annulé par `styles.button` (appliqué après).
     private var backButton: some View {
-        Button { dismiss() } label: {
-            Image(systemName: "chevron.left")
-                .font(.system(size: 21, weight: .semibold))
-                .foregroundStyle(Theme.ink)
-                .frame(width: 40, height: 40)
-                .background(Theme.white)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Retour au profil")
+        DuelloBackButton(
+            iconSize: 21,
+            accessibilityLabel: "Retour au profil"
+        ) { dismiss() }
     }
 
     /// Un onglet de tête : libellé 13/800, encre si choisi, trait bas de 2 pt

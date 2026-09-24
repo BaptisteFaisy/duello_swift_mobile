@@ -138,24 +138,21 @@ struct SwipeLeaderboardRibbon: View {
         }
     }
 
-    /// Retour de l'en-tête (`BackButton` de la source) : chevron d'encre, sans
-    /// fond. Cadre 36×36 (`backButton`) contraint par les minima 40×40 du
-    /// `BackButton` → 40×40 rendus ; pictogramme 21 pt décalé de 4 pt à gauche
-    /// (`translateX(-4)`).
+    /// Retour de l'en-tête (`BackButton` de la source) : composant partagé
+    /// `DuelloBackButton` (volet kit-back, `DuelloBackButton.swift`).
+    ///
+    /// Le style d'écran RN (`backButton` : `width`/`height` 36, `borderRadius`
+    /// 11) est **neutralisé** par `styles.button` du composant
+    /// (`borderRadius 0`, `backgroundColor` transparent, appliqué après) ;
+    /// seuls les minima 40×40 subsistent → boîte 40×40 rendue. `iconSize 21`
+    /// (prop RN explicite), pictogramme centré puis `translateX(-4)` (porté par
+    /// le composant), libellé « Fermer le classement ».
     private var backButton: some View {
-        Button {
-            onBack?()
-        } label: {
-            Image(systemName: "chevron.left")
-                .font(.system(size: 21, weight: .bold))
-                .foregroundStyle(Theme.ink)
-                .offset(x: -4)
-                .frame(width: 36, height: 36)
-                .frame(minWidth: 40, minHeight: 40)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Fermer le classement")
+        DuelloBackButton(
+            iconSize: 21,
+            accessibilityLabel: "Fermer le classement",
+            action: { onBack?() }
+        )
     }
 
     /// Barre segmentée des sections (`tabs` + `topTabs`) : conteneur gris,

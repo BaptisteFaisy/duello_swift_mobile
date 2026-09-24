@@ -20,16 +20,13 @@ struct AffiliateScreenHeader: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
             HStack(spacing: 0) {
-                Button(action: onBack) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundStyle(Theme.ink)
-                        .offset(x: -4)
-                        .frame(width: 40, height: 40)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Retour aux paramètres")
+                // Retour : composant partagé `DuelloBackButton` (`BackButton` de la
+                // source), chevron 20 pt dans sa boîte 40 × 40, `translateX(-4)`
+                // interne. Sans fond ni cadre : `styles.button` les neutralise.
+                DuelloBackButton(
+                    iconSize: 20,
+                    accessibilityLabel: "Retour aux paramètres"
+                ) { onBack() }
 
                 Spacer(minLength: 0)
                 refreshButton

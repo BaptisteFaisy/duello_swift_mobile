@@ -15,7 +15,7 @@
 //  Compléments portés :
 //    - chargement (« Chargement… ») et erreur de chargement + « Réessayer » ;
 //    - erreur en ligne discrète quand une liste est déjà affichée ;
-//    - confirmation `Alert` avant déblocage (texte source exact) ;
+//    - confirmation `AppAlert` (fenêtre partagée) avant déblocage (texte source exact) ;
 //    - état occupé du bouton (spinner, boutons désactivés pendant l'appel) ;
 //    - chapeau « SÉCURITÉ » + titre ;
 //    - pastille de présence (`SocPresenceStore`, AvatarPresence) et photo ;
@@ -42,7 +42,6 @@ struct AcctSubBlockedUsersView: View {
     @State private var errorMessage = ""
     @State private var attempt = 0
     @State private var unblockingId: String? = nil
-    @State private var pendingUnblock: ReportBlockedProfile? = nil
 
     private static let loadErrorMessage = "Impossible de charger les comptes bloqués."
     private static let unblockErrorMessage = "Impossible de débloquer ce compte."
@@ -70,23 +69,22 @@ struct AcctSubBlockedUsersView: View {
         }
         .background(Theme.background)
         .task(id: attempt) { await load() }
-        .alert(
-            "Débloquer \(pendingUnblock?.displayName ?? "") ?",
-            isPresented: confirmBinding,
-            presenting: pendingUnblock
-        ) { member in
-            Button("Annuler", role: .cancel) {}
-            Button("Débloquer") { performUnblock(member) }
-        } message: { _ in
-            Text(Self.unblockConfirmationMessage)
-        }
     }
 
-    /// `pendingUnblock != nil` pilote la boîte de confirmation.
-    private var confirmBinding: Binding<Bool> {
-        Binding(
-            get: { pendingUnblock != nil },
-            set: { if !$0 { pendingUnblock = nil } }
+    /// `requestUnblock` de la source : la confirmation passe par la fenêtre
+    /// **partagée** `AppAlert` (le RN n'utilise aucune alerte native —
+    /// `import { AppAlert as Alert }`), bouton `cancel` « Annuler » puis bouton
+    /// primaire « Débloquer ». Aucune option : fenêtre non `cancelable`, sans
+    /// croix. La fenêtre est montée à la racine via `.appAlertHost()`
+    /// (`DuelloApp.swift`) — hors de ce fichier.
+    private func requestUnblock(_ member: ReportBlockedProfile) {
+        AppAlert.alert(
+            "Débloquer \(member.displayName) ?",
+            Self.unblockConfirmationMessage,
+            [
+                AppAlertButton("Annuler", style: .cancel),
+                AppAlertButton("Débloquer") { performUnblock(member) },
+            ]
         )
     }
 
@@ -112,18 +110,18 @@ struct AcctSubBlockedUsersView: View {
         .padding(.bottom, 8)
     }
 
-    /// Chevron de retour (`BackButton` de la source) : cadre 40×40, pictogramme
-    /// 20 pt décalé de 4 pt vers la gauche (`translateX(-4)` du RN).
+    /// Retour : composant partagé `DuelloBackButton` (`BackButton` de la source).
+    /// La source passe `iconSize={20}`, `iconColor={colors.ink}` et
+    /// `style={styles.backButton}` (`minHeight: 40`, déjà la valeur par défaut du
+    /// composant) : boîte 40×40, chevron centré puis `translateX(-4)`, sans fond.
+    /// Aucun `frame`/`offset` local n'est ajouté : le composant les porte déjà
+    /// (pas de double décalage).
     private var backButton: some View {
-        Button { dismiss() } label: {
-            Image(systemName: "chevron.left")
-                .font(.system(size: 20, weight: .bold))
-                .foregroundStyle(Theme.ink)
-                .frame(width: 40, height: 40)
-                .offset(x: -4)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Retour aux paramètres")
+        DuelloBackButton(
+            iconColor: Theme.ink,
+            iconSize: 20,
+            accessibilityLabel: "Retour aux paramètres"
+        ) { dismiss() }
     }
 
     private var explanationCard: some View {
@@ -288,7 +286,7 @@ struct AcctSubBlockedUsersView: View {
 
     private func unblockButton(_ member: ReportBlockedProfile) -> some View {
         Button {
-            pendingUnblock = member
+            requestUnblock(member)
         } label: {
             Group {
                 if unblockingId == member.id {
@@ -324,7 +322,6 @@ struct AcctSubBlockedUsersView: View {
     }
 
     private func performUnblock(_ member: ReportBlockedProfile) {
-        pendingUnblock = nil
         unblockingId = member.id
         errorMessage = ""
         Task {
@@ -350,13 +347,20 @@ struct AcctSubBlockedUsersView: View {
 }
 
 /// Bouton « Réessayer » de la carte d'erreur : encre pleine, rayon 12
-/// (`retryButton` de la source), distinct du rayon 18 de `DuelloPrimaryButton`.
+/// (`retryButton` de la source : `minHeight 36`, `paddingHorizontal 16`,
+/// `borderRadius 12`, fond `ink` ; `retryText` 12/900/blanc).
+///
+/// Ce style reste **local** : `DuelloPrimaryButton` (kit-boutons) ne couvre pas
+/// ce cas — il impose 15/900 et n'a ni `minHeight 36` ni le libellé 12 pt du RN ;
+/// le reprendre dégraderait un écart conforme de la vague 1. La seule
+/// réconciliation kit-boutons applicable est l'appui : le RN n'a **aucun** retour
+/// d'appui (`AppPressable` fige `pressed` à `false`, `RESTING_PRESS_STATE`),
+/// l'`opacity 0.84` de la vague 1 est donc une valeur fausse — retirée.
 private struct SubBlockedRetryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .foregroundStyle(Theme.surface)
             .background(Theme.ink)
             .clipShape(RoundedRectangle(cornerRadius: 12))
-            .opacity(configuration.isPressed ? 0.84 : 1)
     }
 }

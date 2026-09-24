@@ -27,12 +27,11 @@ struct HecJourneyBlockDetailView: View {
 
     private var header: some View {
         HStack(spacing: 8) {
-            HecJourneySheet.IconButton(
-                systemName: "chevron.left",
-                label: HecJourneyCopy.a11yBackToJourney,
-                size: 20,
-                tint: Theme.ink,
-                frame: 40,
+            DuelloBackButton(
+                alignChevronTip: true,
+                iconColor: Theme.ink,
+                iconSize: 20,
+                accessibilityLabel: HecJourneyCopy.a11yBackToJourney,
                 action: onClose
             )
             Spacer(minLength: 0)

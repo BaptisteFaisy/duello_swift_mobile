@@ -52,10 +52,13 @@ struct AnnEntryCard: View {
 
                 if let job {
                     HStack(spacing: 8) {
-                        DuelloPill(
-                            text: job.statusLabel,
-                            tone: job.status == .ready ? .success : job.status == .failed ? .danger : .ink
-                        )
+                        if job.status == .ready {
+                            DuelloPill(text: job.statusLabel, tone: .success)
+                        } else if job.status == .failed {
+                            DuelloPill(text: job.statusLabel, tone: .danger)
+                        } else {
+                            AnnPartBadge(text: job.statusLabel)
+                        }
                         if job.status == .ready, let result = job.result {
                             Text("\(result.scoreLabel)/20")
                                 .font(.system(size: 13, weight: .heavy))
@@ -120,12 +123,39 @@ struct AnnCorrectionRow: View {
                     .foregroundStyle(job.status == .failed ? Theme.like : Theme.inkSoft)
 
                 if job.isActive {
-                    DuelloProgressTrack(fraction: job.progressFraction)
+                    DuelloProgressTrack(
+                        fraction: job.progressFraction,
+                        tint: Theme.ink,
+                        track: Theme.border,
+                        height: 8
+                    )
                 }
             }
             .duelloCard()
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(job.title), \(job.partLabel), \(job.statusLabel)")
+    }
+}
+
+// MARK: - Pastille bordée
+
+/// Pastille de partie bordée : `partBadge` (`AnnaleCopyCorrectionModal.tsx:321` :
+/// fond blanc, bord `border`, texte `ink` 800, rayon 999, marges 12 / 7).
+/// `DuelloPill` ne porte pas de ton bordé — variante absente, alignée localement
+/// (vague 3). La casse source est conservée (pas d'`uppercase`, contrairement
+/// aux pastilles `DuelloPill`).
+private struct AnnPartBadge: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: 14, weight: .heavy))
+            .foregroundStyle(Theme.ink)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .background(Theme.surface)
+            .overlay(Capsule().stroke(Theme.border, lineWidth: 1))
+            .clipShape(Capsule())
     }
 }

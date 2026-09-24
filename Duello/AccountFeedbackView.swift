@@ -19,7 +19,6 @@ struct FeedbackView: View {
     @State private var message = ""
     @State private var isSending = false
     @State private var errorMessage = ""
-    @State private var showConfirmation = false
 
     private var canSend: Bool {
         !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isSending
@@ -51,11 +50,6 @@ struct FeedbackView: View {
             .scrollDismissesKeyboard(.interactively)
         }
         .background(Theme.background)
-        .alert("Message envoyé", isPresented: $showConfirmation) {
-            Button("OK") { resetForm() }
-        } message: {
-            Text("Ton retour a bien été transmis à l’équipe Duello. Merci pour ta contribution !")
-        }
     }
 
     /// Largeur de `formArea` : `width: '82%'`, `maxWidth: 420`, `alignSelf:
@@ -66,19 +60,19 @@ struct FeedbackView: View {
     }
 
     /// Chevron de retour : la source n'a ni titre de navigation ni « Fermer ».
-    /// `BackButton` : zone minimale 40×40, pictogramme centré puis décalé de −4
-    /// (`styles.icon`), chevron `chevron-back` 20, encre.
+    /// Repris du composant partagé `DuelloBackButton` (`BackButton.tsx`) :
+    /// zone minimale 40×40, `gap` 4, pictogramme centré puis décalé de −4,
+    /// `chevron-back` **20** (`iconSize={20}`), encre. La marge basse 12 et
+    /// l'alignement `flex-start` (`styles.backButton`) restent posés par
+    /// l'appelant, comme le `style` du RN.
     private var backButton: some View {
-        Button { dismiss() } label: {
-            Image(systemName: "chevron.left")
-                .font(.system(size: 20, weight: .bold))
-                .foregroundStyle(Theme.ink)
-                .frame(width: 40, height: 40)
-                .contentShape(Rectangle())
-                .offset(x: -4)
+        DuelloBackButton(
+            iconSize: 20,
+            iconWeight: .bold,
+            accessibilityLabel: "Retour aux paramètres"
+        ) {
+            dismiss()
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Retour aux paramètres")
     }
 
     /// `formArea` : `formCard` puis la carte d'erreur (`marginTop: 12`).
@@ -165,9 +159,11 @@ struct FeedbackView: View {
     }
 
     /// `submitButton` : `minHeight: 52`, `gap: 10`, rayon 14 (`radii.medium`),
-    /// fond encre, libellé blanc 15 `'800'`. Aucun retour visuel désactivé dans
-    /// la source (`AppPressable` neutre) — d'où l'absence de réduction
-    /// d'opacité ici.
+    /// fond encre, libellé blanc 15 `'800'`. Repris du composant partagé
+    /// `DuelloPrimaryButton(radius: 14, weight: .heavy)` — la peinture (fond
+    /// encre, rayon, libellé blanc) est portée par le style, plus aucun doublon
+    /// local. Aucun retour d'appui dans la source (`AppPressable` neutre) : le
+    /// style partagé n'en pose pas non plus.
     private var sendButton: some View {
         Button(action: submit) {
             HStack(spacing: 10) {
@@ -176,17 +172,12 @@ struct FeedbackView: View {
                 } else {
                     Image(systemName: "paperplane.fill")
                         .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(Theme.white)
                     Text("Envoyer mon message")
-                        .font(.system(size: 15, weight: .heavy))
-                        .foregroundStyle(Theme.white)
                 }
             }
             .frame(maxWidth: .infinity, minHeight: 52)
-            .background(Theme.ink)
-            .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(DuelloPrimaryButton(radius: 14, weight: .heavy))
         .disabled(!canSend)
     }
 
@@ -211,7 +202,13 @@ struct FeedbackView: View {
         errorMessage = ""
         Task { @MainActor in
             isSending = false
-            showConfirmation = true
+            // `Alert.alert('Message envoyé', …, [{ text: 'OK', onPress }])` :
+            // fenêtre commune (jamais `.alert` natif), bouton « OK » primaire.
+            AppAlert.alert(
+                "Message envoyé",
+                "Ton retour a bien été transmis à l’équipe Duello. Merci pour ta contribution !",
+                [AppAlertButton("OK") { resetForm() }]
+            )
         }
     }
 

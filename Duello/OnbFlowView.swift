@@ -97,14 +97,16 @@ struct OnbFlowView: View {
         .onChange(of: coordinator.programSelectionComplete) { complete in
             if complete { onProgramSelected(coordinator.profile) }
         }
-        .alert(
-            coordinator.pendingAlert?.title ?? "",
-            isPresented: alertPresented,
-            presenting: coordinator.pendingAlert
-        ) { alert in
-            alertButtons(alert)
-        } message: { alert in
-            Text(alert.message)
+        // La source présente **toutes** ses alertes par la fenêtre commune
+        // (`AppAlert`, montée une fois à la racine via `.appAlertHost()`) —
+        // jamais par `.alert` natif (`import { AppAlert as Alert }`).
+        // `OnbFlowCoordinator.pendingAlert` porte le contenu ; on le relaie à la
+        // file partagée puis on vide l'état, pour que la même alerte puisse être
+        // rejouée (même relais que `LoginScrLayout`).
+        .onChange(of: coordinator.pendingAlert) { alert in
+            guard let alert else { return }
+            coordinator.pendingAlert = nil
+            present(alert)
         }
     }
 
@@ -220,7 +222,10 @@ struct OnbFlowView: View {
                     }
                     .frame(maxWidth: .infinity, minHeight: 54)
                 }
-                .buttonStyle(DuelloPrimaryButton(onDark: true))
+                // `continueButton` : rayon 18 (`radii.large`), libellé 15/900 —
+                // le défaut de graisse de `DuelloPrimaryButton` est déjà `.black`
+                // (900) ; seul le rayon (14 par défaut) doit être passé.
+                .buttonStyle(DuelloPrimaryButton(onDark: true, radius: 18))
                 .disabled(coordinator.advanceBlocked)
             }
         }
@@ -237,19 +242,22 @@ struct OnbFlowView: View {
     /// `OnboardingScreen.tsx:1544-1555`) : c'est le seul retour du parcours.
     private var topBar: some View {
         HStack(spacing: 0) {
-            Button(action: back) {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 24, weight: .semibold))
-                    .foregroundStyle(OnbFlowPalette.onDark)
-                    .frame(width: 40, height: 40)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .disabled(coordinator.isCompleting)
-            .offset(x: -12)
-            .accessibilityLabel(
-                coordinator.stepIndex > 0 ? "Étape précédente" : "Revenir à l’accueil"
+            // Retour : composant partagé `DuelloBackButton` (`BackButton.tsx`) —
+            // chevron 24 blanc, boîte 40×40 et `translateX(-4)` portés par le
+            // composant. Le style d'écran n'ajoute que la marge
+            // `guestTopBackButton` (`marginLeft: -8`), pour un décalage total
+            // de −12 comme la source.
+            DuelloBackButton(
+                iconColor: OnbFlowPalette.onDark,
+                iconSize: 24,
+                isDisabled: coordinator.isCompleting,
+                accessibilityLabel: coordinator.stepIndex > 0
+                    ? "Étape précédente"
+                    : "Revenir à l’accueil",
+                action: back
             )
+            .padding(.leading, -8)
+
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 22)
@@ -283,28 +291,21 @@ struct OnbFlowView: View {
         coordinator.stepIndex > 0 && !coordinator.isCompleting
     }
 
-    private var alertPresented: Binding<Bool> {
-        Binding(
-            get: { coordinator.pendingAlert != nil },
-            set: { if !$0 { coordinator.pendingAlert = nil } }
-        )
-    }
-
-    /// Un bouton par action d'alerte ; « OK » quand la source n'en donne aucun.
-    @ViewBuilder
-    private func alertButtons(_ alert: OnbFlowAlert) -> some View {
-        if alert.actions.isEmpty {
-            Button("OK", role: .cancel) {}
-        } else {
-            ForEach(alert.actions) { action in
-                Button(action.title, role: action.isCancel ? .cancel : nil) {
-                    perform(action)
-                }
+    /// `AppAlert.alert` : traduit l'alerte d'étape (modèle `OnbFlowAlert`) en
+    /// boutons de la fenêtre commune. Sans action, la file pose le bouton unique
+    /// « Compris » (`AppAlertCenter`, défaut `AppAlert.alert`), comme la source ;
+    /// `style: 'cancel'` devient `.cancel`, tout le reste `.default`.
+    private func present(_ alert: OnbFlowAlert) {
+        let buttons = alert.actions.map { action in
+            AppAlertButton(action.title, style: action.isCancel ? .cancel : .default) {
+                perform(action)
             }
         }
+        AppAlert.alert(alert.title, alert.message, buttons.isEmpty ? nil : buttons)
     }
 
-    /// Exécute l'action choisie puis referme l'alerte.
+    /// Exécute l'action choisie. La fenêtre commune s'est déjà refermée
+    /// (`AppAlertCenter`) ; on garantit seulement que l'état local est vide.
     private func perform(_ action: OnbFlowAlertAction) {
         coordinator.pendingAlert = nil
         switch action.kind {

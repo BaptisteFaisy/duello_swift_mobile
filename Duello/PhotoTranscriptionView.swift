@@ -255,6 +255,30 @@ struct PhotoTxCameraPicker: UIViewControllerRepresentable {
 
 // MARK: - Étape de capture
 
+/// Onglet de portée souligné (`captureTab`). L'onglet actif porte un bord bas
+/// 2 `primary` ; l'inactif, un bord transparent. Libellé 13 / `.heavy` (800),
+/// `mutedSurfaceText` ou `primary` (actif). `DuelloChip` (pastille) ne peut pas
+/// rendre ce motif : il est porté par l'écran.
+private struct PhotoTxScopeTab: View {
+    let title: String
+    let selected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 13, weight: .heavy))
+                .foregroundStyle(selected ? Theme.primary : Theme.mutedSurfaceText)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .overlay(alignment: .bottom) {
+                    Rectangle().fill(selected ? Theme.primary : Color.clear).frame(height: 2)
+                }
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(.isButton)
+    }
+}
+
 /// Port de `PhotoCaptureStage.tsx` : portée puis prise de vue ou import. Le panneau
 /// `remote` (téléphone connecté) n'est pas porté : jamais atteint sur iOS.
 struct PhotoTxCaptureStage: View {
@@ -264,14 +288,7 @@ struct PhotoTxCaptureStage: View {
     @State private var libraryItems: [PhotosPickerItem] = []
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 8) {
-                DuelloChip(title: PhotoTxText.questionTab, selected: controller.state.scope == .question) {
-                    controller.dispatch(.setCaptureScope(.question))
-                }
-                DuelloChip(title: PhotoTxText.exerciseTab, selected: controller.state.scope == .exercise) {
-                    controller.dispatch(.setCaptureScope(.exercise))
-                }
-            }
+            captureTabs
             captureButtons
             if !controller.state.error.isEmpty {
                 Text(controller.state.error).font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.like)
@@ -317,7 +334,7 @@ struct PhotoTxCaptureStage: View {
                 HStack(spacing: 8) { Image(systemName: "camera"); Text(PhotoTxText.takePhoto) }
                     .frame(maxWidth: .infinity).padding(.vertical, 13)
             }
-            .buttonStyle(DuelloPrimaryButton())
+            .buttonStyle(DuelloPrimaryButton(radius: 16, weight: .heavy))
             Button {
                 let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
                 if status == .denied || status == .restricted {
@@ -325,10 +342,11 @@ struct PhotoTxCaptureStage: View {
                 } else { isLibraryPresented = true }
             } label: {
                 HStack(spacing: 8) { Image(systemName: "photo.on.rectangle"); Text(PhotoTxText.chooseImages) }
-                    .font(.system(size: 15, weight: .heavy)).foregroundStyle(Theme.ink)
-                    .frame(maxWidth: .infinity).padding(.vertical, 13).background(Theme.surfaceMuted)
-                    .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
-                    .overlay(RoundedRectangle(cornerRadius: Theme.radiusLarge).stroke(Theme.border, lineWidth: 1))
+                    .font(.system(size: 12, weight: .heavy)).foregroundStyle(Theme.primary)
+                    .frame(maxWidth: .infinity, minHeight: 50)
+                    .background(Theme.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.primary, lineWidth: 1.5))
             }
             .buttonStyle(.plain)
         }
@@ -407,7 +425,7 @@ struct PhotoTxReviewStage: View {
     private var editor: some View {
         ZStack(alignment: .topLeading) {
             TextEditor(text: Binding(get: { state.text }, set: { controller.dispatch(.setText($0)) }))
-                .font(Theme.readingFont).foregroundStyle(Theme.ink).frame(minHeight: 180)
+                .font(.system(size: 13, weight: .medium)).foregroundStyle(Theme.ink).frame(minHeight: 180)
                 .scrollContentBackground(.hidden)
                 .accessibilityLabel(PhotoTxText.transcribedLabel)
             if state.text.isEmpty {
@@ -423,16 +441,18 @@ struct PhotoTxReviewStage: View {
         HStack(spacing: 10) {
             Button { controller.dispatch(.restart) } label: {
                 HStack(spacing: 6) { Image(systemName: "arrow.clockwise"); Text(PhotoTxText.restart) }
-                    .font(.system(size: 15, weight: .heavy)).foregroundStyle(Theme.ink)
-                    .frame(maxWidth: .infinity).padding(.vertical, 13).background(Theme.surfaceMuted)
-                    .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
+                    .font(.system(size: 12, weight: .heavy)).foregroundStyle(Theme.primary)
+                    .frame(maxWidth: .infinity, minHeight: 50)
+                    .background(Theme.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.primary, lineWidth: 1.5))
             }
             .buttonStyle(.plain)
             Button { controller.dispatch(.insert) } label: {
                 HStack(spacing: 6) { Image(systemName: "arrow.down"); Text(PhotoTxText.insert) }
                     .frame(maxWidth: .infinity).padding(.vertical, 13)
             }
-            .buttonStyle(DuelloPrimaryButton()).disabled(!hasText).opacity(hasText ? 1 : 0.45)
+            .buttonStyle(DuelloPrimaryButton(radius: 16, weight: .heavy)).disabled(!hasText).opacity(hasText ? 1 : 0.45)
         }
     }
 }

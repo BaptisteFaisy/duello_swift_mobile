@@ -95,16 +95,17 @@ struct AcctSubTrackChoiceList: View {
     }
 
     /// `BackButton` de la source (`iconColor=colors.ink`, `iconSize=20`,
-    /// `minHeight:40`) : chevron d'encre, cadre 40×40 aligné au bord du contenu.
+    /// `style={alignSelf:'flex-start', minHeight:40}`) : composant partagé
+    /// `DuelloBackButton` — boîte 40×40, chevron centré puis `translateX(-4)`.
+    /// L'alignement au bord du contenu (`alignSelf:'flex-start'`) est porté par
+    /// le `VStack(alignment: .leading)` parent, pas par la boîte.
     private var backButton: some View {
-        Button { onBack?() } label: {
-            Image(systemName: "chevron.left")
-                .font(.system(size: 20, weight: .bold))
-                .foregroundStyle(Theme.ink)
-                .frame(width: 40, height: 40, alignment: .leading)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Retour à mes informations")
+        DuelloBackButton(
+            iconColor: Theme.ink,
+            iconSize: 20,
+            accessibilityLabel: "Retour à mes informations",
+            action: { onBack?() }
+        )
     }
 
     private var heading: some View {

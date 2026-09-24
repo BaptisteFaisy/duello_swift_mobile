@@ -13,7 +13,6 @@ struct PasswordResetView: View {
     @State private var confirmation = ""
     @State private var passwordVisible = false
     @State private var errorMessage = ""
-    @State private var showConfirmation = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -37,11 +36,6 @@ struct PasswordResetView: View {
             }
         }
         .background(Theme.background)
-        .alert("Mot de passe enregistré", isPresented: $showConfirmation) {
-            Button("OK", role: .cancel) { dismiss() }
-        } message: {
-            Text("Ton nouveau mot de passe a bien été enregistré.")
-        }
     }
 
     // MARK: Panneau (`PasswordResetForm.tsx`)
@@ -216,24 +210,21 @@ struct PasswordResetView: View {
 
     // MARK: Boutons
 
-    /// `BackButton` de `PasswordResetScreen.tsx` : 44×44, chevron 21
-    /// `Theme.ink` décalé de −4 (`styles.icon`), marges 22 / 8 / 6. Le `styles.button`
-    /// du composant (appliqué **après** le style d'écran) remet `borderWidth` à 0,
-    /// `borderRadius` à 0 et le fond à `transparent` : le bouton reste un chevron
-    /// nu, sans cadre ni fond.
+    /// `BackButton` de `PasswordResetScreen.tsx` — composant **partagé**
+    /// `DuelloBackButton` (port de `BackButton.tsx`). Appelé comme la source :
+    /// `iconSize: 21`, boîte 44×44 (`styles.backButton` de l'écran), marges
+    /// 22 / 8 / 6. Le chevron `Theme.ink`, le décalage −4 (`styles.icon`) et
+    /// l'appui à 60 % viennent du composant. Son `styles.button`, appliqué
+    /// **après** le style d'écran, neutralise `borderWidth` / `borderRadius` /
+    /// `backgroundColor` : le bouton reste un chevron nu, sans cadre ni fond.
     private var backButton: some View {
         HStack(spacing: 0) {
-            Button {
-                dismiss()
-            } label: {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 21, weight: .semibold))
-                    .foregroundStyle(Theme.ink)
-                    .offset(x: -4)
-                    .frame(width: 44, height: 44)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Revenir à la connexion")
+            DuelloBackButton(
+                iconSize: 21,
+                accessibilityLabel: "Revenir à la connexion",
+                action: { dismiss() }
+            )
+            .frame(width: 44, height: 44)
 
             Spacer(minLength: 0)
         }
@@ -242,8 +233,10 @@ struct PasswordResetView: View {
         .padding(.bottom, 6)
     }
 
-    /// `SaveButton` : hauteur 54, rayon 18, fond `Theme.primary`, libellé blanc
-    /// 15/900.
+    /// `SaveButton` : hauteur 54, rayon **18** (`saveButton.borderRadius` de la
+    /// source), fond `Theme.primary`, libellé blanc 15/**900**. Le rayon 18 est
+    /// passé au composant partagé `DuelloPrimaryButton` (défaut 14) ; la graisse
+    /// 900 est son défaut (`.black`).
     private var saveButton: some View {
         Button {
             submit()
@@ -251,7 +244,7 @@ struct PasswordResetView: View {
             Text("Enregistrer")
                 .frame(maxWidth: .infinity, minHeight: 54)
         }
-        .buttonStyle(DuelloPrimaryButton())
+        .buttonStyle(DuelloPrimaryButton(radius: 18))
     }
 
     // MARK: Soumission
@@ -266,7 +259,16 @@ struct PasswordResetView: View {
             return
         }
         errorMessage = ""
-        showConfirmation = true
+        // Fenêtre commune `AppAlert` (jamais `.alert` natif) : la source Expo
+        // passe toutes ses alertes par `AppAlertProvider`. Bouton « OK » unique
+        // (libellé du port) auquel la fermeture de la feuille est rattachée —
+        // la source n'a pas d'alerte de succès (elle authentifie et quitte
+        // l'écran), la confirmation est propre au port.
+        AppAlert.alert(
+            "Mot de passe enregistré",
+            "Ton nouveau mot de passe a bien été enregistré.",
+            [AppAlertButton("OK", onPress: { dismiss() })]
+        )
     }
 }
 

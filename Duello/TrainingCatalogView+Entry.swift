@@ -234,24 +234,22 @@ struct TrainingCatalogView: View {
         .padding(.vertical, 8)
     }
 
-    /// Barre de retour de la page d'une matière (`styles.backButton`) : carré de
-    /// 40 points bordé, chevron vers la liste des matières.
+    /// Retour vers la liste des matières : composant partagé `DuelloBackButton`
+    /// (port de `components/BackButton.tsx`, `SubjectsScreen.tsx:9723-9727`).
+    ///
+    /// La source pose `styles.backButton` (fond `colors.surface`, bord
+    /// `colors.border`, rayon 12), mais `styles.button` du composant RN
+    /// neutralise fond / bord / rayon **après** le style d'écran : le rendu réel
+    /// est un chevron nu. Le port vague 1 conservait ce carré bordé — retiré ici.
+    /// Le composant porte la boîte 40 × 40, le pictogramme 22 (`iconSize` par
+    /// défaut de la source), le décalage `translateX(-4)` et l'appui `opacity
+    /// 0.6` ; aucun `frame`/`offset`/`buttonStyle` local n'est ajouté
+    /// (anti-double).
     private var backButton: some View {
-        Button {
-            dismiss()
-        } label: {
-            Image(systemName: "chevron.left")
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(Theme.ink)
-                .frame(width: 40, height: 40)
-                .background(Theme.surface)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12).stroke(Theme.border, lineWidth: 1)
-                )
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Revenir à Mathématiques")
+        DuelloBackButton(
+            accessibilityLabel: "Revenir à Mathématiques",
+            action: { dismiss() }
+        )
     }
 
     /// Piste d'avancement de la matière : fond blanc bordé, remplissage neutre

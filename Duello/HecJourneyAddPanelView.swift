@@ -62,12 +62,15 @@ struct HecJourneyAddPanelView: View {
                 .foregroundStyle(HecJourneyPalette.sheetInkFaint)
             HStack(spacing: 0) {
                 if panel != .types {
-                    HecJourneySheet.IconButton(
-                        systemName: "chevron.left",
-                        label: HecJourneyCopy.a11yBackStep,
-                        size: 15,
-                        tint: HecJourneyPalette.sheetInkSoft,
-                        frame: 30,
+                    // Retour : composant partagé `BackButton` (chevron nu, sans
+                    // fond ni cadre) — `iconSize: 15` de la source, chevron
+                    // `translateX(-4)` et appui à 60 % portés par le composant ;
+                    // boîte 40×40 (`minWidth`/`minHeight` du composant, qui
+                    // l'emportent sur le `width`/`height` 30 du style d'écran).
+                    DuelloBackButton(
+                        iconColor: Theme.ink,
+                        iconSize: 15,
+                        accessibilityLabel: HecJourneyCopy.a11yBackStep,
                         action: { flow.back() }
                     )
                 }

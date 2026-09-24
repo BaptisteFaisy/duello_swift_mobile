@@ -337,7 +337,9 @@ struct ExGCorrectionOverview: View {
 ///
 /// Les libellés « Compte rendu » et « Correction » sont la reprise des termes
 /// de la source (`Voir le compte rendu`, étape `Correction` du parcours
-/// d'entraînement) ; le texte attendu s'affiche en serif, comme un manuel.
+/// d'entraînement). Le texte attendu suit la typographie des textes de
+/// `correction-summary` (12 / `inkSoft`, sans serif) : ce n'est pas de la
+/// prose d'étude, `readingFont` (serif) ne s'y applique pas.
 struct ExGAssessmentCard: View {
     var assessment: ProductionAssessment? = nil
     var expectedAnswer: String? = nil
@@ -363,8 +365,8 @@ struct ExGAssessmentCard: View {
                 VStack(alignment: .leading, spacing: 6) {
                     DuelloSectionHeader(title: "Correction")
                     Text(expectedAnswer)
-                        .font(Theme.readingFont)
-                        .foregroundStyle(Theme.ink)
+                        .font(.system(size: 12))
+                        .foregroundStyle(Theme.inkSoft)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }

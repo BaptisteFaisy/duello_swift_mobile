@@ -9,18 +9,38 @@
 //    - src/screens/SubjectsScreen.tsx (lignes 1585-1815)
 //        `FlashcardDropdown` et `FlashcardChapterDropdown`.
 //
-//  Limite assumée : Expo ancre un voile flottant au déclencheur
-//  (`DropdownOverlay` + `SUBJECTS_DROPDOWN_SCOPE`), non porté ici. Le menu se
-//  déplie donc **sous** le déclencheur, dans le flux : même contenu, mêmes
-//  coches, et — contrairement au `Menu` natif de SwiftUI, qui se referme à
-//  chaque choix — le menu des chapitres **reste ouvert** pour en cocher
-//  plusieurs, comme dans le JSX. Les styles `flashcardDropdownField`,
-//  `flashcardFieldLabel`, `flashcardDropdownTrigger`, `badgeFilterMenu`,
-//  `badgeFilterOption` et `flashcardDropdownMessage` sont repris tels quels.
+//  Voile ancré (vague 3) : Expo ancre un voile flottant au déclencheur
+//  (`DropdownOverlay` + `SUBJECTS_DROPDOWN_SCOPE`). Le menu n'est donc plus
+//  déplié **dans le flux** : le déclencheur publie son cadre
+//  (`.dropdownAnchor`) et le panneau (`SubjDropdownMenuList`, styles
+//  `badgeFilterMenu` / `badgeFilterOption`) est confié à `DropdownOverlay`,
+//  qui le pose sous le déclencheur, le rogne et le fait défiler — le RN
+//  l'enveloppe dans un `ScrollView` (`scrollable: true`). Le menu des
+//  chapitres **reste ouvert** après un choix pour en cocher plusieurs, comme
+//  le JSX ; celui des types se referme (`setOpen(false)`).
+//
+//  Styles repris tels quels : `flashcardDropdownField`, `flashcardFieldLabel`,
+//  `flashcardDropdownTrigger`, `badgeFilterMenu`, `badgeFilterOption` et
+//  `flashcardDropdownMessage`.
 //
 //  Cible : iOS 16, aucune API iOS 17.
 //
 import SwiftUI
+
+// MARK: - Identités des menus
+
+/// Identités des déclencheurs dans le registre des menus ancrés
+/// (`DropdownOverlay`) et portée de coordination commune aux menus de l'écran
+/// « Matières » (`SUBJECTS_DROPDOWN_SCOPE` de `SubjectsScreen.tsx:1289`).
+enum SubjFlashcardDropdownAnchor {
+    /// `anchorRef` du menu « Type de flashcards » (`FlashcardDropdown`).
+    static let type = "subj-flashcard-type"
+    /// `anchorRef` du menu « Chapitres » (`FlashcardChapterDropdown`).
+    static let chapters = "subj-flashcard-chapters"
+    /// `coordinationScope` partagée (`subjects-screen`) : côté Expo, un seul
+    /// voile ouvert à la fois dans cette portée.
+    static let scope = SubjSubjectsDropdownScope.coordinationScope
+}
 
 // MARK: - Entrées de menu
 
@@ -176,8 +196,13 @@ struct SubjDropdownOptionRow: View {
     }
 }
 
-/// Menu déplié (`badgeFilterMenu`) : les lignes, puis un éventuel message
+/// Panneau du menu (`badgeFilterMenu`) : les lignes, puis un éventuel message
 /// (« Recherche des chapitres… » avec roue, ou « Aucun chapitre… »).
+///
+/// C'est le **contenu** confié à `DropdownOverlay` (fond, bord et
+/// `marginTop: 6` du `badgeFilterMenu`) : le voile se charge du défilement et
+/// du rognage, et son `MENU_GAP` (6) s'ajoute à ce `padding(.top, 6)` — l'écart
+/// déclencheur→panneau réel vaut donc 12, comme le RN (`MENU_GAP` + `marginTop`).
 struct SubjDropdownMenuList: View {
     let choices: [SubjFlashcardDropdownChoice]
     let selectedKeys: Set<String>
@@ -224,7 +249,7 @@ struct SubjDropdownMenuList: View {
 // MARK: - Menus
 
 /// Menu d'un paquet de flashcards (`FlashcardDropdown`). Le choix referme le
-/// menu, comme le JSX.
+/// menu, comme le JSX. Le voile est ancré au déclencheur (`DropdownOverlay`).
 struct SubjFlashcardDropdown: View {
     let label: String
     let options: [CollDeckDefinition]
@@ -236,6 +261,8 @@ struct SubjFlashcardDropdown: View {
     var allowCreate = false
 
     @State private var isOpen = false
+    /// Registre du déclencheur, partagé entre l'ancre et le voile.
+    @StateObject private var registry = DropdownOverlayRegistry()
 
     var body: some View {
         let choices = SubjFlashcardDropdownModel.choices(
@@ -252,20 +279,32 @@ struct SubjFlashcardDropdown: View {
         )
 
         SubjDropdownFieldChrome(label: label) {
-            VStack(alignment: .leading, spacing: 0) {
-                SubjDropdownTrigger(value: value, isOpen: isOpen, isLoading: false) {
-                    isOpen.toggle()
-                }
-                if isOpen {
-                    SubjDropdownMenuList(
-                        choices: choices,
-                        selectedKeys: [selected],
-                        message: nil,
-                        showsSpinner: false
-                    ) { key in
-                        onSelect(key)
-                        isOpen = false
-                    }
+            SubjDropdownTrigger(value: value, isOpen: isOpen, isLoading: false) {
+                isOpen.toggle()
+            }
+            .dropdownAnchor(
+                SubjFlashcardDropdownAnchor.type,
+                in: registry,
+                scope: SubjFlashcardDropdownAnchor.scope,
+                onRequestOpen: { isOpen = true }
+            )
+        }
+        .overlay {
+            DropdownOverlay(
+                isPresented: $isOpen,
+                anchorID: SubjFlashcardDropdownAnchor.type,
+                registry: registry,
+                coordinationScope: SubjFlashcardDropdownAnchor.scope,
+                scrollable: true
+            ) {
+                SubjDropdownMenuList(
+                    choices: choices,
+                    selectedKeys: [selected],
+                    message: nil,
+                    showsSpinner: false
+                ) { key in
+                    onSelect(key)
+                    isOpen = false
                 }
             }
         }
@@ -281,6 +320,8 @@ struct SubjFlashcardChapterDropdown: View {
     let onSelect: (SubjFlashcardChapterSelection) -> Void
 
     @State private var isOpen = false
+    /// Registre du déclencheur, partagé entre l'ancre et le voile.
+    @StateObject private var registry = DropdownOverlayRegistry()
 
     var body: some View {
         let allKeys = options.map { $0.key }
@@ -302,22 +343,34 @@ struct SubjFlashcardChapterDropdown: View {
         ] + options.map { SubjFlashcardDropdownChoice(key: $0.key, label: $0.label) }
 
         SubjDropdownFieldChrome(label: SubjFlashcardSelectionCopy.chaptersLabel) {
-            VStack(alignment: .leading, spacing: 0) {
-                SubjDropdownTrigger(value: value, isOpen: isOpen, isLoading: loading) {
-                    isOpen.toggle()
-                }
-                if isOpen {
-                    SubjDropdownMenuList(
-                        choices: choices,
-                        selectedKeys: checked,
-                        message: message,
-                        showsSpinner: loading
-                    ) { key in
-                        if key == SubjFlashcardSelectionKey.all {
-                            onSelect(isAll ? .chapters([]) : .all)
-                        } else {
-                            onSelect(selected.toggling(key, allKeys: allKeys))
-                        }
+            SubjDropdownTrigger(value: value, isOpen: isOpen, isLoading: loading) {
+                isOpen.toggle()
+            }
+            .dropdownAnchor(
+                SubjFlashcardDropdownAnchor.chapters,
+                in: registry,
+                scope: SubjFlashcardDropdownAnchor.scope,
+                onRequestOpen: { isOpen = true }
+            )
+        }
+        .overlay {
+            DropdownOverlay(
+                isPresented: $isOpen,
+                anchorID: SubjFlashcardDropdownAnchor.chapters,
+                registry: registry,
+                coordinationScope: SubjFlashcardDropdownAnchor.scope,
+                scrollable: true
+            ) {
+                SubjDropdownMenuList(
+                    choices: choices,
+                    selectedKeys: checked,
+                    message: message,
+                    showsSpinner: loading
+                ) { key in
+                    if key == SubjFlashcardSelectionKey.all {
+                        onSelect(isAll ? .chapters([]) : .all)
+                    } else {
+                        onSelect(selected.toggling(key, allKeys: allKeys))
                     }
                 }
             }

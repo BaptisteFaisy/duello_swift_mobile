@@ -42,7 +42,7 @@ struct SubjFlashcardRevisionSummary: View {
                 Text(claiming ? SubjFlashcardReviewCopy.claimedXp : SubjFlashcardReviewCopy.claimXp)
                     .frame(maxWidth: .infinity, minHeight: 54)
             }
-            .buttonStyle(DuelloPrimaryButton())
+            .buttonStyle(DuelloPrimaryButton(radius: 18, weight: .heavy))
             .disabled(claiming)
         }
         .padding(.horizontal, 22)

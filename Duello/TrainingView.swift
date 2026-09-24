@@ -164,7 +164,7 @@ struct ChapterListView: View {
                                 .font(.system(size: 15, weight: .semibold))
                                 .foregroundStyle(Theme.inkFaint)
                             Text(chapter.name)
-                                .font(Theme.readingFont)
+                                .font(.system(size: 14, weight: .semibold))
                                 .foregroundStyle(Theme.ink)
                             Spacer()
                         }

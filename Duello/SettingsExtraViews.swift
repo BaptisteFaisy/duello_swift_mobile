@@ -44,7 +44,6 @@ struct ExtraFeedbackView: View {
     @State private var message = ""
     @State private var isSending = false
     @State private var errorMessage = ""
-    @State private var showConfirmation = false
 
     private var canSubmit: Bool {
         !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isSending
@@ -78,11 +77,6 @@ struct ExtraFeedbackView: View {
             .scrollDismissesKeyboard(.interactively)
         }
         .background(Theme.background)
-        .alert("Message envoyé", isPresented: $showConfirmation) {
-            Button("OK") { resetForm() }
-        } message: {
-            Text("Ton retour a bien été transmis à l’équipe Duello. Merci pour ta contribution !")
-        }
     }
 
     /// Largeur de `formArea` : `width: '82%'`, `maxWidth: 420`, `alignSelf:
@@ -177,9 +171,11 @@ struct ExtraFeedbackView: View {
     }
 
     /// `submitButton` : `minHeight: 52`, `gap: 10`, rayon 14 (`radii.medium`),
-    /// fond encre, libellé blanc 15 `'800'`. Aucun retour visuel désactivé dans
-    /// la source (`AppPressable` neutre) — d'où l'absence de réduction
-    /// d'opacité ici.
+    /// fond encre, libellé blanc 15 `'800'`. La peinture vient du style partagé
+    /// `DuelloPrimaryButton` (rayon 14, graisse `.heavy` = 800) ; seul le
+    /// contenu (indicateur de chargement ou icône + libellé) et la hauteur
+    /// minimale restent locaux. Aucun retour visuel désactivé dans la source
+    /// (`AppPressable` neutre) — d'où l'absence de réduction d'opacité ici.
     private var submitButton: some View {
         Button(action: submit) {
             HStack(spacing: 10) {
@@ -188,33 +184,27 @@ struct ExtraFeedbackView: View {
                 } else {
                     Image(systemName: "paperplane.fill")
                         .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(Theme.white)
                     Text("Envoyer mon message")
-                        .font(.system(size: 15, weight: .heavy))
-                        .foregroundStyle(Theme.white)
                 }
             }
             .frame(maxWidth: .infinity, minHeight: 52)
-            .background(Theme.ink)
-            .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(DuelloPrimaryButton(radius: Theme.radiusMedium, weight: .heavy))
         .disabled(!canSubmit)
     }
 
-    /// `BackButton` de la source : zone minimale 40×40, pictogramme centré puis
-    /// décalé de −4 (`styles.icon`), chevron `chevron-back` 20, encre.
+    /// `BackButton` de la source : composant partagé `DuelloBackButton` (zone
+    /// minimale 40×40, pictogramme centré puis décalé de −4, chevron
+    /// `chevron-back` 20, encre). Les marges propres à l'écran
+    /// (`alignSelf: 'flex-start'`, `marginBottom: 12`) restent posées par
+    /// l'appelant, comme le `style` RN.
     private func backButton(_ action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: "chevron.left")
-                .font(.system(size: 20, weight: .bold))
-                .foregroundStyle(Theme.ink)
-                .frame(width: 40, height: 40)
-                .contentShape(Rectangle())
-                .offset(x: -4)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Retour aux paramètres")
+        DuelloBackButton(
+            iconColor: Theme.ink,
+            iconSize: 20,
+            accessibilityLabel: "Retour aux paramètres",
+            action: action
+        )
     }
 
     private func field<Content: View>(
@@ -235,7 +225,8 @@ struct ExtraFeedbackView: View {
     /// `handleSubmit` : envoi réseau, puis confirmation et remise à zéro au OK.
     ///
     /// Même schéma que `LoginView.submit()` : la mutation des `@State` est faite
-    /// depuis la tâche, le retour utilisateur passant par l'alerte native.
+    /// depuis la tâche, le retour utilisateur passant par la fenêtre d'alerte
+    /// partagée (`AppAlert`, montée une fois à la racine par `.appAlertHost()`).
     private func submit() {
         guard canSubmit else { return }
         isSending = true
@@ -254,7 +245,11 @@ struct ExtraFeedbackView: View {
                     message: trimmedMessage,
                     token: token
                 )
-                showConfirmation = true
+                AppAlert.alert(
+                    "Message envoyé",
+                    "Ton retour a bien été transmis à l’équipe Duello. Merci pour ta contribution !",
+                    [AppAlertButton("OK", onPress: { resetForm() })]
+                )
             } catch {
                 errorMessage = (error as? DirectoryError)?.message
                     ?? "Le message n’a pas pu être envoyé."

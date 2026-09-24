@@ -178,7 +178,6 @@ private struct ReportExerciseDialog: View {
     @State private var message = ""
     @State private var sending = false
     @State private var errorMessage = ""
-    @State private var sent = false
 
     /// Initialiseur explicite : les propriétés d'environnement et d'état
     /// privées rendent l'initialiseur membre synthétisé inaccessible.
@@ -205,11 +204,6 @@ private struct ReportExerciseDialog: View {
             Spacer(minLength: ReportExerciseButton.dialogMargin)
         }
         .background(Theme.background.ignoresSafeArea())
-        .alert("Signalement envoyé", isPresented: $sent) {
-            Button("OK", role: .cancel) { dismiss() }
-        } message: {
-            Text("Le compte administrateur a reçu ton signalement concernant \(target.labelWithArticle).")
-        }
     }
 
     /// Carte du dialogue : centrée, largeur bornée comme `maxWidth: 480`.
@@ -387,7 +381,14 @@ private struct ReportExerciseDialog: View {
                     token: session.token
                 )
                 sending = false
-                sent = true
+                // RN : `setVisible(false)` puis `Alert.alert(...)` — la fenêtre
+                // se ferme d'abord, l'alerte commune s'affiche ensuite (bouton
+                // unique « Compris », style primaire ; aucun bouton passé).
+                dismiss()
+                AppAlert.alert(
+                    "Signalement envoyé",
+                    "Le compte administrateur a reçu ton signalement concernant \(target.labelWithArticle)."
+                )
             } catch let failure {
                 sending = false
                 errorMessage = (failure as? LocalizedError)?.errorDescription

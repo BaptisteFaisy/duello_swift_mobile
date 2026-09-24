@@ -207,8 +207,6 @@ struct ExGCorrectionActions: View {
     var onRetry: (() -> Void)? = nil
     var onQuit: (() -> Void)? = nil
 
-    @State private var confirmRestart = false
-
     var body: some View {
         if onResume != nil || onRetry != nil || onQuit != nil {
             VStack(spacing: 0) {
@@ -217,7 +215,7 @@ struct ExGCorrectionActions: View {
                         actionButton("Reprendre", action: onResume)
                     }
                     if onRetry != nil {
-                        actionButton("Recommencer") { confirmRestart = true }
+                        actionButton("Recommencer") { confirmRestartCorrection() }
                     }
                     if let onQuit {
                         actionButton("Quitter", action: onQuit)
@@ -230,13 +228,21 @@ struct ExGCorrectionActions: View {
             .padding(.top, 14)
             .padding(.bottom, 16)
             .background(Theme.surface)
-            .alert("Recommencer la copie ?", isPresented: $confirmRestart) {
-                Button("Annuler", role: .cancel) { }
-                Button("Recommencer", role: .destructive) { onRetry?() }
-            } message: {
-                Text("Repartir d’une copie vide efface les réponses de cette copie ; le meilleur résultat est conservé.")
-            }
         }
+    }
+
+    /// `confirmRestartCorrection.ts` : la confirmation passe par la fenêtre
+    /// d'alerte commune (`AppAlert`), fermable par le fond (`cancelable: true`).
+    private func confirmRestartCorrection() {
+        AppAlert.alert(
+            "Recommencer la copie ?",
+            "Repartir d’une copie vide efface les réponses de cette copie ; le meilleur résultat est conservé.",
+            [
+                AppAlertButton("Annuler", style: .cancel),
+                AppAlertButton("Recommencer", style: .destructive) { onRetry?() },
+            ],
+            options: AppAlertOptions(cancelable: true)
+        )
     }
 
     private func actionButton(_ label: String, action: @escaping () -> Void) -> some View {

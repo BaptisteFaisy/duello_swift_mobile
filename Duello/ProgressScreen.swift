@@ -35,6 +35,10 @@ struct DuelloProgressView: View {
     /// Panneau des cases du filtre, déplié ou replié.
     @State var subjectPickerOpen: Bool = false
 
+    /// Registre des déclencheurs du menu ancré (`DropdownOverlay`) : partagé
+    /// entre le déclencheur (`ProgressSummary.swift`) et le voile monté ici.
+    @StateObject var pickerRegistry = DropdownOverlayRegistry()
+
     /// Init explicite : les `@State`/`@EnvironmentObject` gardent leurs valeurs
     /// par défaut, et `embedded` reste appelable depuis un autre fichier (le
     /// membre à membre synthétisé serait privé, `selectedTab` étant privé).
@@ -76,6 +80,21 @@ struct DuelloProgressView: View {
         // Un changement de programme repart de toutes les matières.
         .onChange(of: subjectNames) { _ in
             selectedSubjectNames = nil
+        }
+        // Menu déroulant ancré du filtre de matières : posé à la racine de
+        // l'écran (la `Modal` transparente du RN) pour que le voile couvre
+        // toute la fenêtre. Portée `enhanced-progress` ; contenu = panneau
+        // simple (le RN rend un `<View>`, pas de `ScrollView`).
+        .overlay {
+            DropdownOverlay(
+                isPresented: $subjectPickerOpen,
+                anchorID: ProgressSubjectPicker.anchorID,
+                registry: pickerRegistry,
+                coordinationScope: ProgressSubjectPicker.scope,
+                scrollable: false
+            ) {
+                subjectPickerPanel
+            }
         }
     }
 

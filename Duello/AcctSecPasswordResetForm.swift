@@ -129,7 +129,7 @@ struct AcctSecPasswordResetForm: View {
                 Text(saving ? "Envoi…" : "Envoyer le lien")
                     .frame(maxWidth: .infinity, minHeight: 52)
             }
-            .buttonStyle(DuelloPrimaryButton())
+            .buttonStyle(DuelloPrimaryButton(radius: 18))
             .disabled(saving)
         }
     }
@@ -148,7 +148,7 @@ struct AcctSecPasswordResetForm: View {
                 Text("Continuer")
                     .frame(maxWidth: .infinity, minHeight: 52)
             }
-            .buttonStyle(DuelloPrimaryButton())
+            .buttonStyle(DuelloPrimaryButton(radius: 18))
         }
     }
 
@@ -159,14 +159,16 @@ struct AcctSecPasswordResetForm: View {
                 title: "Nouveau mot de passe",
                 text: $password,
                 isSecure: !showPassword,
-                textContentType: .newPassword
+                textContentType: .newPassword,
+                placeholder: "Nouveau mot de passe"
             )
             visibilityButton
             DuelloTextField(
                 title: "Confirme le mot de passe",
                 text: $confirmation,
                 isSecure: !showPassword,
-                textContentType: .newPassword
+                textContentType: .newPassword,
+                placeholder: "Confirme le mot de passe"
             )
             Button {
                 Task { await submitPassword() }
@@ -174,7 +176,7 @@ struct AcctSecPasswordResetForm: View {
                 Text(saving ? "Enregistrement…" : "Enregistrer")
                     .frame(maxWidth: .infinity, minHeight: 52)
             }
-            .buttonStyle(DuelloPrimaryButton())
+            .buttonStyle(DuelloPrimaryButton(radius: 18))
             .disabled(saving)
         }
     }

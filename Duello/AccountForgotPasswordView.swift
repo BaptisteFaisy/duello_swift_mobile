@@ -11,7 +11,7 @@ import SwiftUI
 /// icônes `colors.white`, sous-titre `#A3A3A3`, coquille de champ `#0B0B0B`
 /// bordée de blanc (1.5), cartes `#151515` bordées de `#333333` (1), bouton
 /// blanc à libellé noir. Pas de barre de navigation : la source a une
-/// `topBar` avec le `BackButton` (chevron) de retour.
+/// `topBar` avec le `BackButton` (chevron) partagé (`DuelloBackButton`).
 struct ForgotPasswordView: View {
     @Environment(\.dismiss) private var dismiss
 
@@ -50,22 +50,18 @@ struct ForgotPasswordView: View {
     // MARK: Barre supérieure
 
     /// `topBar` (`paddingHorizontal: 22`, `paddingTop: 8`, `paddingBottom: 6`)
-    /// et son `BackButton` : chevron blanc 21, zone 44×44 centrée, pictogramme
-    /// décalé de −4 (`styles.icon` de `BackButton.tsx`), appui à 60 %.
+    /// et son `BackButton` **partagé** (`DuelloBackButton`) : `iconSize: 21`,
+    /// `iconColor: colors.white`, boîte 44×44 (`styles.backButton` de la
+    /// source), chevron décalé de −4 et appui à 60 % portés par le composant.
     private var topBar: some View {
         HStack(spacing: 0) {
-            Button {
-                dismiss()
-            } label: {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 21, weight: .semibold))
-                    .foregroundStyle(ForgotPasswordPalette.onDark)
-                    .frame(width: 44, height: 44)
-                    .contentShape(Rectangle())
-                    .offset(x: -4)
-            }
-            .buttonStyle(ForgotPasswordPressStyle(opacity: 0.6))
-            .accessibilityLabel("Revenir à la connexion")
+            DuelloBackButton(
+                iconColor: ForgotPasswordPalette.onDark,
+                iconSize: 21,
+                accessibilityLabel: "Revenir à la connexion",
+                action: { dismiss() }
+            )
+            .frame(width: 44, height: 44)
 
             Spacer(minLength: 0)
         }
@@ -210,8 +206,9 @@ struct ForgotPasswordView: View {
 
     // MARK: Bouton d'envoi
 
-    /// `sendButton` : hauteur 54, `gap: 9`, rayon 18, fond blanc, libellé noir
-    /// 15 et flèche `arrow-forward` 20 noire ; désactivé à `opacity: 0.55`.
+    /// `sendButton` : hauteur 54, `gap: 9`, rayon 18 (`radius` du composant),
+    /// fond blanc, libellé noir 15 `.black` (900) et flèche `arrow-forward` 20
+    /// noire ; désactivé à `opacity: 0.55`.
     private var sendButton: some View {
         Button {
             submit()
@@ -223,7 +220,7 @@ struct ForgotPasswordView: View {
             }
             .frame(maxWidth: .infinity, minHeight: 54)
         }
-        .buttonStyle(DuelloPrimaryButton(onDark: true))
+        .buttonStyle(DuelloPrimaryButton(onDark: true, radius: 18))
         .disabled(sending)
         .opacity(sending ? 0.55 : 1)
     }
@@ -286,16 +283,6 @@ private enum ForgotPasswordPalette {
     static let card = Color(hex: 0x151515)
     /// `sentCard`/`errorCard` `borderColor` (`#333333`).
     static let cardBorder = Color(hex: 0x333333)
-}
-
-/// Appui commun de l'écran : simple baisse d'opacité, sans forme ni fond
-/// (le `pressed` du `BackButton`/`AppPressable` de la source).
-private struct ForgotPasswordPressStyle: ButtonStyle {
-    var opacity: Double
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label.opacity(configuration.isPressed ? opacity : 1)
-    }
 }
 
 /// `POST /auth/password/reset-request` — helper local (`DuelloAPI.swift` n'est

@@ -22,7 +22,14 @@ enum RankingLoadPhase {
 ///
 /// Extrait de l'ancien `RankingsView.swift` : était `private`, élargi à
 /// `internal` car instancié depuis `RankingSubjectLeaderboard` et
-/// `RankingWeeklyXp` — mêmes membres, mêmes valeurs par défaut, même corps.
+/// `RankingWeeklyXp`.
+///
+/// Rendue sur le `stateCard` RN (`RankingsScreen.tsx:825-834` =
+/// `WeeklyXpRankingScreen.tsx:500-509`) : `padding 15`, rayon
+/// `radii.large` (18), `cardShadow`, `minHeight 88`, fond `surface`,
+/// **sans bord**. `duelloCard()` ne peut pas rendre ce cas (il ajoute
+/// toujours un bord, `Theme.swift:127-130`) → carte dessinée en jetons du
+/// thème, même motif que `RankingWeeklyXp.loadingCard/errorCard`.
 struct RankingStatusCard: View {
     let icon: String
     let title: String
@@ -36,43 +43,51 @@ struct RankingStatusCard: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Theme.surfaceMuted)
-                    .frame(width: 34, height: 34)
-                if showsProgress {
-                    ProgressView().tint(Theme.ink)
-                } else {
+            if showsProgress {
+                // RN (chargement) : l'`ActivityIndicator` est posé directement
+                // dans la carte, **sans** cadre d'icône (`RankingsScreen.tsx:505`).
+                ProgressView().tint(Theme.ink)
+            } else {
+                // `stateIcon` : carré `surfaceMuted` 34×34, rayon 12, glyphe 20 `ink`.
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Theme.surfaceMuted)
+                        .frame(width: 34, height: 34)
                     Image(systemName: icon)
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.system(size: 20, weight: .regular))
                         .foregroundStyle(Theme.ink)
                 }
             }
 
-            VStack(alignment: .leading, spacing: 4) {
+            // `stateCopy` : pas d'espacement uniforme, marges explicites
+            // (`stateText` marginTop 5, `localEloNotice` marginTop 6).
+            VStack(alignment: .leading, spacing: 0) {
                 Text(title)
-                    .font(.system(size: 13, weight: .heavy))
+                    .font(.system(size: 12, weight: .black))
                     .foregroundStyle(Theme.ink)
                 if let message {
                     Text(message)
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.system(size: 10, weight: .semibold))
+                        .lineSpacing(5)
                         .foregroundStyle(Theme.inkSoft)
                         .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, 5)
                 }
                 if let notice {
                     Text(notice)
-                        .font(.system(size: 12, weight: .heavy))
+                        .font(.system(size: 10, weight: .heavy))
+                        .lineSpacing(5)
                         .foregroundStyle(Theme.ink)
                         .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, 6)
                 }
             }
-
-            Spacer(minLength: 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
 
             if let retry {
                 Button(action: retry) {
                     Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 15, weight: .bold))
+                        .font(.system(size: 17, weight: .regular))
                         .foregroundStyle(Theme.ink)
                         .frame(width: 36, height: 36)
                         .background(Theme.surface)
@@ -86,7 +101,15 @@ struct RankingStatusCard: View {
                 .accessibilityLabel("Réessayer de charger le classement")
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .duelloCard()
+        // `stateCard` RN : `...cardShadow`, `minHeight 88`, `padding 15`,
+        // `borderRadius radii.large` (18), fond `surface`, **sans `borderWidth`**
+        // (`RankingsScreen.tsx:825-834`). `duelloCard()` ajoute toujours un bord
+        // (`Theme.swift:127-130`) → carte dessinée en jetons du thème.
+        // `marginTop 18` (RN) est posé par les appelants (`.padding(.top, 18)`).
+        .padding(15)
+        .frame(maxWidth: .infinity, minHeight: 88, alignment: .topLeading)
+        .background(Theme.surface)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
+        .duelloShadow()
     }
 }

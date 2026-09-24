@@ -195,7 +195,7 @@ struct ChalRunRounds: View {
                     compact: true
                 )
                 Text(LatexToUnicode.toUnicodeMath(state.exercise.context ?? ""))
-                    .font(.system(size: 14, design: .serif))
+                    .font(Theme.readingFont)
                     .foregroundStyle(Theme.ink)
                     .lineSpacing(7)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -292,7 +292,7 @@ struct ChalRunRounds: View {
             }
             .frame(maxWidth: .infinity, minHeight: 52)
         }
-        .buttonStyle(DuelloPrimaryButton())
+        .buttonStyle(DuelloPrimaryButton(radius: 17, weight: .heavy))
         .disabled(isSubmitting || (!state.canSubmit && !timeIsUp))
         .opacity(isSubmitting || (!state.canSubmit && !timeIsUp) ? 0.45 : 1)
     }

@@ -77,18 +77,18 @@ struct LegalDocumentView: View {
     }
 
     /// Chevron de retour, aligné sur le bord `LEGAL_PAGE_BACK_INSET` (24).
-    /// `BackButton` de la source : pictogramme centré dans une boîte de 40 pt
-    /// puis décalé de −4 pt (`transform: translateX(-4)`).
+    /// Reprend le composant partagé `DuelloBackButton` (port de
+    /// `components/BackButton.tsx`) : la boîte 40 × 40, le pictogramme 20 pt
+    /// (`iconSize={20}` de la source) centré puis décalé de −4 pt
+    /// (`transform: translateX(-4)`) et l'appui `opacity 0.6` sont portés par
+    /// le composant. Seul le `style` d'écran reste ici :
+    /// `marginHorizontal: 24` (`LEGAL_PAGE_BACK_INSET`) + `marginBottom: 4`.
     private func backButton(_ action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: "chevron.left")
-                .font(.system(size: 20, weight: .bold))
-                .foregroundStyle(Theme.ink)
-                .frame(width: 40, height: 40)
-                .offset(x: -4)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Retour aux paramètres")
+        DuelloBackButton(
+            iconSize: 20,
+            accessibilityLabel: "Retour aux paramètres",
+            action: action
+        )
         .padding(.horizontal, 24)
         .padding(.bottom, 4)
     }

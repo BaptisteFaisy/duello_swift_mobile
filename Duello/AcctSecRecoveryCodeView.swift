@@ -93,14 +93,12 @@ struct AcctSecRecoveryCodeView: View {
             onDismiss()
         } label: {
             Text("J’ai noté ce code")
-                .font(.system(size: 15, weight: .black))
-                .foregroundStyle(.white)
                 .frame(maxWidth: .infinity, minHeight: 52)
-                .background(Theme.ink)
-                .clipShape(RoundedRectangle(cornerRadius: 17))
         }
-        // `button` de la source : rayon 17 (et non 18 de `DuelloPrimaryButton`),
-        // appui 0.84 / 0.99.
-        .buttonStyle(LoginScrPressStyle())
+        // `button` de la source : rayon 17 (et non 18 par défaut du composant),
+        // 15 / 900, fond `primary`, texte `white` — tous portés par
+        // `DuelloPrimaryButton`. L'appui 0.84 / 0.99 est mort dans la source
+        // (`AppPressable` fige `pressed` à `false`) : pas de style d'appui ici.
+        .buttonStyle(DuelloPrimaryButton(radius: 17))
     }
 }

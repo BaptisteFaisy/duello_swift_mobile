@@ -123,10 +123,12 @@ private struct ExGXpCounter: View, Animatable {
         }
     }
 
-    /// Barre d'XP : `DuelloProgressTrack` du kit porte la même progression et
-    /// le même vert de maîtrise. Limite documentée : la source dessine un fond
-    /// `surfaceMuted` et un reflet blanc à 30 % (`shine`), que le kit n'expose
-    /// pas — la piste reprend donc le fond bordure du kit.
+    /// Barre d'XP : `DuelloProgressTrack` du kit porte la même progression, le
+    /// même vert de maîtrise et, depuis la vague 2, le fond `surfaceMuted` en
+    /// défaut (`track:` paramétrable) — identique à `track.backgroundColor` de
+    /// la source (`XpGainProgress.tsx:77`). Le contournement de la vague 1 (fond
+    /// bordure du kit faute de paramètre) est donc résolu par le composant.
+    /// Seul le reflet blanc à 30 % (`shine`) reste non porté par le kit.
     private var track: some View {
         DuelloProgressTrack(fraction: level.progress, tint: exgMastery, height: 18)
             .accessibilityElement(children: .ignore)

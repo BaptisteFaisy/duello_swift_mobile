@@ -61,23 +61,19 @@ struct AcctSecEmailView: View {
         min((containerWidth - 40) * 0.82, 420)
     }
 
-    /// Bouton retour gauche (`BackButton` « Retour aux paramètres » de la
-    /// source) : `AccountEmailScreen.tsx` n'a pas de barre de navigation.
-    /// Zone tactile 40 × 40 (`BackButton.tsx` : `minWidth`/`minHeight` 40),
-    /// chevron 20 décalé de −4 (`transform: [{ translateX: -4 }]`).
+    /// Bouton retour gauche : composant partagé `DuelloBackButton` (port de
+    /// `BackButton.tsx`), appelé comme dans la source
+    /// (`AccountEmailScreen.tsx:57-62` : `iconSize={20}`, libellé
+    /// « Retour aux paramètres », `style={alignSelf:'flex-start', minHeight:40}`).
+    /// `AccountEmailScreen.tsx` n'a pas de barre de navigation. La boîte
+    /// 40 × 40, le chevron décalé de −4 (`translateX`) et la couleur `ink`
+    /// viennent du composant ; l'alignement au bord gauche est porté par le
+    /// `VStack(alignment: .leading)` parent.
     private var backButton: some View {
-        Button {
-            dismiss()
-        } label: {
-            Image(systemName: "chevron.backward")
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundStyle(Theme.ink)
-                .frame(width: 40, height: 40)
-                .offset(x: -4)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Retour aux paramètres")
+        DuelloBackButton(
+            iconSize: 20,
+            accessibilityLabel: "Retour aux paramètres"
+        ) { dismiss() }
     }
 
     /// Formulaire (`form` : largeur 100 % de `formArea`) : légende
@@ -129,10 +125,12 @@ struct AcctSecEmailView: View {
     }
 
     /// `submitButton` de la source (`AccountEmailScreen.tsx:137-146`) : hauteur
-    /// 52, rayon `radii.medium` (14), fond `Theme.ink`, libellé blanc 15/800,
-    /// opacité 0.55 pendant l'enregistrement. Le style partagé
-    /// `DuelloPrimaryButton` est écarté ici : il force le rayon `radiusLarge`
-    /// (18) et anime l'appui, deux valeurs absentes de la source.
+    /// 52, rayon `radii.medium` (14), fond `Theme.ink`, libellé blanc 15/800
+    /// (`.heavy`), opacité 0.55 pendant l'enregistrement. Reprend le composant
+    /// partagé `DuelloPrimaryButton` **paramétré** (`radius: 14`, `weight: .heavy`) ;
+    /// il n'anime pas l'appui, comme `AppPressable` (`pressed` figé). L'opacité
+    /// d'état désactivé (`styles.disabled`) reste portée par l'appelant : le
+    /// composant ne la gère pas (pas de double application).
     private var saveButton: some View {
         Button {
             submit()
@@ -142,17 +140,13 @@ struct AcctSecEmailView: View {
                     ProgressView().tint(.white)
                 } else {
                     Text("Enregistrer")
-                        .font(.system(size: 15, weight: .heavy))
-                        .foregroundStyle(.white)
                 }
             }
             .frame(maxWidth: .infinity, minHeight: 52)
-            .background(Theme.ink)
-            .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
-            .opacity(isSaving ? 0.55 : 1)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(DuelloPrimaryButton(radius: 14, weight: .heavy))
         .disabled(isSaving)
+        .opacity(isSaving ? 0.55 : 1)
     }
 
     // MARK: Soumission
