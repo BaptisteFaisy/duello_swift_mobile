@@ -60,7 +60,12 @@ extension TrainingCatalogView {
         chapterStates[chapter.id] = .loading
         do {
             let seeds = try await DuelloAPI.chapterExercises(descriptor)
-            loadedExercises[chapter.id] = seeds.map { TrainExercise(seed: $0) }
+            var items = seeds.map { TrainExercise(seed: $0) }
+            // Revue de prérequis du chapitre (`chapterItems.ts`) : scope lu dans
+            // le `bundleId` du descripteur, empreinte de la filière, puis revue
+            // aiguillée par `ProgPrereq.review(_:)`.
+            TrainExercisePrereq.apply(&items, descriptor: descriptor)
+            loadedExercises[chapter.id] = items
             chapterErrors[chapter.id] = nil
             chapterStates[chapter.id] = .ready
         } catch {
