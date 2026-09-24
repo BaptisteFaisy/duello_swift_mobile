@@ -25,7 +25,10 @@ struct UserProfile: Codable, Equatable {
     enum CodingKeys: String, CodingKey {
         case displayName, firstName, lastName, email
         case prepName, prepCity, holidayZone, prepType
-        case className = "class"
+        // Le serveur (`AccountPayload.profile`) et la source Expo
+        // (`types.ts:67`) nomment ce champ `className` : l'ancien mappage
+        // `className = "class"` le laissait vide à la lecture.
+        case className
         case track, year, specialty, targetSchool
         case personalGoal, isPublic, photoUri
     }

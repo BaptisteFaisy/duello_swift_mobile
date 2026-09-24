@@ -40,8 +40,20 @@ extension DuelloAPI {
         var profile: UserProfile?
     }
 
+    /// Réponse d'authentification : session **et** profil serveur.
+    ///
+    /// `account.profile` porte `track`/`year` — la jeter (comme avant) laissait
+    /// `SessionStore.profile` vide après une connexion, si bien que `RootView`
+    /// renvoyait un élève pourtant inscrit vers l'onboarding
+    /// (`needsOnboarding`). C'est le profil de la source Expo
+    /// (`saveAccount(account)` de `login`/`authenticateWithGoogle`).
+    struct AuthResult {
+        var session: SessionPayload
+        var profile: UserProfile?
+    }
+
     /// `POST /auth/password/login`
-    static func login(email: String, password: String) async throws -> SessionPayload {
+    static func login(email: String, password: String) async throws -> AuthResult {
         let body = try encodeBody(["email": email, "password": password])
         let response = try await request(
             AuthResponse.self,
@@ -52,11 +64,11 @@ extension DuelloAPI {
         guard let session = response.session else {
             throw DirectoryError(message: response.error ?? "Authentification Duello indisponible.")
         }
-        return session
+        return AuthResult(session: session, profile: response.account?.profile)
     }
 
     /// `POST /auth/password/register`
-    static func register(email: String, password: String, displayName: String, deviceId: String) async throws -> SessionPayload {
+    static func register(email: String, password: String, displayName: String, deviceId: String) async throws -> AuthResult {
         let body = try encodeBody([
             "email": email,
             "password": password,
@@ -72,7 +84,7 @@ extension DuelloAPI {
         guard let session = response.session else {
             throw DirectoryError(message: response.error ?? "La création du compte est momentanément indisponible.")
         }
-        return session
+        return AuthResult(session: session, profile: response.account?.profile)
     }
 
     /// `POST /auth/logout`

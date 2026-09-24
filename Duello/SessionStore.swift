@@ -95,20 +95,26 @@ final class SessionStore: ObservableObject {
 
     @MainActor
     func signIn(email: String, password: String) async throws {
-        let payload = try await DuelloAPI.login(email: email, password: password)
-        try installSession(ServerSession(payload: payload, fallbackEmail: email))
+        let result = try await DuelloAPI.login(email: email, password: password)
+        try installSession(
+            ServerSession(payload: result.session, fallbackEmail: email),
+            serverProfile: result.profile
+        )
     }
 
     @MainActor
     func signUp(email: String, password: String, displayName: String) async throws {
         let deviceId = Self.deviceId()
-        let payload = try await DuelloAPI.register(
+        let result = try await DuelloAPI.register(
             email: email,
             password: password,
             displayName: displayName,
             deviceId: deviceId
         )
-        try installSession(ServerSession(payload: payload, fallbackEmail: email))
+        try installSession(
+            ServerSession(payload: result.session, fallbackEmail: email),
+            serverProfile: result.profile
+        )
     }
 
     /// Ouvre la session renvoyée par `POST /auth/google` et préremplit le
@@ -148,12 +154,15 @@ final class SessionStore: ObservableObject {
     /// aligne le profil local et persiste le tout. Point d'entrée unique des
     /// ouvertures de session — mot de passe, inscription, Google, et session
     /// rendue par `POST /auth/password/reset`.
-    func installSession(_ session: ServerSession) throws {
+    func installSession(_ session: ServerSession, serverProfile: UserProfile? = nil) throws {
         guard session.token.hasPrefix("dus_") else {
             throw DirectoryError(message: "Session refusée par le serveur Duello.")
         }
         self.session = session
         isSignedIn = true
+        // Profil serveur d'abord (`track`/`year` compris) : sans lui, la racine
+        // renvoie un élève pourtant inscrit vers l'onboarding.
+        if let serverProfile { profile = serverProfile }
         profile.email = session.email
         if profile.displayName.isEmpty {
             profile.displayName = session.email.split(separator: "@").first.map(String.init) ?? "Élève"
