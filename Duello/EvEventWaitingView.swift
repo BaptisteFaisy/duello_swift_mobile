@@ -18,6 +18,9 @@ struct EvEventWaitingView: View {
     @ObservedObject var model: EvEventSession
     let onBack: () -> Void
 
+    /// Identifiant public du compte courant, transmis à la barre d'actions.
+    private var ownId: String { DuelloAPI.publicProfileId(email: model.email) }
+
     var body: some View {
         VStack(spacing: 0) {
             EvEventTopBar(onBack: onBack)
@@ -29,11 +32,12 @@ struct EvEventWaitingView: View {
                         .font(.system(size: 13, weight: .bold))
                         .foregroundStyle(Theme.inkSoft)
                 }
+                if model.phase == .upcoming { EvEventReminderOptIn(event: event) }
                 if model.phase == .waiting { waitingRoom }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding(24)
-            EvEventActionsBar(event: event, token: model.token)
+            EvEventActionsBar(event: event, token: model.token, ownId: ownId)
         }
         .background(Theme.surface)
     }

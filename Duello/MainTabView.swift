@@ -29,6 +29,20 @@ struct MainTabView: View {
 
             DuelloBottomBar(selection: $selection, avatarInitial: profileInitial)
         }
+        .task {
+            let profile = RankingWarmupProfile(
+                track: session.profile.track,
+                year: session.profile.year,
+                specialty: session.profile.specialty
+            )
+            let service = DuelloAPIRankingsWarmupService(token: session.token)
+            // ~1,5 s après l'apparition de la vue (`App.tsx`, `setTimeout(…, 1500)`).
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            await prefetchRankingsDataForProfile(profile, service: service)
+            // Puis ~4,5 s plus tard, pendant une accalmie du premier plan (~6 s).
+            try? await Task.sleep(nanoseconds: 4_500_000_000)
+            await prefetchRankingsForProfile(profile, service: service)
+        }
     }
 
     /// `getProfileInitial` de `BottomNavigation.tsx` : première lettre du prénom,

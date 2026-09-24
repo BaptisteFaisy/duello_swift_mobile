@@ -8,9 +8,9 @@
 //  ou classement selon le moment.
 //
 //  Fichier source Expo porté : `src/components/EventsList.tsx` (et sa carte
-//  `EventCard`). L'espace événement est ici présenté en pleine page
-//  (`fullScreenCover`) quand aucun parent ne l'héberge ; un parent peut aussi le
-//  prendre en charge via `onOpenEvent`, comme `ChallengesScreen.tsx`.
+//  `EventCard`). L'espace événement est présenté ici en pleine page
+//  (`fullScreenCover`) ; `onOpenEvent` est notifié au passage, comme
+//  `ChallengesScreen.tsx` marque l'événement vu avant de l'ouvrir.
 //
 //  Substitutions SF Symbols (Ionicons → SF Symbols) : calendar-outline →
 //  calendar ; time-outline → clock ; location-outline → mappin.and.ellipse ;
@@ -26,6 +26,9 @@ struct EventsView: View {
 
     /// Remontée à l'écran parent : l'espace événement passe en pleine page.
     var onOpenEvent: ((EvEvent) -> Void)? = nil
+    /// Identifiants déjà vus, pour la pastille « nouveau » de chaque carte ;
+    /// `nil` tant que la liste n'est pas chargée (aucune pastille).
+    var seenEventIds: [String]? = nil
 
     @State private var openEvent: EvEvent?
 
@@ -36,6 +39,7 @@ struct EventsView: View {
 
     var body: some View {
         content
+            .evEventReminders(events)
             .fullScreenCover(item: $openEvent) { event in
                 EvEventWorkspace(
                     event: event,
@@ -52,19 +56,24 @@ struct EventsView: View {
         } else {
             VStack(spacing: 12) {
                 ForEach(events) { event in
-                    EvEventCard(event: event) { open(event) }
+                    EvEventCard(event: event, isNew: isNew(event)) { open(event) }
                 }
             }
         }
     }
 
-    /// Ouvre l'espace événement : chez le parent s'il l'héberge, ici sinon.
+    /// Pastille « nouveau » : l'événement est visible mais jamais ouvert
+    /// (`seenEventIds != null && !seenEventIds.includes(event.id)`).
+    private func isNew(_ event: EvEvent) -> Bool {
+        guard let seenEventIds else { return false }
+        return !seenEventIds.contains(event.id)
+    }
+
+    /// Ouvre l'espace événement : prévient le parent (marque vu) puis l'affiche
+    /// en pleine page ici.
     private func open(_ event: EvEvent) {
-        if let onOpenEvent {
-            onOpenEvent(event)
-        } else {
-            openEvent = event
-        }
+        onOpenEvent?(event)
+        openEvent = event
     }
 }
 
@@ -74,6 +83,8 @@ struct EventsView: View {
 /// horaire, lieu et lien d'information (`EventCard`).
 private struct EvEventCard: View {
     let event: EvEvent
+    /// Événement jamais ouvert : allume la pastille « nouveau » en coin.
+    let isNew: Bool
     let onOpen: () -> Void
 
     var body: some View {
@@ -103,9 +114,22 @@ private struct EvEventCard: View {
             }
             .padding(16)
             .contentShape(Rectangle())
+            .overlay(alignment: .topTrailing) { newDot }
         }
         .buttonStyle(EvEventCardStyle())
         .accessibilityLabel("\(event.title) — ouvrir l'événement")
+    }
+
+    /// Pastille « nouveau » en coin, tant que l'événement n'a pas été ouvert
+    /// (`styles.newDot` de la source).
+    @ViewBuilder private var newDot: some View {
+        if isNew {
+            Circle()
+                .fill(Theme.ink)
+                .frame(width: 9, height: 9)
+                .padding(10)
+                .accessibilityLabel("Nouvel événement")
+        }
     }
 
     /// Pastille de date à la manière d'un agenda papier.

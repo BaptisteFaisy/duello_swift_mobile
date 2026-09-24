@@ -62,7 +62,8 @@ struct CtdHtmlDocumentView: UIViewRepresentable {
     }
 
     /// `withSelectionPolicy` + pont `ReactNativeWebView` : les deux scripts
-    /// sont insérés juste après l'ouverture de `<head>`.
+    /// sont insérés juste après l'ouverture de `<head>` ; le pont du prof IA
+    /// (`insertProfBridge`) rejoint la fin de `<body>`.
     static func document(_ html: String, selectable: Bool) -> String {
         let bridge = """
         <script>
@@ -85,7 +86,19 @@ struct CtdHtmlDocumentView: UIViewRepresentable {
             </style>
             """
         }
-        return insert(bridge + policy, afterHeadOf: html)
+        return insertProfBridge(insert(bridge + policy, afterHeadOf: html))
+    }
+
+    /// Insère le pont « Expliquer ce passage » en fin de `<body>` : le script
+    /// pose son bouton sur `document.body`, qui doit donc déjà exister. La
+    /// source injecte le pont de même, dans le corps du document
+    /// (`courseDocumentPdf.ts`, `mathDocument.ts`).
+    static func insertProfBridge(_ html: String) -> String {
+        let script = "<script>\n\(profSelectionBridgeScript())\n</script>"
+        guard let bodyEnd = html.range(of: "</body>", options: [.caseInsensitive, .backwards]) else {
+            return html + script
+        }
+        return String(html[..<bodyEnd.lowerBound]) + script + String(html[bodyEnd.lowerBound...])
     }
 
     /// Insère un bloc en tête de document ; sans `<head>`, le bloc précède le

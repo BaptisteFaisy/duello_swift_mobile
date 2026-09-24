@@ -28,7 +28,7 @@ struct EvEventFinishedView: View {
             EvEventTopBar(title: event.title, onBack: onBack)
             tabs
             sectionBody
-            EvEventActionsBar(event: event, token: model.token)
+            EvEventActionsBar(event: event, token: model.token, ownId: ownId)
         }
         .background(Theme.surface)
     }

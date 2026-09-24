@@ -752,6 +752,10 @@
 		1505836EBDFC4D393E0DBCD5 /* SubjChapterPrerequisites+Expansion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96DB9AEBAAD95DE8CFEEBD55 /* SubjChapterPrerequisites+Expansion.swift */; };
 		FD52D5BA32720F9A139B89C5 /* SubjChapterPrerequisites+Granularity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 956641FFB7A7C67A3E0826F4 /* SubjChapterPrerequisites+Granularity.swift */; };
 		4B8A0C219D0D775600561D5B /* SubjChapterPrerequisites+QuestionState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 825EA261445A0A06C24163D1 /* SubjChapterPrerequisites+QuestionState.swift */; };
+		E40B5574249CBDB8062648D7 /* AdmUsageAnalyticsDefaultsStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE268E385E65B8E5EA2C8EF9 /* AdmUsageAnalyticsDefaultsStorage.swift */; };
+		170129E1014970B5ABDFD266 /* PhotoTranscriptionView+Questions.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5171367845BE4A5474E501B /* PhotoTranscriptionView+Questions.swift */; };
+		4863AE037370E833641D8948 /* RankingSubjectLeaderboard+Cache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D8BF934A0A2B330712DC535 /* RankingSubjectLeaderboard+Cache.swift */; };
+		3E89FC7B4748404F9E150C3B /* SessionStore+RemoteAccountSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4C6797C325FA7A234A30BD2 /* SessionStore+RemoteAccountSession.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -1501,6 +1505,10 @@
 		96DB9AEBAAD95DE8CFEEBD55 /* SubjChapterPrerequisites+Expansion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SubjChapterPrerequisites+Expansion.swift"; sourceTree = "<group>"; };
 		956641FFB7A7C67A3E0826F4 /* SubjChapterPrerequisites+Granularity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SubjChapterPrerequisites+Granularity.swift"; sourceTree = "<group>"; };
 		825EA261445A0A06C24163D1 /* SubjChapterPrerequisites+QuestionState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SubjChapterPrerequisites+QuestionState.swift"; sourceTree = "<group>"; };
+		FE268E385E65B8E5EA2C8EF9 /* AdmUsageAnalyticsDefaultsStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdmUsageAnalyticsDefaultsStorage.swift; sourceTree = "<group>"; };
+		A5171367845BE4A5474E501B /* PhotoTranscriptionView+Questions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoTranscriptionView+Questions.swift"; sourceTree = "<group>"; };
+		4D8BF934A0A2B330712DC535 /* RankingSubjectLeaderboard+Cache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RankingSubjectLeaderboard+Cache.swift"; sourceTree = "<group>"; };
+		F4C6797C325FA7A234A30BD2 /* SessionStore+RemoteAccountSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SessionStore+RemoteAccountSession.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -2271,6 +2279,10 @@
 				96DB9AEBAAD95DE8CFEEBD55 /* SubjChapterPrerequisites+Expansion.swift */,
 				956641FFB7A7C67A3E0826F4 /* SubjChapterPrerequisites+Granularity.swift */,
 				825EA261445A0A06C24163D1 /* SubjChapterPrerequisites+QuestionState.swift */,
+				FE268E385E65B8E5EA2C8EF9 /* AdmUsageAnalyticsDefaultsStorage.swift */,
+				A5171367845BE4A5474E501B /* PhotoTranscriptionView+Questions.swift */,
+				4D8BF934A0A2B330712DC535 /* RankingSubjectLeaderboard+Cache.swift */,
+				F4C6797C325FA7A234A30BD2 /* SessionStore+RemoteAccountSession.swift */,
 			);
 			path = Duello;
 			sourceTree = "<group>";
@@ -3097,6 +3109,10 @@
 				1505836EBDFC4D393E0DBCD5 /* SubjChapterPrerequisites+Expansion.swift in Sources */,
 				FD52D5BA32720F9A139B89C5 /* SubjChapterPrerequisites+Granularity.swift in Sources */,
 				4B8A0C219D0D775600561D5B /* SubjChapterPrerequisites+QuestionState.swift in Sources */,
+				E40B5574249CBDB8062648D7 /* AdmUsageAnalyticsDefaultsStorage.swift in Sources */,
+				170129E1014970B5ABDFD266 /* PhotoTranscriptionView+Questions.swift in Sources */,
+				4863AE037370E833641D8948 /* RankingSubjectLeaderboard+Cache.swift in Sources */,
+				3E89FC7B4748404F9E150C3B /* SessionStore+RemoteAccountSession.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

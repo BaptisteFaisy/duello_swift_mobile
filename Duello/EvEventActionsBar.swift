@@ -22,8 +22,16 @@ import MessageUI
 struct EvEventActionsBar: View {
     let event: EvEvent
     let token: String?
+    /// Identifiant public du compte courant (mention « (toi) » dans la feuille).
+    var ownId: String? = nil
+    /// Ouvre le profil du compte choisi ; `nil` laisse les lignes inactives.
+    var onOpenProfile: ((String) -> Void)? = nil
+
+    /// Présence live, injectée par `.evEventPresence(...)` de l'espace événement.
+    @EnvironmentObject private var presence: EvEventPresenceStore
 
     @State private var counts: EvInteractionCounts?
+    @State private var viewersVisible = false
     @State private var shareSheetVisible = false
     @State private var messageComposerVisible = false
     @State private var shareError: String?
@@ -52,6 +60,14 @@ struct EvEventActionsBar: View {
             }
         }
         .task { await loadCounts() }
+        .sheet(isPresented: $viewersVisible) {
+            EvEventViewersSheet(
+                eventId: event.id,
+                token: token,
+                ownId: ownId,
+                onOpenProfile: onOpenProfile
+            )
+        }
         .sheet(isPresented: $shareSheetVisible) {
             EvEventShareSheet(
                 event: event,
@@ -78,27 +94,34 @@ struct EvEventActionsBar: View {
 
     // MARK: Cellules
 
-    /// Compteur de vues de la carte, non actionnable.
+    /// Compteur de vues de la carte ; l'œil ouvre la liste des personnes qui ont
+    /// vu la page.
     private var viewersCell: some View {
-        VStack(spacing: 5) {
-            Image(systemName: "eye")
-                .font(.system(size: 20, weight: .regular))
-                .foregroundStyle(Theme.ink)
-                .frame(height: 24)
-            Text(counts.map { "\($0.viewers)" } ?? "—")
-                .font(.system(size: 13, weight: .black))
-                .monospacedDigit()
-                .foregroundStyle(Theme.ink)
+        Button { viewersVisible = true } label: {
+            VStack(spacing: 5) {
+                Image(systemName: "eye")
+                    .font(.system(size: 20, weight: .regular))
+                    .foregroundStyle(Theme.ink)
+                    .frame(height: 24)
+                Text((presence.views ?? counts?.viewers).map { "\($0)" } ?? "—")
+                    .font(.system(size: 13, weight: .black))
+                    .monospacedDigit()
+                    .foregroundStyle(Theme.ink)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .padding(.horizontal, 6)
+            .background(Theme.surface)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.radiusMedium)
+                    .stroke(Theme.border, lineWidth: 1)
+            )
+            .contentShape(Rectangle())
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 10)
-        .padding(.horizontal, 6)
-        .background(Theme.surface)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
-        .overlay(
-            RoundedRectangle(cornerRadius: Theme.radiusMedium)
-                .stroke(Theme.border, lineWidth: 1)
-        )
+        .buttonStyle(.plain)
+        .accessibilityLabel("Voir la liste des personnes qui ont vu la page")
+        .accessibilityHint("Ouvre la liste des personnes qui ont vu la page")
     }
 
     /// Ajout à l'agenda de l'appareil, rappel copié au passage.
@@ -138,7 +161,7 @@ struct EvEventActionsBar: View {
                     .font(.system(size: 20, weight: .regular))
                     .foregroundStyle(Theme.ink)
                     .frame(height: 24)
-                Text(counts.map { "\($0.shares)" } ?? "—")
+                Text((presence.shares ?? counts?.shares).map { "\($0)" } ?? "—")
                     .font(.system(size: 13, weight: .black))
                     .monospacedDigit()
                     .foregroundStyle(Theme.ink)
