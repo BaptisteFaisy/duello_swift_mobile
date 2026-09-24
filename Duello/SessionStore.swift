@@ -155,6 +155,11 @@ final class SessionStore: ObservableObject {
         // compte précédent restaient et pré-remplissaient l'inscription
         // suivante (pré-vol d'inscription → 409 « Un compte existe déjà avec
         // cette adresse e-mail »).
+        //
+        // Le profil **scolaire** n'est pas perdu pour autant : il vit dans le
+        // registre local multi-comptes, écrit par `persistProfile`, d'où
+        // `installSession` le relit à la reconnexion — la source fait de même
+        // via `saveAccount`/`loadAccounts`.
         profile = UserProfile()
         persistProfile()
     }
@@ -171,6 +176,22 @@ final class SessionStore: ObservableObject {
         }
         self.session = session
         isSignedIn = true
+        // Profil scolaire : `signOut` remet `profile` à zéro et
+        // `/auth/password/login` ne renvoie ni `track` ni `year` (le serveur ne
+        // les apprend qu'à la publication d'annuaire, `PUT /profiles`, absente
+        // de cette app). Le registre local multi-comptes est donc la seule
+        // source du profil d'un compte rouvert — sans cette relecture,
+        // `RootView.needsOnboarding` restait vrai et un élève **déjà inscrit**
+        // rejouait tout l'onboarding à chaque connexion.
+        if profile.track.isEmpty || profile.year.isEmpty {
+            let stored = AcctLocalRegistry.findAccountByEmail(
+                AcctLocalRegistry.loadAccounts(),
+                email: session.email
+            )
+            if let stored = stored, !(stored.profile.track.isEmpty && stored.profile.year.isEmpty) {
+                profile = stored.profile
+            }
+        }
         profile.email = session.email
         if profile.displayName.isEmpty {
             profile.displayName = session.email.split(separator: "@").first.map(String.init) ?? "Élève"
@@ -216,6 +237,38 @@ final class SessionStore: ObservableObject {
         if let data = try? JSONEncoder().encode(profile) {
             UserDefaults.standard.set(data, forKey: Self.profileKey)
         }
+        // `saveAccount` de `utils/auth.ts` : le profil courant rejoint
+        // l'enregistrement du compte dans le registre local multi-comptes
+        // (`AcctLocalRegistry`). C'est la **seule** mémoire du profil scolaire :
+        // `signOut` remet `profile` à zéro (pour ne pas pré-remplir
+        // l'inscription suivante) et le serveur ne renvoie ni `track` ni `year`
+        // — il ne les apprend qu'à la publication d'annuaire (`PUT /profiles`),
+        // absente de cette app. Un profil vidé (déconnexion) ou encore sans
+        // programme n'écrit rien : une entrée existante n'est jamais remplacée
+        // par du vide.
+        let email = profile.email.isEmpty ? (session?.email ?? "") : profile.email
+        guard !email.isEmpty, !(profile.track.isEmpty && profile.year.isEmpty) else { return }
+        let existing = AcctLocalRegistry.findAccountByEmail(
+            AcctLocalRegistry.loadAccounts(),
+            email: email
+        )
+        AcctLocalRegistry.saveAccount(
+            AcctStoredAccount(
+                id: existing?.id ?? Self.localAccountId(for: email),
+                email: email,
+                displayName: existing?.displayName ?? profile.displayName,
+                role: existing?.role ?? .user,
+                passwordHash: existing?.passwordHash,
+                googleSubject: existing?.googleSubject,
+                appleSubject: existing?.appleSubject,
+                biometricEnabled: existing?.biometricEnabled ?? false,
+                requiresPasswordSetup: existing?.requiresPasswordSetup ?? false,
+                recoveryCodeHash: existing?.recoveryCodeHash,
+                createdAt: existing?.createdAt,
+                guest: existing?.guest ?? false,
+                profile: profile
+            )
+        )
     }
 
     /// Identifiant d'appareil stable, requis à l'inscription et à la

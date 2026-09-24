@@ -82,8 +82,10 @@ struct RootView: View {
     /// sur la racine tant qu'elle n'est pas terminée.
     @State private var signupOpen = false
 
-    /// Vrai tant que le parcours n'a pas été choisi : l'inscription vient
-    /// d'aboutir et l'élève doit passer par la première configuration.
+    /// Vrai tant que le **programme** n'est pas connu de l'appareil : connexion
+    /// sur un appareil neuf, ou première connexion Google/Apple. Le profil d'un
+    /// compte déjà inscrit est relu du registre local par `installSession`, donc
+    /// une simple reconnexion ne passe pas par ici.
     private var needsOnboarding: Bool {
         session.profile.year.isEmpty || session.profile.track.isEmpty
     }
@@ -99,10 +101,22 @@ struct RootView: View {
                 SignupFlowView { signupOpen = false }
             } else if session.isSignedIn {
                 if needsOnboarding {
+                    // Complète le **programme** manquant (appareil neuf,
+                    // connexion Google/Apple) — mode `.guest` : étapes de
+                    // programme seules, **jamais** le parcours de création de
+                    // compte, qui demanderait pseudo/mot de passe/cadeau à un
+                    // élève déjà inscrit. La source Expo ne connaît pas ce
+                    // besoin : son onboarding n'est monté qu'avant session
+                    // (`authStage === 'signup'`), et `restoreProfile` remplit
+                    // `track`/`year` par défaut.
+                    //
                     // « Revenir à l'accueil » (première étape) : la racine ne
                     // quitte l'onboarding que si la session est fermée —
                     // sinon `RootView` le réafficherait aussitôt.
-                    OnboardingView(onCancel: { Task { @MainActor in await session.signOut() } }) {}
+                    OnboardingView(
+                        mode: .guest,
+                        onCancel: { Task { @MainActor in await session.signOut() } }
+                    ) {}
                 } else {
                     MainTabView()
                 }
