@@ -50,8 +50,21 @@ struct OnbGiftStepTransition<Content: View>: View {
 
     /// Le geste, comme `.enabled(...)` de la source : la direction n’est
     /// décidée qu’au relâchement, exactement comme `onEnd`.
+    ///
+    /// ⚠️ `minimumDistance` **ne doit pas être 0**. La source n’active son pan
+    /// qu’une fois l’intention **horizontale** reconnue (`manualActivation(true)`
+    /// + `resolveHorizontalGestureIntent`, `horizontalGesture.ts` : ≥ 9 px et
+    /// 1,5× le déplacement vertical) ; un appui simple reste donc à l’enfant.
+    /// Avec `minimumDistance: 0`, le glissement s’armait **dès l’appui**,
+    /// `cancelsTouchesInView` s’appliquait et les `UITextField` de l’étape —
+    /// pseudo, e-mail, mot de passe (`OnbUiField`) — **ne devenaient jamais
+    /// premier répondant** : on ne pouvait rien saisir, donc pas créer de
+    /// compte. Les `Button` (gestes SwiftUI, simultanés) continuaient de
+    /// répondre, d’où un écran qui « marche » sauf pour la saisie.
+    /// `minimumDistance` est le seul levier SwiftUI pour rendre l’appui à
+    /// l’enfant : un `DragGesture` ne peut pas « échouer » comme un pan RN.
     private var swipe: some Gesture {
-        DragGesture(minimumDistance: 0)
+        DragGesture(minimumDistance: OnbGiftSwipe.activationDistance)
             .onEnded { value in
                 let direction = OnbGiftSwipe.resolve(
                     translationX: value.translation.width,
@@ -71,6 +84,12 @@ struct OnbGiftStepTransition<Content: View>: View {
 
 /// Règles pures du balayage d’étape (`utils/onboardingStepTransition.ts`).
 enum OnbGiftSwipe {
+    /// `HORIZONTAL_ACTIVATION_DISTANCE` de la source (`utils/horizontalGesture.ts`).
+    /// Distance (points) au-delà de laquelle un glissement horizontal peut être
+    /// reconnu. En dessous, l’appui reste à l’enfant : c’est ce qui laisse les
+    /// champs de saisie devenir premier répondant.
+    static let activationDistance: CGFloat = 9
+
     /// Sens d’un changement d’étape (`OnboardingStepDirection`).
     enum Direction {
         case forward
