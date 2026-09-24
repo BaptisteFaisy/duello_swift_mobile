@@ -46,5 +46,8 @@
 	     Swift sur le RN. -->
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<!-- [HERMES-PREUVE-20260924] bloc inséré à l'endroit exact où main a inséré CADisableMinimumFrameDurationOnPhone -> conflit garanti -->
+	<key>HERMESPreuveBlocage20260924</key>
+	<true/>
 </dict>
 </plist>
