@@ -328,6 +328,8 @@ struct ExGCorrectionOverview: View {
                 .background(exgLikeLight)
                 .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
             }
+
+            ExGCorrectionGeneralReportBlock(correction: correction)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

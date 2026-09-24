@@ -16,7 +16,8 @@
 //
 //  Écarts assumés :
 //   • `recordUsageAction('feedback_sent')` (analytics locales, `usageAnalytics`)
-//     n'est pas porté : la version Swift n'a pas de journal d'usage local ;
+//     est journalisé à l'envoi du retour via `AdmUsageAnalyticsRecorder` (journal
+//     d'usage local cloisonné par compte) ;
 //   • l'auto-agrandissement du champ MESSAGE (`onContentSizeChange`) et le
 //     défilement au clavier sont rendus par `TextField(axis: .vertical)` et
 //     `scrollDismissesKeyboard`, comportement natif iOS ;
@@ -193,6 +194,9 @@ struct ExtraFeedbackView: View {
                     message: trimmedMessage,
                     token: token
                 )
+                // `recordUsageAction('feedback_sent')` de la source : le journal
+                // d'usage local compte l'action pour le compte courant.
+                await AdmUsageAnalyticsRecorder.recordAction(.feedbackSent, email: profile.email)
                 showConfirmation = true
             } catch {
                 errorMessage = (error as? DirectoryError)?.message

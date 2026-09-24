@@ -14,6 +14,13 @@
 //  (récapitulatif fournisseur) — portés par le lot voisin `OnbUi`. Seuls les
 //  contrôles absents de ce lot vivent ici, tous préfixés `OnbFlow`.
 //
+//  Câblage vague 2 (24/09/2026, U13 §2) : le bouton Google interroge la garde
+//  de réouverture (`LoginScrProviderReuse.shouldConfirmProviderLogin`) avant de
+//  rendre l'identité au parcours — en pleine création, rouvrir un compte
+//  existant abandonnerait le parcours en cours. L'Apple passe par
+//  `AppleAuthView` (rappels `onApple`) : la garde de ce chemin est posée à
+//  l'installation de la session (`OnboardingView.openAccount`).
+//
 //  Cible : iOS 16. Aucune dépendance externe.
 //
 import SwiftUI
@@ -151,8 +158,15 @@ struct OnbFlowProviderButtons: View {
     var onGoogle: (GoogleIdentity, DuelloAPI.SessionPayload) -> Void
     var onApple: (AppleAuthIdentity, DuelloAPI.SessionPayload) -> Void
 
+    /// `hasActiveSession` de la garde de réouverture (`session.isSignedIn`) :
+    /// le parcours d'inscription se joue avant toute session, mais la source
+    /// interroge l'état réel.
+    @EnvironmentObject private var session: SessionStore
+
     @State private var isGoogleLoading = false
     @State private var googleError: String?
+    /// Réouverture de compte Google en attente de décision (U13 §2).
+    @State private var pendingReuse: LoginIntProviderReuseAlert?
 
     var body: some View {
         VStack(spacing: 14) {
@@ -187,22 +201,58 @@ struct OnbFlowProviderButtons: View {
                     .foregroundStyle(Theme.providerError)
             }
         }
+        .alert(pendingReuse?.title ?? "", isPresented: isReusePresented) {
+            Button("Ouvrir mon compte") {
+                let alert = pendingReuse
+                pendingReuse = nil
+                alert?.proceed()
+            }
+            Button("Continuer la création", role: .cancel) { pendingReuse = nil }
+        } message: {
+            Text(pendingReuse?.message ?? "")
+        }
     }
 
     /// Ouvre la connexion Google et rend l'identité au parcours, sans ouvrir la
     /// session (contrairement à `GoogleAuthButton`, qui termine l'inscription).
+    ///
+    /// `shouldConfirmProviderLogin` (U13 §2) est interrogé avant de rendre
+    /// l'identité : en pleine création (`authStage = "signup"`), une connexion
+    /// qui rouvre un compte existant jetterait le parcours en cours. « Continuer
+    /// la création » ne rend pas l'identité : le parcours n'avance pas
+    /// (`ProviderAuthFollowUp.declined`).
     private func signInWithGoogle() {
         guard !isGoogleLoading else { return }
         isGoogleLoading = true
         googleError = nil
-        Task {
+        Task { @MainActor in
             do {
                 let auth = try await GoogleAuthService.shared.authenticate(username: username)
-                onGoogle(auth.identity, auth.session)
+                isGoogleLoading = false
+                if let alert = loginIntProviderReuseAlert(
+                    provider: .google,
+                    subject: auth.identity.subject,
+                    email: auth.identity.email,
+                    subjectKeyPath: \AcctStoredAccount.googleSubject,
+                    authStage: "signup",
+                    upgradingGuest: false,
+                    hasActiveSession: session.isSignedIn,
+                    proceed: { onGoogle(auth.identity, auth.session) }
+                ) {
+                    pendingReuse = alert
+                }
             } catch {
                 googleError = "La connexion à Google a échoué."
+                isGoogleLoading = false
             }
-            isGoogleLoading = false
         }
+    }
+
+    /// `pendingReuse != nil` ⇔ alerte de réouverture de compte présentée.
+    private var isReusePresented: Binding<Bool> {
+        Binding(
+            get: { pendingReuse != nil },
+            set: { presented in if !presented { pendingReuse = nil } }
+        )
     }
 }

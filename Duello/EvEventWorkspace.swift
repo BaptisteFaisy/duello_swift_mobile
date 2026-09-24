@@ -47,6 +47,10 @@ struct EvEventWorkspace: View {
 
     private var subject: EvEventSubject? { EvEventCatalog.subject(for: event.id) }
 
+    /// Identifiant public du compte courant, pour retirer son avatar du rail des
+    /// présents et marquer « (toi) » dans la feuille des vues.
+    private var ownId: String { DuelloAPI.publicProfileId(email: email) }
+
     var body: some View {
         Group {
             if model.phase == .finished {
@@ -64,6 +68,11 @@ struct EvEventWorkspace: View {
             }
         }
         .background(Theme.surface)
+        // Le rail des présents hérite du store injecté par `.evEventPresence`,
+        // qui doit donc rester le plus à l'extérieur (sinon « No
+        // ObservableObject found »).
+        .overlay { EvEventPresenceRail(ownId: ownId) }
+        .evEventPresence(eventId: event.id, token: token)
         .onAppear { model.start() }
         .onDisappear { model.stop() }
     }

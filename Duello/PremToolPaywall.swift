@@ -41,6 +41,17 @@ final class PremToolPaywallCenter: ObservableObject {
     /// Outil demandé, `nil` quand aucune fenêtre n'est ouverte.
     @Published var tool: PremPremiumTool?
 
+    /// Couture d'achat de la fenêtre (`PremCodePurchases`) : un seul point
+    /// interroge la disponibilité de la facturation native, jamais une seconde
+    /// couture. Dans ce build, la couture simulée refuse
+    /// (`PremCodeSimulatedPurchases.isAvailable == false`) : le bouton
+    /// d'abonnement garde son état désactivé.
+    let purchases: PremCodePurchases = PremCodeSimulatedPurchases()
+
+    /// `isPurchaseAvailable()` : la facturation native est-elle opérationnelle ?
+    /// Jamais ici — voir `PremPurchaseService.isAvailable`.
+    var isPurchaseAvailable: Bool { purchases.isAvailable }
+
     private init() {}
 
     /// `openPremiumToolPaywall(tool:)`.
@@ -77,7 +88,27 @@ struct PremToolPaywallHost: ViewModifier {
                 .padding(20)
             }
             .background(Theme.surface)
+            // La fenêtre présentée reçoit la disponibilité d'achat de l'hôte
+            // (couture `PremCodePurchases`), pour qu'elle ne la recalcule pas :
+            // `PremOffersSection` lit cette valeur (`\.premPurchaseAvailable`).
+            .environment(\.premPurchaseAvailable, center.isPurchaseAvailable)
         }
+    }
+}
+
+/// Disponibilité de la facturation native, publiée par l'hôte du paywall
+/// (`PremToolPaywallHost`) au contenu qu'il présente : un seul point interroge
+/// la couture `PremCodePurchases`. La valeur par défaut est celle de cette
+/// couture (`PremCodeSimulatedPurchases`), qui refuse dans ce build.
+struct PremPurchaseAvailableKey: EnvironmentKey {
+    static let defaultValue = PremCodeSimulatedPurchases().isAvailable
+}
+
+extension EnvironmentValues {
+    /// Vrai si la facturation native est opérationnelle (`isPurchaseAvailable()`).
+    var premPurchaseAvailable: Bool {
+        get { self[PremPurchaseAvailableKey.self] }
+        set { self[PremPurchaseAvailableKey.self] = newValue }
     }
 }
 

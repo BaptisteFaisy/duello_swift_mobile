@@ -45,13 +45,18 @@ enum ReportSafetyAPI {
     /// le blocage créé par le compte courant.
     static func unblock(targetId: String, token: String?) async throws -> ReportSafetyState {
         let body = try DuelloAPI.encodeBody(ReportSafetyTarget(targetId: targetId))
-        return try await DuelloAPI.request(
+        let state = try await DuelloAPI.request(
             ReportSafetyState.self,
             "user-safety/blocks",
             method: "DELETE",
             token: token,
             body: body
         )
+        // Les instantanés persistés excluaient le profil débloqué
+        // (`clearRankingsSnapshots` de `unblockSocialProfile`) : ils ne
+        // doivent pas resservir au prochain démarrage.
+        await clearRankingsSnapshots()
+        return state
     }
 
     /// `POST /user-safety/reports` (`submitUserReport`) : dépose un signalement

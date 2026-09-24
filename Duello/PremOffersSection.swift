@@ -13,11 +13,18 @@ import SwiftUI
 ///
 /// absent : la disposition de bureau (trois cartes côte à côte, survol à
 /// l'échelle), propre au client téléchargé.
-/// absent : « Gérer mon abonnement » (`presentCustomerCenter`), qui n'existe
-/// que si le paywall RevenueCat est embarqué — jamais dans ce portage.
+/// « Gérer mon abonnement » (`presentCustomerCenter`) n'apparaît que si le
+/// paywall RevenueCat est embarqué (`isRevenueCatPaywallAvailable`) : la sonde
+/// `PremPurchasesModules.nativePurchasesUIModule()` renvoie `nil` dans ce build,
+/// donc la ligne reste absente — l'appel est câblé, il ne s'affiche jamais.
 struct PremOffersSection: View {
     /// Jeton de session, transmis à la carte « code promo ».
     var token: String? = nil
+
+    /// Disponibilité de la facturation native, publiée par l'hôte du paywall
+    /// (`\.premPurchaseAvailable`) ; sans hôte, la valeur par défaut est celle
+    /// de la couture `PremCodePurchases` (voir `PremToolPaywall.swift`).
+    @Environment(\.premPurchaseAvailable) private var purchaseAvailable
 
     @StateObject private var promo = PremPromoCodeController()
     @State private var availableWidth: CGFloat = 0
@@ -81,15 +88,38 @@ struct PremOffersSection: View {
     }
 
     /// Les garanties, sous la carte promo : la source les aligne sur 300 points
-    /// centrés.
+    /// centrés. La gestion d'abonnement ne s'y ajoute que si la facturation
+    /// native est embarquée (`isRevenueCatPaywallAvailable`), donc jamais ici.
     private var reassurance: some View {
         VStack(alignment: .leading, spacing: 9) {
             PremReassuranceRow(label: "Résiliable à tout moment")
             PremReassuranceRow(label: "Paiement sécurisé via l’App Store et Google Play")
+            if manageAvailable { manageRow }
         }
         .frame(maxWidth: 300, alignment: .leading)
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 8)
+    }
+
+    /// `isRevenueCatPaywallAvailable()` : SDK + interface RevenueCat + clé.
+    /// La disponibilité vient de la couture d'achat (publiée par l'hôte du
+    /// paywall ou lue par défaut) ; la sonde de l'interface RevenueCat renvoie
+    /// `nil` dans ce build, donc la ligne reste masquée.
+    private var manageAvailable: Bool {
+        purchaseAvailable && PremPurchasesModules.nativePurchasesUIModule() != nil
+    }
+
+    /// « Gérer mon abonnement » (`presentCustomerCenter`) : même disposition
+    /// qu'une garantie, mais actionnable. Jamais montrée tant que la couture
+    /// d'achat refuse (`purchaseAvailable == false`).
+    private var manageRow: some View {
+        Button {
+            Task { try? await PremPurchasesModules.nativePurchasesUIModule()?.presentCustomerCenter() }
+        } label: {
+            PremReassuranceRow(label: "Gérer mon abonnement", icon: "gearshape")
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Gérer mon abonnement")
     }
 
     /// Mesure la largeur du carrousel (`onLayout` de la source) : les cartes se
