@@ -245,9 +245,8 @@ jobs:
                       if isinstance(d, dict) and "_http_error" in d:
                           print("[llm] %s (%s/%s): HTTP %s %s" % (label, prov, model, d["_http_error"], d["_body"]))
                           continue
-                  except urllib.error.HTTPError as e:
-                      print("[llm] %s (%s/%s): HTTP %s %s" % (label, prov, model, e.code, e.read().decode()[:300]))
-                      continue
+                  # [RESEAU-DEADLINE] pas de `except HTTPError` ici : `_do_post` le
+                  # convertit en sentinelle (un `e.read()` hors delai ne doit pas revenir).
                   except Exception as e:
                       print("[llm] %s (%s/%s): %s" % (label, prov, model, e))
                       continue
