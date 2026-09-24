@@ -204,7 +204,9 @@ jobs:
                       print("[api] reseau KO (%s) %s %s — tentative %d/4" % (
                           type(e).__name__, method, path, attempt + 1))
                       time.sleep(2 * (attempt + 1))
-              return {"_error": 0, "_body": "reseau: %r" % last}
+              # [API-SENTINELLE] -1 (truthy), PAS 0 : sur panne reseau les appelants testent
+              # `r.get("_error")` en verite ; 0 (falsy) etait lu comme un SUCCES.
+              return {"_error": -1, "_body": "reseau: %r" % last}
 
           def _llm_chat(sysmsg, user_text, label, task, max_tokens, temperature=0.0, timeout=300):
               """Un appel LLM : passerelle locale d'abord, Agnes direct en repli.
@@ -335,7 +337,7 @@ jobs:
                   "name": CHECK_NAME, "head_sha": head_sha,
                   "status": "completed", "conclusion": concl,
                   "started_at": now(), "completed_at": now(), "output": out})
-              if r.get("_error"):
+              if r.get("_error") is not None:
                   print("[check] erreur %s: %s" % (r["_error"], r["_body"]))
 
           def create_check(pr, fresh, behind, review, base_ref):
@@ -359,7 +361,7 @@ jobs:
                   if attempt:
                       time.sleep(5 * attempt)
                   r = api("GET", "/repos/%s/commits/main" % REPO)
-                  if r.get("_error") or not r.get("sha"):
+                  if r.get("_error") is not None or not r.get("sha"):
                       return
                   tip = r["sha"]
                   if has_success_check(tip):
@@ -418,12 +420,12 @@ jobs:
               if not head_sha:
                   return False
               live = api("GET", "/repos/%s/pulls/%s" % (REPO, pr["number"]))
-              if not isinstance(live, dict) or live.get("_error"):
+              if not isinstance(live, dict) or live.get("_error") is not None:
                   return False
               if not (live.get("merged") and live.get("merged_at")):
                   return False
               cmp_ = api("GET", "/repos/%s/compare/%s...%s" % (REPO, base_ref, head_sha))
-              if not isinstance(cmp_, dict) or cmp_.get("_error"):
+              if not isinstance(cmp_, dict) or cmp_.get("_error") is not None:
                   return False
               return cmp_.get("status") in ("identical", "behind") or cmp_.get("ahead_by") == 0
 
@@ -540,7 +542,7 @@ jobs:
                   return
               r = api("POST", "/repos/%s/actions/workflows/ci.yml/dispatches" % REPO,
                       {"ref": pr["head"]["ref"]})
-              if r.get("_error"):
+              if r.get("_error") is not None:
                   print("[selfheal] #%s : dispatch ci.yml refuse %s %s"
                         % (pr["number"], r.get("_error"), r.get("_body")))
               else:
@@ -606,7 +608,7 @@ jobs:
               d = api("POST", "/repos/%s/actions/workflows/%s/dispatches" % (REPO, RESOLVER_WORKFLOW),
                       {"ref": "main", "inputs": {"pr_number": str(num), "head_ref": head_ref,
                                                  "base_ref": pr["base"]["ref"], "head_sha": head_sha}})
-              if d.get("_error"):
+              if d.get("_error") is not None:
                   print("[resolver] PR #%s : echec dispatch %s: %s" % (num, d.get("_error"), d.get("_body")))
                   set_label(pr, LABEL_RESOLVER, False)
                   return False
@@ -621,7 +623,7 @@ jobs:
               base_ref = pr["base"]["ref"]
               head_sha = pr["head"]["sha"]
               cmp = api("GET", "/repos/%s/compare/%s...%s" % (REPO, base_ref, head_sha))
-              if cmp.get("_error"):
+              if cmp.get("_error") is not None:
                   print("[hermes] #%s compare impossible: %s" % (pr["number"], cmp.get("_body")))
                   return
               behind = cmp.get("behind_by")
