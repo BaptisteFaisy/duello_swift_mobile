@@ -92,7 +92,7 @@ struct PhotoTxRelayResponse: Decodable { let text: String; let source: String?; 
 /// utilisé.** L'image est relue sur disque puis réencodée en JPEG base64
 /// (`UIImage.jpegData(compressionQuality:)`), comme `preparePremiumImage` côté Expo.
 private enum PhotoTxRelay {
-    static func transcribe(uris: [String], subject: String, exercise: String?, mode: String, pageNumber: Int?, pageCount: Int, token: String?) async throws -> PhotoTxRelayResponse {
+    static func transcribe(uris: [String], subject: String, exercise: String?, mode: String, pageNumber: Int?, pageCount: Int, token: String?, questionLabels: [String]? = nil) async throws -> PhotoTxRelayResponse {
         var images: [[String: Any]] = []
         for uri in uris {
             guard let data = FileManager.default.contents(atPath: uri), let image = UIImage(data: data),
@@ -105,6 +105,7 @@ private enum PhotoTxRelay {
                                    "transcriptionMode": mode, "pageCount": pageCount]
         if let exercise, !exercise.isEmpty { body["exercise"] = exercise }
         if let pageNumber { body["pageNumber"] = pageNumber }
+        if mode == "full-exercise", let questionLabels { body["questionLabels"] = questionLabels }
         if mode == "full-exercise" { body["images"] = images } else {
             body["image"] = images.first?["image"] as? String ?? ""
             body["mimeType"] = "image/jpeg"
@@ -131,6 +132,7 @@ final class PhotoTxController: ObservableObject {
     private let exercise: String?
     private let onInsert: (String) -> Void
     private let onClose: () -> Void
+    var exerciseWiring = PhotoTxExerciseWiring()
     private var task: Task<Void, Never>?
     init(subject: String, exercise: String?, onInsert: @escaping (String) -> Void, onClose: @escaping () -> Void) {
         self.subject = subject
@@ -169,6 +171,7 @@ final class PhotoTxController: ObservableObject {
         case .insert:
             let clean = state.text.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !clean.isEmpty else { return }
+            if state.scope == .exercise, exerciseWiring.insert(clean) { onClose(); return }
             onInsert(clean)
             onClose()
         case let .setCaptureScope(scope): state.scope = scope
@@ -189,7 +192,8 @@ final class PhotoTxController: ObservableObject {
                 state.readingProgress = PhotoTxProgress(current: 0, total: uris.count)
                 let result = try await PhotoTxRelay.transcribe(uris: uris, subject: subject, exercise: exercise,
                                                                mode: "full-exercise", pageNumber: nil,
-                                                               pageCount: uris.count, token: token)
+                                                               pageCount: uris.count, token: token,
+                                                               questionLabels: exerciseWiring.labels)
                 pieces = [LatexToUnicode.toUnicodeMath(result.text).trimmingCharacters(in: .whitespacesAndNewlines)]
                 engine = result.source
                 model = result.model
@@ -448,13 +452,14 @@ struct PhotoTranscriptionView: View {
     var onInsert: (String) -> Void
     @EnvironmentObject private var session: SessionStore
     @StateObject private var controller: PhotoTxController
-    init(subject: String, exercisePrompt: String? = nil, onClose: @escaping () -> Void, onInsert: @escaping (String) -> Void) {
+    init(subject: String, exercisePrompt: String? = nil, exerciseQuestions: [PhotoExerciseQuestion] = [], onInsertExercise: (([String: String]) -> Void)? = nil, onClose: @escaping () -> Void, onInsert: @escaping (String) -> Void) {
         self.subject = subject
         self.exercisePrompt = exercisePrompt
         self.onClose = onClose
         self.onInsert = onInsert
-        _controller = StateObject(wrappedValue: PhotoTxController(subject: subject, exercise: exercisePrompt,
-                                                                  onInsert: onInsert, onClose: onClose))
+        let controller = PhotoTxController(subject: subject, exercise: exercisePrompt, onInsert: onInsert, onClose: onClose)
+        controller.exerciseWiring = PhotoTxExerciseWiring(questions: exerciseQuestions, onInsert: onInsertExercise)
+        _controller = StateObject(wrappedValue: controller)
     }
     var body: some View {
         VStack(spacing: 0) {

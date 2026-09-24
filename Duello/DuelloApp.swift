@@ -7,6 +7,10 @@ struct DuelloApp: App {
     /// l'exigent en `@EnvironmentObject` (`DuelloProgressView`,
     /// `TrainingCatalogView`) — sans elle, l'app plante à leur ouverture.
     @StateObject private var progress = ProgressStore()
+    /// File des paliers franchis : alimentée par les écritures XP de `progress`
+    /// (voir `LevelUpQueue.start(observing:)`), présentée à la racine par
+    /// `LevelUpCelebrationCoordinator` — équivalent du `useLevelUpQueue` Expo.
+    @StateObject private var levelUpQueue = LevelUpQueue()
     /// Demande de réinitialisation reçue par lien profond
     /// (`duello-dev://reset-password?email=…&token=…`) : présentée en plein
     /// écran, comme `PasswordResetScreen` côté Expo.
@@ -21,6 +25,18 @@ struct DuelloApp: App {
             RootView()
                 .environmentObject(session)
                 .environmentObject(progress)
+                // Retrait du focus clavier quand l'app quitte le premier plan
+                // (`useDismissKeyboardOnAppBackground` du hook Expo) : les
+                // écrans restent montés, seul le premier répondant est retiré.
+                .dismissKeyboardOnAppBackground()
+                // Démarre l'observation de la source XP **une fois** : la
+                // première émission est le chargement initial (non célébré),
+                // les écritures suivantes alimentent la file.
+                .task { levelUpQueue.start(observing: progress) }
+                // Célébration présentée par-dessus toute la hiérarchie (onglets
+                // compris), comme le `Modal` transparent `overFullScreen` de la
+                // source. File vide → le coordinateur ne rend rien.
+                .overlay { LevelUpCelebrationCoordinator(queue: levelUpQueue) }
                 // Retour du navigateur Google vers l'app (schéma du client
                 // iOS inversé), comme le handle de lien profond Expo.
                 .onOpenURL { url in

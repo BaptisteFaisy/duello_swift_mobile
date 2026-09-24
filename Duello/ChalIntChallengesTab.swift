@@ -34,6 +34,11 @@ struct ChalIntChallengesTab: View {
 
     @StateObject private var queue = ChalQueueController()
     @StateObject private var invites = ChalInvitationCoordinator()
+    /// Événements déjà vus du compte : allume la pastille « nouveau » de l'onglet
+    /// Événements et de chaque carte ajoutée depuis la dernière consultation.
+    /// Amorcé à vide (`@StateObject` ne lit pas `@EnvironmentObject` à l'init),
+    /// puis réaligné par `syncSeenEvents`.
+    @StateObject private var seenEvents = EvSeenEventsModel(email: "", active: false, visibleIds: [])
 
     @State private var section: ChalHome2Section = .challenges
     @State private var duelMatch: MatchView?
@@ -52,6 +57,10 @@ struct ChalIntChallengesTab: View {
         .sheet(isPresented: $leaderboardOpen) { LeaderboardModalView() }
         .overlay(invitationOverlay)
         .onAppear { startInvitations() }
+        .onAppear { syncSeenEvents(active: true) }
+        .onChange(of: section) { _ in syncSeenEvents(active: true) }
+        .onChange(of: session.profile) { _ in syncSeenEvents(active: true) }
+        .onDisappear { syncSeenEvents(active: false) }
         .onChange(of: isBusy) { _ in startInvitations() }
         .onChange(of: queue.match) { found in
             if let found { duelMatch = found }
@@ -69,6 +78,7 @@ struct ChalIntChallengesTab: View {
             ChalHome2HomeSurface(
                 elo: eloText,
                 section: $section,
+                hasUnseenEvents: seenEvents.hasUnseenEvents,
                 onOpenLeaderboard: { leaderboardOpen = true },
                 challenges: { homePage },
                 events: { eventsPage }
@@ -111,10 +121,13 @@ struct ChalIntChallengesTab: View {
 
     private var eventsPage: some View {
         ScrollView {
-            EventsView()
-                .padding(.horizontal, 16)
-                .padding(.top, 12)
-                .padding(.bottom, 24)
+            EventsView(
+                onOpenEvent: { seenEvents.markEventSeen($0.id) },
+                seenEventIds: seenEvents.seenIds
+            )
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+            .padding(.bottom, 24)
         }
     }
 
@@ -187,6 +200,21 @@ struct ChalIntChallengesTab: View {
     }
 
     // MARK: Dérivations
+
+    /// Réaligne les événements vus sur la section et le compte courants : les
+    /// identifiants visibles suivent le même filtre que la liste affichée
+    /// (`visibleEventIds` de `ChallengesScreen.tsx`). `active` à faux conserve
+    /// l'état sans recharger.
+    private func syncSeenEvents(active: Bool) {
+        let ids = EvEventAudienceFilter
+            .visibleEvents(EvEventCatalog.upcoming, profile: session.profile)
+            .map(\.id)
+        seenEvents.update(
+            accountId: DuelloAPI.publicProfileId(email: session.profile.email),
+            active: active,
+            visibleIds: ids
+        )
+    }
 
     private var isBusy: Bool { duelMatch != nil || queue.status != .idle }
     private var canLaunch: Bool { ChalHome2Launch.canLaunch(profile: session.profile) }

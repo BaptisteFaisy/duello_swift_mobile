@@ -140,6 +140,15 @@ final class SessionStore: ObservableObject {
         session = nil
         isSignedIn = false
         Keychain.delete(service: Self.service, account: Self.account)
+        // La session de compte distante ne survit pas à la déconnexion
+        // (`clearServerSession` de `serverSession.ts`) : sans elle,
+        // `RewRemoteAccountData` ne peut plus rattacher aucune donnée à ce compte.
+        UserDefaults.standard.removeObject(forKey: DevRegSessions.serverSessionStorageKey)
+        // Effacement défensif des clés de session/authentification héritées
+        // (`clearPersistedAuthSession` de `authSession.ts`), après la purge du
+        // trousseau. Sur une installation Swift neuve, aucune de ces clés
+        // n'existe : l'appel est un no-op silencieux, sans effet de bord.
+        try? AcctAuthSession.clearPersistedAuthSession()
         // `logout` de la source remet le profil à `initialProfile`
         // (`App.tsx:2440` `setProfile(initialProfile)`) : le compte quitte
         // l'appareil, son profil aussi. Sans cela l'adresse et le pseudo du
@@ -200,6 +209,7 @@ final class SessionStore: ObservableObject {
         if let data = try? JSONEncoder().encode(session) {
             Keychain.save(data, service: Self.service, account: Self.account)
         }
+        persistRemoteAccountSession(session)
     }
 
     func persistProfile() {

@@ -21,11 +21,13 @@
 //  est interne au module uniquement pour cette extension (aucun autre appelant
 //  ne le modifie) ; l'interface publique reste `enter` / `cancel` / `release`.
 //
-//  Limite assumée : `buildTrainingMatch` (matchmaking.ts) n'est pas porté. Passé
-//  `TRAINING_FALLBACK_MS`, le contrôleur signale `trainingFallbackReached` et
-//  revient au repos plutôt que de fabriquer un faux adversaire ; l'écran peut
-//  alors proposer l'entraînement. Un rendez-vous de classe reste une vraie salle
-//  multijoueur et ne se transforme jamais en entraînement.
+//  Repli d'entraînement : passé `TRAINING_FALLBACK_MS` sans adversaire, le
+//  contrôleur signale `trainingFallbackReached` puis fabrique le match
+//  d'entraînement (`ChalTrainingMatchFactory.buildTrainingMatch`, porté de
+//  `buildTrainingMatch`) avec la requête courante, **avant** que `cancel()`
+//  n'efface `entry` ; `nil` (aucun exercice jouable) laisse l'état d'échec
+//  (repli au repos). Un rendez-vous de classe reste une vraie salle multijoueur
+//  et ne se transforme jamais en entraînement.
 //
 //  Le `QueueRequest` actuel ne porte pas de champ de salle planifiée : `Mode`
 //  conserve `.scheduled` pour rester aligné sur la source, sans le produire.
@@ -198,7 +200,22 @@ final class ChalQueueController: ObservableObject {
                 // seul le dépassement du délai déclenche le repli entraînement.
                 guard self.waitedMs >= ChalMatchmaking.trainingFallbackMs else { continue }
                 self.trainingFallbackReached = true
+                // Fabrique l'entraînement avec la requête courante **avant**
+                // `cancel()`, qui efface `entry`. `buildTrainingMatch` renvoie
+                // `nil` sans exercice jouable : on garde alors l'état d'échec
+                // (repli au repos) plutôt que de fabriquer un faux adversaire.
+                let fallback = self.entry.flatMap {
+                    ChalTrainingMatchFactory.buildTrainingMatch(
+                        $0,
+                        now: Date().timeIntervalSince1970 * 1000,
+                        durationMinutes: ChalMatchmaking.challengeDurationMinutes
+                    )
+                }
                 self.cancel()
+                if let fallback {
+                    self.match = fallback.matchView()
+                    self.status = .matched
+                }
                 return
             }
         }

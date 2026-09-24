@@ -337,6 +337,10 @@ struct SubjectLeaderboardView: View {
         errorMessage = ""
         let subject = self.subject
         Task {
+            // Rendu immédiat depuis l'instantané persisté, avant le réseau.
+            if let snapshot = await subjectLeaderboardSnapshotEntries(subject: subject) {
+                await MainActor.run { entries = snapshot; phase = .ready }
+            }
             do {
                 let result = try await DuelloAPI.subjectLeaderboard(subject: subject, token: token)
                 await MainActor.run {

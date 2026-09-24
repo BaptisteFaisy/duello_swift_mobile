@@ -76,9 +76,17 @@ struct CtdDocumentViewer: View {
     let revision: Double
     var height: CGFloat = 330
 
+    /// Session Duello (injectée à la racine) : fournit le jeton du prof IA.
+    @EnvironmentObject private var session: SessionStore
+
     @State private var payload: CtdDocumentPayload?
     @State private var failed = false
     @State private var retryRevision = 0
+    /// Demande du prof IA posée par le pont ; `nil` ferme la feuille.
+    @State private var profRequest: ProfTutorRequest?
+    /// Demande retenue le temps que l'élève accorde (ou refuse) l'IA.
+    @State private var profPendingRequest: ProfTutorRequest?
+    @State private var profConsentVisible = false
 
     var body: some View {
         Group {
@@ -95,6 +103,19 @@ struct CtdDocumentViewer: View {
         .background(Theme.surfaceMuted)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
         .task(id: loadKey) { load() }
+        // `ProfTutorSheet` : `onDismiss` remet l'item à `nil`, indispensable au
+        // glissement vers le bas, qui ne passe pas par `onClose`.
+        .sheet(item: $profRequest, onDismiss: { profRequest = nil }) { request in
+            ProfTutorSheet(request: request, token: session.token) { profRequest = nil }
+        }
+        // `requireAiDataSharingConsent` : l'explication transmet le passage au
+        // relais, donc l'accord de l'élève est demandé d'abord.
+        .alert(CtdAiConsent.title, isPresented: $profConsentVisible) {
+            Button(CtdAiConsent.denyLabel, role: .cancel) { profPendingRequest = nil }
+            Button(CtdAiConsent.allowLabel) { grantProfConsent() }
+        } message: {
+            Text(CtdAiConsent.message)
+        }
     }
 
     /// Clé de rechargement : document, révision et essai manuel.
@@ -116,9 +137,12 @@ struct CtdDocumentViewer: View {
     private func content(_ loaded: CtdDocumentPayload) -> some View {
         switch loaded {
         case .image(let base64, let mimeType):
+            // `textSelection` de la source : la sélection est ouverte pour que
+            // le pont du prof IA (« Expliquer ce passage ») puisse la lire ; le
+            // pont bloque lui-même copie, coupe et menu contextuel.
             CtdHtmlDocumentView(
                 html: CtdDocumentHtml.imageHtml(base64: base64, mimeType: mimeType),
-                selectable: false,
+                selectable: true,
                 onMessage: handleMessage
             )
         case .pdf(let data):
@@ -127,14 +151,48 @@ struct CtdDocumentViewer: View {
     }
 
     /// Le document prévient quand la photo n'a pas pu s'afficher
-    /// (`type: "error"`).
+    /// (`type: "error"`), et publie les événements du pont du prof IA
+    /// (sélection expliquée, copie bloquée, page sans texte).
     private func handleMessage(_ text: String) {
+        if let profEvent = parseProfBridgeMessage(text) {
+            handleProfBridgeEvent(profEvent)
+            return
+        }
         guard let data = text.data(using: .utf8),
               let object = try? JSONSerialization.jsonObject(with: data),
               let event = object as? [String: Any],
               let type = event["type"] as? String
         else { return }
         if type == "error" { failed = true }
+    }
+
+    /// `onMessage` du pont : une sélection expliquée ouvre la feuille (après
+    /// accord IA) ; copie bloquée et page sans texte restent au script.
+    private func handleProfBridgeEvent(_ event: ProfBridgeEvent) {
+        switch event {
+        case .explain(let passage, let page):
+            let request = ProfTutorRequest(
+                quote: passage,
+                context: ProfTutorContext(source: .cours, page: page)
+            )
+            guard CtdAiConsent.isGranted else {
+                profPendingRequest = request
+                profConsentVisible = true
+                return
+            }
+            profRequest = request
+        case .copyBlocked, .noText:
+            break
+        }
+    }
+
+    /// Accord donné : la demande retenue s'ouvre (`resolveConsent` de
+    /// `CourseTdView`).
+    private func grantProfConsent() {
+        CtdAiConsent.grant()
+        guard let pending = profPendingRequest else { return }
+        profPendingRequest = nil
+        profRequest = pending
     }
 
     private var loading: some View {

@@ -187,6 +187,13 @@ struct WeeklyXpRankingView: View {
         let subject = self.subject
         let week = self.week
         Task {
+            // Rendu immédiat depuis l'instantané persisté, avant le réseau.
+            if let snapshot = await loadRankingsSnapshots()?.first(where: {
+                $0.cache == .weeklyXpLeaderboard
+                    && $0.key == rankingsWeeklyXpLeaderboardCacheKey(subject: subject, week: week)
+            }) {
+                await MainActor.run { entries = snapshot.entries; phase = .ready }
+            }
             do {
                 let data = try await DuelloAPI.request(
                     "weekly-xp",
