@@ -308,13 +308,33 @@ struct OnbFlowView: View {
     // MARK: Vérifications et complétion
 
     /// `ensureAccountRegistrationAvailable` au montage (`registrationPreflightState`).
+    ///
+    /// ⚠️ Le montage interroge le pré-vol **sans adresse** : c'est ce que fait la
+    /// source (`ensureAccountRegistrationAvailable()`, `OnboardingScreen.tsx:331`).
+    /// Transmettre l'adresse du profil — qui survit à une déconnexion — faisait
+    /// répondre au serveur 409 « Un compte existe déjà avec cette adresse
+    /// e-mail », et l'avance restait bloquée dès la première étape.
     private func runPreflight() async {
         guard coordinator.requiresRegistrationPreflight else {
             coordinator.preflightState = .ready
             return
         }
         coordinator.preflightState = .checking
-        if let alert = await OnbFlowSteps.checkRegistrationPreflight(email: coordinator.profile.email) {
+        // Boutons de la source (`OnboardingScreen.tsx:335-350`) : « Réessayer »
+        // toujours, « Revenir à l'accueil » seulement quand un retour existe.
+        var actions: [OnbFlowAlertAction] = [
+            OnbFlowAlertAction(title: "Réessayer", kind: .retry)
+        ]
+        if onCancel != nil {
+            actions.append(
+                OnbFlowAlertAction(
+                    title: "Revenir à l’accueil",
+                    kind: .backToWelcome,
+                    isCancel: true
+                )
+            )
+        }
+        if let alert = await OnbFlowSteps.checkRegistrationPreflight(email: nil, actions: actions) {
             coordinator.preflightState = .blocked
             coordinator.pendingAlert = alert
         } else {
