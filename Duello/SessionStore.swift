@@ -140,6 +140,14 @@ final class SessionStore: ObservableObject {
         session = nil
         isSignedIn = false
         Keychain.delete(service: Self.service, account: Self.account)
+        // `logout` de la source remet le profil à `initialProfile`
+        // (`App.tsx:2440` `setProfile(initialProfile)`) : le compte quitte
+        // l'appareil, son profil aussi. Sans cela l'adresse et le pseudo du
+        // compte précédent restaient et pré-remplissaient l'inscription
+        // suivante (pré-vol d'inscription → 409 « Un compte existe déjà avec
+        // cette adresse e-mail »).
+        profile = UserProfile()
+        persistProfile()
     }
 
     // MARK: Persistance
@@ -171,9 +179,19 @@ final class SessionStore: ObservableObject {
             self.session = session
             isSignedIn = session.token.hasPrefix("dus_")
         }
-        if let data = UserDefaults.standard.data(forKey: Self.profileKey),
+        // Le profil n'est relu qu'avec une session ouverte : la source ne
+        // restaure un profil que pour un compte connecté
+        // (`App.tsx:974-981`, `if (isUserAccount(sessionAccount))`). Sans
+        // session, le profil reste celui d'origine — sinon l'adresse et le
+        // pseudo du compte précédent survivent à la déconnexion et
+        // pré-remplissent l'inscription suivante.
+        if isSignedIn,
+           let data = UserDefaults.standard.data(forKey: Self.profileKey),
            let profile = try? JSONDecoder().decode(UserProfile.self, from: data) {
             self.profile = profile
+        } else {
+            profile = UserProfile()
+            persistProfile()
         }
         isLoadingSession = false
     }
