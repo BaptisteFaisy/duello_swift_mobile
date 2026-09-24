@@ -71,13 +71,18 @@ jobs:
   guard:
     name: garde-fou anti-fermeture sans merge
     runs-on: [self-hosted, zenbook]
+    # [GATE-TIMEOUT] Filet de securite : ce garde ne doit jamais pendre sur
+    # une socket muette (le `timeout=` d'urllib ne borne que la lecture, pas
+    # la duree totale). Le delai TOTAL par appel (_with_deadline) traite le
+    # cas courant ; ce plafond de job traite tout blocage residuel.
+    timeout-minutes: 15
     steps:
       - name: Rouvrir les PR fermees sans merge dont le contenu n'est pas dans la base
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           python3 - <<'PYEOF'
-          import json, os, urllib.error, urllib.parse, urllib.request
+          import threading, json, os, urllib.error, urllib.parse, urllib.request
 
           TOKEN = os.environ.get("GH_TOKEN", "")
           REPO = os.environ["GITHUB_REPOSITORY"]
@@ -93,6 +98,27 @@ jobs:
           MAX_REOPEN = 20
           MARKER = "<!-- hermes:no-close-guard -->"
 
+          def _with_deadline(fn, seconds, label="reseau"):
+              # [RESEAU-DEADLINE] Le `timeout=` d'urllib borne chaque LECTURE socket
+              # (et ne borne PAS la resolution DNS) : une socket acceptee puis
+              # laissee ouverte et muette fait pendre l'appel INDEFINIMENT. On borne
+              # donc la duree TOTALE : l'appel tourne dans un thread daemon que l'on
+              # abandonne au-dela du delai (portable Linux/Windows).
+              box = {}
+              def _run():
+                  try:
+                      box["v"] = fn()
+                  except BaseException as exc:  # noqa: BLE001 - re-leve cote appelant
+                      box["e"] = exc
+              th = threading.Thread(target=_run, daemon=True)
+              th.start()
+              th.join(seconds)
+              if th.is_alive():
+                  raise TimeoutError("delai total %ss depasse (%s)" % (seconds, label))
+              if "e" in box:
+                  raise box["e"]
+              return box.get("v")
+
           def api(method, path, body=None):
               req = urllib.request.Request(API + path, method=method)
               req.add_header("Authorization", "Bearer " + TOKEN)
@@ -102,14 +128,22 @@ jobs:
               if body is not None:
                   data = json.dumps(body).encode()
                   req.add_header("Content-Type", "application/json")
+              def _once():
+                  # [RESEAU-DEADLINE] TOUTE la conversation tient dans le delai :
+                  # connect + lecture du corps + lecture du corps d'erreur HTTP.
+                  try:
+                      with urllib.request.urlopen(req, data, timeout=60) as r:
+                          raw = r.read()
+                          return json.loads(raw) if raw else {}
+                  except urllib.error.HTTPError as e:
+                      return {"_error": e.code, "_body": e.read().decode()[:600]}
               try:
-                  with urllib.request.urlopen(req, data, timeout=60) as r:
-                      raw = r.read()
-                      return json.loads(raw) if raw else {}
-              except urllib.error.HTTPError as e:
-                  return {"_error": e.code, "_body": e.read().decode()[:600]}
+                  # [RESEAU-DEADLINE] delai TOTAL, pas seulement par lecture.
+                  return _with_deadline(_once, 90, "%s %s" % (method, path))
               except Exception as e:  # jamais d'exception non geree dans ce garde
-                  return {"_error": 0, "_body": repr(e)}
+                  # [API-SENTINELLE] -1 (truthy), PAS 0 : les appelants testent la
+                  # presence de `_error` ; 0 (falsy) etait lu comme un SUCCES.
+                  return {"_error": -1, "_body": repr(e)}
 
           def content_in_base(pr):
               """Le contenu du head est-il REELLEMENT dans la base ?
@@ -125,7 +159,7 @@ jobs:
               if pr.get("merged") and pr.get("merged_at"):
                   return True
               cmp_ = api("GET", "/repos/%s/compare/%s...%s" % (REPO, base_ref, head_sha))
-              if isinstance(cmp_, dict) and not cmp_.get("_error"):
+              if isinstance(cmp_, dict) and cmp_.get("_error") is None:
                   if cmp_.get("status") in ("identical", "behind"):
                       return True
                   if cmp_.get("ahead_by") == 0:
@@ -149,7 +183,7 @@ jobs:
               if ref in PROTECTED_REFS:
                   return "ref protegee `%s` : non touchee" % ref
               cur = api("GET", "/repos/%s/git/ref/heads/%s" % (REPO, urllib.parse.quote(ref, safe="")))
-              if isinstance(cur, dict) and not cur.get("_error"):
+              if isinstance(cur, dict) and cur.get("_error") is None:
                   obj = cur.get("object") or {}
                   if obj.get("sha"):
                       return "branche deja presente"

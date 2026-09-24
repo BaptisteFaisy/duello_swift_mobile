@@ -107,7 +107,7 @@ jobs:
         run: |
           python3 - <<'PYEOF'
           # -*- coding: utf-8 -*-
-          import json, os, time, urllib.request, urllib.error, urllib.parse, http.client
+          import threading, json, os, time, urllib.request, urllib.error, urllib.parse, http.client
 
           GH = os.environ["GH_TOKEN"]
           REPO = os.environ["GITHUB_REPOSITORY"]
@@ -117,6 +117,27 @@ jobs:
           STAMP = os.path.join(
               os.environ.get("RUNNER_TEMP", "."),
               "hermes-watchdog-last-dispatch.txt")
+
+          def _with_deadline(fn, seconds, label="reseau"):
+              # [RESEAU-DEADLINE] Le `timeout=` d'urllib borne chaque LECTURE socket
+              # (et ne borne PAS la resolution DNS) : une socket acceptee puis
+              # laissee ouverte et muette fait pendre l'appel INDEFINIMENT. On borne
+              # donc la duree TOTALE : l'appel tourne dans un thread daemon que l'on
+              # abandonne au-dela du delai (portable Linux/Windows).
+              box = {}
+              def _run():
+                  try:
+                      box["v"] = fn()
+                  except BaseException as exc:  # noqa: BLE001 - re-leve cote appelant
+                      box["e"] = exc
+              th = threading.Thread(target=_run, daemon=True)
+              th.start()
+              th.join(seconds)
+              if th.is_alive():
+                  raise TimeoutError("delai total %ss depasse (%s)" % (seconds, label))
+              if "e" in box:
+                  raise box["e"]
+              return box.get("v")
 
           def api(method, path, body=None):
               req = urllib.request.Request(API + path, method=method)
@@ -128,14 +149,20 @@ jobs:
                   req.add_header("Content-Type", "application/json")
               # [WD-RESEAU] Coupures transitoires rattrapees (meme correctif que
               # hermes.yml) : jamais d'exception non geree qui tue le watchdog.
-              last = None
-              for attempt in range(4):
+              def _once():
+                  # [RESEAU-DEADLINE] Corps d'erreur HTTP lu DANS le delai.
                   try:
                       with urllib.request.urlopen(req, data, timeout=60) as r:
                           raw = r.read()
                           return {"code": r.status, "json": json.loads(raw) if raw else {}}
                   except urllib.error.HTTPError as e:
                       return {"code": e.code, "json": {}, "body": e.read().decode()[:300]}
+              last = None
+              for attempt in range(4):
+                  try:
+                      # [RESEAU-DEADLINE] delai TOTAL par tentative, tenu SOUS le
+                      # budget du job (timeout-minutes: 5) : 4 x 60 s + backoffs < 5 min.
+                      return _with_deadline(_once, 60, "%s %s" % (method, path))
                   except (urllib.error.URLError, OSError, http.client.HTTPException) as e:
                       last = e
                       print("[api] reseau KO (%s) %s %s — tentative %d/4" % (
