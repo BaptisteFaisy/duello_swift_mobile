@@ -25,7 +25,8 @@ struct OnbGiftMathChartPlot: View {
                 ForEach(OnbGiftChartData.gradeTicks, id: \.self) { grade in
                     Rectangle()
                         .fill(Color(hex: 0x292929))
-                        .frame(height: 1)
+                        // `gridLine.height` = `hairlineWidth` (0,5 pt sur 2×).
+                        .frame(height: 0.5)
                         .offset(y: OnbGiftChartData.gradeY(grade))
                 }
                 OnbGiftChartCurves(width: proxy.size.width)

@@ -132,7 +132,7 @@ struct OnbUiField<Trailing: View>: View {
         VStack(alignment: .leading, spacing: 8) {
             if let label = props.label {
                 Text(label)
-                    .font(.system(size: 11, weight: .heavy))
+                    .font(.system(size: 11, weight: .black))
                     .tracking(1.5)
                     .textCase(.uppercase)
                     .foregroundStyle(props.dark ? Color.white : Theme.ink)
@@ -141,8 +141,8 @@ struct OnbUiField<Trailing: View>: View {
             HStack(alignment: props.multiline ? .top : .center, spacing: 10) {
                 if let icon = props.icon {
                     Image(systemName: icon)
-                        .font(.system(size: 17, weight: .medium))
-                        .foregroundStyle(props.dark ? Color(white: 0.72) : Theme.inkSoft)
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundStyle(props.dark ? Color(hex: 0xB8B8B8) : Theme.inkSoft)
                 }
                 inputField
                 trailing()
@@ -197,7 +197,7 @@ private struct OnbUiFieldTextStyle: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .font(.system(size: 15, weight: .semibold))
+            .font(.system(size: 15, weight: .regular))
             .foregroundStyle(dark ? Color.white : Theme.ink)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -220,18 +220,18 @@ struct OnbUiProviderAccountSummary: View {
             ZStack {
                 Circle().fill(dark ? Color.white : Theme.progress)
                 Image(systemName: "checkmark")
-                    .font(.system(size: 15, weight: .bold))
+                    .font(.system(size: 21, weight: .bold))
                     .foregroundStyle(dark ? Color.black : Color.white)
             }
             .frame(width: 36, height: 36)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Compte \(provider.rawValue) vérifié")
-                    .font(.system(size: 13, weight: .heavy))
+                    .font(.system(size: 13, weight: .black))
                     .foregroundStyle(dark ? Color.white : Theme.ink)
                 Text(email)
                     .font(.system(size: 12))
-                    .foregroundStyle(dark ? Color(white: 0.72) : Theme.inkSoft)
+                    .foregroundStyle(dark ? Color(hex: 0xB8B8B8) : Theme.inkSoft)
                     .lineLimit(1)
             }
 

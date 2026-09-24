@@ -3,9 +3,8 @@ import SwiftUI
 /// Sections du panneau « Mon TD » (`src/components/CourseTdPanel.tsx`).
 ///
 /// Chaque vue reprend une carte du panneau Expo, avec ses libellés mot pour
-/// mot. Les mesures viennent de `Theme` ; la carte d'erreur, rouge clair chez
-/// Expo (`#FCE0E0`), est composée depuis `Theme.like` pour ne pas coder de
-/// couleur en dur.
+/// mot. Les mesures viennent de `Theme` ; la carte d'erreur porte le rose
+/// pâle exact du source (`#FCE0E0`, codé en dur car absent de `Theme`).
 
 // MARK: - En-tête
 
@@ -32,18 +31,24 @@ struct CtdPanelHeading: View {
 // MARK: - Cours manquant
 
 /// Cours du chapitre absent : le panneau reste verrouillé (`lockedCard`).
+///
+/// Le source utilise l'Ionicons `lock-closed-outline` (taille 30) ; le SF
+/// Symbol `lock` en est le plus proche, sans être identique (contour du
+/// cadenas différent). Le texte est en graisse par défaut (400) avec
+/// `lineHeight: 19`.
 struct CtdLockedCard: View {
     var body: some View {
         VStack(spacing: 0) {
             Image(systemName: "lock")
-                .font(.system(size: 26, weight: .semibold))
+                .font(.system(size: 30, weight: .semibold))
                 .foregroundStyle(Theme.ink)
             Text("Importe d’abord ton cours")
                 .font(.system(size: 17, weight: .black))
                 .foregroundStyle(Theme.ink)
                 .padding(.top, 10)
             Text("L’IA utilise le cours du chapitre pour identifier les théorèmes et les hypothèses de ton TD.")
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: 13, weight: .regular))
+                .lineSpacing(6)
                 .foregroundStyle(Theme.inkSoft)
                 .multilineTextAlignment(.center)
                 .padding(.top, 6)
@@ -73,7 +78,9 @@ struct CtdIntroCard: View {
                 .font(.system(size: 15, weight: .black))
                 .foregroundStyle(Theme.ink)
             Text("Duello lit le PDF ou la photo, conserve les formules en LaTeX/KaTeX, sépare les exercices et classe chaque question.")
-                .font(.system(size: 13, weight: .semibold))
+                // `introText` : graisse par défaut (400), `lineHeight: 19`.
+                .font(.system(size: 13, weight: .regular))
+                .lineSpacing(6)
                 .foregroundStyle(Theme.inkSoft)
             Button(action: onImport) {
                 HStack(spacing: 8) {
@@ -82,8 +89,10 @@ struct CtdIntroCard: View {
                             .progressViewStyle(.circular)
                             .tint(Theme.surface)
                     } else {
+                        // Ionicons `cloud-upload-outline` (taille 20) côté
+                        // source ; pas d'équivalent SF exact (voir rapport).
                         Image(systemName: "icloud.and.arrow.up")
-                            .font(.system(size: 15, weight: .bold))
+                            .font(.system(size: 20, weight: .bold))
                     }
                     Text(importing ? "Import en cours…" : "Importer ma feuille de TD")
                         .font(.system(size: 14, weight: .heavy))
@@ -109,6 +118,11 @@ struct CtdIntroCard: View {
 // MARK: - Feuille importée
 
 /// Feuille importée : nom, taille et remplacement (`fileRow`).
+///
+/// Le source utilise l'Ionicons `document-text-outline` (taille 21) ; le SF
+/// Symbol `doc.text` en est le plus proche, sans être identique. Le bouton
+/// « Remplacer » porte la couleur `primary` du thème — qui vaut l'encre, comme
+/// `Theme.ink`.
 struct CtdFileRow: View {
     let name: String
     let sizeLabel: String
@@ -118,7 +132,7 @@ struct CtdFileRow: View {
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: "doc.text")
-                .font(.system(size: 17, weight: .semibold))
+                .font(.system(size: 21, weight: .semibold))
                 .foregroundStyle(Theme.ink)
             VStack(alignment: .leading, spacing: 2) {
                 Text(name)
@@ -126,7 +140,8 @@ struct CtdFileRow: View {
                     .foregroundStyle(Theme.ink)
                     .lineLimit(1)
                 Text(sizeLabel)
-                    .font(.system(size: 11, weight: .semibold))
+                    // `fileMeta` : graisse par défaut (400).
+                    .font(.system(size: 11, weight: .regular))
                     .foregroundStyle(Theme.inkFaint)
             }
             Spacer(minLength: 8)
@@ -163,7 +178,10 @@ struct CtdAnalysisProgressCard: View {
                     .font(.system(size: 13, weight: .black))
                     .foregroundStyle(Theme.ink)
                 Text("Lecture des formules, découpage des exercices et indexation des questions.")
-                    .font(.system(size: 12, weight: .semibold))
+                    // `analysisProgressText` : graisse par défaut (400),
+                    // `lineHeight: 17`.
+                    .font(.system(size: 12, weight: .regular))
+                    .lineSpacing(5)
                     .foregroundStyle(Theme.inkSoft)
             }
             Spacer(minLength: 0)
@@ -177,7 +195,8 @@ struct CtdAnalysisProgressCard: View {
 // MARK: - Message
 
 /// Carte de message du panneau : erreur d'analyse ou analyse périmée
-/// (`errorCard`), avec une action facultative.
+/// (`errorCard`), avec une action facultative. Le fond est le rose pâle exact
+/// du source (`#FCE0E0`) ; le texte porte la couleur `danger` (= l'encre).
 struct CtdMessageCard: View {
     let message: String
     var actionTitle: String? = nil
@@ -186,7 +205,9 @@ struct CtdMessageCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 9) {
             Text(message)
+                // `errorText` : 12 / 700, `lineHeight: 18`.
                 .font(.system(size: 12, weight: .bold))
+                .lineSpacing(6)
                 .foregroundStyle(Theme.ink)
             if let actionTitle, let action {
                 Button(action: action) {
@@ -195,11 +216,13 @@ struct CtdMessageCard: View {
                         .foregroundStyle(Theme.ink)
                 }
                 .buttonStyle(.plain)
+                // `retryButton` : zone tactile haute de 10 pt autour du texte.
+                .padding(.vertical, 5)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(13)
-        .background(Theme.like.opacity(0.12))
+        .background(Color(hex: 0xFCE0E0))
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
     }
 }
@@ -220,7 +243,8 @@ struct CtdResultsSection: View {
                     .font(.system(size: 17, weight: .black))
                     .foregroundStyle(Theme.ink)
                 Text(summary)
-                    .font(.system(size: 12, weight: .semibold))
+                    // `resultsCount` : graisse par défaut (400).
+                    .font(.system(size: 12, weight: .regular))
                     .foregroundStyle(Theme.inkSoft)
             }
             .padding(.top, 5)

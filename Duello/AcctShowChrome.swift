@@ -37,7 +37,7 @@ struct AcctShowGranularityTabs: View {
     }
 
     var body: some View {
-        HStack(spacing: 2) {
+        HStack(spacing: 3) {
             ForEach(ChartTimeGranularity.allCases, id: \.self) { period in
                 tab(period)
             }
@@ -61,6 +61,7 @@ struct AcctShowGranularityTabs: View {
                 .font(.system(size: 12, weight: .heavy))
                 .foregroundStyle(selected ? Theme.surface : Theme.inkSoft)
                 .frame(maxWidth: .infinity, minHeight: 30)
+                .padding(.horizontal, 4)
                 .background(selected ? Theme.ink : Color.clear)
                 .clipShape(RoundedRectangle(cornerRadius: 10))
         }
@@ -77,6 +78,9 @@ struct AcctShowSectionCard<Content: View>: View {
     let title: String
     var subtitle: String? = nil
     var trailing: AnyView? = nil
+    /// Marge haute de la carte : 12 pour la première section (le bandeau de
+    /// repères réserve déjà 8 pt sous sa carte), 20 pour les suivantes.
+    var topPadding: CGFloat = 20
     let content: Content
 
     init(
@@ -85,6 +89,7 @@ struct AcctShowSectionCard<Content: View>: View {
         title: String,
         subtitle: String? = nil,
         trailing: AnyView? = nil,
+        topPadding: CGFloat = 20,
         @ViewBuilder content: () -> Content
     ) {
         self.icon = icon
@@ -92,6 +97,7 @@ struct AcctShowSectionCard<Content: View>: View {
         self.title = title
         self.subtitle = subtitle
         self.trailing = trailing
+        self.topPadding = topPadding
         self.content = content()
     }
 
@@ -109,7 +115,7 @@ struct AcctShowSectionCard<Content: View>: View {
             RoundedRectangle(cornerRadius: Theme.radiusLarge)
                 .stroke(Theme.border, lineWidth: 1)
         )
-        .padding(.top, 20)
+        .padding(.top, topPadding)
     }
 
     /// Pictogramme, titre et sous-titre à gauche, action à droite.
@@ -154,6 +160,7 @@ struct AcctShowChartEmpty: View {
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(Theme.inkSoft)
                 .multilineTextAlignment(.center)
+                .lineSpacing(5)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 22)

@@ -29,7 +29,7 @@ struct PlanTaskComposerCard: View {
                         .fill(Theme.primaryLight)
                         .frame(width: 38, height: 38)
                     Image(systemName: "sparkles")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.system(size: 17, weight: .semibold))
                         .foregroundStyle(Theme.ink)
                 }
                 VStack(alignment: .leading, spacing: 4) {
@@ -46,6 +46,7 @@ struct PlanTaskComposerCard: View {
 
             Text("Une phrase par tâche, même en vrac. Pour bien la placer, indique si possible :")
                 .font(.system(size: 12, weight: .regular))
+                .lineSpacing(5)
                 .foregroundStyle(Theme.inkSoft)
                 .padding(.top, 15)
 
@@ -60,7 +61,8 @@ struct PlanTaskComposerCard: View {
             ZStack(alignment: .topLeading) {
                 if text.isEmpty {
                     Text("Ex. Demain, finir le DM de maths — urgent, environ 1 h. Puis apprendre le vocabulaire d’anglais pour vendredi, 30 min.")
-                        .font(.system(size: 13, weight: .regular))
+                        .font(.system(size: 13, weight: .medium))
+                        .lineSpacing(6)
                         .foregroundStyle(Theme.inkFaint)
                         .padding(.horizontal, 5)
                         .padding(.vertical, 8)
@@ -68,9 +70,10 @@ struct PlanTaskComposerCard: View {
                 }
                 TextEditor(text: $text)
                     .font(.system(size: 13, weight: .medium))
+                    .lineSpacing(6)
                     .foregroundStyle(Theme.ink)
                     .scrollContentBackground(.hidden)
-                    .frame(minHeight: 96)
+                    .frame(minHeight: 90)
                     .accessibilityLabel("Tâches à ajouter")
             }
             .padding(13)
@@ -80,23 +83,49 @@ struct PlanTaskComposerCard: View {
                 RoundedRectangle(cornerRadius: Theme.radiusMedium)
                     .stroke(Theme.border, lineWidth: 1.5)
             )
+            // `inputCard` : hauteur minimale 150, l'`input` interne 90 (lignes
+            // 232-242 de TaskCaptureCard.tsx).
+            .frame(minHeight: 150, alignment: .top)
             .padding(.top, 15)
 
             Button(action: onValidate) {
                 HStack(spacing: 8) {
                     Text("Organiser dans mon programme")
+                        .font(.system(size: 12, weight: .heavy))
                     Image(systemName: "arrow.right")
-                        .font(.system(size: 16, weight: .bold))
+                        .font(.system(size: 18, weight: .bold))
                 }
-                .padding(.vertical, 15)
-                .frame(maxWidth: .infinity)
+                .foregroundStyle(Theme.white)
+                .frame(maxWidth: .infinity, minHeight: 50)
             }
-            .buttonStyle(DuelloPrimaryButton())
+            .buttonStyle(PlanValidateButtonStyle())
             .disabled(!canValidate)
             .opacity(canValidate ? 1 : 0.35)
             .padding(.top, 14)
         }
-        .duelloCard()
+        // `wrapper` (TaskCaptureCard.tsx) : marge horizontale 20, `padding` 18,
+        // rayon `radii.large` 18, bord 1 et ombre de carte — et non le motif
+        // `.duelloCard()` (padding 16, rayon 14, sans ombre).
+        .padding(18)
+        .background(Theme.white)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.radiusLarge)
+                .stroke(Theme.border, lineWidth: 1)
+        )
+        .duelloShadow()
+        .padding(.horizontal, 20)
+    }
+}
+
+/// `validateButton` (TaskCaptureCard.tsx) : fond encre, rayon 16, hauteur
+/// minimale 50, texte blanc 12 en gras ; à l'appui, opacité 0.75.
+struct PlanValidateButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(Theme.ink)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .opacity(configuration.isPressed ? 0.75 : 1)
     }
 }
 
@@ -109,7 +138,7 @@ struct PlanRequirementChip: View {
     var body: some View {
         HStack(spacing: 5) {
             Image(systemName: icon)
-                .font(.system(size: 11, weight: .semibold))
+                .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Theme.ink)
             Text(label)
                 .font(.system(size: 10, weight: .heavy))

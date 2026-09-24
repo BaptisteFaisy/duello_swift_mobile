@@ -6,17 +6,20 @@ import SwiftUI
 struct MessageBubbleRow: View {
     let message: ChatMessage
     let myInitial: String
-    let peerInitial: String
+    /// Largeur maximale de la bulle, en points : `maxWidth: '77%'` d'Expo, calculé
+    /// par l'appelant (77 % de la largeur de ligne, hors marges horizontales).
+    let maxBubbleWidth: CGFloat
 
     private var isMine: Bool { message.author == .me }
 
     var body: some View {
         HStack(alignment: .bottom, spacing: 0) {
             if !isMine {
-                avatar(peerInitial, background: Theme.surfaceMuted, foreground: Theme.inkSoft)
+                // L'initiale affichée est « L » en dur dans `MessageBubble` d'Expo.
+                avatar("L", background: Theme.surfaceMuted, foreground: Theme.inkSoft)
                     .padding(.trailing, 7)
             } else {
-                Spacer(minLength: 48)
+                Spacer(minLength: 0)
             }
 
             bubble
@@ -25,7 +28,7 @@ struct MessageBubbleRow: View {
                 avatar(myInitial, background: Theme.primaryLight, foreground: Theme.ink)
                     .padding(.leading, 7)
             } else {
-                Spacer(minLength: 48)
+                Spacer(minLength: 0)
             }
         }
         .frame(maxWidth: .infinity)
@@ -36,8 +39,9 @@ struct MessageBubbleRow: View {
         VStack(alignment: isMine ? .trailing : .leading, spacing: 5) {
             Text(message.text)
                 .font(.system(size: 11, weight: .medium))
+                .lineSpacing(5)
                 .foregroundStyle(isMine ? Theme.surface : Theme.ink)
-                .multilineTextAlignment(isMine ? .trailing : .leading)
+                .multilineTextAlignment(.leading)
                 .fixedSize(horizontal: false, vertical: true)
             Text(message.time)
                 .font(.system(size: 7, weight: .medium))
@@ -45,9 +49,9 @@ struct MessageBubbleRow: View {
         }
         .padding(.vertical, 10)
         .padding(.horizontal, 13)
+        .frame(maxWidth: maxBubbleWidth)
         .background(isMine ? Theme.ink : Theme.surface)
         .clipShape(bubbleShape)
-        .overlay(bubbleBorder)
     }
 
     /// Trois coins à 17, un à 5 du côté de l'émetteur.
@@ -57,13 +61,6 @@ struct MessageBubbleRow: View {
     /// dessinée à la main : voir `MsgBubbleShape`.
     private var bubbleShape: MsgBubbleShape {
         MsgBubbleShape(radius: 17, tightRadius: 5, isMine: isMine)
-    }
-
-    @ViewBuilder
-    private var bubbleBorder: some View {
-        if !isMine {
-            bubbleShape.stroke(Theme.border, lineWidth: 1)
-        }
     }
 
     private func avatar(_ initial: String, background: Color, foreground: Color) -> some View {

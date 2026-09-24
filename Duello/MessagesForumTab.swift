@@ -35,7 +35,7 @@ extension MessagesView {
                     .fill(Theme.primaryLight)
                     .frame(width: 48, height: 48)
                 Image(systemName: "person.2.fill")
-                    .font(.system(size: 20, weight: .bold))
+                    .font(.system(size: 23, weight: .bold))
                     .foregroundStyle(Theme.ink)
             }
 
@@ -45,6 +45,7 @@ extension MessagesView {
                     .foregroundStyle(Theme.ink)
                 Text("Pose une question et partage une méthode avec ta filière.")
                     .font(.system(size: 10, weight: .medium))
+                    .lineSpacing(4)
                     .foregroundStyle(Theme.inkSoft)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -54,7 +55,6 @@ extension MessagesView {
         .padding(16)
         .background(Theme.primaryLight)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
-        .padding(.bottom, 22)
     }
 
     private func topicRow(_ topic: ForumTopic) -> some View {
@@ -64,33 +64,39 @@ extension MessagesView {
                     .fill(topic.color)
                     .frame(width: 44, height: 44)
                 Image(systemName: topic.icon)
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.system(size: 20, weight: .semibold))
                     .foregroundStyle(Theme.ink)
             }
 
-            VStack(alignment: .leading, spacing: 5) {
+            VStack(alignment: .leading, spacing: 0) {
                 Text(topic.category)
                     .font(.system(size: 8, weight: .black))
                     .tracking(0.8)
                     .foregroundStyle(Theme.ink)
                 Text(topic.title)
                     .font(.system(size: 12, weight: .heavy))
+                    .lineSpacing(4)
                     .foregroundStyle(Theme.ink)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
+                    .padding(.top, 5)
                 Text("\(topic.author) · \(topic.replies) réponses · \(topic.time)")
                     .font(.system(size: 8, weight: .medium))
                     .foregroundStyle(Theme.inkFaint)
+                    .padding(.top, 6)
             }
 
             Spacer(minLength: 0)
 
             Image(systemName: "chevron.right")
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(Theme.inkFaint)
         }
-        .frame(maxWidth: .infinity, minHeight: 74, alignment: .leading)
-        .duelloCard()
+        .frame(maxWidth: .infinity, minHeight: 76, alignment: .leading)
+        .padding(15)
+        .background(Theme.surface)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
+        .shadow(color: Color(hex: 0x0A0D0C).opacity(0.04), radius: 8, x: 0, y: 2)
         .contentShape(Rectangle())
     }
 }

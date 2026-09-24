@@ -88,6 +88,7 @@ struct ChalHomeHeader: View {
                             .foregroundStyle(Theme.ink)
                             .frame(width: 40, height: 40)
                             .background(Theme.surfaceMuted, in: Circle())
+                            .overlay(Circle().stroke(Theme.ink, lineWidth: 1.5))
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("Ouvrir le classement Elo")

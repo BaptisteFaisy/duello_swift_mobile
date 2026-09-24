@@ -59,6 +59,7 @@ struct AcctShowStatsPanel: View {
                 .stroke(Theme.border, lineWidth: 1)
         )
         .padding(.top, 12)
+        .padding(.bottom, 8)
     }
 }
 
@@ -71,7 +72,7 @@ struct AcctShowLevelProgress: View {
     var compactTitle: Bool = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 12) {
                 Text("\(compactTitle ? "Niveau" : "Progression du niveau") \(summary.level)")
                     .font(.system(size: 11, weight: .black))
@@ -81,6 +82,7 @@ struct AcctShowLevelProgress: View {
                     .font(.system(size: 11, weight: .black))
                     .foregroundStyle(Theme.ink)
             }
+            .padding(.bottom, 10)
 
             ChartXpProgressBar(
                 progress: summary.progress,
@@ -92,7 +94,9 @@ struct AcctShowLevelProgress: View {
             Text(legend)
                 .font(.system(size: 9, weight: .semibold))
                 .foregroundStyle(Theme.inkSoft)
+                .lineSpacing(5)
                 .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 8)
         }
         .padding(.vertical, 14)
         .padding(.horizontal, 16)

@@ -86,30 +86,30 @@ struct MessagesView: View {
     /// Bascule Direct / Forum, sur le motif d'onglets d'Expo.
     private var tabBar: some View {
         HStack(spacing: 5) {
-            tabButton(.direct, title: "Direct", icon: "bubble.left", badge: totalUnread)
-            tabButton(.forums, title: "Forum", icon: "person.2", badge: 0)
+            tabButton(.direct, title: "Messages", icon: "bubble.left", iconSize: 17, badge: totalUnread)
+            tabButton(.forums, title: "Forums", icon: "person.2", iconSize: 18, badge: 0)
         }
         .padding(4)
         .background(Theme.surfaceMuted)
         .clipShape(RoundedRectangle(cornerRadius: 18))
     }
 
-    private func tabButton(_ tab: MessagesTab, title: String, icon: String, badge: Int) -> some View {
+    private func tabButton(_ tab: MessagesTab, title: String, icon: String, iconSize: CGFloat, badge: Int) -> some View {
         let selected = activeTab == tab
         return Button {
             activeTab = tab
         } label: {
             HStack(spacing: 7) {
                 Image(systemName: icon)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: iconSize, weight: .semibold))
                 Text(title)
                     .font(.system(size: 11, weight: selected ? .black : .bold))
                 if badge > 0 {
                     Text("\(badge)")
                         .font(.system(size: 9, weight: .black))
                         .foregroundStyle(Theme.surface)
-                        .frame(minWidth: 20, minHeight: 20)
                         .padding(.horizontal, 5)
+                        .frame(minWidth: 20, minHeight: 20)
                         .background(Theme.ink)
                         .clipShape(Capsule())
                 }

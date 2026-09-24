@@ -201,11 +201,11 @@ struct AcctInfoPersonalPage: View {
             } label: {
                 HStack {
                     Text(year.isEmpty ? "Choisir mon année" : year)
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.system(size: 13, weight: .heavy))
                         .foregroundStyle(year.isEmpty ? Theme.inkFaint : Theme.ink)
                     Spacer(minLength: 8)
                     Image(systemName: "chevron.up.chevron.down")
-                        .font(.system(size: 12, weight: .bold))
+                        .font(.system(size: 17, weight: .bold))
                         .foregroundStyle(Theme.ink)
                 }
                 .contentShape(Rectangle())

@@ -39,7 +39,7 @@ struct ChalRunResultView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 0) {
                 backButton
                 ChalRunResultHeader(result: result)
                 verdictSection
@@ -49,11 +49,12 @@ struct ChalRunResultView: View {
                 reviewSection
                 correctionSection
                 ChalRunEloLine(text: ChalRunFormat.eloLine(result.eloAfter, subject: result.subject))
+                    .padding(.top, 10)
                 actions
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 12)
-            .padding(.bottom, 24)
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+            .padding(.bottom, 34)
         }
         .background(Theme.background)
     }
@@ -65,7 +66,7 @@ struct ChalRunResultView: View {
         } label: {
             HStack(spacing: 5) {
                 Image(systemName: "chevron.left")
-                    .font(.system(size: 15, weight: .bold))
+                    .font(.system(size: 19, weight: .bold))
                 Text("Retour aux défis")
                     .font(.system(size: 13, weight: .heavy))
             }
@@ -84,11 +85,14 @@ struct ChalRunResultView: View {
     }
 
     private var verdictSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 0) {
             ChalRunSectionLabel(text: result.verdictSectionLabel)
+                .padding(.bottom, 10)
             ChalRunVerdictCard(result: result)
             ChalRunVerdictNote(result: result)
+                .padding(.top, 9)
         }
+        .padding(.top, 27)
     }
 
     @ViewBuilder
@@ -98,23 +102,24 @@ struct ChalRunResultView: View {
                 icon: "minus.circle",
                 text: "Une pénalité de \(result.scorePenalty) points a été appliquée à ta note, car tu avais déjà commencé cet exercice avant le défi."
             )
+            .padding(.top, 12)
         }
         if result.scoreBonus > 0 {
             ChalRunNotice(
                 icon: "plus.circle",
                 text: "Un bonus de \(result.scoreBonus) points a été appliqué à ta note, plafonnée à 100, car ton adversaire avait déjà commencé cet exercice avant le défi."
             )
+            .padding(.top, 12)
         }
     }
 
     private var promptSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 0) {
             Button {
                 promptExpanded.toggle()
             } label: {
                 HStack {
                     ChalRunSectionLabel(text: "ÉNONCÉ")
-                    Spacer(minLength: 8)
                     Image(systemName: promptExpanded ? "chevron.up" : "chevron.down")
                         .font(.system(size: 18, weight: .bold))
                         .foregroundStyle(Theme.ink)
@@ -122,6 +127,7 @@ struct ChalRunResultView: View {
                         .background(Theme.primaryLight)
                         .clipShape(Capsule())
                 }
+                .frame(minHeight: 40)
             }
             .buttonStyle(.plain)
             .accessibilityLabel(promptExpanded ? "Replier l’énoncé" : "Déplier l’énoncé")
@@ -139,7 +145,7 @@ struct ChalRunResultView: View {
                     Text(LatexToUnicode.toUnicodeMath(result.prompt))
                         .font(.system(size: 11, design: .serif))
                         .foregroundStyle(Theme.inkSoft)
-                        .lineSpacing(4)
+                        .lineSpacing(6)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .textSelection(.enabled)
                 }
@@ -156,8 +162,9 @@ struct ChalRunResultView: View {
     }
 
     private var notesSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 0) {
             ChalRunSectionLabel(text: "NOTES DU DÉFI")
+                .padding(.bottom, 10)
             ChalRunProductionCard(
                 name: "Toi",
                 initial: myInitial,
@@ -173,21 +180,27 @@ struct ChalRunResultView: View {
                     production: nil,
                     winner: result.verdict.ranked && result.verdict.outcome == .opponent
                 )
+                .padding(.top, 12)
             }
         }
+        .padding(.top, 27)
     }
 
     @ViewBuilder
     private var reviewSection: some View {
         if !result.reviewedQuestions.isEmpty {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 0) {
                 ChalRunSectionLabel(
                     text: result.hasOpponentSubmission ? "RÉPONSES DES DEUX JOUEURS" : "TA RÉPONSE"
                 )
+                .padding(.bottom, 10)
                 Text(comparisonNote)
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Theme.inkFaint)
-                    .lineSpacing(2)
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(Theme.inkSoft)
+                    .lineSpacing(5)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, -2)
+                    .padding(.bottom, 11)
                 ForEach(result.reviewedQuestions) { question in
                     ChalRunQuestionReviewCard(
                         label: question.label,
@@ -198,6 +211,7 @@ struct ChalRunResultView: View {
                     )
                 }
             }
+            .padding(.top, 27)
         }
     }
 
@@ -211,32 +225,50 @@ struct ChalRunResultView: View {
     @ViewBuilder
     private var correctionSection: some View {
         if let solution = result.solution, !solution.isEmpty {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 0) {
                 ChalRunSectionLabel(text: "LE CORRIGÉ")
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(spacing: 8) {
+                    .padding(.bottom, 10)
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack(spacing: 10) {
                         Image(systemName: "graduationcap")
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.system(size: 16, weight: .semibold))
                             .foregroundStyle(Theme.ink)
+                            .frame(width: 30, height: 30)
+                            .background(Theme.surface)
+                            .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
                         Text("Corrigé de référence")
-                            .font(.system(size: 14, weight: .heavy))
+                            .font(.system(size: 13, weight: .black))
                             .foregroundStyle(Theme.ink)
+                        Spacer(minLength: 8)
+                        ReportExerciseButton.make(
+                            profile: session.profile,
+                            target: .correction,
+                            source: .challenge,
+                            exerciseId: result.trainingTarget.itemId,
+                            exerciseTitle: result.trainingTarget.itemTitle,
+                            subject: result.subject,
+                            compact: true
+                        )
                     }
+                    .padding(.bottom, 12)
                     Text(LatexToUnicode.toUnicodeMath(solution))
-                        .font(Theme.readingFont)
+                        .font(.system(size: 14, design: .serif))
                         .foregroundStyle(Theme.ink)
-                        .lineSpacing(4)
+                        .lineSpacing(7)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .textSelection(.enabled)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .duelloCard()
+                .padding(15)
+                .background(Theme.primaryLight)
+                .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge, style: .continuous))
             }
+            .padding(.top, 27)
         }
     }
 
     private var actions: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 0) {
             if result.needsContinuation, let onContinueTraining = onContinueTraining {
                 Button {
                     onContinueTraining(result.trainingTarget)
@@ -246,9 +278,10 @@ struct ChalRunResultView: View {
                             .font(.system(size: 18, weight: .semibold))
                         Text("Reprendre l’exercice")
                     }
-                    .frame(maxWidth: .infinity, minHeight: 48)
+                    .frame(maxWidth: .infinity, minHeight: 52)
                 }
                 .buttonStyle(DuelloPrimaryButton())
+                .padding(.top, 17)
             }
             Button {
                 onBack()
@@ -258,9 +291,10 @@ struct ChalRunResultView: View {
                         .font(.system(size: 19, weight: .semibold))
                     Text("Faire un autre défi")
                 }
-                .frame(maxWidth: .infinity, minHeight: 48)
+                .frame(maxWidth: .infinity, minHeight: 52)
             }
             .buttonStyle(DuelloPrimaryButton())
+            .padding(.top, 17)
         }
     }
 }
@@ -272,7 +306,7 @@ struct ChalRunResultHeader: View {
     var body: some View {
         VStack(spacing: 0) {
             Image(systemName: iconName)
-                .font(.system(size: 26, weight: .black))
+                .font(.system(size: 28, weight: .black))
                 .foregroundStyle(Theme.ink)
                 .frame(width: 58, height: 58)
                 .background(Theme.primaryLight)
@@ -312,16 +346,19 @@ struct ChalRunAbandonVictoryView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 0) {
                 header
                 ChalRunSectionLabel(text: "VICTOIRE PAR ABANDON")
+                    .padding(.top, 27)
+                    .padding(.bottom, 10)
                 verdictCard
                 ChalRunEloLine(text: ChalRunFormat.eloLine(result.eloAfter, subject: result.subject))
+                    .padding(.top, 10)
                 actions
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 12)
-            .padding(.bottom, 24)
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+            .padding(.bottom, 34)
         }
         .background(Theme.background)
     }
@@ -329,7 +366,7 @@ struct ChalRunAbandonVictoryView: View {
     private var header: some View {
         VStack(spacing: 0) {
             Image(systemName: "trophy.fill")
-                .font(.system(size: 26, weight: .black))
+                .font(.system(size: 28, weight: .black))
                 .foregroundStyle(Theme.ink)
                 .frame(width: 58, height: 58)
                 .background(Theme.primaryLight)
@@ -352,15 +389,15 @@ struct ChalRunAbandonVictoryView: View {
     private var verdictCard: some View {
         HStack(alignment: .top, spacing: 11) {
             Image(systemName: "flag")
-                .font(.system(size: 15, weight: .semibold))
+                .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(Theme.ink)
                 .frame(width: 30, height: 30)
                 .background(Theme.surface)
                 .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
             Text("Tu remportes immédiatement le défi. Ta réponse a été conservée pour que tu puisses terminer l’exercice dans Entraînement.")
-                .font(.system(size: 12, weight: .semibold))
+                .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(Theme.ink)
-                .lineSpacing(3)
+                .lineSpacing(6)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -370,7 +407,7 @@ struct ChalRunAbandonVictoryView: View {
     }
 
     private var actions: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 0) {
             if let onContinueTraining = onContinueTraining {
                 Button {
                     onContinueTraining(result.trainingTarget)
@@ -380,9 +417,10 @@ struct ChalRunAbandonVictoryView: View {
                             .font(.system(size: 18, weight: .semibold))
                         Text("Continuer l’exercice")
                     }
-                    .frame(maxWidth: .infinity, minHeight: 48)
+                    .frame(maxWidth: .infinity, minHeight: 52)
                 }
                 .buttonStyle(DuelloPrimaryButton())
+                .padding(.top, 17)
             }
             Button {
                 onBack()
@@ -392,9 +430,10 @@ struct ChalRunAbandonVictoryView: View {
                         .font(.system(size: 19, weight: .semibold))
                     Text("Faire un autre défi")
                 }
-                .frame(maxWidth: .infinity, minHeight: 48)
+                .frame(maxWidth: .infinity, minHeight: 52)
             }
             .buttonStyle(DuelloPrimaryButton())
+            .padding(.top, 17)
         }
     }
 }

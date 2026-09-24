@@ -77,7 +77,7 @@ struct AcctIntNotificationsSheet: View {
             Image(systemName: "chevron.left")
                 .font(.system(size: 21, weight: .semibold))
                 .foregroundStyle(Theme.ink)
-                .frame(width: 38, height: 38)
+                .frame(width: 40, height: 40)
                 .background(Theme.white)
                 .contentShape(Rectangle())
         }
@@ -97,6 +97,7 @@ struct AcctIntNotificationsSheet: View {
                 .font(.system(size: 13, weight: .heavy))
                 .foregroundStyle(selected ? Theme.ink : Theme.inkFaint)
                 .frame(maxWidth: .infinity, minHeight: 38)
+                .padding(.horizontal, 8)
                 .contentShape(Rectangle())
                 .overlay(
                     Rectangle()
@@ -138,6 +139,7 @@ struct AcctIntNotificationsSheet: View {
             Text(page == .followings ? "Tu ne suis encore personne." : "Aucun follower pour le moment.")
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(Theme.inkSoft)
+                .lineSpacing(6)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.vertical, 18)
                 .padding(.horizontal, 4)
@@ -175,12 +177,13 @@ struct AcctIntNotificationsSheet: View {
                 .padding(.top, 12)
             Text(
                 session.profile.isPublic
-                    ? "Tu seras prévenu ici pour tes nouveaux abonnés, tes likes et les défis reçus pendant que tu joues."
-                    : "Tu seras prévenu ici pour tes nouveaux abonnés et les défis reçus pendant que tu joues."
+                    ? "Tu seras prévenu ici pour tes nouveaux abonnés, les visites de ton profil, tes likes et les défis reçus pendant que tu joues."
+                    : "Tu seras prévenu ici pour tes nouveaux abonnés, les visites de ton profil et les défis reçus pendant que tu joues."
             )
             .font(.system(size: 12, weight: .medium))
             .foregroundStyle(Theme.inkSoft)
             .multilineTextAlignment(.center)
+            .lineSpacing(6)
             .padding(.top, 6)
         }
         .frame(maxWidth: .infinity)

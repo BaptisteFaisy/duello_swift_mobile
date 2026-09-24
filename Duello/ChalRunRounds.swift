@@ -131,7 +131,7 @@ struct ChalRunRounds: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 0) {
                 ChalUiDuelChrono(
                     startedAt: match.startedAt,
                     stoppedAt: state.submittedAt,
@@ -141,28 +141,37 @@ struct ChalRunRounds: View {
                 Text("Exercice \(state.exerciseIndex + 1)/\(state.seriesCount)")
                     .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(Theme.inkSoft)
+                    .lineSpacing(5)
                     .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.top, 8)
                 if startedPenalty > 0 {
                     ChalRunNotice(
                         icon: "exclamationmark.circle",
                         text: "Tu avais déjà commencé cet exercice : ta note finale aura une pénalité de \(startedPenalty) points."
                     )
+                    .padding(.top, 12)
                 }
                 if opponentStartedBonus > 0 {
                     ChalRunNotice(
                         icon: "plus.circle",
                         text: "Ton adversaire avait déjà commencé cet exercice : ta note finale recevra un bonus de \(opponentStartedBonus) points."
                     )
+                    .padding(.top, 12)
                 }
                 statement
                 response
                 submitButton
-                if let waitingDeadline { waitNote(waitingDeadline) }
+                    .padding(.top, 17)
+                if let waitingDeadline {
+                    waitNote(waitingDeadline)
+                        .padding(.top, 10)
+                }
                 cancelButton
+                    .padding(.top, waitingDeadline == nil ? 9 : 17)
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 12)
-            .padding(.bottom, 24)
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+            .padding(.bottom, 34)
         }
         .background(Theme.background)
         .onReceive(timer) { _ in tick() }
@@ -172,8 +181,9 @@ struct ChalRunRounds: View {
     // MARK: Énoncé et réponse
 
     private var statement: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 0) {
             ChalRunSectionLabel(text: "ÉNONCÉ")
+                .padding(.bottom, 10)
             VStack(alignment: .trailing, spacing: 6) {
                 ReportExerciseButton.make(
                     profile: session.profile,
@@ -185,9 +195,9 @@ struct ChalRunRounds: View {
                     compact: true
                 )
                 Text(LatexToUnicode.toUnicodeMath(state.exercise.context ?? ""))
-                    .font(Theme.readingFont)
+                    .font(.system(size: 14, design: .serif))
                     .foregroundStyle(Theme.ink)
-                    .lineSpacing(4)
+                    .lineSpacing(7)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .textSelection(.enabled)
             }
@@ -200,11 +210,13 @@ struct ChalRunRounds: View {
                     .stroke(Theme.border, lineWidth: 1)
             )
         }
+        .padding(.top, 27)
     }
 
     private var response: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 0) {
             ChalRunSectionLabel(text: "TA RÉPONSE")
+                .padding(.bottom, 10)
             ChalRunQuestionTabs(
                 questions: state.questions,
                 activeId: state.activeQuestionId,
@@ -215,9 +227,10 @@ struct ChalRunRounds: View {
             }
             if let prompt = state.activeQuestionPrompt {
                 Text("\(duelQuestionLabel(state.activeQuestion, state.activeQuestionIndex)). \(LatexToUnicode.toUnicodeMath(prompt))")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Theme.inkSoft)
-                    .lineSpacing(3)
+                    .lineSpacing(6)
+                    .padding(.bottom, 10)
             }
             answerEditor
             if let notice {
@@ -226,18 +239,20 @@ struct ChalRunRounds: View {
                     .foregroundStyle(Theme.like)
             }
         }
+        .padding(.top, 27)
     }
 
     private var answerEditor: some View {
         ZStack(alignment: .topLeading) {
             TextEditor(text: answerBinding)
-                .font(.system(size: 13))
-                .frame(minHeight: 160)
+                .font(.system(size: 13, weight: .medium))
+                .lineSpacing(6)
+                .frame(minHeight: 160, maxHeight: 240)
                 .scrollContentBackground(.hidden)
                 .background(Theme.surface)
-                .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
+                .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
                 .overlay(
-                    RoundedRectangle(cornerRadius: Theme.radiusSmall)
+                    RoundedRectangle(cornerRadius: Theme.radiusLarge)
                         .stroke(Theme.border, lineWidth: 1)
                 )
                 .disabled(isSubmitting)
@@ -289,9 +304,9 @@ struct ChalRunRounds: View {
     private func waitNote(_ deadline: Double) -> some View {
         Text("Ta copie est notée. \(match.opponent.displayName) a jusqu’à \(ChalRunFormat.deadline(deadline)) pour rendre la sienne, après quoi le défi t’est acquis par forfait.")
             .font(.system(size: 10, weight: .semibold))
-            .foregroundStyle(Theme.inkFaint)
+            .foregroundStyle(Theme.inkSoft)
             .multilineTextAlignment(.center)
-            .lineSpacing(2)
+            .lineSpacing(5)
     }
 
     private var cancelButton: some View {
@@ -299,9 +314,10 @@ struct ChalRunRounds: View {
             waitingDeadline == nil ? onAbandon() : onStopWaiting()
         } label: {
             Text(waitingDeadline == nil ? "Abandonner sans gagner d’XP" : "Ne pas attendre — défi non arbitré")
-                .font(.system(size: 11, weight: .bold))
+                .font(.system(size: 11, weight: .heavy))
                 .foregroundStyle(Theme.ink)
-                .frame(maxWidth: .infinity, minHeight: 40)
+                .padding(8)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
         .buttonStyle(.plain)
         .disabled(isSubmitting && waitingDeadline == nil)
@@ -401,6 +417,7 @@ struct ChalRunQuestionTabs: View {
                     }
                 }
             }
+            .padding(.bottom, 10)
         }
     }
 
@@ -421,9 +438,9 @@ struct ChalRunQuestionTabs: View {
                 }
             }
             .font(.system(size: 13, weight: .heavy))
-            .foregroundStyle(active ? Theme.surface : Theme.inkSoft)
+            .foregroundStyle(active ? Theme.surface : Theme.ink)
             .padding(.horizontal, 12)
-            .padding(.vertical, 7)
+            .frame(minWidth: 40, minHeight: 36)
             .background(active ? Theme.ink : Theme.surfaceMuted)
             .clipShape(Capsule())
             .overlay(
@@ -443,14 +460,14 @@ struct ChalRunNotice: View {
     let text: String
 
     var body: some View {
-        HStack(alignment: .top, spacing: 8) {
+        HStack(alignment: .top, spacing: 9) {
             Image(systemName: icon)
-                .font(.system(size: 17, weight: .semibold))
+                .font(.system(size: 20, weight: .semibold))
                 .foregroundStyle(Theme.ink)
             Text(text)
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(Theme.inkSoft)
-                .lineSpacing(2)
+                .lineSpacing(5)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)

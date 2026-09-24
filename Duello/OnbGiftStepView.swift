@@ -14,13 +14,9 @@
 //  fournit la progression maîtresse et le temps écoulé qui pilote les boucles
 //  continues de la scène (`OnbGiftTimeline`), au lieu de `SharedValue`.
 //
-//  ⚠️ Deux écarts assumés, documentés :
-//   - la source s’appuie sur le fond noir de l’écran d’onboarding
-//     (`usesDarkOnboardingAppearance = true`) ; la vue porte donc son propre
-//     fond noir, et borne l’explosion (`clipShape`) là où la source laisse les
-//     débris dépasser de la scène ;
-//   - le message « Tu as en cadeau N jours Premium offerts ! » n’est, comme
-//     dans la source, qu’un libellé d’accessibilité : la source ne l’affiche
+//  ⚠️ Écart assumé, documenté :
+//   - le message « Tu as en cadeau N jours Premium offerts ! » n'est, comme
+//     dans la source, qu'un libellé d'accessibilité : la source ne l'affiche
 //     nulle part (les fenêtres `T_MESSAGE_*` de la timeline restent inutilisées).
 //
 //  Cible : iOS 16.
@@ -58,9 +54,9 @@ struct OnbGiftStepView: View {
         .accessibilityLabel(opened ? message : Self.crackHint)
         .accessibilityAddTraits(.isButton)
         .frame(maxWidth: .infinity)
-        .frame(height: Self.panelHeight)
-        .background(Color.black)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
+        // `surface` de la source : pleine largeur, `paddingVertical: 10`, sans
+        // fond ni rayon propres (le fond noir vient de l'écran d'onboarding).
+        .padding(.vertical, 10)
         .onAppear { startedAt = Date() }
         .onChange(of: opened) { isOpen in
             if isOpen {
@@ -121,5 +117,4 @@ struct OnbGiftStepView: View {
     }
 
     private static let crackHint = "Fissurer le cadeau pour révéler les jours Premium offerts"
-    private static let panelHeight: CGFloat = 340
 }

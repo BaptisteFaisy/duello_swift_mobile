@@ -34,7 +34,9 @@ struct OnbGiftLegalNotice: View {
             .foregroundStyle(Self.noticeColor)
             .tint(Self.noticeColor)
             .multilineTextAlignment(.center)
-            .lineSpacing(4)
+            // `termsText.lineHeight` 17 − 11.
+            .lineSpacing(6)
+            .frame(maxWidth: .infinity)
             .environment(\.openURL, OpenURLAction { url in
                 guard let target = OnbGiftLegalPage(url: url) else { return .systemAction }
                 page = target

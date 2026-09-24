@@ -93,13 +93,14 @@ struct AcctEvoPerformanceEvolutionPill: View {
                         .foregroundStyle(Theme.ink)
                 }
                 Text(AcctEvoEvolutionFormat.evolutionSign(value) + valueText)
-                    .font(.system(size: 10, weight: .heavy))
+                    .font(.system(size: 10, weight: .black))
                     .foregroundStyle(Theme.ink)
             }
             .padding(.vertical, 3)
             .padding(.horizontal, 8)
             .background(DuelloPillTone.neutral.background)
             .clipShape(Capsule())
+            .padding(.top, 4)
             // `hitSlop={6}` d'origine : cible tactile élargie sans décaler la mise en page.
             .padding(6)
             .contentShape(Rectangle())

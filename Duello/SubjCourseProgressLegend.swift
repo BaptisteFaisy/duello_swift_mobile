@@ -180,7 +180,7 @@ struct SubjCourseProgressLegend: View {
     /// n'emploie donc pas.
     private var legendTitle: some View {
         Text(subjCourseLegendTitle)
-            .font(.system(size: 10, weight: .black))
+            .font(.system(size: 10, weight: .heavy))
             .textCase(.uppercase)
             .tracking(0.5)
             .foregroundStyle(Theme.inkSoft)
@@ -194,7 +194,7 @@ struct SubjCourseProgressLegend: View {
                 .font(.system(size: 12))
                 .foregroundStyle(status.tint)
             Text(status.label)
-                .font(.system(size: 10, weight: .bold))
+                .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(Theme.inkSoft)
         }
         .frame(maxWidth: .infinity)

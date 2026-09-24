@@ -28,8 +28,9 @@ struct WelcomeView: View {
                         Image("DuelloLogo")
                             .resizable()
                             .scaledToFit()
-                            .frame(width: min(96, proxy.size.width * 0.4), height: 96)
+                            .frame(width: 96, height: 96)
                             .accessibilityLabel("Marque Duello")
+                            .accessibilityAddTraits(.isImage)
 
                         Spacer(minLength: 0)
 
@@ -231,7 +232,12 @@ struct GoogleGLogo: View {
     }
 }
 
-/// Bouton blanc plein radius 18, pressé : opacité 0.84 et scale 0.99.
+/// Bouton blanc plein radius 18, libellé 15/900.
+///
+/// Aucun retour d'appui : la source passe ses `Pressable` par `AppPressable`,
+/// qui fige `pressed` à `false` (`RESTING_PRESS_STATE`, `AppPressable.tsx:14`).
+/// Le `styles.pressed` déclaré par `WelcomeScreen.tsx`/`LoginScreen.tsx`
+/// (opacité 0.84 + scale 0.99) est donc **mort** et ne doit pas être porté.
 struct DuelloWelcomeButton: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -239,8 +245,6 @@ struct DuelloWelcomeButton: ButtonStyle {
             .foregroundStyle(.black)
             .background(Color.white)
             .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
-            .opacity(configuration.isPressed ? 0.84 : 1)
-            .scaleEffect(configuration.isPressed ? 0.99 : 1)
     }
 }
 
@@ -266,54 +270,74 @@ struct LoginView: View {
 ///
 /// `onDark` : variante du parcours d'inscription en thème sombre — bouton
 /// blanc, texte noir (`guestContinueButton` / `guestContinueButtonText`).
+///
+/// `radius` : rayon du coin, **paramétré** car il varie d'un écran à l'autre
+/// (14/16/17/18). Défaut = `Theme.radiusMedium` (14, `radii.medium`), valeur
+/// du CTA de compte (`AccountEmailScreen.tsx:142`, `AccountPasswordScreen`,
+/// `FeedbackScreen`) — usage RN dominant.
+/// `weight` : graisse du libellé, paramétrée (800/900). Défaut = `.black`
+/// (900, `fontWeight: '900'` des CTA RN). Quelques écrans sont en 800.
+///
+/// Aucun retour d'appui : `AppPressable` fige `pressed` à `false`
+/// (`AppPressable.tsx:14`) — l'opacité 0.84 + scale 0.99 qu'ajoutait ce style
+/// était une divergence.
 struct DuelloPrimaryButton: ButtonStyle {
     var onDark: Bool = false
+    var radius: CGFloat = Theme.radiusMedium
+    var weight: Font.Weight = .black
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 15, weight: .heavy))
+            .font(.system(size: 15, weight: weight))
             .foregroundStyle(onDark ? Color.black : Theme.surface)
             .background(onDark ? Color.white : Theme.ink)
-            .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
-            .opacity(configuration.isPressed ? 0.84 : 1)
-            .scaleEffect(configuration.isPressed ? 0.99 : 1)
+            .clipShape(RoundedRectangle(cornerRadius: radius))
     }
 }
 
 /// Champ de formulaire avec légende, comme les écrans de compte Expo.
+///
+/// Cotes du champ générique RN (`PasswordResetForm.tsx:136-150`, `fieldGroup`/
+/// `fieldLabel`/`fieldShell`/`input`, aussi `Field` de `OnboardingScreen.tsx`) :
+/// légende 13 / `.heavy` (800) / `ink` (pas de majuscules), coquille hauteur
+/// min 55, rayon 14, bordure 1.5 `border`, fond `surface`, saisie 15 / regular.
 struct DuelloTextField: View {
     let title: String
     @Binding var text: String
     var isSecure: Bool = false
     var textContentType: UITextContentType? = nil
     var keyboard: UIKeyboardType = .default
+    /// Texte d'invite. La source RN affiche le libellé en placeholder
+    /// (`placeholder={label}`) : le passer ici pour s'en approcher.
+    var placeholder: String = ""
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(.system(size: 12, weight: .heavy))
-                .textCase(.uppercase)
-                .foregroundStyle(Theme.inkFaint)
+                .font(.system(size: 13, weight: .heavy))
+                .foregroundStyle(Theme.ink)
 
             Group {
                 if isSecure {
-                    SecureField("", text: $text)
+                    SecureField(placeholder, text: $text)
                 } else {
-                    TextField("", text: $text)
+                    TextField(placeholder, text: $text)
                 }
             }
             .textContentType(textContentType)
             .keyboardType(keyboard)
             .autocorrectionDisabled()
             .textInputAutocapitalization(.never)
-            .font(.system(size: 16, weight: .semibold))
+            .font(.system(size: 15, weight: .regular))
             .foregroundStyle(Theme.ink)
-            .padding(12)
-            .background(Theme.surfaceMuted)
-            .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
+            .padding(.vertical, 13)
+            .padding(.horizontal, 15)
+            .frame(minHeight: 55)
+            .background(Theme.surface)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
             .overlay(
-                RoundedRectangle(cornerRadius: Theme.radiusSmall)
-                    .stroke(Theme.border, lineWidth: 1)
+                RoundedRectangle(cornerRadius: Theme.radiusMedium)
+                    .stroke(Theme.border, lineWidth: 1.5)
             )
         }
     }

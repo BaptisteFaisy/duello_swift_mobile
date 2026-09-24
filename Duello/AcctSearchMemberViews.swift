@@ -31,7 +31,7 @@ struct AcctSearchProfileStatus: View {
     let onRetry: () -> Void
 
     var body: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 0) {
             if failed {
                 Image(systemName: "icloud.slash")
                     .font(.system(size: 25, weight: .semibold))
@@ -40,22 +40,25 @@ struct AcctSearchProfileStatus: View {
                 ProgressView().tint(Theme.ink)
             }
             Text(failed ? "Profil indisponible" : "Actualisation du profil…")
-                .font(.system(size: 15, weight: .heavy))
+                .font(.system(size: 14, weight: .black))
                 .foregroundStyle(Theme.ink)
+                .padding(.top, 10)
             Text(failed
                  ? "Les performances n’ont pas pu être relues pour le moment."
                  : "Les dernières métriques publiées sont en cours de chargement.")
-                .font(.system(size: 12, weight: .semibold))
+                .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(Theme.inkSoft)
                 .multilineTextAlignment(.center)
+                .lineSpacing(5)
                 .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 6)
             if failed {
                 Button(action: onRetry) {
                     Text("Réessayer")
-                        .font(.system(size: 12, weight: .heavy))
+                        .font(.system(size: 11, weight: .heavy))
                         .foregroundStyle(Theme.ink)
-                        .padding(.vertical, 8)
-                        .padding(.horizontal, 18)
+                        .padding(.vertical, 7)
+                        .padding(.horizontal, 16)
                         .background(Theme.surfaceMuted)
                         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
                         .overlay(
@@ -67,9 +70,16 @@ struct AcctSearchProfileStatus: View {
                 .accessibilityLabel("Réessayer de charger le profil")
             }
         }
-        .padding(20)
         .frame(maxWidth: .infinity)
-        .duelloCard()
+        .padding(.vertical, 24)
+        .padding(.horizontal, 22)
+        .background(Theme.surfaceMuted)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.radiusLarge)
+                .stroke(Theme.border, lineWidth: 1)
+        )
+        .padding(.bottom, 18)
     }
 }
 
@@ -91,54 +101,80 @@ struct AcctSearchMemberShowcase: View {
     let onReport: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 0) {
+            header
+            actions
+        }
+        .padding(.top, 14)
+    }
+
+    /// En-tête de la vitrine (`showcaseHeader`) : identité puis encart Premium.
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 0) {
             identity
             if premiumMessageVisible && member.isPremium {
                 Text("\(member.displayName) est un membre Premium.")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Theme.inkSoft)
+                    .font(.system(size: 11, weight: .heavy))
+                    .foregroundStyle(Theme.ink)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(4)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                    .background(Theme.surfaceMuted)
+                    .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
+                    .padding(.top, 8)
             }
-            actions
         }
-        .duelloCard()
+        .padding(.top, 8)
+        .padding(.bottom, 20)
     }
 
     /// Pseudo, pastille d'abonné et parcours publié, plus le blason de ligue.
     private var identity: some View {
-        HStack(alignment: .top, spacing: 12) {
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 6) {
+        HStack(alignment: .center, spacing: 16) {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: 7) {
                     Text(member.displayName)
-                        .font(.system(size: 18, weight: .black))
+                        .font(.system(size: 21, weight: .black))
                         .foregroundStyle(Theme.ink)
+                        .lineLimit(1)
                     if member.isPremium {
                         Button(action: onTogglePremiumMessage) {
-                            PremPremiumBadge(size: 16)
+                            PremPremiumBadge(size: 18)
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel("Afficher le statut Premium de \(member.displayName)")
                     }
                 }
-                ForEach(pathLines, id: \.self) { line in
-                    Text(line)
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(Theme.inkSoft)
+                VStack(alignment: .leading, spacing: 1) {
+                    ForEach(pathLines, id: \.self) { line in
+                        Text(line)
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(Theme.inkSoft)
+                            .lineSpacing(4)
+                            .lineLimit(1)
+                    }
                 }
+                .padding(.top, 6)
             }
-            Spacer(minLength: 0)
+            .frame(maxWidth: .infinity, alignment: .leading)
+
             if let badge = leagueBadgeURL {
                 CachedRemoteImage(url: badge) { image in
                     image.resizable().scaledToFit()
                 } placeholder: {
                     Color.clear
                 }
-                .frame(width: 56, height: 56)
+                .frame(width: badgeSize, height: badgeSize)
+                .padding(.top, 8)
                 .accessibilityLabel("Ligue \(league.label) de \(member.displayName)")
             }
         }
     }
 
-    /// Suivre / Suivi, « Te suit », proposition de défi et menu de sécurité.
+    /// Suivre / Suivi, « Te suit », proposition de défi et menu de sécurité
+    /// (`socialActions`).
     private var actions: some View {
         HStack(spacing: 8) {
             Button(action: onToggleFollow) {
@@ -146,26 +182,26 @@ struct AcctSearchMemberShowcase: View {
                     Image(systemName: followed ? "checkmark" : "plus")
                     Text(followed ? "Suivi" : "Suivre").lineLimit(1)
                 }
-                .font(.system(size: 12, weight: .heavy))
+                .font(.system(size: 11, weight: .black))
                 .foregroundStyle(Theme.surface)
-                .padding(.vertical, 9)
-                .padding(.horizontal, 14)
-                .background(Theme.ink)
+                .frame(maxWidth: .infinity, minHeight: 40)
+                .padding(.horizontal, 12)
+                .background(Theme.primary)
                 .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
             }
             .buttonStyle(.plain)
             .accessibilityLabel(followed ? "Ne plus suivre \(member.displayName)" : "Suivre \(member.displayName)")
 
             if followsMe {
-                HStack(spacing: 6) {
+                HStack(spacing: 5) {
                     Image(systemName: "person.badge.plus")
                     Text("Te suit").lineLimit(1)
                 }
-                .font(.system(size: 12, weight: .heavy))
+                .font(.system(size: 11, weight: .black))
                 .foregroundStyle(Theme.surface)
-                .padding(.vertical, 9)
-                .padding(.horizontal, 14)
-                .background(Theme.inkSoft)
+                .frame(maxWidth: .infinity, minHeight: 40)
+                .padding(.horizontal, 12)
+                .background(Theme.ink)
                 .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
                 .accessibilityLabel("\(member.displayName) te suit")
             }
@@ -176,18 +212,16 @@ struct AcctSearchMemberShowcase: View {
                         Image(systemName: "bolt")
                         Text("Proposer un défi").lineLimit(1)
                     }
-                    .font(.system(size: 12, weight: .heavy))
+                    .font(.system(size: 11, weight: .black))
                     .foregroundStyle(Theme.surface)
-                    .padding(.vertical, 9)
-                    .padding(.horizontal, 14)
+                    .frame(maxWidth: .infinity, minHeight: 40)
+                    .padding(.horizontal, 12)
                     .background(Theme.ink)
                     .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Proposer un défi à \(member.displayName)")
             }
-
-            Spacer(minLength: 0)
 
             ReportSafetyMenu(
                 blocking: false,
@@ -197,6 +231,7 @@ struct AcctSearchMemberShowcase: View {
                 onReport: onReport
             )
         }
+        .padding(.bottom, 18)
     }
 
     /// Filière, année et spécialité publiées, dans l'ordre d'Expo.
@@ -214,4 +249,9 @@ struct AcctSearchMemberShowcase: View {
     private var league: EloLeague { eloLeague(for: elo, track: member.track) }
 
     private var leagueBadgeURL: URL? { LeagueBadges.badgeURL(forLeague: league.id) }
+
+    /// `leagueBadgeDisplaySize(viewedLeague.id, 84)` : côté du blason de vitrine.
+    private var badgeSize: CGFloat {
+        CGFloat(LeagueBadges.displaySize(forLeague: league.id, baseSize: 84))
+    }
 }

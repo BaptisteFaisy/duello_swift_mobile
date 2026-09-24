@@ -23,7 +23,7 @@ extension DuelloProgressView {
                         .foregroundStyle(Theme.ink)
                     Spacer(minLength: 8)
                     Image(systemName: subjectPickerOpen ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.system(size: 18, weight: .semibold))
                         .foregroundStyle(Theme.inkSoft)
                 }
                 .padding(.vertical, 12)
@@ -100,7 +100,7 @@ extension DuelloProgressView {
                 .stroke(checked ? Theme.primary : Theme.inkFaint, lineWidth: 2)
             if checked {
                 Image(systemName: "checkmark")
-                    .font(.system(size: 13, weight: .bold))
+                    .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(Theme.surface)
             }
         }
@@ -133,6 +133,7 @@ extension DuelloProgressView {
                     Text(subject.name)
                         .font(.system(size: 15, weight: .black))
                         .foregroundStyle(Theme.ink)
+                        .lineSpacing(5)
 
                     EmbeddedMetric(
                         label: "Exercices",

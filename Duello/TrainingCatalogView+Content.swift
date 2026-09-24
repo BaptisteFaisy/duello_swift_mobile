@@ -59,6 +59,7 @@ extension TrainingCatalogView {
     var chapterCatalogue: some View {
         VStack(alignment: .leading, spacing: 0) {
             if subject.id != SubjSubjectRules.mathsSubjectId
+                && activeMode != .cours
                 && activeMode != .colles
                 && subjectTotals.available > 0 {
                 availabilityBanner

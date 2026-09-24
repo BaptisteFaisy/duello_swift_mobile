@@ -217,6 +217,9 @@ struct TrainResumeCard: View {
             RoundedRectangle(cornerRadius: Theme.radiusLarge)
                 .stroke(Theme.border, lineWidth: 1)
         )
+        // `...cardShadow` de la source (`shadowOffset` 0/2, `shadowOpacity`
+        // 0.04, `shadowRadius` 8).
+        .shadow(color: Theme.ink.opacity(0.04), radius: 8, x: 0, y: 2)
         .padding(.top, 7)
         .padding(.bottom, 12)
     }

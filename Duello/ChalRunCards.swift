@@ -30,7 +30,7 @@ struct ChalRunSectionLabel: View {
 
     var body: some View {
         Text(text)
-            .font(.system(size: 9, weight: .heavy))
+            .font(.system(size: 9, weight: .black))
             .tracking(1.4)
             .foregroundStyle(Theme.inkFaint)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -44,17 +44,17 @@ struct ChalRunVerdictCard: View {
     let result: ChalRunResult
 
     var body: some View {
-        HStack(alignment: .top, spacing: 8) {
+        HStack(alignment: .top, spacing: 11) {
             Image(systemName: result.verdict.source == .ai ? "sparkles" : "calculator")
-                .font(.system(size: 15, weight: .semibold))
+                .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(Theme.ink)
                 .frame(width: 30, height: 30)
                 .background(Theme.surface)
                 .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
             Text(LatexToUnicode.toUnicodeMath(result.verdict.summary))
-                .font(.system(size: 12, weight: .semibold))
+                .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(Theme.ink)
-                .lineSpacing(3)
+                .lineSpacing(6)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -74,12 +74,12 @@ struct ChalRunVerdictNote: View {
             Text("Service de notation IA injoignable : les deux copies ont été départagées par le barème local de l’application.")
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(Theme.inkSoft)
-                .lineSpacing(2)
+                .lineSpacing(5)
         } else if !result.verdict.ranked {
             Text(unrankedNote)
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(Theme.inkSoft)
-                .lineSpacing(2)
+                .lineSpacing(5)
         }
     }
 
@@ -102,24 +102,34 @@ struct ChalRunProductionCard: View {
     let winner: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 10) {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 9) {
                 avatar
                 Text(name)
-                    .font(.system(size: 13, weight: .heavy))
+                    .font(.system(size: 13, weight: .black))
                     .foregroundStyle(Theme.ink)
-                if winner { winnerBadge }
                 Spacer(minLength: 8)
+                if winner { winnerBadge }
                 score
             }
             Text(LatexToUnicode.toUnicodeMath(assessment.note))
-                .font(.system(size: 11, weight: .semibold))
+                .font(.system(size: 11, weight: .bold))
                 .foregroundStyle(Theme.inkSoft)
-                .lineSpacing(2)
-            if let production { productionBody(production) }
+                .lineSpacing(5)
+                .padding(.top, 10)
+            if let production {
+                productionBody(production)
+                    .padding(.top, 11)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .duelloCard()
+        .padding(15)
+        .background(winner ? Theme.primaryLight : Theme.surface)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.radiusLarge, style: .continuous)
+                .stroke(winner ? Theme.ink : Theme.border, lineWidth: 1)
+        )
     }
 
     private var avatar: some View {
@@ -138,7 +148,7 @@ struct ChalRunProductionCard: View {
             Image(systemName: "trophy")
                 .font(.system(size: 11, weight: .bold))
             Text("Vainqueur")
-                .font(.system(size: 8, weight: .heavy))
+                .font(.system(size: 8, weight: .black))
                 .tracking(0.6)
         }
         .foregroundStyle(Theme.ink)
@@ -163,9 +173,10 @@ struct ChalRunProductionCard: View {
         let rendered = LatexToUnicode.toUnicodeMath(raw)
         let empty = rendered.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         return Text(empty ? "— Aucune réponse rendue —" : rendered)
-            .font(.system(size: 12))
+            .font(.system(size: 12, weight: .medium))
+            .italic(empty)
             .foregroundStyle(empty ? Theme.inkFaint : Theme.ink)
-            .lineSpacing(3)
+            .lineSpacing(6)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(12)
             .background(Theme.background)
@@ -183,10 +194,11 @@ struct ChalRunQuestionReviewCard: View {
     let showOpponent: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 0) {
             Text("Question \(label)")
-                .font(.system(size: 12, weight: .heavy))
+                .font(.system(size: 12, weight: .black))
                 .foregroundStyle(Theme.ink)
+                .padding(.bottom, 12)
             answerBlock(author: "Ta réponse", answer: myAnswer)
             if showOpponent {
                 Rectangle()
@@ -197,23 +209,31 @@ struct ChalRunQuestionReviewCard: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .duelloCard()
+        .padding(15)
+        .background(Theme.surface)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.radiusLarge, style: .continuous)
+                .stroke(Theme.border, lineWidth: 1)
+        )
+        .padding(.bottom, 12)
     }
 
     private func answerBlock(author: String, answer: String) -> some View {
         let rendered = LatexToUnicode.toUnicodeMath(answer)
         let empty = rendered.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        return VStack(alignment: .leading, spacing: 2) {
+        return VStack(alignment: .leading, spacing: 0) {
             Text(author)
-                .font(.system(size: 9, weight: .heavy))
+                .font(.system(size: 9, weight: .black))
                 .tracking(0.8)
                 .textCase(.uppercase)
                 .foregroundStyle(Theme.inkFaint)
+                .padding(.bottom, 6)
             Text(empty ? "Aucune réponse rendue pour cette question." : rendered)
                 .font(.system(size: 12, weight: .medium))
                 .italic(empty)
                 .foregroundStyle(empty ? Theme.inkFaint : Theme.ink)
-                .lineSpacing(3)
+                .lineSpacing(6)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
     }

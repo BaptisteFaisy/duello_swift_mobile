@@ -9,9 +9,10 @@
 //                                currentTrackChoices, isFirstYear, isLyceeYear)
 //
 //  `TrackSettingsView` (lot Account) édite déjà filière/année/option/prépa/
-//  ville via des `Picker` segmentés, sans description. Cette vue-ci porte **ce
-//  qui manque** : le choix de filière en cartes radio, avec la description de
-//  chaque filière, le sous-titre dépendant de l'année et l'état accessible
+//  ville via des `Picker` segmentés, sans description. Cette vue-ci porte
+//  l'écran complet de `AccountTrackScreen.tsx` : chevron de retour, chapeau
+//  (titre + sous-titre dépendant de l'année), puis le choix de filière en
+//  cartes radio, avec la description de chaque filière et l'état accessible
 //  radio/coché. Aucun type existant n'est redéfini (`OnbFlowAcademic` reste
 //  utilisé par l'onboarding, il n'est pas touché).
 //
@@ -67,16 +68,43 @@ struct AcctSubTrackChoiceList: View {
     let year: String
     let selected: String
     let onSelect: (String) -> Void
+    /// `onBack` de la source : le chevron de retour est toujours rendu, comme
+    /// `AccountTrackScreen.tsx` qui place un `BackButton` en tête de contenu.
+    var onBack: (() -> Void)? = nil
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            heading
-            VStack(spacing: 10) {
-                ForEach(AcctSubTrackCatalog.choices(forYear: year), id: \.self) { track in
-                    optionRow(track)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                backButton
+                heading
+                    .padding(.top, 28)
+                VStack(spacing: 10) {
+                    ForEach(AcctSubTrackCatalog.choices(forYear: year), id: \.self) { track in
+                        optionRow(track)
+                    }
                 }
+                .padding(.top, 24)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 24)
+            .padding(.top, 8)
+            .padding(.bottom, 36)
         }
+        .scrollIndicators(.hidden)
+        .background(Theme.background)
+    }
+
+    /// `BackButton` de la source (`iconColor=colors.ink`, `iconSize=20`,
+    /// `minHeight:40`) : chevron d'encre, cadre 40×40 aligné au bord du contenu.
+    private var backButton: some View {
+        Button { onBack?() } label: {
+            Image(systemName: "chevron.left")
+                .font(.system(size: 20, weight: .bold))
+                .foregroundStyle(Theme.ink)
+                .frame(width: 40, height: 40, alignment: .leading)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Retour à mes informations")
     }
 
     private var heading: some View {
@@ -86,6 +114,7 @@ struct AcctSubTrackChoiceList: View {
                 .foregroundStyle(Theme.ink)
             Text("Les filières proposées correspondent à ta \(year).")
                 .font(.system(size: 13, weight: .semibold))
+                .lineSpacing(6)
                 .foregroundStyle(Theme.inkSoft)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -105,14 +134,15 @@ struct AcctSubTrackChoiceList: View {
                         .foregroundStyle(isSelected ? Theme.surface : Theme.ink)
                     Text(description)
                         .font(.system(size: 11, weight: .semibold))
+                        .lineSpacing(5)
                         .foregroundStyle(isSelected ? Theme.primaryLight : Theme.inkSoft)
                         .multilineTextAlignment(.leading)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 if isSelected {
-                    Image(systemName: "checkmark.circle")
-                        .font(.system(size: 22, weight: .semibold))
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 22))
                         .foregroundStyle(Theme.surface)
                 }
             }

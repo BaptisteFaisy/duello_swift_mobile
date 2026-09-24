@@ -61,12 +61,13 @@ struct ChalHome2NoticeCard: View {
     var body: some View {
         HStack(alignment: .top, spacing: 9) {
             Image(systemName: icon ?? tone.icon)
-                .font(.system(size: 18, weight: .semibold))
+                .font(.system(size: 20, weight: .semibold))
                 .foregroundStyle(tone.color)
-                .frame(width: 22)
+                .frame(width: 20)
             Text(text)
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(Theme.inkSoft)
+                .lineSpacing(5)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .fixedSize(horizontal: false, vertical: true)
         }

@@ -44,12 +44,12 @@ struct SubjectLeaderboardView: View {
         SwipeScreenFrameReader {
             ZStack(alignment: .bottom) {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 0) {
                         hintCard
                         stateContent
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 6)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 8)
                     .padding(.bottom, 100)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -57,8 +57,8 @@ struct SubjectLeaderboardView: View {
 
                 if let current = dockEntry {
                     currentUserDock(current)
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 10)
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 14)
                 }
             }
         }
@@ -73,6 +73,8 @@ struct SubjectLeaderboardView: View {
     private var hintCard: some View {
         if !hintDismissed, let league = highestEloLeague {
             EloLeagueThresholdHint(league: league) { hintDismissed = true }
+                .padding(.top, 10)
+                .padding(.bottom, 12)
         }
     }
 
@@ -96,6 +98,7 @@ struct SubjectLeaderboardView: View {
                 message: "Les cotes Elo sont en cours de récupération.",
                 showsProgress: true
             )
+            .padding(.top, 18)
         case .error:
             RankingStatusCard(
                 icon: "cloud.offline",
@@ -106,6 +109,7 @@ struct SubjectLeaderboardView: View {
                 notice: "Ta cote locale de \(groupedNumber(localElo)) Elo reste affichée.",
                 retry: { load() }
             )
+            .padding(.top, 18)
         case .ready:
             leagueSections
         }
@@ -124,15 +128,17 @@ struct SubjectLeaderboardView: View {
     private var leagueSections: some View {
         let leagues = eloLeagues(forTrack: session.profile.track)
         let currentRows = rows
-        return VStack(alignment: .leading, spacing: 14) {
+        return VStack(alignment: .leading, spacing: 0) {
             ForEach(leagues.reversed()) { league in
                 let leagueRows = currentRows.filter {
                     eloLeague(for: $0.score, track: session.profile.track).id == league.id
                 }
                 leagueSection(league, rows: leagueRows)
+                    .padding(.bottom, 12)
             }
             if participantCount == 1 && scope == .preps {
                 prepsOpeningCard
+                    .padding(.top, 12)
             }
         }
     }
@@ -141,15 +147,9 @@ struct SubjectLeaderboardView: View {
     /// vide (« Aucun joueur dans cette ligue[ pour le moment]. »).
     @ViewBuilder
     private func leagueSection(_ league: EloLeague, rows leagueRows: [RankedLeaderboardRow]) -> some View {
-        let content = VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 0) {
             leagueHeader(league)
             leagueRowsContent(league, leagueRows)
-        }
-
-        if leagueRows.isEmpty {
-            content
-        } else {
-            content.duelloCard()
         }
     }
 
@@ -169,6 +169,7 @@ struct SubjectLeaderboardView: View {
             if expandedLeagueId == league.id {
                 Text("\(groupedNumber(league.minimumElo)) Elo")
                     .font(.system(size: 11, weight: .heavy).monospacedDigit())
+                    .lineSpacing(4)
                     .foregroundStyle(Theme.ink)
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal, 12)
@@ -177,7 +178,8 @@ struct SubjectLeaderboardView: View {
                     .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
             }
         }
-        .frame(maxWidth: .infinity)
+        .padding(.vertical, 4)
+        .frame(maxWidth: .infinity, minHeight: 110)
     }
 
     /// Corps d'une ligue : message de ligue vide, ou lignes classées.
@@ -194,16 +196,13 @@ struct SubjectLeaderboardView: View {
                 .padding(.vertical, 16)
                 .padding(.horizontal, 14)
         } else {
-            VStack(spacing: 0) {
+            VStack(spacing: 8) {
                 ForEach(leagueRows.indices, id: \.self) { index in
                     if leagueRows[index].isCurrentUser {
                         LeaderboardRowView(row: leagueRows[index])
                             .swipeCurrentRowVisibility($currentRowVisible)
                     } else {
                         LeaderboardRowView(row: leagueRows[index])
-                    }
-                    if index < leagueRows.count - 1 {
-                        LeaderboardRowDivider()
                     }
                 }
             }
@@ -215,10 +214,11 @@ struct SubjectLeaderboardView: View {
     private var prepsOpeningCard: some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: "sparkles")
-                .font(.system(size: 19, weight: .semibold))
+                .font(.system(size: 19))
                 .foregroundStyle(Theme.ink)
             Text("Ta prépa ouvre ce classement. Les prochains établissements apparaîtront avec leurs élèves classés.")
-                .font(.system(size: 12, weight: .semibold))
+                .font(.system(size: 10, weight: .semibold))
+                .lineSpacing(5)
                 .foregroundStyle(Theme.inkSoft)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -286,40 +286,43 @@ struct SubjectLeaderboardView: View {
                     LeaderboardAvatar(
                         initial: current.initial,
                         photoUri: current.photoUri,
-                        size: 32,
-                        background: Theme.ink,
+                        size: 30,
+                        background: Theme.primary,
                         foreground: Theme.surface
                     )
                 }
             }
             VStack(alignment: .leading, spacing: 3) {
                 Text("Moi · \(leaderboardRankLabel(current.rank))")
-                    .font(.system(size: 11, weight: .heavy))
-                    .foregroundStyle(Theme.ink)
+                    .font(.system(size: 10, weight: .black))
+                    .foregroundStyle(Theme.primary)
                 Text(current.displayName)
-                    .font(.system(size: 12, weight: .bold))
+                    .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(Theme.ink)
                     .lineLimit(1)
             }
             Spacer(minLength: 8)
-            VStack(alignment: .trailing, spacing: 1) {
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text(groupedNumber(current.score))
-                    .font(.system(size: 13, weight: .heavy).monospacedDigit())
+                    .font(.system(size: 11, weight: .heavy).monospacedDigit())
                     .foregroundStyle(Theme.inkSoft)
                 Text(current.valueLabel)
-                    .font(.system(size: 9, weight: .heavy))
+                    .font(.system(size: 7, weight: .black))
+                    .tracking(0.8)
                     .textCase(.uppercase)
                     .foregroundStyle(Theme.inkFaint)
             }
         }
         .padding(.horizontal, 13)
         .padding(.vertical, 10)
+        .frame(minHeight: 64)
         .background(Theme.primaryLight)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
         .overlay(
             RoundedRectangle(cornerRadius: Theme.radiusLarge)
-                .stroke(Theme.ink, lineWidth: 1)
+                .stroke(Theme.primary, lineWidth: 1)
         )
+        .duelloShadow()
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Moi, \(leaderboardRankLabel(current.rank)), \(current.displayName), \(groupedNumber(current.score)) \(current.valueLabel)")
     }
@@ -433,11 +436,13 @@ struct EloLeagueThresholdHint: View {
                     demo(time: time)
                     thresholdValue(time: time)
                 }
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: 90)
             }
+            .padding(.top, 10)
+            .padding(.bottom, 8)
             closeButton
         }
-        .padding(.top, 10)
-        .padding(.bottom, 8)
         .background(Theme.surface)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
         .overlay(
@@ -454,7 +459,7 @@ struct EloLeagueThresholdHint: View {
         let press = eloHintSample(time, eloHintHandPressSegments)
         return ZStack {
             LeagueBadgeImage(leagueId: league.id, size: 68)
-            Image(systemName: "hand.point.left.fill")
+            Image(systemName: "hand.point.left")
                 .font(.system(size: 23, weight: .regular))
                 .foregroundStyle(Theme.inkSoft)
                 .opacity(LeagueAnimation.interpolate(position, [0, 0.18, 1], [0.35, 1, 1], clamped: true))
@@ -463,7 +468,6 @@ struct EloLeagueThresholdHint: View {
         }
         .frame(width: 68, height: 68)
         .frame(maxWidth: .infinity)
-        .frame(minHeight: 90)
     }
 
     /// Seuil Elo révélé (`eloThresholdHintValue`).
@@ -482,7 +486,7 @@ struct EloLeagueThresholdHint: View {
     private var closeButton: some View {
         Button(action: onDismiss) {
             Image(systemName: "xmark")
-                .font(.system(size: 13, weight: .bold))
+                .font(.system(size: 20))
                 .foregroundStyle(Theme.inkSoft)
                 .frame(width: 32, height: 32)
         }

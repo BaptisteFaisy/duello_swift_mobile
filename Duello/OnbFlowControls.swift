@@ -24,7 +24,7 @@ struct OnbFlowDivider: View {
         HStack(spacing: 10) {
             line
             Text("OU")
-                .font(.system(size: 10, weight: .heavy))
+                .font(.system(size: 10, weight: .black))
                 .foregroundStyle(OnbFlowPalette.dividerText)
             line
         }
@@ -103,17 +103,14 @@ struct OnbFlowSchoolSuggestions: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ForEach(Array(schools.enumerated()), id: \.element) { index, school in
-                if index > 0 {
-                    Rectangle().fill(Theme.border).frame(height: 1)
-                }
+            ForEach(Array(schools.enumerated()), id: \.element) { _, school in
                 Button {
                     onSelect(school)
                 } label: {
                     HStack(spacing: 9) {
                         Image(systemName: "school")
                             .font(.system(size: 17))
-                            .foregroundStyle(Theme.progress)
+                            .foregroundStyle(Theme.ink)
                         Text(school)
                             .font(.system(size: 12, weight: .bold))
                             .foregroundStyle(Theme.ink)
@@ -124,11 +121,20 @@ struct OnbFlowSchoolSuggestions: View {
                     }
                     .padding(.horizontal, 13)
                     .frame(minHeight: 44)
+                    .overlay(alignment: .bottom) {
+                        // `suggestionItem.borderBottomWidth` = `hairlineWidth`
+                        // (0,5 pt sur un écran 2×) sous **chaque** ligne, y
+                        // compris la dernière — la source borne ensuite la liste
+                        // (`maxHeight: 250`, `overflow: hidden`).
+                        Rectangle().fill(Theme.border).frame(height: 0.5)
+                    }
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Choisir \(school)")
             }
         }
+        .frame(maxHeight: 250, alignment: .top)
+        .clipped()
         .background(Theme.surface)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
         .overlay(
@@ -155,23 +161,37 @@ struct OnbFlowProviderButtons: View {
     @State private var googleError: String?
 
     var body: some View {
-        VStack(spacing: 14) {
-            Button {
-                signInWithGoogle()
-            } label: {
-                HStack(spacing: Theme.providerFieldSpacing) {
-                    GoogleGLogo()
-                        .frame(width: Theme.providerLogoSize, height: Theme.providerLogoSize)
-                    Text(isGoogleLoading ? "Connexion à Google…" : "Continuer avec Google")
-                        .font(.system(size: 15, weight: .semibold))
+        VStack(spacing: 19) {
+            // Conteneur du bouton Google (`gap: 7`) : le message d'échec vit
+            // **sous le bouton Google**, dans son conteneur, et non sous le
+            // bouton Apple (source `GoogleAuthButton.native.tsx`).
+            VStack(spacing: 7) {
+                Button {
+                    signInWithGoogle()
+                } label: {
+                    HStack(spacing: Theme.providerFieldSpacing) {
+                        GoogleGLogo()
+                            .frame(width: Theme.providerLogoSize, height: Theme.providerLogoSize)
+                        Text(isGoogleLoading ? "Connexion à Google…" : "Continuer avec Google")
+                            .font(.system(size: 15, weight: .semibold))
+                    }
+                    .frame(maxWidth: .infinity, minHeight: Theme.providerFieldMinHeight)
                 }
-                .frame(maxWidth: .infinity, minHeight: Theme.providerFieldMinHeight)
+                // Variante sombre de la peinture partagée (`guestFieldShell` de la
+                // source) : fond `#111111`, bordure blanche 1.5.
+                .buttonStyle(GoogleFieldButtonStyle(appearance: .dark, isDimmed: isGoogleLoading))
+                .disabled(isGoogleLoading)
+                .accessibilityLabel("Continuer avec Google")
+
+                if let googleError {
+                    Text(googleError)
+                        .font(.system(size: 11))
+                        // `error.lineHeight` 16 − 11.
+                        .lineSpacing(5)
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(Theme.providerErrorOnDark)
+                }
             }
-            // Variante sombre de la peinture partagée (`guestFieldShell` de la
-            // source) : fond `#111111`, bordure blanche 1.5.
-            .buttonStyle(GoogleFieldButtonStyle(appearance: .dark, isDimmed: isGoogleLoading))
-            .disabled(isGoogleLoading)
-            .accessibilityLabel("Continuer avec Google")
 
             AppleAuthView(
                 appearance: .dark,
@@ -179,13 +199,6 @@ struct OnbFlowProviderButtons: View {
                 username: username,
                 onAuthenticated: { identity, payload in onApple(identity, payload) }
             )
-
-            if let googleError {
-                Text(googleError)
-                    .font(.system(size: 11))
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(Theme.providerError)
-            }
         }
     }
 

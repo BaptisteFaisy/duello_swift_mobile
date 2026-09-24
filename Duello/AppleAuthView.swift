@@ -12,12 +12,15 @@
 //    - src/components/SocialAuthFallbackButton.tsx (`SocialAuthFallbackButton`,
 //                                                 `unavailableMessage`)
 //
-//  `AppleAuthView` porte le bouton « Continuer avec Apple » **dans la peinture
-//  du champ d'onboarding** (`GoogleFieldButtonStyle`), la même que le bouton
-//  Google : les deux fournisseurs de l'étape `auth-method` forment une paire,
-//  cotes et couleurs dans `Theme.provider*`. États : libellé échangé contre
-//  « Connexion à Apple… » pendant l'échange, message d'erreur, silence total
-//  sur une annulation. `AppleAuthFallbackButton` couvre le repli web.
+//  `AppleAuthView` porte le bouton « Continuer avec Apple » avec deux
+//  habillages (`AppleAuthVariant`) : par défaut la **peinture du champ
+//  d'onboarding** (`GoogleFieldButtonStyle`), la même que le bouton Google —
+//  les deux fournisseurs de l'étape `auth-method` forment une paire, cotes et
+//  couleurs dans `Theme.provider*` ; `AppleAuthVariant.native` conserve la
+//  peinture du bouton Apple natif. États : libellé échangé contre « Connexion
+//  à Apple… » pendant l'échange (habillage « champ »), message d'erreur,
+//  silence total sur une annulation. `AppleAuthFallbackButton` couvre le repli
+//  web.
 //
 //  Limite assumée : `AuthenticationServices` n'est pas vérifiable hors Apple ;
 //  l'appui déclenche `AppleAuthService`, qui renvoie une erreur documentée
@@ -34,12 +37,27 @@ enum AppleAuthAppearance {
     case dark
 }
 
+/// Habillage du bouton Apple (`variant` de `AppleAuthButtonProps`).
+enum AppleAuthVariant {
+    /// `onboarding-field` : la peinture du **champ d'onboarding**, identique au
+    /// bouton Google (`GoogleFieldButtonStyle`) — fond encre `#111111`, filet
+    /// blanc 1.5, contenu blanc, rayon 14. C'est l'habillage des deux écrans
+    /// (`LoginScreen`, `OnboardingScreen`), donc le défaut.
+    case field
+    /// `default` : le bouton Apple **natif** (`AppleAuthenticationButtonStyle`
+    /// `.WHITE` en thème sombre) — fond blanc, contenu noir, sans bordure.
+    case native
+}
+
 /// Bouton « Continuer avec Apple » avec ses états. `onAuthenticated` reçoit
 /// l'identité nettoyée par le serveur et la session Duello à ouvrir : la
 /// connexion du bouton n'ouvre pas la session elle-même (comme le bouton Expo,
 /// dont `onAuthenticated` est appelé après validation serveur).
 struct AppleAuthView: View {
     var appearance: AppleAuthAppearance = .light
+    /// Défaut = habillage dominant du RN (`variant="onboarding-field"` sur les
+    /// deux écrans) : le champ sombre partagé avec le bouton Google.
+    var variant: AppleAuthVariant = .field
     var disabled: Bool = false
     var username: String? = nil
     var onAuthenticated: (AppleAuthIdentity, DuelloAPI.SessionPayload) -> Void
@@ -53,21 +71,11 @@ struct AppleAuthView: View {
     var body: some View {
         VStack(spacing: 7) {
             if isAvailable {
-                Button {
-                    Task { await authenticate() }
-                } label: {
-                    label
-                }
-                .buttonStyle(AppleFieldButtonStyle(
-                    appearance: appearance,
-                    isDimmed: disabled || isLoading
-                ))
-                .disabled(disabled || isLoading)
-                .accessibilityLabel("Continuer avec Apple")
+                providerButton
             }
 
-            // Le libellé du bouton reste « Continuer avec Apple » ; le texte
-            // d'état s'affiche **sous** le bouton, comme la source.
+            // Le texte d'état s'affiche **sous** le bouton, en plus du libellé
+            // échangé dans le bouton (habillage « champ »), comme la source.
             if isLoading {
                 Text("Connexion à Apple…")
                     .font(.system(size: 11))
@@ -85,17 +93,57 @@ struct AppleAuthView: View {
         .frame(maxWidth: .infinity)
     }
 
-    /// Corps du bouton : logo Apple + libellé, dans la peinture **blanche**
-    /// du bouton natif Apple (`AppleAuthenticationButtonStyle.WHITE` en thème
-    /// sombre) — distincte de `GoogleFieldButtonStyle`.
+    /// Le bouton lui-même, dans l'habillage demandé. L'habillage « champ »
+    /// réutilise `GoogleFieldButtonStyle` : les deux fournisseurs de l'étape
+    /// `auth-method` peignent alors, au pixel près, le même champ (fond
+    /// `#111111`, filet blanc 1.5, rayon 14, appui `#1D1D1D`).
+    @ViewBuilder
+    private var providerButton: some View {
+        switch variant {
+        case .field:
+            Button {
+                Task { await authenticate() }
+            } label: {
+                label
+            }
+            .buttonStyle(GoogleFieldButtonStyle(appearance: .dark, isDimmed: disabled || isLoading))
+            .disabled(disabled || isLoading)
+            .accessibilityLabel("Continuer avec Apple")
+        case .native:
+            Button {
+                Task { await authenticate() }
+            } label: {
+                label
+            }
+            .buttonStyle(AppleFieldButtonStyle(
+                appearance: appearance,
+                isDimmed: disabled || isLoading
+            ))
+            .disabled(disabled || isLoading)
+            .accessibilityLabel("Continuer avec Apple")
+        }
+    }
+
+    /// Corps du bouton : logo Apple + libellé. La teinte du contenu vient de
+    /// l'habillage : blanc pour le champ sombre, noir (thème sombre) ou blanc
+    /// (thème clair) pour le bouton natif.
     private var label: some View {
         HStack(spacing: Theme.providerFieldSpacing) {
             Image(systemName: "apple.logo")
                 .font(.system(size: Theme.providerLogoSize, weight: .medium))
-            Text("Continuer avec Apple")
+            Text(title)
                 .font(.system(size: 15, weight: .semibold))
         }
         .frame(maxWidth: .infinity, minHeight: Theme.providerFieldMinHeight)
+    }
+
+    /// Libellé : dans l'habillage « champ », il est échangé contre « Connexion
+    /// à Apple… » pendant l'échange (`AppleAuthButton.tsx:139`), le texte d'état
+    /// s'affichant en plus **sous** le bouton ; le bouton natif garde son
+    /// libellé.
+    private var title: String {
+        if variant == .field && isLoading { return "Connexion à Apple…" }
+        return "Continuer avec Apple"
     }
 
     /// Preuve native puis vérification serveur ; l'annulation ne laisse
@@ -127,11 +175,12 @@ enum AppleAuthAvailability {
     }
 }
 
-/// Peinture du bouton Apple de l'étape fournisseur : la source emploie le
-/// bouton **natif** Apple (`AppleAuthenticationButtonStyle.WHITE` en thème
-/// sombre) — fond blanc, logo et texte noirs, **sans bordure**, rayon 14,
-/// hauteur 55. Distincte de `GoogleFieldButtonStyle` (champ sombre bordé de
-/// blanc).
+/// Peinture du bouton Apple **natif** (`AppleAuthVariant.native`,
+/// `AppleAuthenticationButtonStyle.WHITE` en thème sombre) : fond blanc, logo
+/// et texte noirs, **sans bordure**, rayon 14, hauteur 55. L'habillage
+/// « champ » (`AppleAuthVariant.field`) n'utilise **pas** ce style : il
+/// réutilise `GoogleFieldButtonStyle` (champ sombre bordé de blanc), pour que
+/// les deux boutons de l'étape `auth-method` peignent le même champ.
 struct AppleFieldButtonStyle: ButtonStyle {
     var appearance: AppleAuthAppearance
     /// Bouton hors service : 55 %, le `styles.disabled` de la source.

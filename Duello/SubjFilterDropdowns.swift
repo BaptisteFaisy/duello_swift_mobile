@@ -76,7 +76,10 @@ struct SubjBadgeFilterDropdown: View {
 
     var body: some View {
         let selection = SubjBadgeFilterModel.selectionLabel(selected: selected)
-        SubjFilterFieldChrome(label: label) {
+        SubjFilterFieldChrome(
+            label: label,
+            minWidth: inChapterHeader ? nil : SubjSubjectsDropdownScope.badgeFilterMinWidth
+        ) {
             VStack(alignment: .leading, spacing: 0) {
                 SubjFilterTrigger(
                     isOpen: isOpen,
@@ -94,16 +97,22 @@ struct SubjBadgeFilterDropdown: View {
     }
 
     /// Contenu du déclencheur : la valeur unique, « N choix », ou « Tout ».
+    ///
+    /// Le JSX passe `compact={inChapterHeader}` : la pastille n'est resserrée
+    /// que dans l'en-tête de chapitre.
     @ViewBuilder private var triggerContent: some View {
         if selected.count == 1 {
-            SubjBadgeFilterValueTag(value: selected[0])
+            SubjBadgeFilterValueTag(value: selected[0], compact: inChapterHeader)
         } else if selected.count > 1 {
+            // Ionicons `checkmark-done-outline` : la double coche n'a pas
+            // d'équivalent exact dans SF Symbols (voir le rapport).
             SubjFilterAllBadge(
                 icon: "checkmark.circle",
                 iconColor: Theme.primary,
                 text: SubjFilterCopy.choiceCount(selected.count)
             )
         } else {
+            // Ionicons `apps-outline` (grille 2×2 de carrés) → `square.grid.2x2`.
             SubjFilterAllBadge(icon: "square.grid.2x2", text: SubjFilterCopy.tout)
         }
     }
@@ -126,6 +135,8 @@ struct SubjBadgeFilterDropdown: View {
                         onTap: { onSelect(choice.value) }
                     ) {
                         if let value = choice.value {
+                            // Le JSX rend `<BadgeFilterValueTag value={badge} />`
+                            // sans `compact` : la valeur du menu est standard.
                             SubjBadgeFilterValueTag(value: value)
                         } else {
                             SubjFilterAllBadge(
@@ -151,7 +162,10 @@ struct SubjNotionsDropdown: View {
     @State private var isOpen = false
 
     var body: some View {
-        SubjFilterFieldChrome(label: SubjFilterCopy.notions) {
+        SubjFilterFieldChrome(
+            label: SubjFilterCopy.notions,
+            minWidth: inChapterHeader ? nil : SubjSubjectsDropdownScope.badgeFilterMinWidth
+        ) {
             VStack(alignment: .leading, spacing: 0) {
                 SubjFilterTrigger(
                     isOpen: isOpen,
@@ -185,7 +199,10 @@ struct SubjClassiqueDropdown: View {
     @State private var isOpen = false
 
     var body: some View {
-        SubjFilterFieldChrome(label: SubjFilterCopy.classique) {
+        SubjFilterFieldChrome(
+            label: SubjFilterCopy.classique,
+            minWidth: inChapterHeader ? nil : SubjSubjectsDropdownScope.badgeFilterMinWidth
+        ) {
             VStack(alignment: .leading, spacing: 0) {
                 SubjFilterTrigger(
                     isOpen: isOpen,

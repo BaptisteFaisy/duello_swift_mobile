@@ -18,11 +18,14 @@ extension MessagesView {
                         .buttonStyle(.plain)
 
                         if index < conversations.count - 1 {
-                            Divider().padding(.leading, 60)
+                            HairlineDivider().padding(.leading, 60)
                         }
                     }
                 }
-                .duelloCard()
+                .padding(.horizontal, 15)
+                .background(Theme.surface)
+                .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
+                .shadow(color: Color(hex: 0x0A0D0C).opacity(0.04), radius: 8, x: 0, y: 2)
             }
             .padding(.horizontal, 20)
             .padding(.top, 22)
@@ -43,14 +46,15 @@ extension MessagesView {
                     .frame(width: 48, height: 48)
                 if conversation.isOnline {
                     Circle()
-                        .fill(Theme.progress)
+                        .fill(Theme.primaryLight)
                         .frame(width: 13, height: 13)
-                        .overlay(Circle().stroke(Theme.surface, lineWidth: 2))
+                        .overlay(Circle().strokeBorder(Theme.surface, lineWidth: 2))
+                        .offset(x: 1, y: 1)
                 }
             }
 
             VStack(alignment: .leading, spacing: 5) {
-                HStack(alignment: .firstTextBaseline) {
+                HStack {
                     Text(conversation.name)
                         .font(.system(size: 13, weight: .black))
                         .foregroundStyle(Theme.ink)
@@ -80,9 +84,21 @@ extension MessagesView {
         Text("\(count)")
             .font(.system(size: 9, weight: .black))
             .foregroundStyle(Theme.surface)
-            .frame(minWidth: 20, minHeight: 20)
             .padding(.horizontal, 5)
+            .frame(minWidth: 20, minHeight: 20)
             .background(Theme.ink)
             .clipShape(Capsule())
+    }
+}
+
+/// Filet de séparation épais d'une ligne physique, couleur de bordure du thème
+/// (`StyleSheet.hairlineWidth` + `colors.border` de la source Expo).
+private struct HairlineDivider: View {
+    @Environment(\.displayScale) private var displayScale
+
+    var body: some View {
+        Rectangle()
+            .fill(Theme.border)
+            .frame(height: 1 / displayScale)
     }
 }

@@ -57,13 +57,18 @@ struct OnbFlowView: View {
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            VStack(spacing: 0) {
-                topBar
-                progressBar
-                stepTransition
-                footer
+            // La source **remplace** tout l'écran dès que la surface
+            // d'entraînement devient visible (`if (trainingHandoffVisible)`) :
+            // le parcours disparaît derrière elle.
+            if !handoff.isSurfaceVisible {
+                VStack(spacing: 0) {
+                    topBar
+                    progressBar
+                    stepTransition
+                    footer
+                }
+                .background(OnbFlowPalette.background)
             }
-            .background(OnbFlowPalette.background)
 
             if handoff.isActive {
                 bloomLayer
@@ -76,6 +81,14 @@ struct OnbFlowView: View {
                 }
             }
         }
+        // Fond hors zone sûre : noir pendant le parcours (`guestSafeArea`),
+        // blanc pendant la passation (`trainingHandoffSafeArea`,
+        // `colors.background`) — le fond noir du parcours ne couvrait pas la
+        // barre d'état, faute de `ignoresSafeArea`.
+        .background(
+            (handoff.isSurfaceVisible ? Theme.background : OnbFlowPalette.background)
+                .ignoresSafeArea()
+        )
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Parcours de bienvenue")
         .onAppear {
@@ -125,7 +138,7 @@ struct OnbFlowView: View {
             onSwipeBackward: canSwipeBackward ? { back() } : nil
         ) {
             GeometryReader { proxy in
-                ScrollView {
+                ScrollView(.vertical, showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 24) {
                         eyebrow
                         OnbFlowStepContent(
@@ -134,11 +147,21 @@ struct OnbFlowView: View {
                             onApple: handleApple,
                             onBiometric: handleBiometric
                         )
+                        .padding(.top, stepTopInset)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 22)
                     .padding(.vertical, 30)
-                    .frame(minHeight: proxy.size.height, alignment: .center)
+                    // `scrollContent` centre verticalement le bloc ; l'étape
+                    // `target` recentrée sur la saisie le colle en haut
+                    // (`schoolSearchScrollContent` : `justifyContent:
+                    // 'flex-start'`).
+                    .frame(
+                        minHeight: proxy.size.height,
+                        alignment: coordinator.currentStep == .target && coordinator.schoolSearchFocused
+                            ? .top
+                            : .center
+                    )
                     .padding(
                         .bottom,
                         coordinator.currentStep == .target && coordinator.schoolSearchFocused ? 280 : 0
@@ -158,10 +181,26 @@ struct OnbFlowView: View {
     private var eyebrow: some View {
         if let text = OnbFlowSteps.eyebrow(for: coordinator.currentStep) {
             Text(text)
-                .font(.system(size: 11, weight: .heavy))
+                .font(.system(size: 11, weight: .black))
                 .tracking(1.5)
                 .textCase(.uppercase)
                 .foregroundStyle(OnbFlowPalette.onDark)
+        }
+    }
+
+    /// Marge haute du formulaire d'étape (`styles.form.marginTop: 24`).
+    ///
+    /// Toutes les étapes enveloppées dans un formulaire portent cette marge ;
+    /// `ready` et `premium-gift` n'en ont pas (la source ne les enveloppe pas).
+    /// Le contenu étant centré verticalement, la marge décale le bloc de
+    /// `24 / 2 = 12` pt vers le bas. Quand l'étape a un surtitre, l'écart de
+    /// 24 pt est déjà porté par le `VStack` : la marge ne s'ajoute pas.
+    private var stepTopInset: CGFloat {
+        switch coordinator.currentStep {
+        case .ready, .premiumGift:
+            return 0
+        default:
+            return OnbFlowSteps.eyebrow(for: coordinator.currentStep) == nil ? 24 : 0
         }
     }
 
@@ -177,6 +216,7 @@ struct OnbFlowView: View {
                     HStack(spacing: 9) {
                         Text(coordinator.continueLabel)
                         Image(systemName: coordinator.isLastStep ? "checkmark" : "arrow.right")
+                            .font(.system(size: 20))
                     }
                     .frame(maxWidth: .infinity, minHeight: 54)
                 }
@@ -426,7 +466,7 @@ enum OnbFlowPalette {
     /// `guestEyebrow` : blanc.
     static let onDark = Color.white
     /// `guestHelperText` : `#B8B8B8`.
-    static let helper = Color(white: 0.72)
+    static let helper = Color(hex: 0xB8B8B8)
     /// `guestAuthDividerLine` : `#343434`.
     static let divider = Color(hex: 0x343434)
     /// `guestAuthDividerText` : `#8A8A8A`.

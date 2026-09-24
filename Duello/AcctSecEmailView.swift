@@ -29,25 +29,24 @@ struct AcctSecEmailView: View {
     @State private var isSaving = false
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
-                backButton
-                emailField
+        GeometryReader { geometry in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    backButton
 
-                if !errorMessage.isEmpty {
-                    Text(errorMessage)
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(Theme.ink)
-                        .fixedSize(horizontal: false, vertical: true)
+                    form
+                        .frame(width: formWidth(containerWidth: geometry.size.width))
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+
+                    saveButton
                 }
-                saveButton
-                Spacer(minLength: 24)
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+                .padding(.bottom, 36)
+                .frame(minHeight: geometry.size.height, alignment: .top)
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 12)
-            .padding(.bottom, 24)
+            .background(Theme.background)
         }
-        .background(Theme.background)
         .onAppear {
             if nextEmail.isEmpty { nextEmail = initialEmail ?? session.profile.email }
         }
@@ -55,8 +54,17 @@ struct AcctSecEmailView: View {
 
     // MARK: Sous-vues
 
+    /// Largeur de `formArea` (`AccountEmailScreen.tsx:115-121`) : 82 % de la
+    /// largeur utile (après les marges horizontales de 20 du `content`),
+    /// plafonnée à 420.
+    private func formWidth(containerWidth: CGFloat) -> CGFloat {
+        min((containerWidth - 40) * 0.82, 420)
+    }
+
     /// Bouton retour gauche (`BackButton` « Retour aux paramètres » de la
     /// source) : `AccountEmailScreen.tsx` n'a pas de barre de navigation.
+    /// Zone tactile 40 × 40 (`BackButton.tsx` : `minWidth`/`minHeight` 40),
+    /// chevron 20 décalé de −4 (`transform: [{ translateX: -4 }]`).
     private var backButton: some View {
         Button {
             dismiss()
@@ -64,23 +72,26 @@ struct AcctSecEmailView: View {
             Image(systemName: "chevron.backward")
                 .font(.system(size: 20, weight: .semibold))
                 .foregroundStyle(Theme.ink)
-                .frame(width: 44, height: 44, alignment: .leading)
+                .frame(width: 40, height: 40)
+                .offset(x: -4)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Retour aux paramètres")
     }
 
-    /// Champ local à icône (`AccountEmailScreen.tsx:124-135`) : légende
-    /// `Theme.ink`/700, icône `mail-outline` 20, bordure 1.5 `Theme.ink`, fond
-    /// blanc, hauteur 50. `DuelloTextField` (hors périmètre) ne porte ni icône
-    /// ni ces valeurs.
-    private var emailField: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Nouvelle adresse e-mail")
+    /// Formulaire (`form` : largeur 100 % de `formArea`) : légende
+    /// `Theme.ink`/700 en 12, puis champ local à icône
+    /// (`AccountEmailScreen.tsx:64-87`, `:123-136`) — icône `mail-outline` 20
+    /// `Theme.inkSoft`, bordure 1.5 `Theme.ink`, fond blanc, hauteur 50, saisie
+    /// 14/regular `Theme.ink`. `DuelloTextField` (hors périmètre) ne porte ni
+    /// icône ni ces valeurs.
+    private var form: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("NOUVELLE ADRESSE E-MAIL")
                 .font(.system(size: 12, weight: .bold))
-                .textCase(.uppercase)
                 .foregroundStyle(Theme.ink)
+                .padding(.bottom, 10)
 
             HStack(spacing: 10) {
                 Image(systemName: "envelope")
@@ -92,7 +103,7 @@ struct AcctSecEmailView: View {
                     .keyboardType(.emailAddress)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 14, weight: .regular))
                     .foregroundStyle(Theme.ink)
                     .onSubmit { submit() }
             }
@@ -104,10 +115,24 @@ struct AcctSecEmailView: View {
                 RoundedRectangle(cornerRadius: Theme.radiusSmall)
                     .stroke(Theme.ink, lineWidth: 1.5)
             )
+
+            if !errorMessage.isEmpty {
+                Text(errorMessage)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(Theme.ink)
+                    .lineSpacing(5)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 10)
+            }
         }
         .onChange(of: nextEmail) { _ in errorMessage = "" }
     }
 
+    /// `submitButton` de la source (`AccountEmailScreen.tsx:137-146`) : hauteur
+    /// 52, rayon `radii.medium` (14), fond `Theme.ink`, libellé blanc 15/800,
+    /// opacité 0.55 pendant l'enregistrement. Le style partagé
+    /// `DuelloPrimaryButton` est écarté ici : il force le rayon `radiusLarge`
+    /// (18) et anime l'appui, deux valeurs absentes de la source.
     private var saveButton: some View {
         Button {
             submit()
@@ -117,11 +142,16 @@ struct AcctSecEmailView: View {
                     ProgressView().tint(.white)
                 } else {
                     Text("Enregistrer")
+                        .font(.system(size: 15, weight: .heavy))
+                        .foregroundStyle(.white)
                 }
             }
             .frame(maxWidth: .infinity, minHeight: 52)
+            .background(Theme.ink)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
+            .opacity(isSaving ? 0.55 : 1)
         }
-        .buttonStyle(DuelloPrimaryButton())
+        .buttonStyle(.plain)
         .disabled(isSaving)
     }
 

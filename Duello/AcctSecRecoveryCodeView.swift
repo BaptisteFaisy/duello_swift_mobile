@@ -28,7 +28,8 @@ struct AcctSecRecoveryCodeView: View {
                 .fixedSize(horizontal: false, vertical: true)
             Text(description)
                 .font(.system(size: 14))
-                .lineSpacing(4)
+                // `description.lineHeight` 21 − 14.
+                .lineSpacing(7)
                 .foregroundStyle(Theme.inkSoft)
                 .fixedSize(horizontal: false, vertical: true)
             codeShell
@@ -38,10 +39,6 @@ struct AcctSecRecoveryCodeView: View {
         .padding(22)
         .background(Theme.surface)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
-        .overlay(
-            RoundedRectangle(cornerRadius: Theme.radiusLarge)
-                .stroke(Theme.border, lineWidth: 1)
-        )
         .padding(22)
     }
 
@@ -57,7 +54,8 @@ struct AcctSecRecoveryCodeView: View {
 
     private var codeShell: some View {
         Text(code)
-            .font(.system(size: 20, weight: .black, design: .monospaced))
+            // `code.fontFamily: 'Menlo'` + `fontWeight: '900'` → Menlo-Bold sur iOS.
+            .font(.custom("Menlo-Bold", size: 20))
             .tracking(2)
             .foregroundStyle(Theme.ink)
             .textSelection(.enabled)
@@ -79,6 +77,8 @@ struct AcctSecRecoveryCodeView: View {
                 .foregroundStyle(Theme.ink)
             Text("Ce code ne sera plus affiché. Note-le hors de l’application.")
                 .font(.system(size: 12, weight: .bold))
+                // `warningText.lineHeight` 17 − 12.
+                .lineSpacing(5)
                 .foregroundStyle(Theme.ink)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -93,8 +93,14 @@ struct AcctSecRecoveryCodeView: View {
             onDismiss()
         } label: {
             Text("J’ai noté ce code")
+                .font(.system(size: 15, weight: .black))
+                .foregroundStyle(.white)
                 .frame(maxWidth: .infinity, minHeight: 52)
+                .background(Theme.ink)
+                .clipShape(RoundedRectangle(cornerRadius: 17))
         }
-        .buttonStyle(DuelloPrimaryButton())
+        // `button` de la source : rayon 17 (et non 18 de `DuelloPrimaryButton`),
+        // appui 0.84 / 0.99.
+        .buttonStyle(LoginScrPressStyle())
     }
 }

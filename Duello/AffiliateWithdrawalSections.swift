@@ -21,6 +21,7 @@ struct AffiliateWithdrawalForm: View {
             if let limits = controller.limits {
                 Text("Minimum \(AffiliateFormatting.amount(limits.minimum)) · maximum \(AffiliateFormatting.amount(limits.maximum))")
                     .font(.system(size: 11, weight: .semibold))
+                    .lineSpacing(5)
                     .foregroundStyle(Theme.inkSoft)
                     .padding(.top, 5)
             }
@@ -36,6 +37,7 @@ struct AffiliateWithdrawalForm: View {
             RoundedRectangle(cornerRadius: Theme.radiusLarge)
                 .stroke(Theme.border, lineWidth: 1)
         )
+        .padding(.top, 14)
     }
 
     private var submitButton: some View {
@@ -57,7 +59,7 @@ struct AffiliateWithdrawalForm: View {
         }
         .buttonStyle(.plain)
         .disabled(!controller.canSubmit)
-        .opacity(controller.canSubmit ? 1 : 0.42)
+        .opacity(controller.canSubmit ? 1 : 0.45)
         .padding(.top, 14)
     }
 }
@@ -81,7 +83,7 @@ struct AffiliateAmountField: View {
 
     private var field: some View {
         HStack(spacing: 0) {
-            TextField("0,00", text: amountBinding)
+            TextField("", text: amountBinding)
                 .keyboardType(.decimalPad)
                 .font(.system(size: 16, weight: .heavy))
                 .foregroundStyle(Theme.ink)
@@ -89,6 +91,16 @@ struct AffiliateAmountField: View {
                 .onSubmit { onSubmit() }
                 .disabled(controller.busy)
                 .accessibilityLabel("Montant du retrait en euros")
+                .overlay(alignment: .leading) {
+                    // `placeholderTextColor={colors.inkFaint}` : le gris de
+                    // remplissage de la source, plus sombre que celui d'iOS.
+                    if controller.amount.isEmpty {
+                        Text("0,00")
+                            .font(.system(size: 16, weight: .heavy))
+                            .foregroundStyle(Theme.inkFaint)
+                            .allowsHitTesting(false)
+                    }
+                }
             Text("€")
                 .font(.system(size: 15, weight: .heavy))
                 .foregroundStyle(Theme.inkSoft)
@@ -123,11 +135,13 @@ struct AffiliateAmountField: View {
         if let invalidText {
             Text(invalidText)
                 .font(.system(size: 11, weight: .heavy))
+                .lineSpacing(5)
                 .foregroundStyle(Theme.ink)
                 .padding(.top, 8)
         } else if let hintText {
             Text(hintText)
                 .font(.system(size: 11, weight: .semibold))
+                .lineSpacing(5)
                 .foregroundStyle(Theme.inkSoft)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 8)
@@ -238,6 +252,7 @@ struct AffiliateWithdrawalRow: View {
                 if let failureMessage = withdrawal.failureMessage {
                     Text(failureMessage)
                         .font(.system(size: 10, weight: .semibold))
+                        .lineSpacing(4)
                         .foregroundStyle(Theme.inkSoft)
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.top, 7)
@@ -248,6 +263,7 @@ struct AffiliateWithdrawalRow: View {
             VStack(alignment: .trailing, spacing: 7) {
                 Text(AffiliateCopy.withdrawalLabel(withdrawal.status))
                     .font(.system(size: 10, weight: .heavy))
+                    .lineSpacing(4)
                     .foregroundStyle(Theme.inkSoft)
                     .multilineTextAlignment(.trailing)
                     .frame(maxWidth: 128, alignment: .trailing)
@@ -271,14 +287,14 @@ struct AffiliateWithdrawalRow: View {
                     ProgressView().controlSize(.small)
                 } else {
                     Text("Relancer")
-                        .font(.system(size: 11, weight: .heavy))
+                        .font(.system(size: 10, weight: .heavy))
                         .foregroundStyle(Theme.ink)
                 }
             }
             .frame(minWidth: 68, minHeight: 30)
             .padding(.horizontal, 10)
             .background(Theme.surfaceMuted)
-            .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
+            .clipShape(Capsule())
         }
         .buttonStyle(.plain)
         .disabled(busy)

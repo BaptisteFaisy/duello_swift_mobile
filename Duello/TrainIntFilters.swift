@@ -37,33 +37,39 @@ extension TrainingCatalogView {
         difficultyFilters[chapter.id].map { [SubjExerciseFilterValue.difficulty($0)] } ?? []
     }
 
-    /// Ligne des menus de filtre du chapitre ouvert. Le menu « Difficulté »
-    /// n'offre qu'un palier à la fois, comme les anciennes puces : retenir un
-    /// palier remplace le précédent, « Tout » l'efface.
+    /// Ligne des menus de filtre du chapitre ouvert, calquée sur
+    /// `chapterHeaderFilters` : `gap: 4`, `marginLeft: 4`, `translateY: 3`,
+    /// menus de largeur égale (`chapterHeaderFilter` : `flexBasis: 0`,
+    /// `flexGrow: 1` de `badgeFilter`).
+    ///
+    /// Le menu « Difficulté » n'offre qu'un palier à la fois, comme les anciennes
+    /// puces : retenir un palier remplace le précédent, « Tout » l'efface.
     func filterRow(_ chapter: TrackChapter) -> some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(alignment: TrainGridStyles.filterRowAlignment, spacing: 8) {
-                SubjNotionsDropdown(inChapterHeader: true)
-                SubjBadgeFilterDropdown(
-                    label: SubjFilterCopy.difficulty,
-                    options: difficultyOptions,
-                    selected: difficultySelection(chapter),
-                    onSelect: { value in
-                        if let value, case .difficulty(let level) = value {
-                            difficultyFilters[chapter.id] = level
-                        } else {
-                            difficultyFilters[chapter.id] = nil
-                        }
-                    },
-                    inChapterHeader: true
-                )
-                SubjClassiqueDropdown(
-                    selected: classicFilter,
-                    onSelect: { classicFilter = $0 },
-                    inChapterHeader: true
-                )
-            }
-            .padding(.vertical, 2)
+        HStack(alignment: TrainGridStyles.filterRowAlignment, spacing: TrainGridStyles.filterRowGap) {
+            SubjNotionsDropdown(inChapterHeader: true)
+                .frame(maxWidth: .infinity)
+            SubjBadgeFilterDropdown(
+                label: SubjFilterCopy.difficulty,
+                options: difficultyOptions,
+                selected: difficultySelection(chapter),
+                onSelect: { value in
+                    if let value, case .difficulty(let level) = value {
+                        difficultyFilters[chapter.id] = level
+                    } else {
+                        difficultyFilters[chapter.id] = nil
+                    }
+                },
+                inChapterHeader: true
+            )
+            .frame(maxWidth: .infinity)
+            SubjClassiqueDropdown(
+                selected: classicFilter,
+                onSelect: { classicFilter = $0 },
+                inChapterHeader: true
+            )
+            .frame(maxWidth: .infinity)
         }
+        .padding(.leading, TrainGridStyles.filterRowLeadingInset)
+        .offset(y: TrainGridStyles.filterRowVerticalOffset)
     }
 }

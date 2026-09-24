@@ -109,12 +109,14 @@ struct TrainingCatalogView: View {
                 // s'affichent dès l'ouverture de la page, avant le chargement du
                 // manifeste (`renderModeTabs`, `SubjectsScreen.tsx:10006`).
                 if subject.id != SubjSubjectRules.mathsSubjectId {
-                    modeTabsRow.padding(.top, 12)
+                    modeTabsRow
                 }
                 content
             }
             .padding(.horizontal, 20)
-            .padding(.top, 16)
+            // `detailScroll.paddingTop: 16`, ramené à 8 pour les maths
+            // (`mathsDetailScroll`).
+            .padding(.top, subject.id == SubjSubjectRules.mathsSubjectId ? 8 : 16)
             .padding(.bottom, 40)
         }
         .background(Theme.background)
@@ -154,7 +156,11 @@ struct TrainingCatalogView: View {
     /// `openedSubject.id === 'maths'`.
     private var pinnedHeader: some View {
         VStack(alignment: .leading, spacing: 0) {
+            // `mathsDetailHeader` / `trainingMetricsHeader` :
+            // `PERFORMANCE_OVERVIEW_BAR_HEIGHT` = 60, la barre grise de 48 pt y
+            // reste centrée (6 pt de part et d'autre).
             headerBlock
+                .frame(height: subject.id == SubjSubjectRules.mathsSubjectId ? 60 : nil)
             if subject.id == SubjSubjectRules.mathsSubjectId {
                 modeTabsRow.padding(.top, 4)
             }

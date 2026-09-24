@@ -65,8 +65,31 @@ enum Theme {
     static var providerError: Color { Color(hex: 0xB42318) }
     static var providerErrorOnDark: Color { Color(hex: 0xFF8A80) }
 
-    /// Prose d'étude : énoncé et corrigé en serif, comme un manuel.
-    static let readingFont: Font = .system(size: 16, weight: .regular, design: .serif)
+    // MARK: Prose d'étude
+
+    /// Tailles de la prose d'étude. `readingText` du thème Expo ne fixe que la
+    /// famille (Georgia) et la graisse (400) : la **taille** vient du style qui
+    /// l'étend. Valeurs reprises des styles RN :
+    /// - `readingSizeBody` **14** — énoncé et corrigé (`promptText`,
+    ///   `correctionText`, `aiText`) : usage dominant, donc défaut ;
+    /// - `readingSizeReader` **15** — lecture d'annale (`inlineStatementText`,
+    ///   `questionCorrectionText`) ;
+    /// - `readingSizeCompact` **11** — énoncé replié (`promptTextCompact`).
+    static let readingSizeBody: CGFloat = 14
+    static let readingSizeReader: CGFloat = 15
+    static let readingSizeCompact: CGFloat = 11
+
+    /// Prose d'étude : énoncé et corrigé en serif, comme un manuel. La taille
+    /// n'est plus figée : le défaut reprend l'usage dominant du RN (14) ; pour
+    /// l'annale (15) ou l'énoncé replié (11), passer la taille par
+    /// `readingFont(size:)`.
+    static let readingFont: Font = readingFont(size: readingSizeBody)
+
+    /// Prose d'étude à taille paramétrable — famille (serif, cf. `Georgia` du RN)
+    /// et graisse (400) fixes, exactement ce que porte `readingText`.
+    static func readingFont(size: CGFloat) -> Font {
+        .system(size: size, weight: .regular, design: .serif)
+    }
 }
 
 extension Color {
@@ -81,22 +104,48 @@ extension Color {
     }
 }
 
-/// Carte blanche à bord fin, motif récurrent de l'interface Duello.
+/// Carte blanche à bord fin et ombre légère, motif récurrent de l'interface
+/// Duello. Valeurs reprises des cartes de l'app RN — `borderWidth 1`,
+/// `borderColor colors.border`, `backgroundColor colors.surface`,
+/// `borderRadius radii.large`, `...cardShadow` — soit : padding 18, rayon 18,
+/// ombre `cardShadow` (`#0A0D0C` à 4 %, flou 8, décalage vertical 2).
+///
+/// Le padding et le rayon varient d'une carte à l'autre dans le RN ; le défaut
+/// reprend l'usage dominant (carte bordée, `padding 18`, `radii.large`). Les
+/// cartes qui s'en écartent passent leurs valeurs en paramètre
+/// (`duelloCard(padding:radius:shadow:)`) plutôt que de redéfinir un motif local.
 struct CardBackground: ViewModifier {
+    var padding: CGFloat = 18
+    var radius: CGFloat = Theme.radiusLarge
+    var shadow: Bool = true
+
     func body(content: Content) -> some View {
         content
-            .padding(16)
+            .padding(padding)
             .background(Theme.surface)
-            .cornerRadius(Theme.radiusMedium)
+            .cornerRadius(radius)
             .overlay(
-                RoundedRectangle(cornerRadius: Theme.radiusMedium)
+                RoundedRectangle(cornerRadius: radius)
                     .stroke(Theme.border, lineWidth: 1)
+            )
+            .shadow(
+                color: shadow ? Theme.cardShadowColor : .clear,
+                radius: Theme.cardShadowRadius,
+                x: 0,
+                y: Theme.cardShadowOffsetY
             )
     }
 }
 
 extension View {
-    func duelloCard() -> some View {
-        modifier(CardBackground())
+    /// Carte du kit Duello : padding 18, rayon `radii.large` 18, bord 1 `border`,
+    /// fond `surface`, ombre `cardShadow`. Défauts = usage RN dominant ; les
+    /// cartes qui s'en écartent passent `padding`/`radius`/`shadow`.
+    func duelloCard(
+        padding: CGFloat = 18,
+        radius: CGFloat = Theme.radiusLarge,
+        shadow: Bool = true
+    ) -> some View {
+        modifier(CardBackground(padding: padding, radius: radius, shadow: shadow))
     }
 }

@@ -19,6 +19,7 @@ extension DuelloProgressView {
             Text(text)
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(Theme.ink)
+                .lineSpacing(4)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(14)
@@ -64,12 +65,12 @@ extension DuelloProgressView {
 /// Carte de l'écran « Progression » : fond blanc, rayon moyen et ombre du thème
 /// (`cardShadow` d'`theme.ts`), comme les cartes d'Expo — pas de bordure.
 extension View {
-    func progressCard(padding: CGFloat = 14) -> some View {
+    func progressCard(padding: CGFloat = 14, radius: CGFloat = Theme.radiusMedium) -> some View {
         self
             .padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Theme.surface)
-            .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
+            .clipShape(RoundedRectangle(cornerRadius: radius))
             .duelloShadow()
     }
 }
@@ -86,17 +87,17 @@ struct EmbeddedMetric: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
-            HStack(alignment: .firstTextBaseline, spacing: 12) {
+            HStack(alignment: .center, spacing: 12) {
                 Text(label)
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(Theme.inkSoft)
+                    .lineSpacing(4)
                 Spacer(minLength: 12)
                 Text(value)
                     .font(.system(size: 11, weight: .heavy))
                     .foregroundStyle(Theme.ink)
                     .multilineTextAlignment(.trailing)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+                    .lineSpacing(4)
             }
             ProgressBar(fraction: progress, height: 3, track: Theme.surfaceMuted, fill: Theme.ink)
         }

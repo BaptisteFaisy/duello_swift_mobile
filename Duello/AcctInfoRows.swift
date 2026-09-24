@@ -156,14 +156,15 @@ struct AcctInfoToggleRow: View {
                 .foregroundStyle(tint)
                 .frame(width: AcctInfoRowMetrics.iconPill, height: AcctInfoRowMetrics.iconPill)
                 .background(Theme.surface)
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(.system(size: 13, weight: .heavy))
                     .foregroundStyle(Theme.ink)
                 if let description {
                     Text(description)
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(Theme.inkFaint)
+                        .font(.system(size: 12, weight: .regular))
+                        .foregroundStyle(Theme.inkSoft)
+                        .lineSpacing(5)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }

@@ -148,6 +148,10 @@ enum SubjSubjectsDropdownScope {
     /// Largeur minimale du menu « Difficulté », pour ses libellés longs
     /// (« Très difficile »). Les autres menus s'en passent.
     static let difficultyMenuMinWidth: CGFloat = 210
+
+    /// `minWidth: 96` de `badgeFilter` : largeur minimale d'un champ de filtre
+    /// hors en-tête de chapitre (`chapterHeaderFilter` la ramène à 0).
+    static let badgeFilterMinWidth: CGFloat = 96
 }
 
 // MARK: - Formatage des erreurs

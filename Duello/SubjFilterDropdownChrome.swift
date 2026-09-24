@@ -42,13 +42,27 @@ struct SubjFilterChoice: Identifiable {
 
 // MARK: - Chrome
 
+/// Style d'appui des commandes de filtre (`badgeFilterPressed`) : l'opacité
+/// tombe à 0.7 pendant l'appui, comme le `pressed && styles.badgeFilterPressed`
+/// du JSX, sur le déclencheur comme sur les lignes d'option.
+struct SubjFilterPressedStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(configuration.isPressed ? 0.7 : 1)
+    }
+}
+
 /// Étiquette + contenu (`badgeFilter`, `badgeFilterLabel`).
 ///
 /// Le libellé est en 9 pt, en gras, en capitales, avec un léger interlettrage —
 /// c'est ce que demandait `badgeFilterLabel` (le champ des flashcards, lui, use
 /// 11 pt : on ne réutilise donc pas `SubjDropdownFieldChrome`).
+///
+/// `minWidth` reprend le `minWidth: 96` de `badgeFilter` ; l'en-tête de chapitre
+/// le ramène à 0 (`chapterHeaderFilter`).
 struct SubjFilterFieldChrome<Content: View>: View {
     let label: String
+    var minWidth: CGFloat? = nil
     @ViewBuilder let content: () -> Content
 
     var body: some View {
@@ -61,6 +75,7 @@ struct SubjFilterFieldChrome<Content: View>: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             content()
         }
+        .frame(minWidth: minWidth, alignment: .leading)
     }
 }
 
@@ -93,7 +108,7 @@ struct SubjFilterTrigger<Content: View>: View {
                     .stroke(Theme.border, lineWidth: 1)
             )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(SubjFilterPressedStyle())
         .accessibilityLabel(accessibilityLabel)
         .accessibilityValue(isOpen ? "Déplié" : "Replié")
     }
@@ -158,7 +173,7 @@ struct SubjFilterOptionRow<Leading: View>: View {
                 Rectangle().fill(Theme.border).frame(height: 0.5)
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(SubjFilterPressedStyle())
         .accessibilityLabel(accessibilityLabel)
         .accessibilityAddTraits(isSelected ? .isSelected : AccessibilityTraits())
     }

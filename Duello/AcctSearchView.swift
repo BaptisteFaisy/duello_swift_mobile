@@ -58,7 +58,7 @@ struct AcctSearchBar: View {
             if !query.isEmpty {
                 Button(action: onClear) {
                     Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 16))
+                        .font(.system(size: 19))
                         .foregroundStyle(Theme.inkFaint)
                 }
                 .buttonStyle(.plain)
@@ -89,18 +89,19 @@ struct AcctSearchMessage: View {
         VStack(spacing: 8) {
             if let icon {
                 Image(systemName: icon)
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.system(size: 19, weight: .semibold))
                     .foregroundStyle(Theme.inkSoft)
             }
             Text(text)
-                .font(.system(size: 12, weight: .semibold))
+                .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(Theme.inkSoft)
                 .multilineTextAlignment(.center)
+                .lineSpacing(5)
                 .fixedSize(horizontal: false, vertical: true)
             if let retry {
                 Button(action: retry) {
                     Text("Réessayer")
-                        .font(.system(size: 12, weight: .heavy))
+                        .font(.system(size: 11, weight: .heavy))
                         .foregroundStyle(Theme.ink)
                         .padding(.vertical, 7)
                         .padding(.horizontal, 16)
@@ -115,7 +116,7 @@ struct AcctSearchMessage: View {
                 .accessibilityLabel("Réessayer la recherche")
             }
         }
-        .padding(.vertical, 22)
+        .padding(.vertical, icon == nil ? 16 : 18)
         .padding(.horizontal, 16)
     }
 }
@@ -132,11 +133,11 @@ struct AcctSearchCandidateRow: View {
     let onToggleFollow: () -> Void
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 7) {
             Button(action: onSelect) {
-                HStack(spacing: 10) {
+                HStack(spacing: 9) {
                     SocialAvatarPresence(online: online) {
-                        SocInviteAvatar(member: member.profile, size: 38)
+                        SocInviteAvatar(member: member.profile, size: 36)
                     }
                     copy
                     Spacer(minLength: 0)
@@ -152,26 +153,26 @@ struct AcctSearchCandidateRow: View {
                 } placeholder: {
                     Color.clear
                 }
-                .frame(width: 24, height: 24)
+                .frame(width: 34, height: 34)
                 .accessibilityLabel("Ligue \(league.label) de \(member.displayName)")
             }
 
             Button(action: onToggleFollow) {
                 Image(systemName: followed ? "checkmark" : "plus")
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(followed ? Theme.surface : Theme.ink)
-                    .frame(width: 30, height: 30)
-                    .background(followed ? Theme.ink : Theme.surface)
-                    .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
+                    .frame(width: 34, height: 34)
+                    .background(followed ? Theme.ink : Color.clear)
+                    .clipShape(RoundedRectangle(cornerRadius: 11))
                     .overlay(
-                        RoundedRectangle(cornerRadius: Theme.radiusSmall)
-                            .stroke(Theme.border, lineWidth: 1)
+                        RoundedRectangle(cornerRadius: 11)
+                            .stroke(followed ? Theme.primary : Color.clear, lineWidth: 1)
                     )
             }
             .buttonStyle(.plain)
             .accessibilityLabel(followed ? "Ne plus suivre \(member.displayName)" : "Suivre \(member.displayName)")
         }
-        .padding(.horizontal, 6)
+        .padding(.horizontal, 10)
         .frame(minHeight: AcctSearchConstants.resultHeight)
     }
 
@@ -180,13 +181,13 @@ struct AcctSearchCandidateRow: View {
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 5) {
                 Text(member.displayName)
-                    .font(.system(size: 13, weight: .heavy))
+                    .font(.system(size: 12, weight: .black))
                     .foregroundStyle(Theme.ink)
                     .lineLimit(1)
                 if member.isPremium { PremPremiumBadge(size: 13) }
             }
             Text(metaLine)
-                .font(.system(size: 10, weight: .semibold))
+                .font(.system(size: 9, weight: .regular))
                 .foregroundStyle(Theme.inkSoft)
                 .lineLimit(1)
         }
@@ -254,11 +255,13 @@ struct AcctSearchResultsMenu: View {
             }
         }
         .frame(maxWidth: .infinity)
+        .background(Theme.surface)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
         .overlay(
             RoundedRectangle(cornerRadius: Theme.radiusMedium)
                 .stroke(Theme.border, lineWidth: 1)
         )
-        .padding(.top, 6)
+        .padding(.top, 8)
     }
 
     /// Liste bornée en hauteur : cinq lignes visibles, le reste défile.
@@ -273,17 +276,19 @@ struct AcctSearchResultsMenu: View {
                         onSelect: { onSelect(member) },
                         onToggleFollow: { onToggleFollow(member) }
                     )
-                    Divider().padding(.leading, 48)
+                    Rectangle()
+                        .fill(Theme.border)
+                        .frame(height: 0.5)
                 }
 
                 if !hasSearchQuery && loadingMore {
                     HStack(spacing: 8) {
                         ProgressView().tint(Theme.inkSoft)
                         Text("Chargement des profils suivants…")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(Theme.inkSoft)
                     }
-                    .padding(.vertical, 12)
+                    .frame(height: 42)
                 }
 
                 // Sentinelle de bas de liste : demande la page suivante à
@@ -323,7 +328,7 @@ struct AcctSearchView: View {
     @State private var premiumMessageVisible = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 9) {
                 AcctSearchBar(
                     query: $model.query,
@@ -365,11 +370,13 @@ struct AcctSearchView: View {
                     onBlock: { onBlock(selected) },
                     onReport: { onReport(selected) }
                 )
+                .padding(.top, 14)
             } else if model.selectedMemberId != nil {
                 AcctSearchProfileStatus(
                     failed: model.selectedProfileState == .failed,
                     onRetry: { model.selectedProfileAttempt += 1 }
                 )
+                .padding(.top, 14)
             }
         }
         .onAppear { model.ownEmail = session.profile.email }

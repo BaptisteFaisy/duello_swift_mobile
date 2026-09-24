@@ -118,6 +118,9 @@ struct LoginScrField: View {
         .textContentType(contentType)
         .font(.system(size: 15, weight: .regular))
         .foregroundStyle(LoginScrPalette.onDark)
+        // `input.paddingVertical` de la source (13) ; sans effet visible, le
+        // champ restant plus court que le `minHeight` 55 de la coquille.
+        .padding(.vertical, 13)
         .onChange(of: text) { _ in onEdit() }
     }
 
@@ -167,6 +170,8 @@ struct LoginScrErrorCard: View {
                 .foregroundStyle(LoginScrPalette.onDark)
             Text(message)
                 .font(.system(size: 12, weight: .bold))
+                // `errorText.lineHeight` 17 − 12.
+                .lineSpacing(5)
                 .foregroundStyle(LoginScrPalette.onDark)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
@@ -235,6 +240,7 @@ struct LoginScrBiometricButton: View {
                     .font(.system(size: 13, weight: .black))
             }
             .foregroundStyle(LoginScrPalette.onDark)
+            .padding(.horizontal, 15)
             .frame(maxWidth: .infinity, minHeight: 54)
             .background(LoginScrPalette.background)
             .clipShape(RoundedRectangle(cornerRadius: 17))

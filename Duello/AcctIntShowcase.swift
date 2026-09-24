@@ -41,6 +41,8 @@ struct AcctIntShowcase: View {
         VStack(spacing: 0) {
             photoHint
             identityCard
+                .padding(.top, 8)
+                .padding(.bottom, 20)
             AcctShowStatsPanel(
                 overview: AcctIntData.overviewStats(
                     totalXp: progress.totalXp,

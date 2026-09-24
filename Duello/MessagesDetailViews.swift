@@ -20,28 +20,31 @@ struct ConversationDetailView: View {
                 onBack: onBack
             )
 
-            ScrollView {
-                LazyVStack(spacing: 0) {
-                    Text("AUJOURD’HUI")
-                        .font(.system(size: 8, weight: .black))
-                        .tracking(1)
-                        .foregroundStyle(Theme.inkFaint)
-                        .padding(.bottom, 17)
+            GeometryReader { geo in
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        Text("AUJOURD’HUI")
+                            .font(.system(size: 8, weight: .black))
+                            .tracking(1)
+                            .foregroundStyle(Theme.inkFaint)
+                            .padding(.bottom, 17)
 
-                    ForEach(messages) { message in
-                        MessageBubbleRow(
-                            message: message,
-                            myInitial: myInitial,
-                            peerInitial: conversation.initial
-                        )
+                        ForEach(messages) { message in
+                            MessageBubbleRow(
+                                message: message,
+                                myInitial: myInitial,
+                                maxBubbleWidth: (geo.size.width - 40) * 0.77
+                            )
+                        }
                     }
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 17)
+                    .padding(.bottom, 12)
+                    .frame(minHeight: geo.size.height, alignment: .bottom)
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.horizontal, 20)
-                .padding(.top, 17)
-                .padding(.bottom, 12)
+                .scrollDismissesKeyboard(.interactively)
             }
-            .scrollDismissesKeyboard(.interactively)
 
             ComposerBar(placeholder: "Écrire un message…", text: $composer, onSend: onSend)
         }
@@ -69,20 +72,27 @@ struct ForumTopicDetailView: View {
                 onBack: onBack
             )
 
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 0) {
-                    questionCard
+            GeometryReader { geo in
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        questionCard
 
-                    ForEach(replies) { reply in
-                        MessageBubbleRow(message: reply, myInitial: myInitial, peerInitial: "L")
+                        ForEach(replies) { reply in
+                            MessageBubbleRow(
+                                message: reply,
+                                myInitial: myInitial,
+                                maxBubbleWidth: (geo.size.width - 40) * 0.77
+                            )
+                        }
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 17)
+                    .padding(.bottom, 12)
+                    .frame(minHeight: geo.size.height, alignment: .bottom)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 20)
-                .padding(.top, 17)
-                .padding(.bottom, 12)
+                .scrollDismissesKeyboard(.interactively)
             }
-            .scrollDismissesKeyboard(.interactively)
 
             ComposerBar(placeholder: "Répondre à la discussion…", text: $composer, onSend: onSend)
         }
@@ -97,6 +107,7 @@ struct ForumTopicDetailView: View {
                 .foregroundStyle(Theme.ink)
             Text(topic.title)
                 .font(.system(size: 15, weight: .black))
+                .lineSpacing(6)
                 .foregroundStyle(Theme.ink)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 6)

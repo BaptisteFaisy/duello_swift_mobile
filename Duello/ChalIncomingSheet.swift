@@ -75,6 +75,7 @@ struct ChalIncomingSheet: View {
                     .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(Color(hex: 0xB42318))
                     .multilineTextAlignment(.center)
+                    .lineSpacing(5)
                     .padding(.top, 12)
             }
             actions
@@ -115,6 +116,7 @@ struct ChalIncomingSheet: View {
             .font(.system(size: 10, weight: .semibold))
             .foregroundStyle(Theme.inkSoft)
             .multilineTextAlignment(.center)
+            .lineSpacing(5)
             .padding(.top, 5)
     }
 
@@ -150,7 +152,7 @@ struct ChalIncomingSheet: View {
             Image(systemName: icon)
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(Theme.ink)
-                .frame(width: 22)
+                .frame(width: 18)
             VStack(alignment: .leading, spacing: 3) {
                 Text(label)
                     .font(.system(size: 8, weight: .black))
@@ -159,6 +161,7 @@ struct ChalIncomingSheet: View {
                 Text(value)
                     .font(.system(size: 12, weight: .heavy))
                     .foregroundStyle(Theme.ink)
+                    .lineSpacing(5)
                     .lineLimit(3)
             }
             Spacer(minLength: 0)

@@ -41,19 +41,24 @@ struct BlockedUsersView: View {
     private static let unblockConfirmationMessage = "Ce compte et le tien pourront à nouveau se trouver dans l’annuaire et interagir sur Duello."
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
-                backButton
-                header
-                explanationCard
-                stateContent
-                if !errorMessage.isEmpty && !profiles.isEmpty {
-                    inlineError
+        VStack(spacing: 0) {
+            header
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    explanationCard
+                    stateContent
+                        .padding(.top, 16)
+                    if !errorMessage.isEmpty && !profiles.isEmpty {
+                        inlineError
+                            .padding(.top, 12)
+                    }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+                .padding(.bottom, 36)
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
-            .padding(.bottom, 36)
+            .scrollIndicators(.hidden)
         }
         .background(Theme.background)
         .task(id: attempt) { await load() }
@@ -77,30 +82,40 @@ struct BlockedUsersView: View {
         )
     }
 
-    /// Chevron de retour en tête de contenu : sans lui, l'écran présenté en
-    /// feuille n'est pas refermable (`BackButton` de la source).
+    /// En-tête (`header` de la source) : chevron puis chapeau « SÉCURITÉ » et
+    /// titre, sur une seule ligne (`flexDirection: row`, `gap: 8`), **hors** du
+    /// défilement — le RN le place en frère de la `ScrollView`, pas dedans.
+    private var header: some View {
+        HStack(alignment: .center, spacing: 8) {
+            backButton
+            VStack(alignment: .leading, spacing: 2) {
+                Text("SÉCURITÉ")
+                    .font(.system(size: 10, weight: .black))
+                    .tracking(1.1)
+                    .foregroundStyle(Theme.inkSoft)
+                Text("Comptes bloqués")
+                    .font(.system(size: 22, weight: .black))
+                    .foregroundStyle(Theme.ink)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 8)
+        .padding(.bottom, 8)
+    }
+
+    /// Chevron de retour (`BackButton` de la source) : cadre 40×40, pictogramme
+    /// 20 pt décalé de 4 pt vers la gauche (`translateX(-4)` du RN).
     private var backButton: some View {
         Button { dismiss() } label: {
             Image(systemName: "chevron.left")
                 .font(.system(size: 20, weight: .bold))
                 .foregroundStyle(Theme.ink)
-                .frame(width: 40, height: 40, alignment: .leading)
+                .frame(width: 40, height: 40)
+                .offset(x: -4)
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Retour aux paramètres")
-    }
-
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text("SÉCURITÉ")
-                .font(.system(size: 10, weight: .black))
-                .tracking(1.1)
-                .foregroundStyle(Theme.inkSoft)
-            Text("Comptes bloqués")
-                .font(.system(size: 22, weight: .black))
-                .foregroundStyle(Theme.ink)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var explanationCard: some View {
@@ -110,6 +125,7 @@ struct BlockedUsersView: View {
                 .foregroundStyle(Theme.ink)
             Text("Tu ne peux plus trouver ni suivre ces comptes, recevoir leurs notifications ou les inviter à un défi, et réciproquement. Ils sont aussi retirés de tes espaces sociaux.")
                 .font(.system(size: 13, weight: .semibold))
+                .lineSpacing(6)
                 .foregroundStyle(Theme.inkSoft)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -137,6 +153,7 @@ struct BlockedUsersView: View {
             ProgressView().tint(Theme.ink)
             Text("Chargement…")
                 .font(.system(size: 13, weight: .bold))
+                .lineSpacing(6)
                 .foregroundStyle(Theme.inkSoft)
         }
         .frame(maxWidth: .infinity)
@@ -152,6 +169,7 @@ struct BlockedUsersView: View {
                 .foregroundStyle(Theme.like)
             Text(errorMessage)
                 .font(.system(size: 13, weight: .bold))
+                .lineSpacing(6)
                 .foregroundStyle(Theme.inkSoft)
                 .multilineTextAlignment(.center)
             Button {
@@ -177,6 +195,7 @@ struct BlockedUsersView: View {
                 .foregroundStyle(Theme.ink)
             Text("Aucun compte bloqué.")
                 .font(.system(size: 13, weight: .bold))
+                .lineSpacing(6)
                 .foregroundStyle(Theme.inkSoft)
                 .multilineTextAlignment(.center)
         }
@@ -197,6 +216,7 @@ struct BlockedUsersView: View {
     private var inlineError: some View {
         Text(errorMessage)
             .font(.system(size: 12, weight: .bold))
+            .lineSpacing(5)
             .foregroundStyle(Theme.like)
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
@@ -215,7 +235,7 @@ struct BlockedUsersView: View {
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(Theme.inkFaint)
             }
-            Spacer(minLength: 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
             unblockButton(member)
         }
         .padding(11)
@@ -228,7 +248,8 @@ struct BlockedUsersView: View {
         )
     }
 
-    /// Avatar : initiale, photo facultative (`AsyncImage`) et point de présence.
+    /// Avatar : initiale, photo facultative (`AsyncImage`) et point de présence
+    /// (10 pt, bord blanc 2 pt, vert `online` — cf. `OnlineDot`/`AvatarPresence`).
     private func avatar(_ member: ReportBlockedProfile) -> some View {
         ZStack(alignment: .bottomTrailing) {
             ZStack {
@@ -249,9 +270,9 @@ struct BlockedUsersView: View {
 
             if presence.isOnline(member.id) {
                 Circle()
-                    .fill(Theme.progress)
-                    .frame(width: 11, height: 11)
-                    .overlay(Circle().stroke(Theme.surface, lineWidth: 2))
+                    .fill(Theme.online)
+                    .frame(width: 10, height: 10)
+                    .overlay(Circle().stroke(Theme.white, lineWidth: 2))
             }
         }
         .accessibilityHidden(true)
@@ -270,8 +291,8 @@ struct BlockedUsersView: View {
                         .foregroundStyle(Theme.ink)
                 }
             }
-            .frame(minWidth: 86, minHeight: 36)
             .padding(.horizontal, 11)
+            .frame(minWidth: 86, minHeight: 36)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
                     .stroke(Theme.border, lineWidth: 1)

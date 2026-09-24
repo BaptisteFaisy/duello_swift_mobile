@@ -136,6 +136,7 @@ struct AcctShowLeagueCard: View {
                 Text(line)
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(Theme.inkSoft)
+                    .lineSpacing(4)
                     .lineLimit(1)
             }
         }
@@ -163,6 +164,7 @@ struct AcctShowLeaguePremiumNotice: View {
         Text(message)
             .font(.system(size: 11, weight: .heavy))
             .foregroundStyle(Theme.ink)
+            .lineSpacing(4)
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
             .padding(.horizontal, 12)

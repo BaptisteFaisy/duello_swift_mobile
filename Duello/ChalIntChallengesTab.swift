@@ -87,8 +87,9 @@ struct ChalIntChallengesTab: View {
                 disabled: true,
                 onEnter: {}
             )
-            .padding(.horizontal, 16)
-            .padding(.top, 16)
+            .padding(.horizontal, 20)
+            .padding(.top, 24)
+            .padding(.bottom, 34)
         }
         .background(Theme.background)
     }
@@ -112,9 +113,9 @@ struct ChalIntChallengesTab: View {
     private var eventsPage: some View {
         ScrollView {
             EventsView()
-                .padding(.horizontal, 16)
-                .padding(.top, 12)
-                .padding(.bottom, 24)
+                .padding(.horizontal, 20)
+                .padding(.top, 2)
+                .padding(.bottom, 48)
         }
     }
 

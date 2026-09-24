@@ -11,58 +11,132 @@ struct PasswordResetView: View {
 
     @State private var password = ""
     @State private var confirmation = ""
+    @State private var passwordVisible = false
     @State private var errorMessage = ""
     @State private var showConfirmation = false
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
-                    header
-                    if !email.isEmpty { emailCard }
-                    passwordField(title: "Nouveau mot de passe", text: $password)
-                    passwordField(title: "Confirme le mot de passe", text: $confirmation)
-                    if !errorMessage.isEmpty { errorCard }
-                    saveButton
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 12)
-                .padding(.bottom, 24)
-            }
-            .background(Theme.background)
-            .navigationTitle("Nouveau mot de passe")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Fermer") { dismiss() }
+        VStack(spacing: 0) {
+            // `BackButton` de `PasswordResetScreen.tsx` : hors du défilement,
+            // chevron nu dans un cadre 44×44, marge haute 8 / basse 6 /
+            // latérale 22.
+            backButton
+
+            // Contenu défilant de `PasswordResetScreen.tsx` (`content`) :
+            // `flexGrow: 1` + `justifyContent: 'center'` — le panneau se centre
+            // verticalement quand il tient, et défile sinon.
+            GeometryReader { proxy in
+                ScrollView {
+                    VStack(spacing: 0) {
+                        Spacer(minLength: 0)
+                        panel
+                        Spacer(minLength: 0)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: proxy.size.height)
                 }
             }
-            .alert("Mot de passe enregistré", isPresented: $showConfirmation) {
-                Button("OK", role: .cancel) { dismiss() }
-            } message: {
-                Text("Ton nouveau mot de passe a bien été enregistré.")
-            }
+        }
+        .background(Theme.background)
+        .alert("Mot de passe enregistré", isPresented: $showConfirmation) {
+            Button("OK", role: .cancel) { dismiss() }
+        } message: {
+            Text("Ton nouveau mot de passe a bien été enregistré.")
         }
     }
 
+    // MARK: Panneau (`PasswordResetForm.tsx`)
+
+    /// `panel` : `maxWidth: 520`, centré, sous le `paddingHorizontal: 22` /
+    /// `paddingVertical: 26` du conteneur défilant.
+    private var panel: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            header
+            form
+        }
+        .frame(maxWidth: 520, alignment: .leading)
+        .padding(.horizontal, 22)
+        .padding(.vertical, 26)
+    }
+
+    /// `header` : eyebrow 11/900 `letterSpacing: 1.5`, titre 30/900
+    /// `lineHeight: 35` (soit `lineSpacing: 5`), écart eyebrow→titre 10.
     private var header: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Nouveau mot de passe")
+        VStack(alignment: .leading, spacing: 10) {
+            Text("NOUVEAU MOT DE PASSE")
                 .font(.system(size: 11, weight: .black))
                 .tracking(1.5)
-                .textCase(.uppercase)
                 .foregroundStyle(Theme.ink)
             Text("Choisis ton nouveau mot de passe")
                 .font(.system(size: 30, weight: .black))
+                .lineSpacing(5)
                 .foregroundStyle(Theme.ink)
         }
     }
 
-    /// Champ local (`PasswordResetForm.tsx:57-101`) : légende 13/800
-    /// `Theme.ink`, icône `key-outline` 20, placeholder = libellé, bordure 1.5
-    /// `Theme.border`, fond `Theme.surface`. La bascule œil de la source n'est
-    /// pas reprise ici (changement de comportement non spécifié).
-    private func passwordField(title: String, text: Binding<String>) -> some View {
+    /// `form` : `marginTop: 30`, `gap: 19` entre les groupes de champ.
+    private var form: some View {
+        VStack(alignment: .leading, spacing: 19) {
+            emailField
+            passwordField(
+                title: "Nouveau mot de passe",
+                text: $password,
+                showsToggle: true
+            )
+            passwordField(
+                title: "Confirme le mot de passe",
+                text: $confirmation,
+                showsToggle: false
+            )
+            if !errorMessage.isEmpty { errorCard }
+            saveButton
+        }
+        .padding(.top, 30)
+    }
+
+    // MARK: Champs
+
+    /// `EmailField` : légende 13/800 `Theme.ink`, coquille 55 de haut, bordure
+    /// 1.5 `Theme.border`, fond `Theme.surfaceMuted` (lecture seule), icône
+    /// `mail-outline` 20 `Theme.inkSoft`, valeur `Theme.ink` 15 régulière.
+    private var emailField: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Adresse e-mail")
+                .font(.system(size: 13, weight: .heavy))
+                .foregroundStyle(Theme.ink)
+
+            HStack(spacing: 10) {
+                Image(systemName: "envelope")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(Theme.inkSoft)
+
+                TextField("", text: .constant(email))
+                    .disabled(true)
+                    .font(.system(size: 15))
+                    .foregroundStyle(Theme.ink)
+            }
+            .padding(.horizontal, 15)
+            .frame(minHeight: 55)
+            .background(Theme.surfaceMuted)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.radiusMedium)
+                    .stroke(Theme.border, lineWidth: 1.5)
+            )
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// `PasswordField` : légende 13/800 `Theme.ink`, icône `key-outline` 20
+    /// `Theme.inkSoft`, saisie 15 régulière `Theme.ink`, coquille 55 de haut
+    /// bordée 1.5 `Theme.border` sur fond `Theme.surface`. Le premier champ
+    /// porte la bascule œil 36×36 (`Theme.primaryLight`, rayon 12) ; elle
+    /// pilote l'affichage des **deux** champs, comme `passwordVisible` partagé
+    /// de la source.
+    private func passwordField(
+        title: String,
+        text: Binding<String>,
+        showsToggle: Bool
+    ) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
                 .font(.system(size: 13, weight: .heavy))
@@ -73,12 +147,37 @@ struct PasswordResetView: View {
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundStyle(Theme.inkSoft)
 
-                SecureField(title, text: text)
-                    .textContentType(.newPassword)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Theme.ink)
+                Group {
+                    if passwordVisible {
+                        TextField(title, text: text)
+                    } else {
+                        SecureField(title, text: text)
+                    }
+                }
+                .textContentType(.newPassword)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .font(.system(size: 15))
+                .foregroundStyle(Theme.ink)
+
+                if showsToggle {
+                    Button {
+                        passwordVisible.toggle()
+                    } label: {
+                        Image(systemName: passwordVisible ? "eye.slash" : "eye")
+                            .font(.system(size: 21, weight: .semibold))
+                            .foregroundStyle(Theme.inkSoft)
+                            .frame(width: 36, height: 36)
+                            .background(Theme.primaryLight)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(
+                        passwordVisible
+                            ? "Masquer le mot de passe"
+                            : "Afficher le mot de passe"
+                    )
+                }
             }
             .padding(.horizontal, 15)
             .frame(minHeight: 55)
@@ -89,45 +188,73 @@ struct PasswordResetView: View {
                     .stroke(Theme.border, lineWidth: 1.5)
             )
         }
-    }
-
-    private var emailCard: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Adresse e-mail")
-                .font(.system(size: 12, weight: .heavy))
-                .textCase(.uppercase)
-                .foregroundStyle(Theme.inkFaint)
-            Text(email)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(Theme.inkSoft)
-        }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .duelloCard()
     }
 
+    // MARK: Cartes
+
+    /// `ResetError` : `alert-circle-outline` 19 `Theme.ink`, texte 12/700
+    /// `lineHeight: 17` (`lineSpacing: 5`) `Theme.ink`, `gap: 10`,
+    /// `padding: 13`, rayon 14, fond `Theme.surfaceMuted`.
     private var errorCard: some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 18, weight: .bold))
-                .foregroundStyle(Theme.like)
+        HStack(spacing: 10) {
+            Image(systemName: "exclamationmark.circle")
+                .font(.system(size: 19))
+                .foregroundStyle(Theme.ink)
             Text(errorMessage)
                 .font(.system(size: 12, weight: .bold))
+                .lineSpacing(5)
                 .foregroundStyle(Theme.ink)
                 .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .padding(13)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .duelloCard()
+        .background(Theme.surfaceMuted)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
     }
 
+    // MARK: Boutons
+
+    /// `BackButton` de `PasswordResetScreen.tsx` : 44×44, chevron 21
+    /// `Theme.ink` décalé de −4 (`styles.icon`), marges 22 / 8 / 6. Le `styles.button`
+    /// du composant (appliqué **après** le style d'écran) remet `borderWidth` à 0,
+    /// `borderRadius` à 0 et le fond à `transparent` : le bouton reste un chevron
+    /// nu, sans cadre ni fond.
+    private var backButton: some View {
+        HStack(spacing: 0) {
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 21, weight: .semibold))
+                    .foregroundStyle(Theme.ink)
+                    .offset(x: -4)
+                    .frame(width: 44, height: 44)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Revenir à la connexion")
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 22)
+        .padding(.top, 8)
+        .padding(.bottom, 6)
+    }
+
+    /// `SaveButton` : hauteur 54, rayon 18, fond `Theme.primary`, libellé blanc
+    /// 15/900.
     private var saveButton: some View {
         Button {
             submit()
         } label: {
             Text("Enregistrer")
-                .frame(maxWidth: .infinity, minHeight: 52)
+                .frame(maxWidth: .infinity, minHeight: 54)
         }
         .buttonStyle(DuelloPrimaryButton())
     }
+
+    // MARK: Soumission
 
     private func submit() {
         guard isValidNewPassword(password) else {

@@ -29,7 +29,7 @@ extension DuelloProgressView {
         let stat = trainingStat(for: subject, kind: kind)
 
         return VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .firstTextBaseline, spacing: 10) {
+            HStack(alignment: .center, spacing: 10) {
                 Text(subject.name)
                     .font(.system(size: 14, weight: .heavy))
                     .foregroundStyle(Theme.ink)

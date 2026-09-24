@@ -15,9 +15,10 @@ struct DetailHeader: View {
     let onBack: () -> Void
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 0) {
             DetailBackButton(action: onBack)
             avatarView
+                .padding(.leading, 9)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(title)
@@ -29,6 +30,7 @@ struct DetailHeader: View {
                     .foregroundStyle(Theme.inkSoft)
                     .lineLimit(1)
             }
+            .padding(.leading, 10)
 
             Spacer(minLength: 0)
         }
@@ -60,29 +62,28 @@ struct DetailHeader: View {
                     .fill(background)
                     .frame(width: 39, height: 39)
                 Image(systemName: name)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: 19, weight: .semibold))
                     .foregroundStyle(Theme.ink)
             }
         }
     }
 }
 
-/// Bouton de retour en pastille, comme le `BackButton` d'Expo.
+/// Bouton de retour du `BackButton` d'Expo : chevron noir seul, **sans fond,
+/// cadre ni forme** — `styles.button` d'Expo (borderWidth 0, borderRadius 0,
+/// backgroundColor transparent) écrase le style passé par l'écran. Zone tactile
+/// 40 × 40 (`minWidth`/`minHeight` du composant), chevron décalé de −4 pt comme
+/// `transform: translateX(-4)`.
 struct DetailBackButton: View {
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             Image(systemName: "chevron.left")
-                .font(.system(size: 16, weight: .bold))
+                .font(.system(size: 20, weight: .bold))
                 .foregroundStyle(Theme.ink)
-                .frame(width: 38, height: 38)
-                .background(Theme.surface)
-                .clipShape(RoundedRectangle(cornerRadius: 14))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .stroke(Theme.border, lineWidth: 1)
-                )
+                .frame(width: 40, height: 40)
+                .offset(x: -4)
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Retour")

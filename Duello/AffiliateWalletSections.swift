@@ -24,7 +24,8 @@ struct AffiliateScreenHeader: View {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 20, weight: .semibold))
                         .foregroundStyle(Theme.ink)
-                        .frame(width: 40, height: 40, alignment: .leading)
+                        .offset(x: -4)
+                        .frame(width: 40, height: 40)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -47,7 +48,7 @@ struct AffiliateScreenHeader: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.bottom, 14)
+        .padding(.bottom, 22)
     }
 
     private var refreshButton: some View {
@@ -82,10 +83,11 @@ struct AffiliateNotice: View {
     var body: some View {
         HStack(alignment: .center, spacing: 10) {
             Image(systemName: icon)
-                .font(.system(size: 18, weight: .semibold))
+                .font(.system(size: 20, weight: .semibold))
                 .foregroundStyle(Theme.ink)
             Text(message)
                 .font(.system(size: 11, weight: .bold))
+                .lineSpacing(5)
                 .foregroundStyle(Theme.ink)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -94,12 +96,15 @@ struct AffiliateNotice: View {
                     .buttonStyle(.plain)
                     .font(.system(size: 11, weight: .heavy))
                     .foregroundStyle(Theme.ink)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 6)
             }
         }
         .padding(13)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Theme.surfaceMuted)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
+        .padding(.top, 14)
     }
 }
 
@@ -144,6 +149,7 @@ struct AffiliateModePill: View {
                 .padding(.vertical, 5)
                 .background(Theme.surfaceMuted)
                 .clipShape(Capsule())
+                .padding(.bottom, 10)
         }
     }
 }
@@ -212,6 +218,7 @@ struct AffiliatePublicIdCard: View {
                     .textSelection(.enabled)
                 Text("Partage ce code. Après son enregistrement, chaque paiement Premium hebdomadaire ou annuel validé te rapporte \(AffiliateCopy.paymentRewardLabel).")
                     .font(.system(size: 10, weight: .semibold))
+                    .lineSpacing(4)
                     .foregroundStyle(Theme.inkSoft)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -231,6 +238,7 @@ struct AffiliatePublicIdCard: View {
         .padding(14)
         .background(Theme.surfaceMuted)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
+        .padding(.top, 14)
     }
 }
 
@@ -257,6 +265,7 @@ struct AffiliateStripeCard: View {
                         .foregroundStyle(Theme.ink)
                     Text(copy.detail)
                         .font(.system(size: 11, weight: .semibold))
+                        .lineSpacing(5)
                         .foregroundStyle(Theme.inkSoft)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -275,6 +284,7 @@ struct AffiliateStripeCard: View {
             RoundedRectangle(cornerRadius: Theme.radiusLarge)
                 .stroke(Theme.border, lineWidth: 1)
         )
+        .padding(.top, 14)
     }
 
     private func actionButton(_ label: String) -> some View {
@@ -287,7 +297,7 @@ struct AffiliateStripeCard: View {
                         .font(.system(size: 13, weight: .heavy))
                         .foregroundStyle(Theme.ink)
                     Image(systemName: "arrow.up.right.square")
-                        .font(.system(size: 17, weight: .semibold))
+                        .font(.system(size: 18, weight: .semibold))
                         .foregroundStyle(Theme.ink)
                 }
             }

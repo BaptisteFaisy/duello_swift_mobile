@@ -15,7 +15,7 @@ extension DuelloProgressView {
                 summaryBlock("Jours travaillés", "\(progress.activeDayCount())")
             }
         }
-        .progressCard(padding: 18)
+        .progressCard(padding: 18, radius: Theme.radiusLarge)
         .padding(.bottom, 20)
 
         VStack(alignment: .leading, spacing: 12) {
@@ -40,8 +40,6 @@ extension DuelloProgressView {
             Text(value)
                 .font(.system(size: 28, weight: .black))
                 .foregroundStyle(Theme.ink)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

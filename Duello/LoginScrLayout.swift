@@ -106,6 +106,7 @@ struct LoginScrScreen: View {
             }
         }
         .overlay { recoveryOverlay }
+        .accessibilityLabel("Écran de connexion")
         .alert("Biométrie indisponible", isPresented: biometricAlertPresented) {
             Button("OK", role: .cancel) { biometricAlert = nil }
         } message: {
@@ -233,11 +234,11 @@ private extension LoginScrScreen {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 21, weight: .semibold))
                     .foregroundStyle(LoginScrPalette.onDark)
-                    .frame(width: 40, height: 40)
+                    .frame(width: 44, height: 44)
                     .contentShape(Rectangle())
             }
             .buttonStyle(LoginScrPressStyle(pressedOpacity: 0.6, pressedScale: 1))
-            .offset(x: -12)
+            .offset(x: -4)
             .accessibilityLabel("Revenir en arrière")
 
             Spacer(minLength: 0)
@@ -247,9 +248,10 @@ private extension LoginScrScreen {
         .padding(.bottom, 6)
     }
 
-    /// Contenu défilant. La source centre verticalement
-    /// (`justifyContent: 'center'`) ; `ScrollView` ne le permet pas, l'écart
-    /// de mise en page est assumé.
+    /// Contenu défilant, centré verticalement comme la source
+    /// (`scrollContent` : `flexGrow: 1` + `justifyContent: 'center'`). Les deux
+    /// `Spacer` encadrants répartissent la hauteur visible ; `ScrollView` défile
+    /// dès que le contenu la dépasse.
     @ViewBuilder var content: some View {
         VStack(alignment: .leading, spacing: 0) {
             header

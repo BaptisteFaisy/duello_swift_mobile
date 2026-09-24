@@ -23,12 +23,15 @@ struct CtdExerciseCard: View {
                             .font(.system(size: 14, weight: .black))
                             .foregroundStyle(Theme.ink)
                         Text(questionLabel)
-                            .font(.system(size: 11, weight: .semibold))
+                            // `exerciseMeta` : graisse par défaut (400).
+                            .font(.system(size: 11, weight: .regular))
                             .foregroundStyle(Theme.inkSoft)
                     }
                     Spacer(minLength: 8)
+                    // Ionicons `chevron-up` / `chevron-down` (taille 19) côté
+                    // source ; pas d'équivalent SF exact (voir rapport).
                     Image(systemName: open ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.system(size: 19, weight: .bold))
                         .foregroundStyle(Theme.inkSoft)
                 }
                 .padding(13)
@@ -41,7 +44,9 @@ struct CtdExerciseCard: View {
             if open {
                 VStack(alignment: .leading, spacing: 12) {
                     Text(LatexToUnicode.toUnicodeMath(exercise.statement))
+                        // `statementText` : 13 / 600, `lineHeight: 20`.
                         .font(.system(size: 13, weight: .semibold))
+                        .lineSpacing(7)
                         .foregroundStyle(Theme.ink)
                     ForEach(exercise.questions) { question in
                         CtdQuestionCard(question: question)
@@ -83,7 +88,9 @@ struct CtdQuestionCard: View {
                 CtdDifficultyDots(level: question.difficulty)
             }
             Text(LatexToUnicode.toUnicodeMath(question.text))
+                // `questionText` : 13 / 400 (défaut), `lineHeight: 20`.
                 .font(.system(size: 13, weight: .regular))
+                .lineSpacing(7)
                 .foregroundStyle(Theme.ink)
             if !question.theorems.isEmpty {
                 CtdIndexBlock(label: "THÉORÈMES ASSOCIÉS", lines: question.theorems, latex: false)
@@ -122,7 +129,9 @@ struct CtdIndexBlock: View {
     let label: String
     let lines: [String]
     /// Vrai pour les hypothèses : côté Expo elles passent par
-    /// `MathStatementText`, donc par la conversion LaTeX → Unicode ici.
+    /// `MathStatementText`, donc par la conversion LaTeX → Unicode ici, et
+    /// elles sont réunies en **un seul** texte (une ligne par entrée) — alors
+    /// que les théorèmes restent un `Text` par entrée.
     let latex: Bool
 
     var body: some View {
@@ -131,17 +140,25 @@ struct CtdIndexBlock: View {
                 .font(.system(size: 9, weight: .black))
                 .kerning(0.4)
                 .foregroundStyle(Theme.inkSoft)
-            ForEach(Array(lines.enumerated()), id: \.offset) { pair in
-                Text(text(for: pair.element))
+            if latex {
+                Text(LatexToUnicode.toUnicodeMath(joinedLines))
                     .font(.system(size: 12, weight: .regular))
+                    .lineSpacing(6)
                     .foregroundStyle(Theme.ink)
+            } else {
+                ForEach(Array(lines.enumerated()), id: \.offset) { pair in
+                    Text("• \(pair.element)")
+                        .font(.system(size: 12, weight: .regular))
+                        .lineSpacing(6)
+                        .foregroundStyle(Theme.ink)
+                }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func text(for line: String) -> String {
-        let bullet = "• \(line)"
-        return latex ? LatexToUnicode.toUnicodeMath(bullet) : bullet
+    /// `hypotheses.map((hypothesis) => `• ${hypothesis}`).join('\n')`.
+    private var joinedLines: String {
+        lines.map { "• \($0)" }.joined(separator: "\n")
     }
 }

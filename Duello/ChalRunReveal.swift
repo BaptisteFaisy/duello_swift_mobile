@@ -61,22 +61,24 @@ struct ChalRunSearchingCard: View {
     var onCancel: () -> Void
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 0) {
             ProgressView()
                 .frame(width: 54, height: 54)
                 .background(Theme.white)
                 .clipShape(RoundedRectangle(cornerRadius: 19, style: .continuous))
             Text(search.scheduled ? "Salle d’attente" : "Invitation envoyée")
-                .font(.system(size: 16, weight: .heavy))
+                .font(.system(size: 16, weight: .black))
                 .foregroundStyle(Theme.ink)
+                .padding(.top, 15)
             Text(subtitle)
-                .font(.system(size: 10, weight: .semibold))
+                .font(.system(size: 10, weight: .medium))
                 .foregroundStyle(Theme.inkSoft)
                 .multilineTextAlignment(.center)
+                .padding(.top, 6)
             ChalUiQueueStatsRow {
                 ChalUiQueueStat(
                     label: "ATTENTE",
-                    value: ChalTimer.clock(Int(search.waitedMs / 1000))
+                    value: ChalUiFormat.chrono(search.waitedMs / 1000)
                 )
                 ChalUiQueueStat(
                     label: search.scheduled ? "DÉPART" : "RÉPONSE",
@@ -88,13 +90,16 @@ struct ChalRunSearchingCard: View {
             if search.offline || search.scheduled {
                 Text(hint)
                     .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(Theme.inkFaint)
+                    .foregroundStyle(Theme.inkSoft)
                     .multilineTextAlignment(.center)
+                    .lineSpacing(5)
                     .padding(.top, 13)
             }
             Button("Annuler") { onCancel() }
-                .font(.system(size: 11, weight: .bold))
+                .font(.system(size: 11, weight: .heavy))
                 .foregroundStyle(Theme.ink)
+                .padding(8)
+                .padding(.top, 17)
         }
         .frame(maxWidth: .infinity)
         .padding(29)
@@ -126,22 +131,22 @@ struct ChalRunOpponentCard: View {
     private var isTraining: Bool { opponent.training == true }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 0) {
             badge
-            HStack(spacing: 12) {
+            HStack(spacing: 13) {
                 avatar
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(opponent.displayName)
-                        .font(.system(size: 17, weight: .heavy))
+                        .font(.system(size: 17, weight: .black))
                         .foregroundStyle(Theme.ink)
                     Text(metaLine)
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(Theme.inkFaint)
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(Theme.inkSoft)
                 }
                 Spacer(minLength: 8)
-                VStack(alignment: .trailing, spacing: 1) {
+                VStack(alignment: .trailing, spacing: 3) {
                     Text("COTE")
-                        .font(.system(size: 8, weight: .heavy))
+                        .font(.system(size: 8, weight: .black))
                         .tracking(0.8)
                         .foregroundStyle(Theme.inkFaint)
                     Text(ChalRunFormat.elo(opponent.elo))
@@ -149,24 +154,29 @@ struct ChalRunOpponentCard: View {
                         .foregroundStyle(Theme.ink)
                 }
             }
+            .padding(.top, 17)
             HStack(spacing: 8) {
                 summaryItem(icon: "book", text: match.subject)
                 summaryItem(icon: "timer", text: "\(match.durationMinutes) minutes")
                 summaryItem(icon: "person.2", text: "\(ChalRunReveal.playersPerChallenge) joueurs")
             }
+            .padding(.top, 18)
             HStack(spacing: 9) {
                 ProgressView()
                 Text("Ouverture de l’énoncé…")
-                    .font(.system(size: 12, weight: .bold))
+                    .font(.system(size: 12, weight: .heavy))
                     .foregroundStyle(Theme.ink)
             }
             .frame(maxWidth: .infinity, minHeight: 49)
             .background(Theme.primaryLight)
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .padding(.top, 18)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
-        .duelloCard()
+        .padding(18)
+        .background(Theme.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .duelloShadow()
     }
 
     private var badge: some View {
@@ -174,7 +184,7 @@ struct ChalRunOpponentCard: View {
             Image(systemName: isTraining ? "dumbbell" : "checkmark")
                 .font(.system(size: 14, weight: .bold))
             Text(isTraining ? "ADVERSAIRE D’ENTRAÎNEMENT" : "ADVERSAIRE TROUVÉ")
-                .font(.system(size: 8, weight: .heavy))
+                .font(.system(size: 8, weight: .black))
                 .tracking(0.8)
         }
         .foregroundStyle(Theme.ink)
@@ -200,6 +210,7 @@ struct ChalRunOpponentCard: View {
                     .fill(Theme.primaryLight)
                     .frame(width: 13, height: 13)
                     .overlay(Circle().stroke(Theme.surface, lineWidth: 2))
+                    .offset(x: 1, y: 1)
             }
         }
     }
@@ -215,10 +226,10 @@ struct ChalRunOpponentCard: View {
     private func summaryItem(icon: String, text: String) -> some View {
         HStack(spacing: 6) {
             Image(systemName: icon)
-                .font(.system(size: 14, weight: .semibold))
+                .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(Theme.ink)
             Text(text)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: 10, weight: .heavy))
                 .foregroundStyle(Theme.ink)
         }
         .frame(maxWidth: .infinity, minHeight: 43)

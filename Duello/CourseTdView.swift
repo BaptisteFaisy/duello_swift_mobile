@@ -7,8 +7,9 @@ import UniformTypeIdentifiers
 /// Porté de `src/components/CourseTdPanel.tsx`, monté par `SubjectsScreen.tsx`
 /// (page d'outil « td » du chapitre) avec le document de cours du chapitre.
 /// Le lecteur de document vient de `CourseDocumentViewer.native.tsx` et
-/// `HtmlDocumentView.native.tsx` ; le bouton plein écran et ses libellés
-/// viennent de la section « Mon cours » du même écran.
+/// `HtmlDocumentView.native.tsx`. Le panneau Expo n'a ni bouton plein écran
+/// ni modale : seul le lecteur est monté, avec le style `viewer`
+/// (330 pt de haut, rayon moyen).
 ///
 /// Le panneau ne possède pas le cours du chapitre : il le reçoit, et se
 /// verrouille tant qu'il manque (`CtdLockedCard`). Comme côté Expo, il est
@@ -31,7 +32,6 @@ struct CourseTdView: View {
     @State private var importFailedVisible = false
     @State private var consentVisible = false
     @State private var pendingAnalysis: CtdPendingAnalysis?
-    @State private var fullscreenVisible = false
     /// Numéro du dernier lancement d'analyse : le résultat d'un lancement
     /// remplacé est ignoré (`analysisRun` de `CourseTdPanel.tsx`).
     @State private var analysisRun = 0
@@ -58,17 +58,6 @@ struct CourseTdView: View {
             allowsMultipleSelection: false,
             onCompletion: handlePickedFile
         )
-        .sheet(isPresented: $fullscreenVisible) {
-            if let source = store.document.source {
-                CtdDocumentSheet(
-                    title: source.name,
-                    uri: source.uri,
-                    mimeType: source.mimeType,
-                    revision: source.importedAt,
-                    onClose: { fullscreenVisible = false }
-                )
-            }
-        }
         // `requireAiDataSharingConsent` : l'analyse transmet la feuille et le
         // cours au relais, donc l'accord de l'élève est demandé d'abord.
         .alert(CtdAiConsent.title, isPresented: $consentVisible) {
@@ -108,7 +97,13 @@ struct CourseTdView: View {
         }
     }
 
-    /// Feuille importée : ligne de document, lecteur et ouverture plein écran.
+    /// Feuille importée : ligne de document puis lecteur.
+    ///
+    /// Le panneau Expo (`CourseTdPanel.tsx`, lignes 287-312) n'affiche ni
+    /// bouton plein écran ni modale : le lecteur (330 pt) est le seul élément
+    /// sous la ligne de fichier. `CtdFullscreenButton` et `CtdDocumentSheet`
+    /// appartiennent à la section « Mon cours » de `SubjectsScreen.tsx`
+    /// (lignes 8292-8410) : ils ont été retirés de ce panneau.
     @ViewBuilder
     private func document(source: CtdSource) -> some View {
         CtdFileRow(
@@ -117,14 +112,11 @@ struct CourseTdView: View {
             busy: importing || analyzing,
             onReplace: presentPicker
         )
-        ZStack(alignment: .topTrailing) {
-            CtdDocumentViewer(
-                uri: source.uri,
-                mimeType: source.mimeType,
-                revision: source.importedAt
-            )
-            CtdFullscreenButton { fullscreenVisible = true }
-        }
+        CtdDocumentViewer(
+            uri: source.uri,
+            mimeType: source.mimeType,
+            revision: source.importedAt
+        )
     }
 
     /// Cartes de message : erreur d'analyse et analyse périmée.

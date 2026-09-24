@@ -14,15 +14,24 @@ struct ComposerBar: View {
 
     var body: some View {
         HStack(alignment: .bottom, spacing: 9) {
-            TextField(placeholder, text: $text, axis: .vertical)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(Theme.ink)
-                .lineLimit(1...5)
-                .padding(.vertical, 9)
+            ZStack(alignment: .topLeading) {
+                if text.isEmpty {
+                    Text(placeholder)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(Theme.inkFaint)
+                        .padding(.vertical, 9)
+                        .allowsHitTesting(false)
+                }
+                TextField("", text: $text, axis: .vertical)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Theme.ink)
+                    .lineLimit(1...5)
+                    .padding(.vertical, 9)
+            }
 
             Button(action: onSend) {
                 Image(systemName: "arrow.up")
-                    .font(.system(size: 17, weight: .bold))
+                    .font(.system(size: 19, weight: .bold))
                     .foregroundStyle(Theme.surface)
                     .frame(width: 40, height: 40)
                     .background(Theme.ink)
