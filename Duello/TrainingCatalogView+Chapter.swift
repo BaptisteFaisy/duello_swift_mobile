@@ -64,7 +64,7 @@ extension TrainingCatalogView {
                 if visible.isEmpty {
                     emptyExercises(chapter, hasLoadedItems: !loaded.isEmpty)
                 } else {
-                    exerciseList(visible)
+                    exerciseList(visible, chapter: chapter)
                 }
             }
             .padding(.top, 2)

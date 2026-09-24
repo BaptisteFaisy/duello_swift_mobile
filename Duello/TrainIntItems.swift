@@ -13,10 +13,14 @@
 //
 //  Limite assumée : aucun lecteur d'énoncé n'est porté dans cet écran, la fiche
 //  est donc **de consultation** (`isOpenable: false`) — elle montre l'état, la
-//  difficulté et l'avancement du sujet, mais son appui n'ouvre rien. Le titre
-//  reste affiché (`showsTitle` par défaut), comme la liste de chapitres de la
-//  source. La disposition grille de la source n'est pas reprise ici : la grille
-//  est utilisée en une seule colonne pleine largeur (`isGrid: false`).
+//  difficulté, l'avancement et les prérequis du sujet, mais son appui n'ouvre
+//  rien. Le titre reste affiché (`showsTitle` par défaut), comme la liste de
+//  chapitres de la source. La disposition grille de la source n'est pas reprise
+//  ici : la grille est utilisée en une seule colonne pleine largeur
+//  (`isGrid: false`).
+//
+//  Les prérequis d'une fiche (`missingPrerequisites`, `startedPrerequisites`,
+//  comptes de questions) sont construits par `TrainIntItems+Prereq.swift`.
 //
 //  Cible iOS 16, aucune dépendance externe.
 //
@@ -25,15 +29,14 @@ import SwiftUI
 extension TrainingCatalogView {
 
     /// Fiches des sujets visibles d'un chapitre, dans l'ordre déjà calculé par
-    /// `visibleExercises(_:)`.
-    func exerciseList(_ visible: [TrainExercise]) -> some View {
-        TrainGridExerciseGrid(count: visible.count, isGrid: false) { index in
+    /// `visibleExercises(_:)`. Le chapitre ouvert porte le contexte des
+    /// prérequis (noms de chapitres et statuts de cours).
+    func exerciseList(_ visible: [TrainExercise], chapter: TrackChapter) -> some View {
+        let context = prerequisiteCardContext()
+        return TrainGridExerciseGrid(count: visible.count, isGrid: false) { index in
             let exercise = visible[index]
             SubjItemCard(
-                model: SubjItemCardModel(
-                    title: exercise.title,
-                    difficulty: exercise.difficulty
-                ),
+                model: itemCardModel(exercise, chapter: chapter, context: context),
                 itemNumber: index + 1,
                 progress: progress.items[exercise.id],
                 isOpenable: false,
