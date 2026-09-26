@@ -2,7 +2,9 @@ import Foundation
 
 // V1 2026-09-26 (U06#3, U06#4) : fichier neuf. Document de cours d'un chapitre
 // (`StoredCourseDocument`) et flashcards du chapitre
-// (`CourseFlashcardsDocument`), avec les clés de stockage Expo.
+// (`CourseFlashcardsDocument`), avec les clés de stockage Expo exactes
+// (`prepapp-course-document:v2:{année}:{chapitre}`,
+// `prepapp-course-flashcards:v1:{chapitre}`, `src/storage/keys.ts`).
 
 // MARK: - Document de cours
 
@@ -64,7 +66,7 @@ enum TrainCourseDocument {
 // MARK: - Flashcards du chapitre
 
 /// Flashcards d'un chapitre (`CourseFlashcardsDocument`), clé de stockage Expo
-/// conservée (`prepapp-course-flashcards:v1:`).
+/// conservée (`courseFlashcardsStorageKey`, `prepapp-course-flashcards:v1:`).
 enum TrainChapterFlashcards {
     /// `courseFlashcardsStorageKey(chapterId)`.
     static func storageKey(chapterId: String) -> String {

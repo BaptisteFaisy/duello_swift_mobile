@@ -357,7 +357,7 @@ struct TrainFlashcardsPanel: View {
             return
         }
         let now = TrainChapterFlashcards.now()
-        let customKey = customLabel.isEmpty ? nil : TrainFlashcardsPanel.customDeckKey(customLabel, fallback: now)
+        let customKey = customLabel.isEmpty ? nil : TrainFlashcardDeckNaming.customDeckKey(customLabel, fallback: now)
         let deck = createDeck == SubjFlashcardSelectionKey.create ? customKey! : createDeck
         let current = document ?? CollFlashcardsDocument(
             version: 1, generatedAt: now, sourceName: "Création manuelle", cards: [], decks: nil
@@ -434,8 +434,10 @@ enum TrainFlashcardPanelTab: String, CaseIterable, Identifiable {
     }
 }
 
-/// Normalisation d'un nom de paquet personnalisé (`custom-…`).
-enum TrainFlashcardsPanel {
+/// Normalisation d'un nom de paquet personnalisé (`custom-…`). Espace de noms
+/// distinct de la vue `TrainFlashcardsPanel` (une seule déclaration de type par
+/// nom).
+enum TrainFlashcardDeckNaming {
     /// Clé `custom-xxx` ASCII (`normalize('NFD')`, minuscules, tirets).
     static func customDeckKey(_ label: String, fallback: Double) -> String {
         let folded = label.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
