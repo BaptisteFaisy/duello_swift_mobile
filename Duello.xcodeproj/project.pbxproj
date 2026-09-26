@@ -674,6 +674,25 @@
 		85BD5C54874B57034480B560 /* ProgressStore+Training.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA648BC6F4B86B7D348E1C37 /* ProgressStore+Training.swift */; };
 		E5C3708DCA5CD5434C9EE967 /* WhiteboardWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F9E3F30E775CC5F19A2A73C /* WhiteboardWidgets.swift */; };
 		442CAEDE2B447E657C958CB1 /* ChalRunSeries.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F928DA5177DE9FF3B6B3D24 /* ChalRunSeries.swift */; };
+		2C4E78BA547D398389C6382D /* LoginScrRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42C0605DE9CB522E1A946930 /* LoginScrRegistry.swift */; };
+		FFC9F2F6CAE062094DBFFB5B /* AcctNotifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5A756DC4D040BC307996D9 /* AcctNotifications.swift */; };
+		517D98EA4E64E31EADF06FD8 /* PremPurchaseFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7640551C8F554751E037FF88 /* PremPurchaseFlow.swift */; };
+		2EBEBF124209F09183C53276 /* PremStoreKitPurchases.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8E31109C6720F3677C0F96 /* PremStoreKitPurchases.swift */; };
+		E5FF10F01EB2DA8FDDB31C05 /* PremSubscriptionSyncView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08F2F2098356BB653783B40C /* PremSubscriptionSyncView.swift */; };
+		2EFF8EC69BF7C00440DA7453 /* SessionStore+AccountDeletion.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0D9D99125A954EF212F9180 /* SessionStore+AccountDeletion.swift */; };
+		90841DE8F5D0751E0DE59D5F /* AcctNotificationsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8051EA8AA6FA0554981C3B88 /* AcctNotificationsStore.swift */; };
+		7F8D8D7698B93AA20B83D145 /* ReportPublicProfilePublisher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27DA6341B2E10C3084DCBBA7 /* ReportPublicProfilePublisher.swift */; };
+		9CAF4E71C16E547F8631FDDF /* AcctNotificationCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = D29AB39ADDDE350582DF0E1A /* AcctNotificationCard.swift */; };
+		D7A97D8F86F94F7CA7598DC7 /* DuelloAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D6C8D34A54115AB318CC630 /* DuelloAppDelegate.swift */; };
+		2BB99AEAA6127C423B001083 /* PushNotifRoot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34CA0F16B99343928B9B5963 /* PushNotifRoot.swift */; };
+		F78136977A2D913887BEECC0 /* SocChallengeChapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C0E21C378E5EC66D4AD7B3B /* SocChallengeChapters.swift */; };
+		CF5778015DC70F9466B6A889 /* PushNotifMemberSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DE4F8864832BD408A27F529 /* PushNotifMemberSheet.swift */; };
+		EC4B49B408F4FBA32556443D /* DuelloRootServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5B27D7EA45A70D81B7B0363 /* DuelloRootServices.swift */; };
+		0BEB6E75C22DFF228BD43552 /* TrainCourseStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D364BB008780A6F9241B9373 /* TrainCourseStore.swift */; };
+		DA5DB27E3DE7E7DA0B94CBEE /* TrainCoursePage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60268A79411825FD2E286CE8 /* TrainCoursePage.swift */; };
+		EE906A47EFB700EBDEF98F65 /* ChalMatchmakingTraining.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D9EF49F847768006C233D4C /* ChalMatchmakingTraining.swift */; };
+		BB3E8E85976576652512E0A5 /* TrainFlashcardReviewPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F374A62501B220C9A7C065D5 /* TrainFlashcardReviewPanel.swift */; };
+		601BCE3C5A24D6DF32FF6587 /* TrainFlashcardsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 209A3462BD99771A24FB83AA /* TrainFlashcardsPanel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -1345,6 +1364,25 @@
 		BA648BC6F4B86B7D348E1C37 /* ProgressStore+Training.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProgressStore+Training.swift"; sourceTree = "<group>"; };
 		0F9E3F30E775CC5F19A2A73C /* WhiteboardWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhiteboardWidgets.swift; sourceTree = "<group>"; };
 		9F928DA5177DE9FF3B6B3D24 /* ChalRunSeries.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChalRunSeries.swift; sourceTree = "<group>"; };
+		42C0605DE9CB522E1A946930 /* LoginScrRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginScrRegistry.swift; sourceTree = "<group>"; };
+		6E5A756DC4D040BC307996D9 /* AcctNotifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctNotifications.swift; sourceTree = "<group>"; };
+		7640551C8F554751E037FF88 /* PremPurchaseFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PremPurchaseFlow.swift; sourceTree = "<group>"; };
+		9F8E31109C6720F3677C0F96 /* PremStoreKitPurchases.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PremStoreKitPurchases.swift; sourceTree = "<group>"; };
+		08F2F2098356BB653783B40C /* PremSubscriptionSyncView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PremSubscriptionSyncView.swift; sourceTree = "<group>"; };
+		C0D9D99125A954EF212F9180 /* SessionStore+AccountDeletion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SessionStore+AccountDeletion.swift"; sourceTree = "<group>"; };
+		8051EA8AA6FA0554981C3B88 /* AcctNotificationsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctNotificationsStore.swift; sourceTree = "<group>"; };
+		27DA6341B2E10C3084DCBBA7 /* ReportPublicProfilePublisher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportPublicProfilePublisher.swift; sourceTree = "<group>"; };
+		D29AB39ADDDE350582DF0E1A /* AcctNotificationCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctNotificationCard.swift; sourceTree = "<group>"; };
+		8D6C8D34A54115AB318CC630 /* DuelloAppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuelloAppDelegate.swift; sourceTree = "<group>"; };
+		34CA0F16B99343928B9B5963 /* PushNotifRoot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushNotifRoot.swift; sourceTree = "<group>"; };
+		3C0E21C378E5EC66D4AD7B3B /* SocChallengeChapters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SocChallengeChapters.swift; sourceTree = "<group>"; };
+		5DE4F8864832BD408A27F529 /* PushNotifMemberSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushNotifMemberSheet.swift; sourceTree = "<group>"; };
+		E5B27D7EA45A70D81B7B0363 /* DuelloRootServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuelloRootServices.swift; sourceTree = "<group>"; };
+		D364BB008780A6F9241B9373 /* TrainCourseStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainCourseStore.swift; sourceTree = "<group>"; };
+		60268A79411825FD2E286CE8 /* TrainCoursePage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainCoursePage.swift; sourceTree = "<group>"; };
+		4D9EF49F847768006C233D4C /* ChalMatchmakingTraining.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChalMatchmakingTraining.swift; sourceTree = "<group>"; };
+		F374A62501B220C9A7C065D5 /* TrainFlashcardReviewPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainFlashcardReviewPanel.swift; sourceTree = "<group>"; };
+		209A3462BD99771A24FB83AA /* TrainFlashcardsPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainFlashcardsPanel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -2037,6 +2075,25 @@
 				BA648BC6F4B86B7D348E1C37 /* ProgressStore+Training.swift */,
 				0F9E3F30E775CC5F19A2A73C /* WhiteboardWidgets.swift */,
 				9F928DA5177DE9FF3B6B3D24 /* ChalRunSeries.swift */,
+				42C0605DE9CB522E1A946930 /* LoginScrRegistry.swift */,
+				6E5A756DC4D040BC307996D9 /* AcctNotifications.swift */,
+				7640551C8F554751E037FF88 /* PremPurchaseFlow.swift */,
+				9F8E31109C6720F3677C0F96 /* PremStoreKitPurchases.swift */,
+				08F2F2098356BB653783B40C /* PremSubscriptionSyncView.swift */,
+				C0D9D99125A954EF212F9180 /* SessionStore+AccountDeletion.swift */,
+				8051EA8AA6FA0554981C3B88 /* AcctNotificationsStore.swift */,
+				27DA6341B2E10C3084DCBBA7 /* ReportPublicProfilePublisher.swift */,
+				D29AB39ADDDE350582DF0E1A /* AcctNotificationCard.swift */,
+				8D6C8D34A54115AB318CC630 /* DuelloAppDelegate.swift */,
+				34CA0F16B99343928B9B5963 /* PushNotifRoot.swift */,
+				3C0E21C378E5EC66D4AD7B3B /* SocChallengeChapters.swift */,
+				5DE4F8864832BD408A27F529 /* PushNotifMemberSheet.swift */,
+				E5B27D7EA45A70D81B7B0363 /* DuelloRootServices.swift */,
+				D364BB008780A6F9241B9373 /* TrainCourseStore.swift */,
+				60268A79411825FD2E286CE8 /* TrainCoursePage.swift */,
+				4D9EF49F847768006C233D4C /* ChalMatchmakingTraining.swift */,
+				F374A62501B220C9A7C065D5 /* TrainFlashcardReviewPanel.swift */,
+				209A3462BD99771A24FB83AA /* TrainFlashcardsPanel.swift */,
 			);
 			path = Duello;
 			sourceTree = "<group>";
@@ -2785,6 +2842,25 @@
 				85BD5C54874B57034480B560 /* ProgressStore+Training.swift in Sources */,
 				E5C3708DCA5CD5434C9EE967 /* WhiteboardWidgets.swift in Sources */,
 				442CAEDE2B447E657C958CB1 /* ChalRunSeries.swift in Sources */,
+				2C4E78BA547D398389C6382D /* LoginScrRegistry.swift in Sources */,
+				FFC9F2F6CAE062094DBFFB5B /* AcctNotifications.swift in Sources */,
+				517D98EA4E64E31EADF06FD8 /* PremPurchaseFlow.swift in Sources */,
+				2EBEBF124209F09183C53276 /* PremStoreKitPurchases.swift in Sources */,
+				E5FF10F01EB2DA8FDDB31C05 /* PremSubscriptionSyncView.swift in Sources */,
+				2EFF8EC69BF7C00440DA7453 /* SessionStore+AccountDeletion.swift in Sources */,
+				90841DE8F5D0751E0DE59D5F /* AcctNotificationsStore.swift in Sources */,
+				7F8D8D7698B93AA20B83D145 /* ReportPublicProfilePublisher.swift in Sources */,
+				9CAF4E71C16E547F8631FDDF /* AcctNotificationCard.swift in Sources */,
+				D7A97D8F86F94F7CA7598DC7 /* DuelloAppDelegate.swift in Sources */,
+				2BB99AEAA6127C423B001083 /* PushNotifRoot.swift in Sources */,
+				F78136977A2D913887BEECC0 /* SocChallengeChapters.swift in Sources */,
+				CF5778015DC70F9466B6A889 /* PushNotifMemberSheet.swift in Sources */,
+				EC4B49B408F4FBA32556443D /* DuelloRootServices.swift in Sources */,
+				0BEB6E75C22DFF228BD43552 /* TrainCourseStore.swift in Sources */,
+				DA5DB27E3DE7E7DA0B94CBEE /* TrainCoursePage.swift in Sources */,
+				EE906A47EFB700EBDEF98F65 /* ChalMatchmakingTraining.swift in Sources */,
+				BB3E8E85976576652512E0A5 /* TrainFlashcardReviewPanel.swift in Sources */,
+				601BCE3C5A24D6DF32FF6587 /* TrainFlashcardsPanel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -14,11 +14,16 @@
 //    - balayage horizontal entre les trois pages
 //      (`InstalledNotificationsPager` + `NOTIFICATIONS_SWIPE_PAGES`).
 //
-//  Repli documenté : la liste des notifications du serveur et les listes
-//  Followers / Followings ne sont pas exposées localement (aucun store de
-//  graphe social côté iOS) ; l'onglet `notifications` affiche donc l'état vide
-//  « Aucune notification » — exactement ce que rend la source quand la liste
-//  est vide.
+//  Repli documenté : les listes Followers / Followings ne sont pas exposées
+//  localement (aucun store de graphe social côté iOS) ; l’onglet `Amis`
+//  affiche donc l’état vide.
+//
+//  V1 (26/09/2026, écart 20#2) : la vraie liste des notifications
+//  (`AcctNotificationsStore`) est rendue avant l’état vide
+//  (`AccountScreen.tsx:2258-2360`) : carte non-lue, icône selon `kind`,
+//  pastille de présence, texte par type, `formatTimeAgo`, chevron ; le tap
+//  ouvre le profil du membre puis referme la feuille (`openMember` +
+//  `leaveNotifications`, qui marque tout lu).
 //
 //  Cible : iOS 16, aucune API iOS 17.
 //
@@ -26,11 +31,20 @@ import SwiftUI
 
 /// Feuille « Notifications » : réglages, notifications et onglets Amis, sur
 /// trois pages balayables (`notifications`, `followers`, `followings`).
+///
+/// `@MainActor` : la vue possède le magasin partagé, isolé au fil principal —
+/// même motif que `AccountView` / `AcctIntDirectorySheet`.
+@MainActor
 struct AcctIntNotificationsSheet: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var session: SessionStore
     @StateObject private var notificationStore = NotificationPreferencesStore()
+    @ObservedObject private var notifications = AcctNotificationsStore.shared
+    @ObservedObject private var presence = SocPresenceStore.shared
     @State private var page: SwipeNotificationsPage = .notifications
+    /// `openMember` : ouvre la fiche du membre touché. La feuille se referme
+    /// elle-même (`leaveNotifications`), puis le compte marque tout lu.
+    var onOpenMember: (String) -> Void = { _ in }
 
     var body: some View {
         NavigationStack {
@@ -48,6 +62,7 @@ struct AcctIntNotificationsSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(.hidden, for: .navigationBar)
         }
+        .task { await refreshNotifications() }
     }
 
     // MARK: En-tête
@@ -117,10 +132,45 @@ struct AcctIntNotificationsSheet: View {
         switch page {
         case .notifications:
             NotificationSettingsCard(store: notificationStore)
-            notificationsEmpty
+            if notifications.notifications.isEmpty {
+                notificationsEmpty
+            } else {
+                notificationList
+            }
         case .followers, .followings:
             friendsBlock
         }
+    }
+
+    /// `leaveNotifications` : referme la feuille et marque tout lu.
+    private func leaveNotifications() {
+        notifications.markAllRead()
+        dismiss()
+    }
+
+    /// Au montage : aligne le magasin sur le compte, relit le stockage puis le
+    /// serveur (`loadNotifications` + `mergeRemoteNotifications`).
+    private func refreshNotifications() async {
+        await notifications.configure(accountId: AcctNotifications.accountId(email: session.profile.email))
+        await notifications.reload()
+        await notifications.syncRemote(email: session.profile.email, token: session.token)
+    }
+
+    /// La liste des notifications (`AccountScreen.tsx:2258-2360`) : cartes
+    /// presse-papier, `gap: 9`.
+    private var notificationList: some View {
+        VStack(spacing: 9) {
+            ForEach(notifications.notifications) { notification in
+                AcctNotificationCard(
+                    notification: notification,
+                    online: notification.kind == .profileView
+                        && presence.isOnline(notification.actorId),
+                    onOpenMember: onOpenMember,
+                    onLeave: leaveNotifications
+                )
+            }
+        }
+        .padding(.top, 12)
     }
 
     /// Page `Amis` : segmented control Followers / Followings puis état vide

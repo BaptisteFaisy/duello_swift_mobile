@@ -14,6 +14,10 @@
 //  Ce module ne garde que des règles sans état ; l'état vit dans
 //  `OnbFlowCoordinator`, l'affichage dans `OnbFlowStepContent`.
 //
+//  V1 (2026-09-26) — écart 05#1 : `trackChoicePending` bloque l'étape
+//  « TA FILIÈRE ACTUELLE » (avance verrouillée, libellé « Choisis ta filière »,
+//  alerte « Filière manquante ») tant qu'aucune filière n'a été choisie.
+//
 //  Cible : iOS 16. Aucune dépendance externe.
 //
 import Foundation
@@ -53,6 +57,7 @@ struct OnbFlowGateState {
     var isCompleting = false
     var isCheckingRegistrationDetails = false
     var isCheckingUsername = false
+    var trackChoicePending = false
     var premiumGiftOpenPending = false
     var preflightReady = true
     var isCheckingPreflight = false
@@ -61,6 +66,7 @@ struct OnbFlowGateState {
 /// État lu par la validation d'étape (`validateStep`).
 struct OnbFlowValidationState {
     var step: OnbDataSteps.Step = .year
+    var trackChoicePending = false
     var asksForMathOption = false
     var currentOption = ""
     var targetSchool = ""
@@ -106,15 +112,18 @@ enum OnbFlowSteps {
         if gate.isCompleting { return "Ouverture…" }
         if step >= total - 1 { return "Accéder à Duello" }
         if gate.premiumGiftOpenPending { return "Ouvre le cadeau" }
+        if gate.trackChoicePending { return "Choisis ta filière" }
         return "Continuer"
     }
 
     /// `stepAdvanceBlocked` : l'avance est verrouillée tant qu'une vérification
-    /// ou la création de compte est en cours, ou que le cadeau n'est pas ouvert.
+    /// ou la création de compte est en cours, qu'une filière n'est pas choisie,
+    /// ou que le cadeau n'est pas ouvert.
     static func advanceBlocked(_ state: OnbFlowGateState) -> Bool {
         state.isCompleting
             || state.isCheckingRegistrationDetails
             || state.isCheckingUsername
+            || state.trackChoicePending
             || state.premiumGiftOpenPending
             || !state.preflightReady
     }
@@ -122,6 +131,8 @@ enum OnbFlowSteps {
     /// `validateStep` : l'alerte bloquante de l'étape courante, ou `nil`.
     static func validationAlert(_ state: OnbFlowValidationState) -> OnbFlowAlert? {
         switch state.step {
+        case .currentTrack:
+            return currentTrackAlert(state)
         case .specialty:
             // Étape du monde lycée : la spécialité (ou l'option de terminale)
             // est obligatoire, indépendamment du drapeau d'option de la source.
@@ -163,6 +174,16 @@ enum OnbFlowSteps {
             break
         }
         return nil
+    }
+
+    /// Étape « TA FILIÈRE ACTUELLE » : une filière doit être choisie, le repli
+    /// technique du profil ne valant jamais un choix.
+    private static func currentTrackAlert(_ state: OnbFlowValidationState) -> OnbFlowAlert? {
+        guard state.trackChoicePending else { return nil }
+        return OnbFlowAlert(
+            title: "Filière manquante",
+            message: "Choisis ta filière pour créer ton compte."
+        )
     }
 
     /// Contrôles d'e-mail de l'étape `auth-method`.

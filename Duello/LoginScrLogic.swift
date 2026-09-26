@@ -10,10 +10,11 @@
 //    - `src/utils/credentials.ts`   (`hashPassword`, empreinte FNV-1a)
 //    - `src/utils/accountIdentity.ts` (`normalizeEmail`)
 //
-//  Le registre local complet (`utils/auth.ts` : stockage, `saveAccount`,
-//  `loadAccounts`) n'est PAS porté — `AppleAuthAccount.swift` le documente
-//  déjà. `LoginScrAccount` n'en est qu'un instantané minimal, limité aux
-//  champs que l'écran lit ; la persistance passe par `LoginScrProps`.
+//  V1 2026-09-26 — écart #1 du rapport `out/02-connexion.md` : le registre local
+//  (`utils/auth.ts` : `loadAccounts`, `saveAccount`) est désormais porté par
+//  `LoginScrRegistry.swift`, et `LoginScrAccount` est `Codable` pour être
+//  persisté. Ce fichier reste sans accès au stockage : il ne décrit que le
+//  modèle et les règles pures ; la persistance vit dans `LoginScrRegistry`.
 //
 //  Aucun accès au stockage ni au réseau : module vérifiable hors application,
 //  comme `biometricPolicy.ts` / `credentials.ts`.
@@ -31,7 +32,9 @@ import Foundation
 /// (`src/utils/auth.ts`) : `passwordHash`, `googleSubject`, `appleSubject`,
 /// `biometricEnabled`, `requiresPasswordSetup` (admin), `recoveryCodeHash`
 /// (admin) et `guest` (utilisateur).
-struct LoginScrAccount: Identifiable, Equatable {
+///
+/// `Codable` : persisté par `LoginScrRegistry` sous les clés de `utils/auth.ts`.
+struct LoginScrAccount: Identifiable, Equatable, Codable {
     let id: String
     var email: String
     var displayName: String

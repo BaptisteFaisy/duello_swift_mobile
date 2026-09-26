@@ -1,6 +1,9 @@
 import Foundation
 import SwiftUI
 
+// V1 2026-09-26 (écart U10#1) : ligues Elo sur la filière suivie
+// (`currentTrackForProfile`, `RankingsScreen.tsx:403-407`), plus le `track` historique.
+
 // MARK: - Classement d'une matière (ligues Elo)
 
 /// Classement d'une matière par cotes Elo, groupé par ligue.
@@ -79,7 +82,7 @@ struct SubjectLeaderboardView: View {
     /// Ligue la plus haute de la filière (`highestEloLeague`), support de la
     /// démonstration.
     private var highestEloLeague: EloLeague? {
-        eloLeagues(forTrack: session.profile.track).last
+        eloLeagues(forTrack: session.profile.followedTrack).last
     }
 
     // MARK: États (C10, C11, C12)
@@ -122,12 +125,12 @@ struct SubjectLeaderboardView: View {
     /// Toutes les ligues, de la plus haute à la plus basse (`eloLeagues`
     /// inversée comme `RankingsScreen.tsx`), vides comprises.
     private var leagueSections: some View {
-        let leagues = eloLeagues(forTrack: session.profile.track)
+        let leagues = eloLeagues(forTrack: session.profile.followedTrack)
         let currentRows = rows
         return VStack(alignment: .leading, spacing: 14) {
             ForEach(leagues.reversed()) { league in
                 let leagueRows = currentRows.filter {
-                    eloLeague(for: $0.score, track: session.profile.track).id == league.id
+                    eloLeague(for: $0.score, track: session.profile.followedTrack).id == league.id
                 }
                 leagueSection(league, rows: leagueRows)
             }

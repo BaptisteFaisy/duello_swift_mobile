@@ -1,5 +1,11 @@
 import SwiftUI
 
+// V1 2026-09-26 (U06#1, U06#3, U06#4) : fichier modifié. U06#1 : `SubjItemCard`
+// ouvrable, `onOpen` réel vers le lecteur d'énoncé (`TrainReaderLink`,
+// `openTrainingReader`) ; U06#3 : page « Mon cours » câblée sur
+// `SubjCourseChapterRow.onOpen` ; U06#4 : feuille « Cartes » alimentée par les
+// cartes persistées du chapitre + révision (`SubjFlashcardReviewModal`).
+
 /// Détail d'un chapitre ouvert : ligne, exercices, filtre de difficulté et
 /// compteurs d'avancement. Extension de `TrainingCatalogView`.
 extension TrainingCatalogView {
@@ -13,15 +19,15 @@ extension TrainingCatalogView {
             status: courseStatus.status(for: chapter.id)
         )
         if activeMode == .cours {
-            // Vue Cours : la ligne sert à mettre à jour l'avancement du cours
-            // (`CourseChapterRow`), sans résumé de sujets ni chevron.
+            // Vue Cours : la ligne ouvre la page « Mon cours » du chapitre
+            // (`TrainCoursePage`), qui porte le lecteur, l'import et le repère.
             SubjCourseChapterRow(
                 chapter: subjChapter,
-                coursePosition: nil,
-                hasCourseDocument: false,
+                coursePosition: coursePositions[chapter.id],
+                hasCourseDocument: courseDocuments[chapter.id] ?? false,
                 isReturnHighlighted: false,
                 onToggleCourseStatus: { courseStatus.cycle(chapter.id) },
-                onOpen: { toggle(chapter) }
+                onOpen: { openCoursePage(chapter) }
             )
         } else if let chapterMode = activeMode.chapterMode {
             SubjChapterRow(
@@ -37,6 +43,15 @@ extension TrainingCatalogView {
         if expanded.contains(chapter.id) {
             chapterBody(chapter)
         }
+    }
+
+    /// Ouvre la page « Mon cours » d'un chapitre (U06#3) : relit d'abord le
+    /// repère et la présence du document pour la barre de la ligne.
+    func openCoursePage(_ chapter: TrackChapter) {
+        let stored = TrainCourseDocument.load(year: programYear ?? 1, chapterId: chapter.id)
+        coursePositions[chapter.id] = stored?.classProgress?.position
+        courseDocuments[chapter.id] = stored == nil ? nil : true
+        coursePage = chapter
     }
 
     @ViewBuilder

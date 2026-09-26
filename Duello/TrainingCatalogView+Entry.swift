@@ -1,6 +1,12 @@
 import Foundation
 import SwiftUI
 
+// V1 2026-09-26 (U06#1, U06#3, U06#4) : fichier modifié. Nouvel état : `coursePage`
+// (page « Mon cours » d'un chapitre), `readerEntry` (énoncé ouvert en
+// `fullScreenCover`), `coursePositions`/`courseDocuments` (repères et présence
+// des documents pour les lignes Cours) ; feuille « Cartes » basculée sur
+// `TrainFlashcardsPanel`.
+
 /// Catalogue d'entraînement d'une matière : les chapitres de son programme,
 /// chacun dépliable vers ses exercices servis par l'API.
 ///
@@ -97,6 +103,15 @@ struct TrainingCatalogView: View {
     /// Décompte du catalogue par chapitre : exercices servis, colles et annales
     /// réunis (voir `TrainContent.catalogCounts`), dénominateur de l'en-tête.
     @State var catalogTotals: [String: Int] = [:]
+    /// Page « Mon cours » ouverte (`openChapter` de la source, mode cours).
+    @State var coursePage: TrackChapter? = nil
+    /// Énoncé ouvert en plein écran (`openAnnale` de la source).
+    @State var readerEntry: AnnEntry? = nil
+    /// Repère de cours par chapitre (`coursePositionsByKey`) : alimente la
+    /// barre des lignes Cours.
+    @State var coursePositions: [String: Double] = [:]
+    /// Chapitres pourvus d'un document de cours (`courseDocumentsByKey`).
+    @State var courseDocuments: [String: Bool] = [:]
 
     /// Repli de la page d'une matière vers la liste des matières.
     @Environment(\.dismiss) private var dismiss
@@ -128,11 +143,10 @@ struct TrainingCatalogView: View {
         // coiffée par son propre en-tête (barre de métriques en maths, barre de
         // retour ailleurs).
         .navigationBarTitleDisplayMode(.inline)
-        // Écart assumé : la source ouvre les cartes d'un cours **depuis le
-        // cours lui-même** (`coursePage === 'flashcards'`,
-        // `SubjectsScreen.tsx:8064`) ; cet écran-là n'étant pas porté, la barre
-        // de navigation reste la seule entrée vers `TrainIntFlashcardsSection`
-        // — la retirer laisserait la surface « Cartes du cours » injoignable.
+        // Écart assumé (U06 P1#12, V2) : la source ouvre les cartes d'un cours
+        // **depuis le cours lui-même** (`coursePage === 'flashcards'`,
+        // `SubjectsScreen.tsx:8064`) ; la barre de navigation reste la seule
+        // entrée — la retirer laisserait la surface « Cartes » injoignable.
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
@@ -145,6 +159,8 @@ struct TrainingCatalogView: View {
         }
         .sheet(isPresented: $flashcardsOpen) { flashcardsSheet }
         .sheet(isPresented: $rankingOpen) { LeaderboardModalView() }
+        .sheet(item: $coursePage) { chapter in coursePageSheet(chapter) }
+        .fullScreenCover(item: $readerEntry) { entry in readerCover(entry) }
         .task { await loadManifest() }
     }
 
@@ -189,21 +205,71 @@ struct TrainingCatalogView: View {
         }
     }
 
-    /// Feuille des cartes du cours (`CourseFlashcardsPanel`), présentée depuis
-    /// la barre de navigation pour ne pas alourdir la liste des chapitres.
+    /// Feuille des cartes du cours, présentée depuis la barre de navigation.
+    /// Le chapitre rattaché est le premier du programme ; la surface porte les
+    /// onglets Générer / Créer / Réviser (`TrainFlashcardsPanel`).
     private var flashcardsSheet: some View {
         NavigationStack {
             ScrollView {
-                TrainIntFlashcardsSection(
-                    subjectName: subject.name,
+                TrainFlashcardsPanel(
+                    subject: subject.name,
                     chapterId: subject.chapters.first?.id ?? subject.id,
-                    chapterName: subject.chapters.first?.name ?? subject.name
+                    chapterName: subject.chapters.first?.name ?? subject.name,
+                    hasCourseDocument: courseDocuments[subject.chapters.first?.id ?? subject.id] ?? false,
+                    coursePosition: coursePositions[subject.chapters.first?.id ?? subject.id] ?? 0
                 )
             }
             .background(Theme.background)
             .navigationTitle("Cartes")
             .navigationBarTitleDisplayMode(.inline)
         }
+    }
+
+    /// Feuille « Mon cours » d'un chapitre (`TrainCoursePage`), ouverte depuis
+    /// la ligne Cours. À la fermeture : relit le repère et la présence du
+    /// document pour la barre de la ligne.
+    private func coursePageSheet(_ chapter: TrackChapter) -> some View {
+        NavigationStack {
+            ScrollView {
+                TrainCoursePage(
+                    subjectName: subject.name,
+                    chapter: chapter,
+                    programYear: programYear ?? 1,
+                    onCourseStatus: { courseStatus.set(chapter.id, status: $0) },
+                    onClose: { refreshCourseMarkers(for: chapter.id) }
+                )
+                .padding(20)
+            }
+            .background(Theme.background)
+            .navigationTitle(chapter.name)
+            .navigationBarTitleDisplayMode(.inline)
+        }
+        .onDisappear { refreshCourseMarkers(for: chapter.id) }
+    }
+
+    /// Relit le repère et la présence du document d'un chapitre (barre Cours).
+    private func refreshCourseMarkers(for chapterId: String) {
+        let stored = TrainCourseDocument.load(year: programYear ?? 1, chapterId: chapterId)
+        coursePositions[chapterId] = stored?.classProgress?.position
+        courseDocuments[chapterId] = stored == nil ? nil : true
+    }
+
+    /// Lecteur d'énoncé plein écran (`AnnaleViewer`, `9156`) : ouvert par les
+    /// fiches (`onOpenSubject` → `openTrainingItemInstantly`).
+    private func readerCover(_ entry: AnnEntry) -> some View {
+        NavigationStack {
+            AnnReaderView(
+                entry: entry,
+                subject: subject.name,
+                track: session.profile.track,
+                specialty: session.profile.specialty,
+                monitor: AnnCorrectionMonitor(),
+                onClose: { readerEntry = nil }
+            )
+            .environmentObject(session)
+            .environmentObject(progress)
+        }
+        .onDisappear { readerEntry = nil }
     }
 
     // MARK: En-tête de matière
@@ -311,15 +377,23 @@ struct TrainingCatalogView: View {
         }
     }
 
-    /// Reprend un sujet : ouvre son mode et déplie son chapitre, faute de
-    /// lecteur d'énoncé porté dans cet écran (`isOpenable: false`).
+    /// Reprend un sujet : ouvre son mode et déplie son chapitre, puis ouvre
+    /// l'énoncé du sujet repris quand il est déjà chargé (`openAnnaleItem`).
     private func resume(_ resumable: TrainResumableExercise) {
         modeOverride = resumable.mode
         guard let chapterId = resumable.chapterId,
-              let chapter = subject.chapters.first(where: { $0.id == chapterId }),
-              !expanded.contains(chapterId)
+              let chapter = subject.chapters.first(where: { $0.id == chapterId })
         else { return }
-        toggle(chapter)
+        if !expanded.contains(chapterId) {
+            toggle(chapter)
+        }
+        if let exercise = (loadedExercises[chapterId] ?? []).first(where: { $0.id == resumable.itemId }) {
+            readerEntry = TrainReaderLink.entry(
+                exercise,
+                mode: resumable.mode,
+                chapterName: chapter.name
+            )
+        }
     }
 
     // MARK: Compteurs

@@ -1,5 +1,8 @@
 import SwiftUI
 
+// V1 2026-09-26 (U06#3) : ajout de `set(_:status:)` (pose du statut par le
+// repère de progression du cours).
+
 /// Statut du cours d'un chapitre (`Chapter['courseStatus']`), dans l'ordre du
 /// cycle d'appui : à venir → en cours → vu → à venir.
 enum TrainCourseStatus: String, CaseIterable {
@@ -73,6 +76,15 @@ final class TrainCourseStatusStore: ObservableObject {
     func cycle(_ chapterId: String) {
         guard !chapterId.isEmpty else { return }
         statuses[chapterId] = status(for: chapterId).next.rawValue
+        persist()
+    }
+
+    /// Pose le statut d'un chapitre (`courseStatusAtPosition` de l'écran Expo :
+    /// le repère de progression du cours peut faire passer le chapitre à
+    /// « En cours » ou « Vu »). V1 U06#3.
+    func set(_ chapterId: String, status: TrainCourseStatus) {
+        guard !chapterId.isEmpty, status(for: chapterId) != status else { return }
+        statuses[chapterId] = status.rawValue
         persist()
     }
 

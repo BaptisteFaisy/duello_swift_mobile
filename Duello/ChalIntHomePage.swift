@@ -16,9 +16,11 @@
 //  fournis par la surface (`ChalHome2HomeSurface`) : cette page ne les redouble
 //  pas.
 //
-//  Écart assumé : la source ouvre le volet d'invitation d'un ami depuis les
-//  boutons Défi-Exercice / Défi-Cours ; ce volet n'est pas porté (voir réponse
-//  du lot), les deux boutons retombent donc sur la file aléatoire (`onEnter`).
+//  Écart corrigé (V1 L5, 2026-09-26, U07 partA#1 + partB#1) : la source ouvre
+//  le volet d'invitation d'un ami depuis les boutons Défi-Exercice /
+//  Défi-Cours — désormais câblé par `ChalIntChallengesTab` (`.fullScreenCover`
+//  sur `SocialChallengeInviteModal`) ; `onEnter` ne sert plus que le panneau
+//  de file.
 //
 //  Cible : iOS 16, aucune API iOS 17.
 //

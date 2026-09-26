@@ -23,6 +23,9 @@
 //  profil (parcours, année, prépa) et n'est pas modifié ; cette tranche ajoute
 //  la variante « réglages » à libellés exacts, sans la remplacer.
 //
+//  V1 (2026-09-26) — écart U08#2 : `AcctInfoAccountPage.onDeleteAccount`
+//  devient asynchrone et faillible (suppression réelle du compte).
+//
 import SwiftUI
 
 // MARK: - Navigation
@@ -237,7 +240,9 @@ struct AcctInfoAccountPage: View {
     var onOpenPassword: () -> Void = {}
     var onOpenBlocked: () -> Void = {}
     var onLogout: () -> Void = {}
-    var onDeleteAccount: () -> Void = {}
+    /// Suppression réelle du compte (asynchrone, faillible) — V1 2026-09-26,
+    /// écart U08#2.
+    var onDeleteAccount: () async throws -> Void = {}
 
     /// Off par défaut : le compte est public (source).
     @State private var isPrivateAccount = false

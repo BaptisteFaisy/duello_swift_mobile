@@ -55,7 +55,9 @@ struct AccountView: View {
             // La source n'a pas d'en-tête de navigation : la page commence par
             // la ligne de recherche, sans titre centré.
             .sheet(isPresented: $notificationsOpen) {
-                AcctIntNotificationsSheet()
+                AcctIntNotificationsSheet(
+                    onOpenMember: { memberId in search.openMember(memberId) }
+                )
             }
             .sheet(isPresented: $settingsOpen) {
                 AcctIntSettingsSheet(email: session.profile.email, token: session.token)

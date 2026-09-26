@@ -32,6 +32,9 @@
 //  peuvent pas être restaurés (ils sont recalculés), seules les options sont
 //  relues depuis `specialty`.
 //
+//  V1 (2026-09-26) — écart 05#5 : le doublon « PT » de `SECOND_YEAR_TRACKS`
+//  (absent de la source courante) est retiré.
+//
 //  Cible : iOS 16. Aucune dépendance externe.
 //
 import Foundation
@@ -58,10 +61,9 @@ enum OnbFlowAcademic {
     /// `FIRST_YEAR_TRACKS`.
     static let firstYearTracks = ["MPSI", "MP2I", "PCSI", "PTSI", "BCPST", "B/L", "ECG"]
 
-    /// `SECOND_YEAR_TRACKS`. La source contient **`'PT'` deux fois** (doublon
-    /// RN) : il est reproduit ici pour la fidélité — `currentTrackStep` indexe
-    /// les puces par position pour l'absorber.
-    static let secondYearTracks = ["MP", "MPI", "PC", "PT", "PSI", "PT", "BCPST", "B/L", "ECG"]
+    /// `SECOND_YEAR_TRACKS`. La source ne contient plus de doublon « PT »
+    /// (`V1`, écart 05#5) : la liste est unique.
+    static let secondYearTracks = ["MP", "MPI", "PC", "PT", "PSI", "BCPST", "B/L", "ECG"]
 
     /// `TRACK_OPTIONS` ; le lycée porte les spécialités de ses niveaux.
     static let trackOptions: [String: [String]] = [

@@ -2,7 +2,7 @@
 //  PremCodePurchases.swift
 //  Duello
 //
-//  Couture d’achat natif — **simulée**, sans aucune dépendance de facturation.
+//  Couture d’achat natif — **protocole seul**, sans dépendance de facturation.
 //
 //  Fichiers source Expo portés :
 //    - `src/utils/purchaserIdentity.ts` (identifiant d’acheteur du compte) ;
@@ -10,10 +10,10 @@
 //      nécessaire : disponibilité, identifiant d’acheteur, lancement d’achat.
 //
 //  ⚠️ **RevenueCat est une dépendance externe interdite** par le brief de
-//  portage, et aucun StoreKit n’est embarqué. Ce protocole est la couture
-//  prévue pour le jour où la facturation native arrivera : tout appel d’achat
-//  passe par ici, jamais directement depuis une vue. L’implémentation fournie
-//  (`PremCodeSimulatedPurchases`) ne prélève rien et refuse l’achat.
+//  portage. Tout appel d’achat passe donc par ce protocole, jamais directement
+//  depuis une vue : l’implémentation réelle vit dans `PremStoreKitPurchases`
+//  (`PremStoreKitPurchases.swift`), la couture adossée à StoreKit. Aucun stub
+//  silencieux : un achat impossible refuse **clairement**.
 //
 //  Cible : iOS 16.
 //
@@ -29,20 +29,14 @@ protocol PremCodePurchases {
     func beginPurchase(offerId: String) async throws
 }
 
-/// Refus d’achat de la couture simulée.
+/// Refus d’achat de la couture native.
 enum PremCodePurchaseError: LocalizedError {
     case unavailable
 
+    /// Message affiché tel quel à l’élève (`PAYWALL_UNAVAILABLE_MESSAGE`).
     var errorDescription: String? {
         "La fenêtre d’abonnement n’est pas encore activée sur cette application."
     }
-}
-
-/// Implémentation simulée : rien n’est acheté, aucun montant n’est prélevé.
-struct PremCodeSimulatedPurchases: PremCodePurchases {
-    var isAvailable: Bool { false }
-    var purchaserId: String { PremCodePurchaser.currentId() }
-    func beginPurchase(offerId: String) async throws { throw PremCodePurchaseError.unavailable }
 }
 
 /// `purchaserIdentity.ts` : adresse du compte connecté retenue pour la

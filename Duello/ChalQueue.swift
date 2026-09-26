@@ -21,11 +21,11 @@
 //  est interne au module uniquement pour cette extension (aucun autre appelant
 //  ne le modifie) ; l'interface publique reste `enter` / `cancel` / `release`.
 //
-//  Limite assumée : `buildTrainingMatch` (matchmaking.ts) n'est pas porté. Passé
-//  `TRAINING_FALLBACK_MS`, le contrôleur signale `trainingFallbackReached` et
-//  revient au repos plutôt que de fabriquer un faux adversaire ; l'écran peut
-//  alors proposer l'entraînement. Un rendez-vous de classe reste une vraie salle
-//  multijoueur et ne se transforme jamais en entraînement.
+//  V1 L5 (2026-09-26, U07 partB#3 + partD#4) : le repli entraînement est
+//  porté (`ChalTrainingMatch.build`, équivalent de `buildTrainingMatch`).
+//  Passé `TRAINING_FALLBACK_MS` — ou sur refus serveur <500 —
+//  `fallbackToTraining()` adopte la partie d'entraînement au lieu de revenir
+//  au repos, comme `useChallengeQueue.ts:143-161`.
 //
 //  Le `QueueRequest` actuel ne porte pas de champ de salle planifiée : `Mode`
 //  conserve `.scheduled` pour rester aligné sur la source, sans le produire.
@@ -63,6 +63,9 @@ final class ChalQueueController: ObservableObject {
     @Published var offline: Bool = false
     @Published var scheduledStartAt: Double?
     /// Vrai quand l'attente a dépassé `TRAINING_FALLBACK_MS` sans adversaire.
+    /// V1 L5 (partB#3) : le repli est désormais matérialisé par une partie
+    /// d'entraînement adoptée (`fallbackToTraining`), comme la source ; ce
+    /// drapeau n'est plus posé et reste lu comme une trace de compatibilité.
     @Published var trainingFallbackReached = false
 
     /// Fenêtre annoncée par le serveur ; `nil` ⇒ la fourchette locale prend le relais.
@@ -185,6 +188,26 @@ final class ChalQueueController: ObservableObject {
         }
     }
 
+    /// Faute d'adversaire disponible, le défi part contre l'entraînement
+    /// (`fallbackToTraining`, V1 L5 partB#3 + partD#4).
+    func fallbackToTraining() {
+        guard let pending = entry else { return }
+        releasePending()
+        if let trainingMatch = ChalTrainingMatch.build(
+            request: pending,
+            now: Date().timeIntervalSince1970 * 1000
+        ) {
+            adoptMatch(trainingMatch)
+            return
+        }
+        stopTimers()
+        entry = nil
+        status = .idle
+        mode = nil
+        offline = false
+        scheduledStartAt = nil
+    }
+
     /// Recherche aléatoire : horloge d'attente, puis interrogation de la file.
     func runSearch(_ request: QueueRequest) {
         let gen = generation
@@ -197,8 +220,7 @@ final class ChalQueueController: ObservableObject {
                 // `QueueRequest` ne porte pas de salle planifiée (cf. en-tête) :
                 // seul le dépassement du délai déclenche le repli entraînement.
                 guard self.waitedMs >= ChalMatchmaking.trainingFallbackMs else { continue }
-                self.trainingFallbackReached = true
-                self.cancel()
+                self.fallbackToTraining()
                 return
             }
         }
@@ -239,7 +261,11 @@ final class ChalQueueController: ObservableObject {
                     self.ticket = nil
                     if let status = (error as? DirectoryError)?.status, status < 500 {
                         // Une demande refusée ne passera pas au tour suivant.
-                        self.cancel()
+                        // Le matchmaking libre se replie en entraînement ; une
+                        // salle planifiée se fermerait sans fabriquer de faux
+                        // camarade — impossible ici, `QueueRequest` ne porte
+                        // pas de salle planifiée (cf. en-tête).
+                        self.fallbackToTraining()
                         return
                     }
                     // Serveur muet : l'attente continue, l'entraînement prendra le relais.

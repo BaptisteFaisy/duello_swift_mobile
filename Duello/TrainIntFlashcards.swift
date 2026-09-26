@@ -13,14 +13,13 @@
 //      `FlashcardChapterDropdown` et `FlashcardEditorFields` du panneau
 //      « flashcards » du cours.
 //
-//  Limite assumée : aucune banque de cartes n'est chargée dans cet écran (les
-//  cartes d'un cours sont produites à partir du document de cours, hors
-//  périmètre du lot). Les menus s'ouvrent donc sur leurs états vides, exactement
-//  comme la source tant que le cours n'a pas de flashcards, et l'éditeur permet
-//  de composer une carte sans encore la persister.
+//  Non porté ici : la révision (`SubjFlashcardReviewModal`) vit dans
+//  `TrainFlashcardsPanel` (onglet « Réviser »), alimentée par les cartes
+//  persistées du chapitre.
 //
-//  Non porté ici : `SubjFlashcardReviewModal` (la révision a besoin d'une file
-//  de cartes et du verdict, hors de cette surface).
+//  V1 2026-09-26 (U06#4) : surface remplacée par `TrainFlashcardsPanel`
+//  (génération + création persistée + révision). Conservée pour les écrans
+//  qui l'appellent encore : mêmes entrées, même éditeur.
 //
 //  Cible iOS 16, aucune dépendance externe.
 //

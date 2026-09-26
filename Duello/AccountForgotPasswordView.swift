@@ -4,15 +4,29 @@ import SwiftUI
 
 /// Écran « Mot de passe oublié » (voir `ForgotPasswordScreen.tsx`) : saisie de
 /// l'adresse e-mail puis demande d'envoi du lien de réinitialisation
-/// (`POST /auth/password/reset-request`, même route que
-/// `AcctSecPasswordResetForm.sendResetRequest`).
+/// (`POST /auth/password/reset-request`, `requestServerPasswordReset` de
+/// `passwordResetApi.ts:10-19`).
+///
+/// V1 L2 (U03#1) — 2026-09-26 : l'écran est présenté depuis la connexion
+/// (`LoginIntAssembly`, `onOpenPasswordReset`), comme `App.tsx:2524-2531`. La
+/// prop `initialEmail` (adresse saisie dans la connexion) préremplit le champ,
+/// comme `useState(initialEmail.trim().toLowerCase())` de la source.
 struct ForgotPasswordView: View {
     @Environment(\.dismiss) private var dismiss
 
-    @State private var email = ""
+    @State private var email: String
     @State private var errorMessage = ""
     @State private var sending = false
     @State private var sent = false
+
+    /// Adresse préremplie (normalisée : minuscules, sans espaces).
+    init(initialEmail: String = "") {
+        _email = State(
+            initialValue: initialEmail
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .lowercased()
+        )
+    }
 
     var body: some View {
         NavigationStack {
@@ -176,7 +190,7 @@ struct ForgotPasswordView: View {
 }
 
 /// `POST /auth/password/reset-request` — helper local (`DuelloAPI.swift` n'est
-/// pas modifié ; même route que `AcctSecPasswordResetForm.sendResetRequest`).
+/// pas modifié).
 private enum AcctSecForgotPasswordAPI {
     static func requestReset(email: String) async throws {
         let body = try DuelloAPI.encodeBody(["email": email])
@@ -192,8 +206,8 @@ private enum AcctSecForgotPasswordAPI {
     }
 }
 
-/// Réponse de `POST /auth/password/reset-request` (voir
-/// `AcctSecResetRequestResponse`).
+/// Réponse de `POST /auth/password/reset-request` (voir `PasswordResetResponse`
+/// de `passwordResetHttp.ts`).
 private struct AcctSecForgotPasswordResponse: Decodable {
     var accepted: Bool?
 }

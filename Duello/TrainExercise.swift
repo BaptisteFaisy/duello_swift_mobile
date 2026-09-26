@@ -1,5 +1,8 @@
 import Foundation
 
+// V1 2026-09-26 (U06#1) : `statement` exposé (l'énoncé servi alimente le
+// lecteur via `TrainReaderLink`).
+
 /// Nature du sujet, qui décide de l'accord des libellés (`getItemLabel`,
 /// `availabilityLabel`, `successLabel` de `SubjectsScreen.tsx`).
 enum TrainExerciseKind {
@@ -30,6 +33,8 @@ struct TrainExercise: Identifiable, Hashable {
     let chapterId: String
     let title: String
     let difficulty: Int?
+    /// Énoncé servi (LaTeX), lu par le lecteur (`TrainReaderLink`).
+    let statement: String
     let solution: String?
 
     /// Identifiant d'item `chapitre::exercice::clé` (`servedBank.ts`), la clé
@@ -46,6 +51,7 @@ struct TrainExercise: Identifiable, Hashable {
         chapterId = seed.chapterId
         title = seed.title
         difficulty = seed.difficulty
+        statement = seed.statement
         solution = seed.solution
     }
 

@@ -13,14 +13,32 @@
 //  l'assemblage des composants déjà portés. `ChallengesView()` reste le point
 //  d'entrée sans argument attendu par `MainTabView`.
 //
+//  V1 L5 (2026-09-26, U07 partB#2) : reçoit la relève racine des invitations
+//  (`ChalInvitationCoordinator`), la partie acceptée ailleurs (`incomingMatch`)
+//  et les remises de la racine — transit vers `ChalIntChallengesTab`.
+//
 //  Cible : iOS 16, aucune API iOS 17.
 //
 import SwiftUI
 
 /// Onglet « Défis » : assemblé par `ChalIntChallengesTab`.
 struct ChallengesView: View {
+    /// Relève racine des invitations, montée par `MainTabView`.
+    var invites: ChalInvitationCoordinator
+    /// Partie acceptée depuis un autre onglet, remise par `MainTabView`.
+    var incomingMatch: MatchView? = nil
+    /// Remise consommée : invalide la copie parente (`onIncomingMatchHandled`).
+    var onIncomingMatchHandled: (() -> Void)? = nil
+    /// Signale à la racine que l'écran est occupé (`onBusyChange`).
+    var onBusyChange: ((Bool) -> Void)? = nil
+
     var body: some View {
-        ChalIntChallengesTab()
+        ChalIntChallengesTab(
+            invites: invites,
+            incomingMatch: incomingMatch,
+            onIncomingMatchHandled: onIncomingMatchHandled,
+            onBusyChange: onBusyChange
+        )
     }
 }
 

@@ -15,6 +15,11 @@
 //  Les libellés sont repris mot pour mot de la source. Les couleurs et mesures
 //  passent par `Theme` ; aucune valeur ne varie en dur hors des constantes ci-dessous.
 //
+//  V1 (2026-09-26) — écart U08#2 : `AcctInfoDeleteRow` exécute désormais la
+//  suppression réelle (`onDelete` asynchrone et faillible), avec l'état
+//  « Suppression en cours… » et l'alerte « Compte non supprimé » de
+//  `handleDeleteAccount` (`AccountScreen.tsx:861-875`).
+//
 import SwiftUI
 import UIKit
 
@@ -222,19 +227,38 @@ struct AcctInfoLogoutRow: View {
 }
 
 /// Ligne de suppression de compte (action en encre), avec la confirmation
-/// « Supprimer mon compte ? » de la source.
+/// « Supprimer mon compte ? » de la source, puis l'exécution réelle de la
+/// suppression (`handleDeleteAccount` d'`AccountScreen.tsx:861-875`) : état
+/// « Suppression en cours… » pendant l'appel serveur et alerte « Compte non
+/// supprimé » en cas d'échec.
+///
+/// V1 (2026-09-26) — écart U08#2 : `onDelete` est la suppression réelle
+/// (asynchrone et faillible) au lieu d'un no-op, et `isBusy` est enfin armé.
 struct AcctInfoDeleteRow: View {
-    var isBusy: Bool = false
     var iconSize: CGFloat = AcctInfoRowMetrics.iconSize
-    let onDelete: () -> Void
+    /// Suppression réelle ; lève une erreur si le serveur la refuse.
+    let onDelete: () async throws -> Void
 
     @State private var isConfirming = false
+    @State private var isBusy = false
+    @State private var errorMessage: String?
 
-    /// `Alert.alert` de la source, titre et message repris mot pour mot.
+    /// `Alert.alert` de la source, titres et messages repris mot pour mot.
     private static let confirmTitle = "Supprimer mon compte ?"
     private static let confirmMessage = "Cette action supprime définitivement ton compte serveur, ta progression, tes copies, ton profil public et tes appareils associés. Cette action est irréversible."
+    private static let errorTitle = "Compte non supprimé"
+    private static let errorFallback = "La suppression du compte est momentanément indisponible. Réessaie."
 
     var body: some View {
+        button
+            .alert(Self.errorTitle, isPresented: errorBinding) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(errorMessage ?? Self.errorFallback)
+            }
+    }
+
+    private var button: some View {
         Button { isConfirming = true } label: {
             HStack(spacing: 13) {
                 if isBusy {
@@ -262,9 +286,33 @@ struct AcctInfoDeleteRow: View {
         .accessibilityLabel(isBusy ? "Suppression du compte en cours" : "Supprimer définitivement mon compte")
         .alert(Self.confirmTitle, isPresented: $isConfirming) {
             Button("Annuler", role: .cancel) {}
-            Button("Supprimer définitivement", role: .destructive) { onDelete() }
+            Button("Supprimer définitivement", role: .destructive) { Task { await performDelete() } }
         } message: {
             Text(Self.confirmMessage)
         }
+    }
+
+    /// `handleDeleteAccount` : un seul appel à la fois ; un échec rend la main
+    /// et affiche « Compte non supprimé » (message du serveur, sinon repli).
+    @MainActor
+    private func performDelete() async {
+        guard !isBusy else { return }
+        isBusy = true
+        do {
+            try await onDelete()
+        } catch {
+            isBusy = false
+            let message = ((error as? LocalizedError)?.errorDescription ?? "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            errorMessage = message.isEmpty ? Self.errorFallback : message
+        }
+    }
+
+    /// Présence de l'alerte d'échec, reliée à `errorMessage`.
+    private var errorBinding: Binding<Bool> {
+        Binding(
+            get: { errorMessage != nil },
+            set: { if !$0 { errorMessage = nil } }
+        )
     }
 }

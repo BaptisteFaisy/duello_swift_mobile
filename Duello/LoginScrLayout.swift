@@ -25,6 +25,11 @@
 //  `AcctSecRecoveryCodePolicy`, `AcctSecRecoveryCodeView`, `AdmPasswordPolicy`,
 //  `DuelloWelcomeButton`. La soumission vit dans `LoginScrSubmit.swift`.
 //
+//  V1 2026-09-26 — écart #1 du rapport `out/02-connexion.md` : la doc de
+//  `LoginScrProps` (`account` / `accounts` / `persistAccount`) est alignée sur
+//  le registre réel injecté par `LoginIntAssembly` (`LoginScrRegistry`). Aucun
+//  changement de comportement d'affichage : le corps est inchangé.
+//
 //  Cible : iOS 16. Aucune dépendance externe.
 //
 
@@ -32,9 +37,12 @@ import SwiftUI
 
 /// `LoginScreenProps` de `src/screens/LoginScreen.tsx`.
 ///
-/// `onLogin`, `onPasswordLogin` et `persistAccount` sont injectés par
-/// l'appelant : la persistance du registre local (`saveAccount` de
-/// `utils/auth.ts`) n'est pas portée, l'écran ne la connaît donc pas.
+/// V1 2026-09-26 — écart #1 du rapport `out/02-connexion.md` : `account`,
+/// `accounts` et `persistAccount` sont désormais injectés avec le registre réel
+/// (`LoginScrRegistry`, port de `saveAccount` / `loadAccounts` de
+/// `utils/auth.ts`) par `LoginIntAssembly`. `account` pré-remplit l'adresse et
+/// `accounts` ouvre la connexion compte connu, l'activation et la récupération
+/// administrateur, et la proposition biométrie.
 struct LoginScrProps {
     /// Compte rouvert (pré-remplit l'adresse).
     var account: LoginScrAccount? = nil

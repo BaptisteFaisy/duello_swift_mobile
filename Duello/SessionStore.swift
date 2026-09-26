@@ -1,3 +1,12 @@
+//
+//  SessionStore.swift
+//  Duello
+//
+//  V1 (2026-09-26) — écart U08#2 : la suppression réelle du compte
+//  (`DELETE /auth/account` + purge locale) vit dans
+//  `SessionStore+AccountDeletion.swift` ; les identifiants de trousseau
+//  partagés (`service`, `account`, `profileKey`) sont exposés au module.
+//
 import Foundation
 import Combine
 import Security
@@ -61,9 +70,12 @@ final class SessionStore: ObservableObject {
     /// capture (`ScreenshotTour`, outil de dev) qui sème une session factice.
     var session: ServerSession?
 
-    private static let service = "com.duello.ios.session"
-    private static let account = "session-v1"
-    private static let profileKey = "com.duello.ios.profile"
+    /// Service/compte du trousseau et clé du profil, partagés avec
+    /// l'extension de suppression (`SessionStore+AccountDeletion`) — V1
+    /// 2026-09-26, écart U08#2.
+    static let service = "com.duello.ios.session"
+    static let account = "session-v1"
+    static let profileKey = "com.duello.ios.profile"
 
     /// Relais des changements du sous-store : voir `init()`.
     private var cancellables = Set<AnyCancellable>()

@@ -1,17 +1,31 @@
 import SwiftUI
 
 /// Écran « Nouveau mot de passe » (voir `PasswordResetScreen.tsx` et
-/// `PasswordResetForm.tsx`) : nouveau mot de passe + confirmation, validés
-/// localement. Aucun mot de passe n'est envoyé au serveur par cette version.
+/// `PasswordResetForm.tsx`) : nouveau mot de passe + confirmation. Le mot de
+/// passe est envoyé au serveur (`POST /auth/password/reset`) et la session
+/// ouverte est remise à l'appelant.
+///
+/// V1 L2 (U04#1, U04#2, U04#8) — 2026-09-26 : c'est le **seul** écran de
+/// réinitialisation, ouvert par le lien entrant (`DuelloApp.onOpenURL` →
+/// `PasswordResetView(email:token:)`, `App.tsx:2460-2478`). Le jeton du lien
+/// (`token`) et l'appel serveur (`AcctSecPasswordReset.sendReset`) étaient
+/// absents ; l'état « enregistrement » du bouton est porté (`saving`).
 struct PasswordResetView: View {
     /// Adresse du compte concerné, affichée en lecture seule.
     var email: String = ""
+    /// Jeton du lien de réinitialisation (`App.tsx:2464-2470`), transmis **brut**
+    /// à `POST /auth/password/reset`.
+    var token: String = ""
+    /// Session serveur ouverte après le changement de mot de passe, remise à
+    /// l'appelant pour qu'il la confie à `SessionStore` (`App.tsx:2213`).
+    var onAuthenticated: ((ServerSession) -> Void)? = nil
 
     @Environment(\.dismiss) private var dismiss
 
     @State private var password = ""
     @State private var confirmation = ""
     @State private var errorMessage = ""
+    @State private var saving = false
     @State private var showConfirmation = false
 
     var body: some View {
@@ -123,12 +137,16 @@ struct PasswordResetView: View {
         Button {
             submit()
         } label: {
-            Text("Enregistrer")
+            Text(saving ? "Enregistrement…" : "Enregistrer")
                 .frame(maxWidth: .infinity, minHeight: 52)
         }
         .buttonStyle(DuelloPrimaryButton())
+        .disabled(saving)
+        .opacity(saving ? 0.55 : 1)
     }
 
+    /// `submit` de `usePasswordResetForm.ts:39-59` : validation locale, puis
+    /// enregistrement serveur ; la session ouverte est remise à l'appelant.
     private func submit() {
         guard isValidNewPassword(password) else {
             errorMessage = newPasswordPolicyMessage
@@ -139,7 +157,30 @@ struct PasswordResetView: View {
             return
         }
         errorMessage = ""
-        showConfirmation = true
+        saving = true
+        Task {
+            defer { saving = false }
+            do {
+                let session = try await AcctSecPasswordReset.sendReset(
+                    email: email,
+                    token: token,
+                    password: password
+                )
+                onAuthenticated?(session)
+                showConfirmation = true
+            } catch {
+                errorMessage = Self.message(for: error)
+            }
+        }
+    }
+
+    /// Message d'erreur : celui du serveur s'il est localisable, sinon le repli
+    /// de la source Expo (`usePasswordResetForm.ts:52-55`).
+    private static func message(for error: Error) -> String {
+        if let localized = error as? LocalizedError, let description = localized.errorDescription {
+            return description
+        }
+        return "Impossible d’enregistrer le nouveau mot de passe."
     }
 }
 

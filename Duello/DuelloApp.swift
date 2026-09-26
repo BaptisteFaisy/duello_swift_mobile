@@ -3,53 +3,75 @@ import SwiftUI
 @main
 struct DuelloApp: App {
     @StateObject private var session = SessionStore()
+    /// Délégue d'application iOS : jeton APNs, badge, tap (V1 20#1). Absent
+    /// hors d'iOS (`#if canImport(UIKit)`), où il n'y a ni APNs ni délégué.
+    #if canImport(UIKit)
+    @UIApplicationDelegateAdaptor(DuelloAppDelegate.self) private var appDelegate
+    #endif
     /// Progression locale partagée : injectée à la racine car plusieurs écrans
     /// l'exigent en `@EnvironmentObject` (`DuelloProgressView`,
     /// `TrainingCatalogView`) — sans elle, l'app plante à leur ouverture.
     @StateObject private var progress = ProgressStore()
-    /// Demande de réinitialisation reçue par lien profond
-    /// (`duello-dev://reset-password?email=…&token=…`) : présentée en plein
-    /// écran, comme `PasswordResetScreen` côté Expo.
+    /// Demande de réinitialisation reçue par lien profond : présentée en plein
+    /// écran par le **seul** écran « Nouveau mot de passe » (`PasswordResetView`),
+    /// comme `PasswordResetScreen` côté Expo (V1 L2, U04#3).
     @State private var passwordResetRequest: AcctSecResetRequest?
 
     /// Schéma d'URL de la variante (dev : `duello-dev`, cf. `CFBundleURLTypes`
-    /// de `Info.plist` et `DUELLO_PASSWORD_RESET_APP_SCHEME` du backend).
+    /// de `Info.plist` et `DUELLO_PASSWORD_RESET_APP_SCHEME` du backend) : repli
+    /// `legacy-native` du contexte de lecture.
     private static let resetScheme = "duello-dev"
+
+    /// App Link HTTPS de développement (`passwordResetAppUrl` de
+    /// `config/duello-development.json`, lu par `config/appLinking.ts`) : le
+    /// lien entrant y porte ses paramètres dans le fragment
+    /// (`…/reset-password/app#reset-password?email=…&token=…`, V1 L2, U08#1).
+    private static let resetAppURL: String? =
+        "https://duello-development-api-relay.duello.workers.dev/reset-password/app"
+
+    /// Contexte de lecture du lien de réinitialisation : branche `app` (App Link
+    /// HTTPS) d'abord, schéma personnalisé en repli — comme
+    /// `useDuelloIncomingLinkSubscription` (`app` si `passwordResetAppUrl`, sinon
+    /// `legacy-native`).
+    private static var resetContext: AcctSecResetLinkContext {
+        if let appURL = resetAppURL {
+            return .app(baseURL: appURL, legacyScheme: resetScheme)
+        }
+        return .legacyNative(scheme: resetScheme)
+    }
 
     var body: some Scene {
         WindowGroup {
             RootView()
+                // Services racine (V1 L7) : hôte du paywall des outils (19#2),
+                // synchronisation d'abonnement (19#3), notifications poussées
+                // et fiche ouverte par un tap (20#1). Posé **avant** les
+                // `.environmentObject(…)` pour que les vues greffées reçoivent
+                // la session.
+                .duelloRootServices()
                 .environmentObject(session)
                 .environmentObject(progress)
                 // Retour du navigateur Google vers l'app (schéma du client
                 // iOS inversé), comme le handle de lien profond Expo.
                 .onOpenURL { url in
                     GoogleAuthService.shared.handle(url)
-                    // Lien de réinitialisation servi par le backend
-                    // (`passwordResetLink.ts`, branche `legacy-native`).
+                    // Lien de réinitialisation servi par le backend : App Link
+                    // HTTPS (branche `app`) ou schéma personnalisé en repli.
                     if let request = AcctSecResetLink.request(
                         from: url.absoluteString,
-                        scheme: Self.resetScheme
+                        context: Self.resetContext
                     ) {
                         passwordResetRequest = request
                     }
                 }
                 .fullScreenCover(item: $passwordResetRequest) { request in
-                    NavigationStack {
-                        AcctSecPasswordResetForm(
-                            email: request.email,
-                            token: request.token,
-                            onAuthenticated: { serverSession in
-                                try? session.installSession(serverSession)
-                                passwordResetRequest = nil
-                            }
-                        )
-                        .toolbar {
-                            ToolbarItem(placement: .cancellationAction) {
-                                Button("Fermer") { passwordResetRequest = nil }
-                            }
+                    PasswordResetView(
+                        email: request.email,
+                        token: request.token,
+                        onAuthenticated: { serverSession in
+                            try? session.installSession(serverSession)
                         }
-                    }
+                    )
                 }
         }
     }

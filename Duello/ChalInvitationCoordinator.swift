@@ -9,9 +9,10 @@
 //      (`INVITATION_POLL_MS`, `refresh`, `respond`, la vérification du quota,
 //       la construction de la cible `QueueRequest`, la génération de réponse)
 //
-//  L'onglet Défis peut être fermé : le popup apparaît malgré tout sur l'écran
-//  actuellement consulté. Une réponse réseau arrivée après un changement de
-//  génération n'ouvre ni ne ferme rien : `generation` invalide l'ancienne relève.
+//  V1 L5 (2026-09-26, U07 partB#2) : la relève des invitations reçues est
+//  montée par `MainTabView` (racine connectée), qui reçoit aussi la partie
+//  acceptée (`onAccepted` → onglet Défis), comme
+//  `<ChallengeInvitationCoordinator … />` dans `App.tsx:2628-2632`.
 //
 //  Adaptations assumées : les écouteurs `AppState` et `expo-notifications` de la
 //  source ne sont pas rejoués ici (le premier relève est fait au démarrage de la
