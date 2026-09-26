@@ -10,9 +10,7 @@ import Charts
 
 // MARK: - Titres
 
-/// Titre de section en capitales, motif récurrent des écrans Expo
-/// (`sectionLabel` : AccountScreen.tsx:5201, ChallengesScreen.tsx:3974 —
-/// 9 / `900` / `letterSpacing: 1.4` / `inkFaint`).
+/// Titre de section en capitales, motif récurrent des écrans Expo.
 struct DuelloSectionHeader: View {
     let title: String
     var subtitle: String? = nil
@@ -20,12 +18,10 @@ struct DuelloSectionHeader: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(title)
-                .font(.system(size: 9, weight: .black))
-                .tracking(1.4)
+                .font(.system(size: 13, weight: .heavy))
                 .textCase(.uppercase)
-                .foregroundStyle(Theme.inkFaint)
+                .foregroundStyle(Theme.inkSoft)
             if let subtitle {
-                // Ajout du port : `sectionLabel` n'a pas de sous-titre en RN.
                 Text(subtitle)
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(Theme.inkFaint)
@@ -39,13 +35,12 @@ struct DuelloSectionHeader: View {
 
 /// Ton d'une pastille : la couleur porte le sens, jamais le texte seul.
 enum DuelloPillTone {
-    case neutral, ink, light, success, warning, danger
+    case neutral, ink, success, warning, danger
 
     var foreground: Color {
         switch self {
         case .neutral: return Theme.inkSoft
-        case .ink: return Theme.surface
-        case .light: return Theme.ink
+        case .ink: return Theme.ink
         case .success: return Theme.gradingPerfect
         case .warning: return Theme.gradingPartial
         case .danger: return Theme.like
@@ -55,28 +50,12 @@ enum DuelloPillTone {
     var background: Color {
         switch self {
         case .neutral: return Theme.surfaceMuted
-        case .ink: return Theme.ink
-        case .light: return Theme.primaryLight
+        case .ink: return Theme.primaryLight
         case .success: return Theme.gradingPerfectLight
         case .warning: return Theme.gradingPartialLight
         case .danger: return Theme.like.opacity(0.12)
         }
     }
-
-    /// Étiquette : la pastille « MOI » (`meBadge`, RankingsScreen.tsx:956) est
-    /// minuscule et très grasse (7 / `900` / `letterSpacing: 0.6`) ; toutes les
-    /// autres suivent `itemTagText` (SubjectsScreen.tsx:12244 : 10 / `800`).
-    var font: Font {
-        self == .ink
-            ? .system(size: 7, weight: .black)
-            : .system(size: 10, weight: .heavy)
-    }
-
-    var tracking: CGFloat { self == .ink ? 0.6 : 0 }
-
-    /// Marges : `meBadge` 6 / 3 ; `itemTag` 8 / 4.
-    var horizontalPadding: CGFloat { self == .ink ? 6 : 8 }
-    var verticalPadding: CGFloat { self == .ink ? 3 : 4 }
 }
 
 /// Pastille compacte (statut, matière, catégorie).
@@ -91,13 +70,12 @@ struct DuelloPill: View {
                 Image(systemName: icon).font(.system(size: 10, weight: .bold))
             }
             Text(text)
-                .font(tone.font)
-                .tracking(tone.tracking)
+                .font(.system(size: 11, weight: .heavy))
                 .textCase(.uppercase)
         }
         .foregroundStyle(tone.foreground)
-        .padding(.horizontal, tone.horizontalPadding)
-        .padding(.vertical, tone.verticalPadding)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
         .background(tone.background)
         .clipShape(Capsule())
     }
@@ -190,16 +168,12 @@ struct DuelloStatTile: View {
 struct DuelloProgressTrack: View {
     let fraction: Double
     var tint: Color = Theme.progress
-    /// Fond de la piste : `colors.surfaceMuted` par défaut
-    /// (`AffiliateMilestoneProgress.tsx:191`), `colors.border` pour le suivi de
-    /// copie (`AnnaleCopyCorrectionModal.tsx:320`).
-    var track: Color = Theme.surfaceMuted
     var height: CGFloat = 6
 
     var body: some View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
-                Capsule().fill(track)
+                Capsule().fill(Theme.border)
                 Capsule()
                     .fill(tint)
                     .frame(width: max(0, min(1, fraction)) * geo.size.width)
@@ -212,31 +186,23 @@ struct DuelloProgressTrack: View {
 // MARK: - Puces et lignes
 
 /// Puce sélectionnable, utilisée pour les filtres et les choix rapides.
-///
-/// Motif RN : pastille `surfaceMuted` (jamais de bordure), libellé 11 / `800`
-/// `mutedSurfaceText`, sélection peinte en `primary` avec libellé blanc
-/// (`chip` / `compactChip` + `chartFilterChip` + `chipText` / `documentTab`,
-/// AccountScreen.tsx:5348-5422, AnnaleViewer.tsx:5259).
 struct DuelloChip: View {
     let title: String
     let selected: Bool
-    /// Hauteur minimale : 34 pour un filtre de graphique (`chartFilterChip`),
-    /// 30 pour un onglet de document (`documentTab`).
-    var minHeight: CGFloat = 34
-    /// Marge horizontale : 13 (`chartFilterChip`), 14 (`documentTab`).
-    var paddingHorizontal: CGFloat = 13
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             Text(title)
-                .font(.system(size: 11, weight: .heavy))
-                .lineLimit(1)
+                .font(.system(size: 13, weight: .heavy))
                 .foregroundStyle(selected ? Theme.surface : Theme.inkSoft)
-                .padding(.horizontal, paddingHorizontal)
-                .frame(minHeight: minHeight)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
                 .background(selected ? Theme.ink : Theme.surfaceMuted)
                 .clipShape(Capsule())
+                .overlay(
+                    Capsule().stroke(selected ? Color.clear : Theme.border, lineWidth: 1)
+                )
         }
         .buttonStyle(.plain)
     }

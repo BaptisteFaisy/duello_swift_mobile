@@ -109,7 +109,10 @@ Tout ce qui suit est **documenté dans les en-têtes de fichiers**, jamais inven
   pas de source locale → repli neutre.
 
 ### Défis
-- `ChalSeries` = **1 exercice** (pas de tirage multi-exercices).
+- Série multi-exercices portée : `match.exerciseSequence` (plafond 3, repli
+  mono-exercice), enchaînement avec copie figée + alerte « Enchaîner »,
+  notation et bilan sur la copie assemblée (`ChalRunSeries`, `ChalSeries`
+  enfin appelé).
 - Volet d'invitation d'un ami absent → les boutons retombent sur la file
   aléatoire.
 - `opponentAbandoned` déduit d'un `verdict.summary.contains("abandonné")` :
@@ -131,10 +134,11 @@ Tout ce qui suit est **documenté dans les en-têtes de fichiers**, jamais inven
   d'entrée Apple. Contournement documenté.
 
 ### Messagerie
-Trois divergences signalées, non corrigées (elles vivent dans des fichiers
-existants hors du périmètre des lots) : onglets « Direct/Forum » vs «
-Messages/Forums » dans la source ; initiale figée `"P"` au lieu de
-`profile.displayName` ; contrat `unreadCount` remplacé par un compteur local.
+Trois divergences corrigées : onglets « Messages/Forums » comme la source
+(ex-« Direct/Forum ») ; initiale lue depuis `profile.displayName` (repli
+« P ») ; badge et état non-lu des lignes pilotés par le contrat
+`unreadCount`/`onClearUnread` au lieu du compteur local (`totalUnread`
+supprimé).
 
 ## Hors périmètre assumé — les fichiers non portés
 

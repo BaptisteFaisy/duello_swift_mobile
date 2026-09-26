@@ -51,12 +51,6 @@ struct DuelloApp: App {
                         }
                     }
                 }
-                // Fenêtre d'alerte commune : **point de montage unique** de
-                // `AppAlertHost` (équivalent d'`AppAlertProvider` d'`App.tsx`),
-                // posé une seule fois à la racine. Toutes les alertes de l'app
-                // passent par `AppAlert.alert(...)` (jamais `.alert` natif) ;
-                // cette vue unique les rend, dans l'ordre d'appel.
-                .appAlertHost()
         }
     }
 }

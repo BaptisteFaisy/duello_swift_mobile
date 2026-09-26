@@ -30,11 +30,10 @@ struct CtdPdfDocumentView: UIViewRepresentable {
 /// Ouverture plein écran d'un document du chapitre.
 ///
 /// Reprend le lecteur plein écran de la section « Mon cours » de
-/// `SubjectsScreen.tsx` (lignes 10984-11010) : écran `#E9E9E7`, en-tête blanc
-/// de 54 pt de haut bordé en bas, réduit à un bouton de réduction aligné à
-/// droite (`justifyContent: 'flex-end'` — le source n'affiche **aucun titre**
-/// dans cet en-tête), et le lecteur sur toute la hauteur restante.
+/// `SubjectsScreen.tsx` : en-tête blanc, bouton de réduction, et le lecteur
+/// sur toute la hauteur restante.
 struct CtdDocumentSheet: View {
+    let title: String
     let uri: String
     let mimeType: CtdMimeType
     let revision: Double
@@ -43,10 +42,14 @@ struct CtdDocumentSheet: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 12) {
-                Spacer(minLength: 0)
+                Text(title)
+                    .font(.system(size: 14, weight: .heavy))
+                    .foregroundStyle(Theme.ink)
+                    .lineLimit(1)
+                Spacer(minLength: 8)
                 Button(action: onClose) {
                     Image(systemName: "arrow.down.right.and.arrow.up.left")
-                        .font(.system(size: 24, weight: .bold))
+                        .font(.system(size: 16, weight: .bold))
                         .foregroundStyle(Theme.ink)
                         .frame(width: 44, height: 44)
                 }
@@ -70,6 +73,6 @@ struct CtdDocumentSheet: View {
                 height: .infinity
             )
         }
-        .background(Color(hex: 0xE9E9E7))
+        .background(Theme.surfaceMuted)
     }
 }

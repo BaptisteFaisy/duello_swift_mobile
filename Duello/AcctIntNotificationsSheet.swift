@@ -70,14 +70,19 @@ struct AcctIntNotificationsSheet: View {
         .padding(.bottom, 12)
     }
 
-    /// Retour : composant partagé `DuelloBackButton` (`BackButton` de la source),
-    /// chevron 21 pt dans sa boîte 40 × 40 **sans fond** — le blanc de
-    /// `styles.settingsBackButton` est annulé par `styles.button` (appliqué après).
+    /// Retour : chevron 21 pt dans une boîte 38 × 38 blanche, sans bord
+    /// (`BackButton` + `styles.settingsBackButton`).
     private var backButton: some View {
-        DuelloBackButton(
-            iconSize: 21,
-            accessibilityLabel: "Retour au profil"
-        ) { dismiss() }
+        Button { dismiss() } label: {
+            Image(systemName: "chevron.left")
+                .font(.system(size: 21, weight: .semibold))
+                .foregroundStyle(Theme.ink)
+                .frame(width: 38, height: 38)
+                .background(Theme.white)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Retour au profil")
     }
 
     /// Un onglet de tête : libellé 13/800, encre si choisi, trait bas de 2 pt
@@ -92,7 +97,6 @@ struct AcctIntNotificationsSheet: View {
                 .font(.system(size: 13, weight: .heavy))
                 .foregroundStyle(selected ? Theme.ink : Theme.inkFaint)
                 .frame(maxWidth: .infinity, minHeight: 38)
-                .padding(.horizontal, 8)
                 .contentShape(Rectangle())
                 .overlay(
                     Rectangle()
@@ -134,7 +138,6 @@ struct AcctIntNotificationsSheet: View {
             Text(page == .followings ? "Tu ne suis encore personne." : "Aucun follower pour le moment.")
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(Theme.inkSoft)
-                .lineSpacing(6)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.vertical, 18)
                 .padding(.horizontal, 4)
@@ -172,13 +175,12 @@ struct AcctIntNotificationsSheet: View {
                 .padding(.top, 12)
             Text(
                 session.profile.isPublic
-                    ? "Tu seras prévenu ici pour tes nouveaux abonnés, les visites de ton profil, tes likes et les défis reçus pendant que tu joues."
-                    : "Tu seras prévenu ici pour tes nouveaux abonnés, les visites de ton profil et les défis reçus pendant que tu joues."
+                    ? "Tu seras prévenu ici pour tes nouveaux abonnés, tes likes et les défis reçus pendant que tu joues."
+                    : "Tu seras prévenu ici pour tes nouveaux abonnés et les défis reçus pendant que tu joues."
             )
             .font(.system(size: 12, weight: .medium))
             .foregroundStyle(Theme.inkSoft)
             .multilineTextAlignment(.center)
-            .lineSpacing(6)
             .padding(.top, 6)
         }
         .frame(maxWidth: .infinity)

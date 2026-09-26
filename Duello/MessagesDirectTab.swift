@@ -18,20 +18,22 @@ extension MessagesView {
                         .buttonStyle(.plain)
 
                         if index < conversations.count - 1 {
-                            HairlineDivider().padding(.leading, 60)
+                            Divider().padding(.leading, 60)
                         }
                     }
                 }
-                .padding(.horizontal, 15)
-                .background(Theme.surface)
-                .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
-                .shadow(color: Color(hex: 0x0A0D0C).opacity(0.04), radius: 8, x: 0, y: 2)
+                .duelloCard()
             }
             .padding(.horizontal, 20)
             .padding(.top, 22)
             .padding(.bottom, 32)
         }
         .scrollDismissesKeyboard(.interactively)
+    }
+
+    /// Ligne marquée non-lue, comme Expo (`unreadCount > 0 && unread > 0`).
+    private func showsUnread(_ conversation: DemoConversation) -> Bool {
+        unreadCount > 0 && conversation.unread > 0
     }
 
     private func conversationRow(_ conversation: DemoConversation) -> some View {
@@ -46,15 +48,14 @@ extension MessagesView {
                     .frame(width: 48, height: 48)
                 if conversation.isOnline {
                     Circle()
-                        .fill(Theme.primaryLight)
+                        .fill(Theme.progress)
                         .frame(width: 13, height: 13)
-                        .overlay(Circle().strokeBorder(Theme.surface, lineWidth: 2))
-                        .offset(x: 1, y: 1)
+                        .overlay(Circle().stroke(Theme.surface, lineWidth: 2))
                 }
             }
 
             VStack(alignment: .leading, spacing: 5) {
-                HStack {
+                HStack(alignment: .firstTextBaseline) {
                     Text(conversation.name)
                         .font(.system(size: 13, weight: .black))
                         .foregroundStyle(Theme.ink)
@@ -66,11 +67,11 @@ extension MessagesView {
 
                 HStack(spacing: 7) {
                     Text(conversation.preview)
-                        .font(.system(size: 10, weight: conversation.unread > 0 ? .bold : .medium))
-                        .foregroundStyle(conversation.unread > 0 ? Theme.ink : Theme.inkSoft)
+                        .font(.system(size: 10, weight: showsUnread(conversation) ? .bold : .medium))
+                        .foregroundStyle(showsUnread(conversation) ? Theme.ink : Theme.inkSoft)
                         .lineLimit(1)
                     Spacer(minLength: 0)
-                    if conversation.unread > 0 {
+                    if showsUnread(conversation) {
                         unreadBadge(conversation.unread)
                     }
                 }
@@ -84,21 +85,9 @@ extension MessagesView {
         Text("\(count)")
             .font(.system(size: 9, weight: .black))
             .foregroundStyle(Theme.surface)
-            .padding(.horizontal, 5)
             .frame(minWidth: 20, minHeight: 20)
+            .padding(.horizontal, 5)
             .background(Theme.ink)
             .clipShape(Capsule())
-    }
-}
-
-/// Filet de séparation épais d'une ligne physique, couleur de bordure du thème
-/// (`StyleSheet.hairlineWidth` + `colors.border` de la source Expo).
-private struct HairlineDivider: View {
-    @Environment(\.displayScale) private var displayScale
-
-    var body: some View {
-        Rectangle()
-            .fill(Theme.border)
-            .frame(height: 1 / displayScale)
     }
 }

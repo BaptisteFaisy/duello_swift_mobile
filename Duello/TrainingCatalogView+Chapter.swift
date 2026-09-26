@@ -81,8 +81,8 @@ extension TrainingCatalogView {
             text += " · \(solutions) avec corrigé"
         }
         return Text(text)
-            .font(.system(size: 12, weight: .bold))
-            .foregroundStyle(Theme.inkSoft)
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(Theme.inkFaint)
     }
 
     // Le filtre du chapitre ouvert (menus « Notions », « Difficulté » et

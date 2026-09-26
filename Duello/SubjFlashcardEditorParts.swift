@@ -16,7 +16,7 @@
 //    - `LatexToUnicode.toUnicodeMath` pour le rendu de la formule ;
 //    - `MathKbActionKey` (MathKbControls.swift) pour le chrome des touches de la
 //      palette ;
-//    - `Theme` (barre plate de la palette : `surfaceMuted`, filet `border`).
+//    - `Theme`, `.duelloCard()`.
 //
 //  Limites assumées :
 //    - la source compose le document dans une WebView (`MathStatementText`) et
@@ -196,18 +196,7 @@ struct SubjFlashcardSymbolPalette: View {
                     .foregroundStyle(Theme.inkFaint)
             }
         }
-        // Barre plate du clavier maths (`keyboard` de la source) : fond
-        // `surfaceMuted`, marges horizontales 8, haute 4, basse 6, et un simple
-        // filet inférieur — ni carte, ni rayon, ni ombre.
-        .padding(.horizontal, 8)
-        .padding(.top, 4)
-        .padding(.bottom, 6)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.surfaceMuted)
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(Theme.border)
-                .frame(height: 1)
-        }
+        .padding(12)
+        .duelloCard()
     }
 }

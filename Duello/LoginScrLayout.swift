@@ -23,8 +23,7 @@
 //
 //  Réutilise : `AppleAuthView`, `AcctSecBiometricPolicy`,
 //  `AcctSecRecoveryCodePolicy`, `AcctSecRecoveryCodeView`, `AdmPasswordPolicy`,
-//  `DuelloWelcomeButton`, le retour commun `DuelloBackButton` et la fenêtre
-//  d'alerte commune `AppAlert`. La soumission vit dans `LoginScrSubmit.swift`.
+//  `DuelloWelcomeButton`. La soumission vit dans `LoginScrSubmit.swift`.
 //
 //  Cible : iOS 16. Aucune dépendance externe.
 //
@@ -75,10 +74,8 @@ struct LoginScrScreen: View {
     @State var isAuthenticating = false
     @State var isResetting = false
     @State var issued: LoginScrIssuedCode?
-    /// `Alert.alert('Biométrie indisponible', …)` : message posé par
-    /// `biometricLoginAccount()` quand le matériel biométrique manque. Il est
-    /// présenté par la fenêtre **commune** `AppAlert` (la source n'utilise
-    /// jamais l'alerte native) — distinct du bandeau d'erreur inline.
+    /// `Alert.alert('Biométrie indisponible', …)` : alerte native du matériel
+    /// biométrique absent (distincte du bandeau d'erreur inline).
     @State var biometricAlert: String?
 
     init(props: LoginScrProps) {
@@ -109,15 +106,10 @@ struct LoginScrScreen: View {
             }
         }
         .overlay { recoveryOverlay }
-        .accessibilityLabel("Écran de connexion")
-        // La source présente l'alerte par la fenêtre **commune** `AppAlert`
-        // (jamais `.alert` natif) ; le message est posé par
-        // `biometricLoginAccount()`. On le relaie à la file partagée puis on
-        // vide l'état, pour que la même alerte puisse être rejouée.
-        .onChange(of: biometricAlert) { message in
-            guard let message else { return }
-            biometricAlert = nil
-            AppAlert.alert("Biométrie indisponible", message)
+        .alert("Biométrie indisponible", isPresented: biometricAlertPresented) {
+            Button("OK", role: .cancel) { biometricAlert = nil }
+        } message: {
+            Text(biometricAlert ?? "")
         }
     }
 
@@ -235,16 +227,18 @@ struct LoginScrScreen: View {
 private extension LoginScrScreen {
     var topBar: some View {
         HStack {
-            // Retour commun (`BackButton.tsx`) : chevron 21 blanc, `translateX(-4)`
-            // porté par le composant ; le style d'écran ne pose que la boîte
-            // 44 × 44 (`styles.backButton`).
-            DuelloBackButton(
-                iconColor: LoginScrPalette.onDark,
-                iconSize: 21,
-                accessibilityLabel: "Revenir en arrière",
-                action: goBack
-            )
-            .frame(width: 44, height: 44)
+            Button {
+                goBack()
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 21, weight: .semibold))
+                    .foregroundStyle(LoginScrPalette.onDark)
+                    .frame(width: 40, height: 40)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(LoginScrPressStyle(pressedOpacity: 0.6, pressedScale: 1))
+            .offset(x: -12)
+            .accessibilityLabel("Revenir en arrière")
 
             Spacer(minLength: 0)
         }
@@ -253,10 +247,9 @@ private extension LoginScrScreen {
         .padding(.bottom, 6)
     }
 
-    /// Contenu défilant, centré verticalement comme la source
-    /// (`scrollContent` : `flexGrow: 1` + `justifyContent: 'center'`). Les deux
-    /// `Spacer` encadrants répartissent la hauteur visible ; `ScrollView` défile
-    /// dès que le contenu la dépasse.
+    /// Contenu défilant. La source centre verticalement
+    /// (`justifyContent: 'center'`) ; `ScrollView` ne le permet pas, l'écart
+    /// de mise en page est assumé.
     @ViewBuilder var content: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
@@ -425,6 +418,14 @@ private extension LoginScrScreen {
             .padding(.horizontal, 22)
             .padding(.top, 12)
             .padding(.bottom, 10)
+    }
+
+    /// `biometricAlert != nil` ⇔ alerte « Biométrie indisponible » présentée.
+    var biometricAlertPresented: Binding<Bool> {
+        Binding(
+            get: { biometricAlert != nil },
+            set: { presented in if !presented { biometricAlert = nil } }
+        )
     }
 
     /// Remise du nouveau code de secours (`RecoveryCodeModal` de la source,

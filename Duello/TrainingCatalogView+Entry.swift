@@ -109,14 +109,12 @@ struct TrainingCatalogView: View {
                 // s'affichent dès l'ouverture de la page, avant le chargement du
                 // manifeste (`renderModeTabs`, `SubjectsScreen.tsx:10006`).
                 if subject.id != SubjSubjectRules.mathsSubjectId {
-                    modeTabsRow
+                    modeTabsRow.padding(.top, 12)
                 }
                 content
             }
             .padding(.horizontal, 20)
-            // `detailScroll.paddingTop: 16`, ramené à 8 pour les maths
-            // (`mathsDetailScroll`).
-            .padding(.top, subject.id == SubjSubjectRules.mathsSubjectId ? 8 : 16)
+            .padding(.top, 16)
             .padding(.bottom, 40)
         }
         .background(Theme.background)
@@ -156,11 +154,7 @@ struct TrainingCatalogView: View {
     /// `openedSubject.id === 'maths'`.
     private var pinnedHeader: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // `mathsDetailHeader` / `trainingMetricsHeader` :
-            // `PERFORMANCE_OVERVIEW_BAR_HEIGHT` = 60, la barre grise de 48 pt y
-            // reste centrée (6 pt de part et d'autre).
             headerBlock
-                .frame(height: subject.id == SubjSubjectRules.mathsSubjectId ? 60 : nil)
             if subject.id == SubjSubjectRules.mathsSubjectId {
                 modeTabsRow.padding(.top, 4)
             }
@@ -234,22 +228,24 @@ struct TrainingCatalogView: View {
         .padding(.vertical, 8)
     }
 
-    /// Retour vers la liste des matières : composant partagé `DuelloBackButton`
-    /// (port de `components/BackButton.tsx`, `SubjectsScreen.tsx:9723-9727`).
-    ///
-    /// La source pose `styles.backButton` (fond `colors.surface`, bord
-    /// `colors.border`, rayon 12), mais `styles.button` du composant RN
-    /// neutralise fond / bord / rayon **après** le style d'écran : le rendu réel
-    /// est un chevron nu. Le port vague 1 conservait ce carré bordé — retiré ici.
-    /// Le composant porte la boîte 40 × 40, le pictogramme 22 (`iconSize` par
-    /// défaut de la source), le décalage `translateX(-4)` et l'appui `opacity
-    /// 0.6` ; aucun `frame`/`offset`/`buttonStyle` local n'est ajouté
-    /// (anti-double).
+    /// Barre de retour de la page d'une matière (`styles.backButton`) : carré de
+    /// 40 points bordé, chevron vers la liste des matières.
     private var backButton: some View {
-        DuelloBackButton(
-            accessibilityLabel: "Revenir à Mathématiques",
-            action: { dismiss() }
-        )
+        Button {
+            dismiss()
+        } label: {
+            Image(systemName: "chevron.left")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(Theme.ink)
+                .frame(width: 40, height: 40)
+                .background(Theme.surface)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12).stroke(Theme.border, lineWidth: 1)
+                )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Revenir à Mathématiques")
     }
 
     /// Piste d'avancement de la matière : fond blanc bordé, remplissage neutre

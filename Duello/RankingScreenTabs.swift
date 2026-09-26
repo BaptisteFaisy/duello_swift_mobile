@@ -63,15 +63,6 @@ struct RankingsView: View {
     var subject: String = "Mathématiques"
     /// Portée du classement : « Moi » par défaut.
     var scope: LeaderboardScope = .me
-    /// Masque l'accès au classement XP (`eloOnly`, coupe de Défis).
-    var eloOnly: Bool = false
-    /// Masque l'accès aux ligues Elo (`xpOnly`, coupe d'Entraînement).
-    var xpOnly: Bool = false
-    /// Réinitialise les sélecteurs chaque fois que la fenêtre est rouverte
-    /// (`active` de `LeaderboardScreen.tsx`).
-    var active: Bool = true
-    /// Ferme le classement (retour de l'en-tête et geste de retour).
-    var onBack: (() -> Void)? = nil
 
     /// Onglet ouvert au premier affichage.
     private let initialTab: RankingsTab
@@ -80,25 +71,13 @@ struct RankingsView: View {
     ///   - initialTab: onglet ouvert au premier affichage.
     ///   - subject: matière classée.
     ///   - scope: portée du classement (« Moi », « Classe » ou « Prépas »).
-    ///   - eloOnly: masque l'accès au classement XP.
-    ///   - xpOnly: masque l'accès aux ligues Elo.
-    ///   - active: réinitialise les sélecteurs à la réouverture.
-    ///   - onBack: ferme le classement.
     init(
         initialTab: RankingsTab = .subject,
         subject: String = "Mathématiques",
-        scope: LeaderboardScope = .me,
-        eloOnly: Bool = false,
-        xpOnly: Bool = false,
-        active: Bool = true,
-        onBack: (() -> Void)? = nil
+        scope: LeaderboardScope = .me
     ) {
         self.subject = subject
         self.scope = scope
-        self.eloOnly = eloOnly
-        self.xpOnly = xpOnly
-        self.active = active
-        self.onBack = onBack
         self.initialTab = initialTab
     }
 
@@ -106,11 +85,7 @@ struct RankingsView: View {
         SwipeLeaderboardRibbon(
             subject: subject,
             initialSection: initialTab.section,
-            scope: scope,
-            eloOnly: eloOnly,
-            xpOnly: xpOnly,
-            onBack: onBack,
-            active: active
+            scope: scope
         )
     }
 }

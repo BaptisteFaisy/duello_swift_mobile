@@ -32,7 +32,7 @@ struct SubjItemThemeTag: View {
                 .foregroundStyle(Theme.inkFaint)
             Text(label)
                 .font(.system(size: 10, weight: .heavy))
-                .foregroundStyle(Theme.mutedSurfaceText)
+                .foregroundStyle(Theme.inkSoft)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
@@ -60,7 +60,7 @@ struct SubjProgramStatusTag: View {
                     .foregroundStyle(Theme.inkFaint)
                 Text(status.label)
                     .font(.system(size: 10, weight: .heavy))
-                    .foregroundStyle(Theme.mutedSurfaceText)
+                    .foregroundStyle(Theme.inkSoft)
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
@@ -81,26 +81,18 @@ struct SubjExerciseBadgeTag: View {
     let badge: String
     var compact: Bool = false
 
-    /// `badgeFilterValuePill` : dans un filtre, la pastille resserre son écart
-    /// (3 au lieu de 4) et ses marges (5/4 au lieu de 8/4).
-    private static let compactSpacing: CGFloat = 3
-    private static let compactHorizontalPadding: CGFloat = 5
-    private static let compactVerticalPadding: CGFloat = 4
-    /// `badgeFilterValueText` : le libellé passe de 10 à 9 pt.
-    private static let compactLabelSize: CGFloat = 9
-
     var body: some View {
-        HStack(spacing: compact ? Self.compactSpacing : 4) {
+        HStack(spacing: 4) {
             Image(systemName: badge == "Calcul" ? "calculator" : "graduationcap")
                 .font(.system(size: compact ? 10 : 12, weight: .semibold))
                 .foregroundStyle(Theme.inkFaint)
             Text(badge)
-                .font(.system(size: compact ? Self.compactLabelSize : 10, weight: .heavy))
-                .foregroundStyle(Theme.mutedSurfaceText)
+                .font(.system(size: compact ? 10 : 11, weight: .heavy))
+                .foregroundStyle(Theme.inkSoft)
                 .lineLimit(compact ? 1 : nil)
         }
-        .padding(.horizontal, compact ? Self.compactHorizontalPadding : 8)
-        .padding(.vertical, compact ? Self.compactVerticalPadding : 4)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
         .background(Theme.surfaceMuted)
         .clipShape(Capsule())
         .accessibilityElement(children: .combine)

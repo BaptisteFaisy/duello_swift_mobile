@@ -191,10 +191,7 @@ private struct OnbGiftChartCard: View {
 private struct OnbGiftChartLegend: View {
     var body: some View {
         HStack(spacing: 10) {
-            ForEach(Array(OnbGiftChartData.legendSeries.enumerated()), id: \.element.id) { index, series in
-                // `legend` : `justifyContent: 'space-between'` — les deux
-                // trajectoires occupent les deux extrémités de la ligne.
-                if index > 0 { Spacer(minLength: 0) }
+            ForEach(OnbGiftChartData.legendSeries) { series in
                 HStack(spacing: 7) {
                     RoundedRectangle(cornerRadius: 2)
                         .fill(series.color)
@@ -204,6 +201,7 @@ private struct OnbGiftChartLegend: View {
                         .foregroundStyle(series.emphasized ? Color.white : Color(hex: 0x929292))
                 }
             }
+            Spacer(minLength: 0)
         }
     }
 }
@@ -214,7 +212,7 @@ private struct OnbGiftChartYAxis: View {
         VStack(spacing: 0) {
             ForEach(OnbGiftChartData.gradeTicks, id: \.self) { grade in
                 Text("\(Int(grade))")
-                    .font(.system(size: 8, weight: .bold))
+                    .font(.system(size: 8, weight: grade == 16 ? .black : .bold))
                     .foregroundStyle(grade == 16 ? Color.white : Color(hex: 0x777777))
                     .frame(maxWidth: .infinity, alignment: .trailing)
                     .offset(y: -4)
@@ -255,8 +253,7 @@ private struct OnbGiftPatienceNote: View {
             Text("La régularité compte plus qu’un résultat immédiat.")
                 .font(.system(size: 12, weight: .heavy))
                 .foregroundStyle(Color.white)
-                // `patienceText.lineHeight` 17 − 12.
-                .lineSpacing(5)
+                .lineSpacing(3)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(.horizontal, 14)

@@ -16,9 +16,8 @@
 //        fonds clairs, ajoutés par `ThemePalette.swift`) ;
 //    - `SubjExerciseBadgeTag(badge:compact:)` (9-H) pour la branche « badge » ;
 //    - `SubjDifficultyPill(level:compact:)` (`SubjDifficultyViews.swift`) pour la
-//        branche « palier de difficulté » — le mode `compact` est celui du
-//        drapeau du JSX (`compact={inChapterHeader}` au déclencheur, `false`
-//        dans les lignes du menu) ;
+//        branche « palier de difficulté » — la source y force `compact`, on
+//        garde ce mode ;
 //    - `TrainDifficulty` (via `SubjFilterValues`), jamais recopié.
 //
 //  Les Ionicons d'origine sont transposés en SF Symbols (mêmes intentions) :
@@ -89,26 +88,24 @@ struct SubjPrerequisiteFilterValueTag: View {
 /// `BadgeFilterValueTag` : apparence commune d'une valeur proposée par un filtre.
 ///
 /// Le JSX distingue les trois natures par `typeof` / `isPrerequisiteFilterValue` ;
-/// ici le cas de l'énumération le fait directement.
+/// ici le cas de l'énumération le fait directement. Les trois branches sont
+/// rendues en mode compact, comme la source (le `compact?` du composant Expo
+/// était de toute façon ignoré hors difficulté).
 ///
-/// `compact` reprend le drapeau du JSX : le **déclencheur** d'un menu l'active en
-/// en-tête de chapitre (`compact={inChapterHeader}`) et le laisse à `false` dans
-/// la rangée de filtres d'annales, alors que les **lignes du menu** rendent
-/// toujours la valeur non compacte (`<BadgeFilterValueTag value={badge} />`).
+/// Note : `SubjExerciseBadgeTag` (9-H) applique les marges 8/4 en mode compact,
+/// là où le JSX visait 5/4 (`badgeFilterValuePill`) — écart mineur assumé pour
+/// ne pas dupliquer une pastille déjà portée.
 struct SubjBadgeFilterValueTag: View {
     let value: SubjExerciseFilterValue
-    var compact: Bool = false
 
     var body: some View {
         switch value {
         case .difficulty(let level):
-            SubjDifficultyPill(level: level, compact: compact)
+            SubjDifficultyPill(level: level, compact: true)
         case .prerequisite(let prerequisite):
-            // `PrerequisiteFilterValueTag` applique `badgeFilterValuePill` sans
-            // condition : cette branche est toujours compacte.
             SubjPrerequisiteFilterValueTag(value: prerequisite)
         case .badge(let badge):
-            SubjExerciseBadgeTag(badge: badge, compact: compact)
+            SubjExerciseBadgeTag(badge: badge, compact: true)
         }
     }
 }

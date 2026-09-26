@@ -7,9 +7,8 @@ import UniformTypeIdentifiers
 /// Porté de `src/components/CourseTdPanel.tsx`, monté par `SubjectsScreen.tsx`
 /// (page d'outil « td » du chapitre) avec le document de cours du chapitre.
 /// Le lecteur de document vient de `CourseDocumentViewer.native.tsx` et
-/// `HtmlDocumentView.native.tsx`. Le panneau Expo n'a ni bouton plein écran
-/// ni modale : seul le lecteur est monté, avec le style `viewer`
-/// (330 pt de haut, rayon moyen).
+/// `HtmlDocumentView.native.tsx` ; le bouton plein écran et ses libellés
+/// viennent de la section « Mon cours » du même écran.
 ///
 /// Le panneau ne possède pas le cours du chapitre : il le reçoit, et se
 /// verrouille tant qu'il manque (`CtdLockedCard`). Comme côté Expo, il est
@@ -29,7 +28,10 @@ struct CourseTdView: View {
     @State private var analyzing = false
     @State private var errorMessage = ""
     @State private var pickerVisible = false
+    @State private var importFailedVisible = false
+    @State private var consentVisible = false
     @State private var pendingAnalysis: CtdPendingAnalysis?
+    @State private var fullscreenVisible = false
     /// Numéro du dernier lancement d'analyse : le résultat d'un lancement
     /// remplacé est ignoré (`analysisRun` de `CourseTdPanel.tsx`).
     @State private var analysisRun = 0
@@ -56,6 +58,25 @@ struct CourseTdView: View {
             allowsMultipleSelection: false,
             onCompletion: handlePickedFile
         )
+        .sheet(isPresented: $fullscreenVisible) {
+            if let source = store.document.source {
+                CtdDocumentSheet(
+                    title: source.name,
+                    uri: source.uri,
+                    mimeType: source.mimeType,
+                    revision: source.importedAt,
+                    onClose: { fullscreenVisible = false }
+                )
+            }
+        }
+        // `requireAiDataSharingConsent` : l'analyse transmet la feuille et le
+        // cours au relais, donc l'accord de l'élève est demandé d'abord.
+        .alert(CtdAiConsent.title, isPresented: $consentVisible) {
+            Button(CtdAiConsent.denyLabel, role: .cancel) { resolveConsent(granted: false) }
+            Button(CtdAiConsent.allowLabel) { resolveConsent(granted: true) }
+        } message: {
+            Text(CtdAiConsent.message)
+        }
     }
 
     // MARK: - Corps du panneau
@@ -80,15 +101,14 @@ struct CourseTdView: View {
                 )
             }
         }
+        .alert("TD non importé", isPresented: $importFailedVisible) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Choisis un PDF, une photo JPEG ou PNG de moins de 8 Mo, puis réessaie.")
+        }
     }
 
-    /// Feuille importée : ligne de document puis lecteur.
-    ///
-    /// Le panneau Expo (`CourseTdPanel.tsx`, lignes 287-312) n'affiche ni
-    /// bouton plein écran ni modale : le lecteur (330 pt) est le seul élément
-    /// sous la ligne de fichier. `CtdFullscreenButton` et `CtdDocumentSheet`
-    /// appartiennent à la section « Mon cours » de `SubjectsScreen.tsx`
-    /// (lignes 8292-8410) : ils ont été retirés de ce panneau.
+    /// Feuille importée : ligne de document, lecteur et ouverture plein écran.
     @ViewBuilder
     private func document(source: CtdSource) -> some View {
         CtdFileRow(
@@ -97,11 +117,14 @@ struct CourseTdView: View {
             busy: importing || analyzing,
             onReplace: presentPicker
         )
-        CtdDocumentViewer(
-            uri: source.uri,
-            mimeType: source.mimeType,
-            revision: source.importedAt
-        )
+        ZStack(alignment: .topTrailing) {
+            CtdDocumentViewer(
+                uri: source.uri,
+                mimeType: source.mimeType,
+                revision: source.importedAt
+            )
+            CtdFullscreenButton { fullscreenVisible = true }
+        }
     }
 
     /// Cartes de message : erreur d'analyse et analyse périmée.
@@ -173,13 +196,13 @@ struct CourseTdView: View {
         defer { importing = false }
         let name = url.lastPathComponent
         guard let mimeType = CtdMimeType(declared: nil, fileName: name) else {
-            presentImportFailedAlert()
+            importFailedVisible = true
             return
         }
         let scoped = url.startAccessingSecurityScopedResource()
         defer { if scoped { url.stopAccessingSecurityScopedResource() } }
         guard let data = try? Data(contentsOf: url) else {
-            presentImportFailedAlert()
+            importFailedVisible = true
             return
         }
         let directory = CtdStorage.importsDirectory()
@@ -191,7 +214,7 @@ struct CourseTdView: View {
         do {
             try data.write(to: destination)
         } catch {
-            presentImportFailedAlert()
+            importFailedVisible = true
             return
         }
         let source = CtdSource(
@@ -212,39 +235,10 @@ struct CourseTdView: View {
     private func runAnalysis(_ source: CtdSource, course: CtdStoredCourseDocument) {
         guard CtdAiConsent.isGranted else {
             pendingAnalysis = CtdPendingAnalysis(source: source, course: course)
-            presentConsentAlert()
+            consentVisible = true
             return
         }
         Task { await performAnalysis(source, course: course) }
-    }
-
-    /// `requireAiDataSharingConsent` : l'analyse transmet la feuille et le cours
-    /// au relais, donc l'accord de l'élève est demandé d'abord. L'alerte passe par
-    /// le composant partagé du kit (`AppAlert.alert`), jamais `.alert` natif —
-    /// `showAiConsentPrompt` de `aiDataSharingConsent.ts` : deux boutons, refus
-    /// (`cancel`) puis autorisation (primaire).
-    private func presentConsentAlert() {
-        AppAlert.alert(
-            CtdAiConsent.title,
-            CtdAiConsent.message,
-            [
-                AppAlertButton(CtdAiConsent.denyLabel, style: .cancel) {
-                    resolveConsent(granted: false)
-                },
-                AppAlertButton(CtdAiConsent.allowLabel) {
-                    resolveConsent(granted: true)
-                },
-            ]
-        )
-    }
-
-    /// `Alert.alert('TD non importé', …)` : sans bouton, le kit pose le bouton
-    /// unique « Compris » (défaut d'`AppAlert.alert`), comme côté Expo.
-    private func presentImportFailedAlert() {
-        AppAlert.alert(
-            "TD non importé",
-            "Choisis un PDF, une photo JPEG ou PNG de moins de 8 Mo, puis réessaie."
-        )
     }
 
     /// Réponse à la demande d'autorisation IA : accordée, l'analyse attendue

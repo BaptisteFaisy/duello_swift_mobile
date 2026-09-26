@@ -44,15 +44,15 @@ struct LegalDocumentView: View {
                 VStack(alignment: .leading, spacing: 0) {
                     Text(document.title)
                         .font(.system(size: 24, weight: .black))
-                        // `lineHeight: 29` → `lineSpacing: 5` (29 − 24).
-                        .lineSpacing(5)
                         .foregroundStyle(Theme.ink)
+                        // Interligne 29 pt de la source : la hauteur de ligne
+                        // native de la police système à 24 pt vaut ≈ 29 pt, la
+                        // valeur est donc déjà respectée (SwiftUI n'expose pas
+                        // de réglage exact de la hauteur de ligne).
                         .frame(maxWidth: .infinity, alignment: .center)
 
                     Text("Dernière mise à jour : \(document.updatedAt)")
                         .font(.system(size: 13, weight: .semibold))
-                        // `lineHeight: 18` → `lineSpacing: 5` (18 − 13).
-                        .lineSpacing(5)
                         .foregroundStyle(Theme.ink)
                         .frame(maxWidth: .infinity, alignment: .center)
                         .padding(.top, 6)
@@ -70,25 +70,20 @@ struct LegalDocumentView: View {
                 .padding(.top, 8)
                 .padding(.bottom, 120)
             }
-            // `showsVerticalScrollIndicator={false}` de la source.
-            .scrollIndicators(.hidden)
         }
         .background(Theme.background)
     }
 
     /// Chevron de retour, aligné sur le bord `LEGAL_PAGE_BACK_INSET` (24).
-    /// Reprend le composant partagé `DuelloBackButton` (port de
-    /// `components/BackButton.tsx`) : la boîte 40 × 40, le pictogramme 20 pt
-    /// (`iconSize={20}` de la source) centré puis décalé de −4 pt
-    /// (`transform: translateX(-4)`) et l'appui `opacity 0.6` sont portés par
-    /// le composant. Seul le `style` d'écran reste ici :
-    /// `marginHorizontal: 24` (`LEGAL_PAGE_BACK_INSET`) + `marginBottom: 4`.
     private func backButton(_ action: @escaping () -> Void) -> some View {
-        DuelloBackButton(
-            iconSize: 20,
-            accessibilityLabel: "Retour aux paramètres",
-            action: action
-        )
+        Button(action: action) {
+            Image(systemName: "chevron.left")
+                .font(.system(size: 20, weight: .bold))
+                .foregroundStyle(Theme.ink)
+                .frame(width: 40, height: 40, alignment: .leading)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Retour aux paramètres")
         .padding(.horizontal, 24)
         .padding(.bottom, 4)
     }
@@ -104,13 +99,11 @@ private struct LegalSectionRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Button {
-                expanded.toggle()
+                withAnimation(.easeInOut(duration: 0.18)) { expanded.toggle() }
             } label: {
                 HStack(spacing: 6) {
                     Text(section.title)
                         .font(.system(size: 13, weight: .bold))
-                        // `lineHeight: 18` → `lineSpacing: 5` (18 − 13).
-                        .lineSpacing(5)
                         .foregroundStyle(Theme.ink)
                         .multilineTextAlignment(.leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -130,8 +123,6 @@ private struct LegalSectionRow: View {
                     ForEach(section.paragraphs.indices, id: \.self) { index in
                         Text(section.paragraphs[index])
                             .font(.system(size: 12, weight: .regular))
-                            // `lineHeight: 17` → `lineSpacing: 5` (17 − 12).
-                            .lineSpacing(5)
                             .foregroundStyle(Theme.ink)
                             .fixedSize(horizontal: false, vertical: true)
                             .padding(.top, 8)
@@ -140,16 +131,11 @@ private struct LegalSectionRow: View {
                         HStack(alignment: .top, spacing: 6) {
                             Text("•")
                                 .font(.system(size: 13, weight: .bold))
-                                // `lineHeight: 17` → `lineSpacing: 4` (17 − 13).
-                                .lineSpacing(4)
                                 .foregroundStyle(Theme.primary)
                             Text(section.bullets[index])
                                 .font(.system(size: 12, weight: .regular))
-                                // `lineHeight: 17` → `lineSpacing: 5` (17 − 12).
-                                .lineSpacing(5)
                                 .foregroundStyle(Theme.ink)
                                 .fixedSize(horizontal: false, vertical: true)
-                                .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         .padding(.top, 6)
                     }

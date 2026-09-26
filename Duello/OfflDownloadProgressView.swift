@@ -45,12 +45,7 @@ struct OfflDownloadProgressView: View {
                         .font(.system(size: 10, weight: .black))
                         .foregroundStyle(Theme.primary)
                 }
-                DuelloProgressTrack(
-                    fraction: Double(percent) / 100,
-                    tint: Theme.primary,
-                    track: Theme.surface,
-                    height: 6
-                )
+                DuelloProgressTrack(fraction: Double(percent) / 100, tint: Theme.primary, height: 6)
                 Text(detail)
                     .font(.system(size: 9, weight: .bold))
                     .foregroundStyle(Theme.inkSoft)

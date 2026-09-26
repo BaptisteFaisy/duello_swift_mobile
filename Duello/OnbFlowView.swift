@@ -57,18 +57,13 @@ struct OnbFlowView: View {
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            // La source **remplace** tout l'écran dès que la surface
-            // d'entraînement devient visible (`if (trainingHandoffVisible)`) :
-            // le parcours disparaît derrière elle.
-            if !handoff.isSurfaceVisible {
-                VStack(spacing: 0) {
-                    topBar
-                    progressBar
-                    stepTransition
-                    footer
-                }
-                .background(OnbFlowPalette.background)
+            VStack(spacing: 0) {
+                topBar
+                progressBar
+                stepTransition
+                footer
             }
+            .background(OnbFlowPalette.background)
 
             if handoff.isActive {
                 bloomLayer
@@ -81,14 +76,6 @@ struct OnbFlowView: View {
                 }
             }
         }
-        // Fond hors zone sûre : noir pendant le parcours (`guestSafeArea`),
-        // blanc pendant la passation (`trainingHandoffSafeArea`,
-        // `colors.background`) — le fond noir du parcours ne couvrait pas la
-        // barre d'état, faute de `ignoresSafeArea`.
-        .background(
-            (handoff.isSurfaceVisible ? Theme.background : OnbFlowPalette.background)
-                .ignoresSafeArea()
-        )
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Parcours de bienvenue")
         .onAppear {
@@ -97,16 +84,14 @@ struct OnbFlowView: View {
         .onChange(of: coordinator.programSelectionComplete) { complete in
             if complete { onProgramSelected(coordinator.profile) }
         }
-        // La source présente **toutes** ses alertes par la fenêtre commune
-        // (`AppAlert`, montée une fois à la racine via `.appAlertHost()`) —
-        // jamais par `.alert` natif (`import { AppAlert as Alert }`).
-        // `OnbFlowCoordinator.pendingAlert` porte le contenu ; on le relaie à la
-        // file partagée puis on vide l'état, pour que la même alerte puisse être
-        // rejouée (même relais que `LoginScrLayout`).
-        .onChange(of: coordinator.pendingAlert) { alert in
-            guard let alert else { return }
-            coordinator.pendingAlert = nil
-            present(alert)
+        .alert(
+            coordinator.pendingAlert?.title ?? "",
+            isPresented: alertPresented,
+            presenting: coordinator.pendingAlert
+        ) { alert in
+            alertButtons(alert)
+        } message: { alert in
+            Text(alert.message)
         }
     }
 
@@ -140,7 +125,7 @@ struct OnbFlowView: View {
             onSwipeBackward: canSwipeBackward ? { back() } : nil
         ) {
             GeometryReader { proxy in
-                ScrollView(.vertical, showsIndicators: false) {
+                ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
                         eyebrow
                         OnbFlowStepContent(
@@ -149,21 +134,11 @@ struct OnbFlowView: View {
                             onApple: handleApple,
                             onBiometric: handleBiometric
                         )
-                        .padding(.top, stepTopInset)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 22)
                     .padding(.vertical, 30)
-                    // `scrollContent` centre verticalement le bloc ; l'étape
-                    // `target` recentrée sur la saisie le colle en haut
-                    // (`schoolSearchScrollContent` : `justifyContent:
-                    // 'flex-start'`).
-                    .frame(
-                        minHeight: proxy.size.height,
-                        alignment: coordinator.currentStep == .target && coordinator.schoolSearchFocused
-                            ? .top
-                            : .center
-                    )
+                    .frame(minHeight: proxy.size.height, alignment: .center)
                     .padding(
                         .bottom,
                         coordinator.currentStep == .target && coordinator.schoolSearchFocused ? 280 : 0
@@ -183,26 +158,10 @@ struct OnbFlowView: View {
     private var eyebrow: some View {
         if let text = OnbFlowSteps.eyebrow(for: coordinator.currentStep) {
             Text(text)
-                .font(.system(size: 11, weight: .black))
+                .font(.system(size: 11, weight: .heavy))
                 .tracking(1.5)
                 .textCase(.uppercase)
                 .foregroundStyle(OnbFlowPalette.onDark)
-        }
-    }
-
-    /// Marge haute du formulaire d'étape (`styles.form.marginTop: 24`).
-    ///
-    /// Toutes les étapes enveloppées dans un formulaire portent cette marge ;
-    /// `ready` et `premium-gift` n'en ont pas (la source ne les enveloppe pas).
-    /// Le contenu étant centré verticalement, la marge décale le bloc de
-    /// `24 / 2 = 12` pt vers le bas. Quand l'étape a un surtitre, l'écart de
-    /// 24 pt est déjà porté par le `VStack` : la marge ne s'ajoute pas.
-    private var stepTopInset: CGFloat {
-        switch coordinator.currentStep {
-        case .ready, .premiumGift:
-            return 0
-        default:
-            return OnbFlowSteps.eyebrow(for: coordinator.currentStep) == nil ? 24 : 0
         }
     }
 
@@ -218,14 +177,10 @@ struct OnbFlowView: View {
                     HStack(spacing: 9) {
                         Text(coordinator.continueLabel)
                         Image(systemName: coordinator.isLastStep ? "checkmark" : "arrow.right")
-                            .font(.system(size: 20))
                     }
                     .frame(maxWidth: .infinity, minHeight: 54)
                 }
-                // `continueButton` : rayon 18 (`radii.large`), libellé 15/900 —
-                // le défaut de graisse de `DuelloPrimaryButton` est déjà `.black`
-                // (900) ; seul le rayon (14 par défaut) doit être passé.
-                .buttonStyle(DuelloPrimaryButton(onDark: true, radius: 18))
+                .buttonStyle(DuelloPrimaryButton(onDark: true))
                 .disabled(coordinator.advanceBlocked)
             }
         }
@@ -242,22 +197,19 @@ struct OnbFlowView: View {
     /// `OnboardingScreen.tsx:1544-1555`) : c'est le seul retour du parcours.
     private var topBar: some View {
         HStack(spacing: 0) {
-            // Retour : composant partagé `DuelloBackButton` (`BackButton.tsx`) —
-            // chevron 24 blanc, boîte 40×40 et `translateX(-4)` portés par le
-            // composant. Le style d'écran n'ajoute que la marge
-            // `guestTopBackButton` (`marginLeft: -8`), pour un décalage total
-            // de −12 comme la source.
-            DuelloBackButton(
-                iconColor: OnbFlowPalette.onDark,
-                iconSize: 24,
-                isDisabled: coordinator.isCompleting,
-                accessibilityLabel: coordinator.stepIndex > 0
-                    ? "Étape précédente"
-                    : "Revenir à l’accueil",
-                action: back
+            Button(action: back) {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 24, weight: .semibold))
+                    .foregroundStyle(OnbFlowPalette.onDark)
+                    .frame(width: 40, height: 40)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(coordinator.isCompleting)
+            .offset(x: -12)
+            .accessibilityLabel(
+                coordinator.stepIndex > 0 ? "Étape précédente" : "Revenir à l’accueil"
             )
-            .padding(.leading, -8)
-
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 22)
@@ -291,21 +243,28 @@ struct OnbFlowView: View {
         coordinator.stepIndex > 0 && !coordinator.isCompleting
     }
 
-    /// `AppAlert.alert` : traduit l'alerte d'étape (modèle `OnbFlowAlert`) en
-    /// boutons de la fenêtre commune. Sans action, la file pose le bouton unique
-    /// « Compris » (`AppAlertCenter`, défaut `AppAlert.alert`), comme la source ;
-    /// `style: 'cancel'` devient `.cancel`, tout le reste `.default`.
-    private func present(_ alert: OnbFlowAlert) {
-        let buttons = alert.actions.map { action in
-            AppAlertButton(action.title, style: action.isCancel ? .cancel : .default) {
-                perform(action)
-            }
-        }
-        AppAlert.alert(alert.title, alert.message, buttons.isEmpty ? nil : buttons)
+    private var alertPresented: Binding<Bool> {
+        Binding(
+            get: { coordinator.pendingAlert != nil },
+            set: { if !$0 { coordinator.pendingAlert = nil } }
+        )
     }
 
-    /// Exécute l'action choisie. La fenêtre commune s'est déjà refermée
-    /// (`AppAlertCenter`) ; on garantit seulement que l'état local est vide.
+    /// Un bouton par action d'alerte ; « OK » quand la source n'en donne aucun.
+    @ViewBuilder
+    private func alertButtons(_ alert: OnbFlowAlert) -> some View {
+        if alert.actions.isEmpty {
+            Button("OK", role: .cancel) {}
+        } else {
+            ForEach(alert.actions) { action in
+                Button(action.title, role: action.isCancel ? .cancel : nil) {
+                    perform(action)
+                }
+            }
+        }
+    }
+
+    /// Exécute l'action choisie puis referme l'alerte.
     private func perform(_ action: OnbFlowAlertAction) {
         coordinator.pendingAlert = nil
         switch action.kind {
@@ -467,7 +426,7 @@ enum OnbFlowPalette {
     /// `guestEyebrow` : blanc.
     static let onDark = Color.white
     /// `guestHelperText` : `#B8B8B8`.
-    static let helper = Color(hex: 0xB8B8B8)
+    static let helper = Color(white: 0.72)
     /// `guestAuthDividerLine` : `#343434`.
     static let divider = Color(hex: 0x343434)
     /// `guestAuthDividerText` : `#8A8A8A`.

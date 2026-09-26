@@ -33,6 +33,11 @@ import Combine
 struct ChalRunRoundState {
     /// Nombre d'exercices de la série (`session.series.length`).
     var seriesCount: Int
+    /// Série commune servie, dans son ordre irréversible (`session.series`).
+    var series: [DuelExercise] = []
+    /// Copies figées des exercices précédents, impossibles à rouvrir
+    /// (`session.completedAnswers`).
+    var completedAnswers: [Int: [String: String]] = [:]
     /// Rang de l'exercice ouvert (`session.exerciseIndex`).
     var exerciseIndex: Int
     /// Énoncé de l'exercice ouvert (`session.exercise`).
@@ -104,6 +109,7 @@ struct ChalRunRounds: View {
     var onStopWaiting: () -> Void
 
     @State private var now: Double = Date().timeIntervalSince1970 * 1000
+    @State private var showsContinueAlert = false
     @State private var isSubmitting = false
     @State private var didAutoSubmit = false
     @State private var notice: String?
@@ -129,9 +135,18 @@ struct ChalRunRounds: View {
 
     private var timeIsUp: Bool { snapshot.remainingSeconds == 0 }
 
+    /// Enchaînement proposé : ni temps écoulé ni dernier exercice
+    /// (`requestDuelSubmission`).
+    private var canContinueSeries: Bool {
+        !timeIsUp
+            && state.exerciseIndex < state.seriesCount - 1
+            && state.exerciseIndex + 1 < ChalHome2Launch.maxExercisesPerChallenge
+            && now < match.startedAt + totalSeconds * 1000
+    }
+
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 14) {
                 ChalUiDuelChrono(
                     startedAt: match.startedAt,
                     stoppedAt: state.submittedAt,
@@ -141,39 +156,45 @@ struct ChalRunRounds: View {
                 Text("Exercice \(state.exerciseIndex + 1)/\(state.seriesCount)")
                     .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(Theme.inkSoft)
-                    .lineSpacing(5)
                     .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.top, 8)
                 if startedPenalty > 0 {
                     ChalRunNotice(
                         icon: "exclamationmark.circle",
                         text: "Tu avais déjà commencé cet exercice : ta note finale aura une pénalité de \(startedPenalty) points."
                     )
-                    .padding(.top, 12)
                 }
                 if opponentStartedBonus > 0 {
                     ChalRunNotice(
                         icon: "plus.circle",
                         text: "Ton adversaire avait déjà commencé cet exercice : ta note finale recevra un bonus de \(opponentStartedBonus) points."
                     )
-                    .padding(.top, 12)
                 }
                 statement
                 response
                 submitButton
-                    .padding(.top, 17)
-                if let waitingDeadline {
-                    waitNote(waitingDeadline)
-                        .padding(.top, 10)
-                }
+                if let waitingDeadline { waitNote(waitingDeadline) }
                 cancelButton
-                    .padding(.top, waitingDeadline == nil ? 9 : 17)
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
-            .padding(.bottom, 34)
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+            .padding(.bottom, 24)
         }
         .background(Theme.background)
+        .alert(
+            "Exercice \(state.exerciseIndex + 1) terminé",
+            isPresented: $showsContinueAlert
+        ) {
+            Button("Terminer le défi") { submit() }
+            Button("Enchaîner") {
+                if let next = ChalRunSeries.advance(state: state) {
+                    state = next
+                } else {
+                    submit()
+                }
+            }
+        } message: {
+            Text("Tu peux enchaîner avec un autre exercice. Si tu continues, tu ne pourras plus revenir sur celui-ci.")
+        }
         .onReceive(timer) { _ in tick() }
         .onDisappear { gradeTask?.cancel() }
     }
@@ -181,9 +202,8 @@ struct ChalRunRounds: View {
     // MARK: Énoncé et réponse
 
     private var statement: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: 8) {
             ChalRunSectionLabel(text: "ÉNONCÉ")
-                .padding(.bottom, 10)
             VStack(alignment: .trailing, spacing: 6) {
                 ReportExerciseButton.make(
                     profile: session.profile,
@@ -197,7 +217,7 @@ struct ChalRunRounds: View {
                 Text(LatexToUnicode.toUnicodeMath(state.exercise.context ?? ""))
                     .font(Theme.readingFont)
                     .foregroundStyle(Theme.ink)
-                    .lineSpacing(7)
+                    .lineSpacing(4)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .textSelection(.enabled)
             }
@@ -210,13 +230,11 @@ struct ChalRunRounds: View {
                     .stroke(Theme.border, lineWidth: 1)
             )
         }
-        .padding(.top, 27)
     }
 
     private var response: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: 10) {
             ChalRunSectionLabel(text: "TA RÉPONSE")
-                .padding(.bottom, 10)
             ChalRunQuestionTabs(
                 questions: state.questions,
                 activeId: state.activeQuestionId,
@@ -227,10 +245,9 @@ struct ChalRunRounds: View {
             }
             if let prompt = state.activeQuestionPrompt {
                 Text("\(duelQuestionLabel(state.activeQuestion, state.activeQuestionIndex)). \(LatexToUnicode.toUnicodeMath(prompt))")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(Theme.inkSoft)
-                    .lineSpacing(6)
-                    .padding(.bottom, 10)
+                    .lineSpacing(3)
             }
             answerEditor
             if let notice {
@@ -239,20 +256,18 @@ struct ChalRunRounds: View {
                     .foregroundStyle(Theme.like)
             }
         }
-        .padding(.top, 27)
     }
 
     private var answerEditor: some View {
         ZStack(alignment: .topLeading) {
             TextEditor(text: answerBinding)
-                .font(.system(size: 13, weight: .medium))
-                .lineSpacing(6)
-                .frame(minHeight: 160, maxHeight: 240)
+                .font(.system(size: 13))
+                .frame(minHeight: 160)
                 .scrollContentBackground(.hidden)
                 .background(Theme.surface)
-                .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
+                .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
                 .overlay(
-                    RoundedRectangle(cornerRadius: Theme.radiusLarge)
+                    RoundedRectangle(cornerRadius: Theme.radiusSmall)
                         .stroke(Theme.border, lineWidth: 1)
                 )
                 .disabled(isSubmitting)
@@ -279,7 +294,11 @@ struct ChalRunRounds: View {
 
     private var submitButton: some View {
         Button {
-            submit()
+            if canContinueSeries {
+                showsContinueAlert = true
+            } else {
+                submit()
+            }
         } label: {
             HStack(spacing: 8) {
                 if isSubmitting {
@@ -292,7 +311,7 @@ struct ChalRunRounds: View {
             }
             .frame(maxWidth: .infinity, minHeight: 52)
         }
-        .buttonStyle(DuelloPrimaryButton(radius: 17, weight: .heavy))
+        .buttonStyle(DuelloPrimaryButton())
         .disabled(isSubmitting || (!state.canSubmit && !timeIsUp))
         .opacity(isSubmitting || (!state.canSubmit && !timeIsUp) ? 0.45 : 1)
     }
@@ -304,9 +323,9 @@ struct ChalRunRounds: View {
     private func waitNote(_ deadline: Double) -> some View {
         Text("Ta copie est notée. \(match.opponent.displayName) a jusqu’à \(ChalRunFormat.deadline(deadline)) pour rendre la sienne, après quoi le défi t’est acquis par forfait.")
             .font(.system(size: 10, weight: .semibold))
-            .foregroundStyle(Theme.inkSoft)
+            .foregroundStyle(Theme.inkFaint)
             .multilineTextAlignment(.center)
-            .lineSpacing(5)
+            .lineSpacing(2)
     }
 
     private var cancelButton: some View {
@@ -314,10 +333,9 @@ struct ChalRunRounds: View {
             waitingDeadline == nil ? onAbandon() : onStopWaiting()
         } label: {
             Text(waitingDeadline == nil ? "Abandonner sans gagner d’XP" : "Ne pas attendre — défi non arbitré")
-                .font(.system(size: 11, weight: .heavy))
+                .font(.system(size: 11, weight: .bold))
                 .foregroundStyle(Theme.ink)
-                .padding(8)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: .infinity, minHeight: 40)
         }
         .buttonStyle(.plain)
         .disabled(isSubmitting && waitingDeadline == nil)
@@ -346,18 +364,19 @@ struct ChalRunRounds: View {
         isSubmitting = true
         notice = nil
         let matchRef = match
-        let exerciseRef = state.exercise
-        let production = state.submittedCopy
-        let attempted = attemptedDuelAnswers(state.exercise, state.answers)
+        let entries = ChalRunSeries.entries(state: state)
+        let gradedExercise = ChalSeries.buildExercise(subject: matchRef.subject, entries: entries)
+        let gradedAnswers = ChalSeries.buildAnswers(entries: entries)
+        let production = joinDuelAnswers(gradedExercise, gradedAnswers)
         let userRef = userId
         gradeTask = Task {
             do {
                 let verdict = try await judgeDuel(
                     match: matchRef,
                     subject: matchRef.subject,
-                    exercise: exerciseRef,
+                    exercise: gradedExercise,
                     myProduction: production,
-                    answers: attempted,
+                    answers: gradedAnswers,
                     userId: userRef,
                     token: token,
                     onWaitingForOpponent: { deadline in
@@ -417,7 +436,6 @@ struct ChalRunQuestionTabs: View {
                     }
                 }
             }
-            .padding(.bottom, 10)
         }
     }
 
@@ -438,9 +456,9 @@ struct ChalRunQuestionTabs: View {
                 }
             }
             .font(.system(size: 13, weight: .heavy))
-            .foregroundStyle(active ? Theme.surface : Theme.ink)
+            .foregroundStyle(active ? Theme.surface : Theme.inkSoft)
             .padding(.horizontal, 12)
-            .frame(minWidth: 40, minHeight: 36)
+            .padding(.vertical, 7)
             .background(active ? Theme.ink : Theme.surfaceMuted)
             .clipShape(Capsule())
             .overlay(
@@ -460,14 +478,14 @@ struct ChalRunNotice: View {
     let text: String
 
     var body: some View {
-        HStack(alignment: .top, spacing: 9) {
+        HStack(alignment: .top, spacing: 8) {
             Image(systemName: icon)
-                .font(.system(size: 20, weight: .semibold))
+                .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(Theme.ink)
             Text(text)
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(Theme.inkSoft)
-                .lineSpacing(5)
+                .lineSpacing(2)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)

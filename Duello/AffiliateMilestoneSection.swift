@@ -35,7 +35,6 @@ struct AffiliateMilestoneSection: View {
 
             Text(remainingCopy)
                 .font(.system(size: 11, weight: .semibold))
-                .lineSpacing(5)
                 .foregroundStyle(Theme.inkSoft)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 5)
@@ -55,7 +54,6 @@ struct AffiliateMilestoneSection: View {
             RoundedRectangle(cornerRadius: Theme.radiusLarge)
                 .stroke(Theme.border, lineWidth: 1)
         )
-        .padding(.top, 14)
     }
 
     /// `buildAffiliateMilestoneSummary(affiliateLifetimeEarningsMinor(wallet))`.
@@ -113,7 +111,7 @@ struct AffiliateMilestoneRow: View {
                     .fill(Theme.progressLight)
                     .frame(width: 21, height: 21)
                 Image(systemName: "checkmark")
-                    .font(.system(size: 13, weight: .bold))
+                    .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(Theme.progress)
             }
         } else {

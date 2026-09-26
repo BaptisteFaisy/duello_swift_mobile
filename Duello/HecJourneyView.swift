@@ -37,6 +37,7 @@ struct HecJourneyView: View {
     @State private var scrollOffset: CGFloat = 0
     @State private var openedBlockId: String?
     @State private var admissionOpen = false
+    @State private var confirmDeleteBlock = false
     @State private var shortcut: HecJourneyShortcut = .current
 
     @StateObject private var store: HecJourneyStore
@@ -95,6 +96,14 @@ struct HecJourneyView: View {
         let model = sceneModel
         return content(model: model)
             .background(Theme.background)
+            .alert(HecJourneyCopy.deleteBlockQuestion, isPresented: $confirmDeleteBlock) {
+                Button(HecJourneyCopy.cancelButton, role: .cancel) { }
+                Button(HecJourneyCopy.deleteButton, role: .destructive) {
+                    deleteOpenedBlock(model: model)
+                }
+            } message: {
+                Text(HecJourneyCopy.deleteBlockMessage)
+            }
             .onAppear {
                 // `scrollY.value = nextIndex * HEC_JOURNEY_NODE_GAP` : le
                 // premier cadrage se pose sans animation.
@@ -180,7 +189,7 @@ struct HecJourneyView: View {
                     && block.id != HecJourneyTimelineConstants.summerBreakBlockId,
                 onClose: { openedBlockId = nil },
                 onOpenRanking: onOpenRanking,
-                onDelete: { askDeleteConfirmation(model: model) }
+                onDelete: { confirmDeleteBlock = true }
             )
         }
     }
@@ -237,24 +246,6 @@ struct HecJourneyView: View {
         case .block:
             openedBlockId = block.id
         }
-    }
-
-    /// `deleteOpenedBlock` de la source : `AppAlert.alert('Supprimer ce bloc ?',
-    /// 'Il disparaîtra de ton parcours HEC.', [Annuler (cancel), Supprimer
-    /// (destructive)])`. Remplace l'`.alert` natif (rendu iOS standard, hors
-    /// composant partagé `AppAlert`). Aucun `options` ⇒ fenêtre non `cancelable`,
-    /// comme le RN.
-    private func askDeleteConfirmation(model: HecJourneySceneModel) {
-        AppAlert.alert(
-            HecJourneyCopy.deleteBlockQuestion,
-            HecJourneyCopy.deleteBlockMessage,
-            [
-                AppAlertButton("Annuler", style: .cancel),
-                AppAlertButton("Supprimer", style: .destructive) {
-                    deleteOpenedBlock(model: model)
-                },
-            ]
-        )
     }
 
     /// `deleteOpenedBlock` : un jalon redevient neutre, un repère disparaît.

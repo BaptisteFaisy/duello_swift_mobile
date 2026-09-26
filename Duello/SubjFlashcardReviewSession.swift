@@ -69,8 +69,6 @@ struct SubjFlashcardReviewModal: View {
     @State private var mathKeyboardOpen = false
     @State private var grading = false
     @State private var verdictPending = false
-    /// `closeConfirmationOpen.current` : garde d'ouverture de l'alerte de sortie
-    /// (le kit partagé `AppAlert` porte la présentation, pas un `.alert` natif).
     @State private var closeConfirmationOpen = false
     @State private var closing = false
 
@@ -90,6 +88,14 @@ struct SubjFlashcardReviewModal: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Theme.background.ignoresSafeArea())
+        .alert(SubjFlashcardReviewCopy.exitTitle, isPresented: $closeConfirmationOpen) {
+            Button(SubjFlashcardReviewCopy.exitKeep, role: .cancel) {}
+            Button(SubjFlashcardReviewCopy.exitConfirm, role: .destructive) {
+                abandonReview()
+            }
+        } message: {
+            Text(SubjFlashcardReviewCopy.exitMessage(sessionXp: sessionXp))
+        }
         .onChange(of: card.id) { _ in resetCard() }
         .onChange(of: reviewStep) { _ in resetCard() }
         .onChange(of: mathKeyboardOpen) { open in
@@ -218,27 +224,9 @@ struct SubjFlashcardReviewModal: View {
         }
     }
 
-    /// `requestClose` : alerte de sortie via le kit partagé, fidèle à
-    /// `Alert.alert(..., { cancelable: true, onDismiss })` du RN (fond/croix
-    /// ferment et remettent la garde à `false`, comme le bouton `cancel`).
     private func requestClose() {
         guard !closing, !closeConfirmationOpen, !verdictPending, !grading else { return }
         closeConfirmationOpen = true
-        AppAlert.alert(
-            SubjFlashcardReviewCopy.exitTitle,
-            SubjFlashcardReviewCopy.exitMessage(sessionXp: sessionXp),
-            [
-                AppAlertButton(SubjFlashcardReviewCopy.exitKeep, style: .cancel) {
-                    closeConfirmationOpen = false
-                },
-                AppAlertButton(SubjFlashcardReviewCopy.exitConfirm, style: .destructive) {
-                    abandonReview()
-                },
-            ],
-            options: AppAlertOptions(cancelable: true, onDismiss: {
-                closeConfirmationOpen = false
-            })
-        )
     }
 
     /// Sortie par la croix : masquer la fenêtre, puis signaler l'abandon.

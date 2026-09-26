@@ -54,16 +54,16 @@ struct NotificationSettingsCard: View {
         .padding(.vertical, 8)
         .background(Theme.white)
         .task { await refresh() }
-        // `Alert.alert('Réglage indisponible', …)` du hook
-        // (`usePushNotificationSettingsActions`) : rendu par la fenêtre
-        // **partagée** `AppAlert` (`AppAlertView`), jamais par `.alert` natif —
-        // le RN n'utilise aucune alerte native (`import { AppAlert as Alert }`).
-        // Sans bouton explicite, la fenêtre porte le bouton unique « Compris »
-        // (style `default`, non `cancelable`), comme le défaut du composant.
-        .onChange(of: actions.lastError) { message in
-            guard let message else { return }
-            AppAlert.alert(ConsentPushActions.unavailableTitle, message)
-            actions.lastError = nil
+        .alert(
+            ConsentPushActions.unavailableTitle,
+            isPresented: Binding(
+                get: { actions.lastError != nil },
+                set: { if !$0 { actions.lastError = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) { actions.lastError = nil }
+        } message: {
+            Text(actions.lastError ?? "")
         }
     }
 

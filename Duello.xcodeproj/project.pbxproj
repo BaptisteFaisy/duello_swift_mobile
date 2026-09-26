@@ -673,9 +673,7 @@
 		E101427A24869E2119F30490 /* ProgressStore+Stats.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38E3B2BB060ED5DF8D61AD86 /* ProgressStore+Stats.swift */; };
 		85BD5C54874B57034480B560 /* ProgressStore+Training.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA648BC6F4B86B7D348E1C37 /* ProgressStore+Training.swift */; };
 		E5C3708DCA5CD5434C9EE967 /* WhiteboardWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F9E3F30E775CC5F19A2A73C /* WhiteboardWidgets.swift */; };
-		6E05FA33F1AC748A5B774E76 /* AppAlertView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D766F49683759FDAE4E5FF0F /* AppAlertView.swift */; };
-		19054D4D17B3D4112F30C0B8 /* DropdownOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E032AADF356D1D8B31823482 /* DropdownOverlayView.swift */; };
-		F1B9829E81A0025A8C23BB68 /* DuelloBackButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA1BB3B7F15AF5B0BF47A1A4 /* DuelloBackButton.swift */; };
+		442CAEDE2B447E657C958CB1 /* ChalRunSeries.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F928DA5177DE9FF3B6B3D24 /* ChalRunSeries.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -1346,9 +1344,7 @@
 		38E3B2BB060ED5DF8D61AD86 /* ProgressStore+Stats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProgressStore+Stats.swift"; sourceTree = "<group>"; };
 		BA648BC6F4B86B7D348E1C37 /* ProgressStore+Training.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProgressStore+Training.swift"; sourceTree = "<group>"; };
 		0F9E3F30E775CC5F19A2A73C /* WhiteboardWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhiteboardWidgets.swift; sourceTree = "<group>"; };
-		D766F49683759FDAE4E5FF0F /* AppAlertView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppAlertView.swift; sourceTree = "<group>"; };
-		E032AADF356D1D8B31823482 /* DropdownOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DropdownOverlayView.swift; sourceTree = "<group>"; };
-		EA1BB3B7F15AF5B0BF47A1A4 /* DuelloBackButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuelloBackButton.swift; sourceTree = "<group>"; };
+		9F928DA5177DE9FF3B6B3D24 /* ChalRunSeries.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChalRunSeries.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -2040,9 +2036,7 @@
 				38E3B2BB060ED5DF8D61AD86 /* ProgressStore+Stats.swift */,
 				BA648BC6F4B86B7D348E1C37 /* ProgressStore+Training.swift */,
 				0F9E3F30E775CC5F19A2A73C /* WhiteboardWidgets.swift */,
-				D766F49683759FDAE4E5FF0F /* AppAlertView.swift */,
-				E032AADF356D1D8B31823482 /* DropdownOverlayView.swift */,
-				EA1BB3B7F15AF5B0BF47A1A4 /* DuelloBackButton.swift */,
+				9F928DA5177DE9FF3B6B3D24 /* ChalRunSeries.swift */,
 			);
 			path = Duello;
 			sourceTree = "<group>";
@@ -2790,9 +2784,7 @@
 				E101427A24869E2119F30490 /* ProgressStore+Stats.swift in Sources */,
 				85BD5C54874B57034480B560 /* ProgressStore+Training.swift in Sources */,
 				E5C3708DCA5CD5434C9EE967 /* WhiteboardWidgets.swift in Sources */,
-				6E05FA33F1AC748A5B774E76 /* AppAlertView.swift in Sources */,
-				19054D4D17B3D4112F30C0B8 /* DropdownOverlayView.swift in Sources */,
-				F1B9829E81A0025A8C23BB68 /* DuelloBackButton.swift in Sources */,
+				442CAEDE2B447E657C958CB1 /* ChalRunSeries.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2866,13 +2858,13 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 12;
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Duello/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Duello;
-				INFOPLIST_KEY_CFBundleShortVersionString = "1.0.0";
+				INFOPLIST_KEY_CFBundleShortVersionString = "1.0.24";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -2883,7 +2875,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.0.24;
 				PRODUCT_BUNDLE_IDENTIFIER = com.prepapp.mobile.swift;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -2898,7 +2890,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "Apple Distribution";
 				CODE_SIGN_STYLE = Manual;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 12;
 				DEVELOPMENT_TEAM = 9L7AY22737;
 				PROVISIONING_PROFILE_SPECIFIER = "duello-swift-appstore";
 				DEVELOPMENT_ASSET_PATHS = "";
@@ -2906,7 +2898,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Duello/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Duello;
-				INFOPLIST_KEY_CFBundleShortVersionString = "1.0.0";
+				INFOPLIST_KEY_CFBundleShortVersionString = "1.0.24";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -2917,7 +2909,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.0.24;
 				PRODUCT_BUNDLE_IDENTIFIER = com.prepapp.mobile.swift;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;

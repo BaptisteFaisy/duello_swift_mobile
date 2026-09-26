@@ -14,9 +14,9 @@
 //  `ChalRunAbandonVictoryView`). Le déroulé s'appuie sur les composants du
 //  lot 11-C, non sur le flux linéaire mono-exercice de `ChallengePlayerView`.
 //
-//  Limite assumée : la série de manches est ici d'un seul exercice
-//  (`seriesCount == 1`), faute de tirage multi-exercices côté serveur ; la
-//  structure `ChalRunRoundState` reste prête à en enchaîner plusieurs.
+//  La série vient de `match.exerciseSequence`, plafonnée à
+//  `maxExercisesPerChallenge`, repli mono-exercice sinon : le téléphone ne
+//  refait aucun tirage local, comme `startSession` d'Expo.
 //
 //  Cible : iOS 16, aucune API iOS 17.
 //
@@ -48,6 +48,8 @@ struct ChalIntDuelFlow: View {
     private static var emptyRound: ChalRunRoundState {
         ChalRunRoundState(
             seriesCount: 1,
+            series: [],
+            completedAnswers: [:],
             exerciseIndex: 0,
             exercise: emptyExercise,
             answers: [:],
@@ -104,7 +106,7 @@ struct ChalIntDuelFlow: View {
                 .foregroundStyle(Theme.inkSoft)
                 .multilineTextAlignment(.center)
             Button("Retour aux défis") { onFinish() }
-                .buttonStyle(DuelloPrimaryButton(radius: 17, weight: .heavy))
+                .buttonStyle(DuelloPrimaryButton())
                 .padding(.horizontal, 40)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -137,47 +139,44 @@ struct ChalIntDuelFlow: View {
         }
         do {
             let manifest = try await DuelloAPI.contentManifest()
-            guard let descriptor = descriptor(in: manifest) else {
-                phase = .unavailable("Cet énoncé n'est pas encore servi pour ce parcours.")
+            let refs = ChalRunSeries.references(match: match, cap: ChalHome2Launch.maxExercisesPerChallenge)
+            let expected = expectedBundleId()
+            var banks: [String: [DuelloAPI.ChapterExercise]] = [:]
+            var titles: [String] = []
+            var series: [DuelExercise] = []
+            for ref in refs {
+                guard let built = try await ChalRunSeries.resolveExercise(
+                    ref: ref,
+                    subject: match.subject,
+                    manifest: manifest,
+                    expectedBundleId: expected,
+                    banks: &banks
+                ) else {
+                    phase = .unavailable("L’exercice commun n’est pas disponible sur cette version de l’application.")
+                    return
+                }
+                titles.append(built.title)
+                series.append(built.exercise)
+            }
+            guard let first = series.first else {
+                phase = .unavailable("L’exercice commun n’est pas disponible sur cette version de l’application.")
                 return
             }
-            let exercises = try await DuelloAPI.chapterExercises(descriptor)
-            guard let found = exercises.first(where: { $0.key == match.exerciseId }) else {
-                phase = .unavailable("Cet énoncé n'est plus disponible dans la banque.")
-                return
-            }
-            let item = ChallengeExerciseEntry(
-                id: found.key,
-                title: found.title,
-                statement: found.statement,
-                solution: found.solution,
-                questions: nil
-            )
-            let built = chapterItemAsDuelExercise(item, match.subject)
-            exerciseTitle = found.title
+            exerciseTitle = titles[0]
             round = ChalRunRoundState(
-                seriesCount: 1,
+                seriesCount: series.count,
+                series: series,
+                completedAnswers: [:],
                 exerciseIndex: 0,
-                exercise: built,
-                answers: Dictionary(uniqueKeysWithValues: built.questions.map { ($0.id, "") }),
-                activeQuestionId: built.questions.first?.id ?? "",
+                exercise: first,
+                answers: Dictionary(uniqueKeysWithValues: first.questions.map { ($0.id, "") }),
+                activeQuestionId: first.questions.first?.id ?? "",
                 submittedAt: nil
             )
             phase = .running
         } catch {
             phase = .unavailable("Impossible de charger l'énoncé : \(error.localizedDescription)")
         }
-    }
-
-    /// Banque servie du chapitre du match, priorisée sur le parcours du joueur
-    /// (même résolution que `ChallengePlayerView`).
-    private func descriptor(in manifest: DuelloAPI.ContentManifest) -> DuelloAPI.ContentChapterDescriptor? {
-        let chapterId = match.chapterKey
-            .split(separator: ":", omittingEmptySubsequences: false)
-            .last.map(String.init) ?? match.chapterKey
-        let candidates = (manifest.chapters ?? []).filter { $0.chapterId == chapterId }
-        guard let expected = expectedBundleId() else { return candidates.first }
-        return candidates.first(where: { $0.bundleId == expected }) ?? candidates.first
     }
 
     /// Banque servie attendue pour le parcours du joueur (`<scope>-statements`).
@@ -201,10 +200,14 @@ struct ChalIntDuelFlow: View {
     // MARK: Issues
 
     private func handleVerdict(_ verdict: DuelVerdict) {
+        let entries = ChalRunSeries.entries(state: round)
+        let gradedExercise = ChalSeries.buildExercise(subject: match.subject, entries: entries)
+        let gradedAnswers = ChalSeries.buildAnswers(entries: entries)
         phase = .result(ChalIntDuelResult.build(
             verdict: verdict,
             match: match,
-            exercise: round.exercise,
+            exercise: gradedExercise,
+            seriesAnswers: gradedAnswers,
             state: round,
             profile: session.profile
         ))

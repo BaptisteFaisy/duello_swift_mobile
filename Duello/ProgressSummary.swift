@@ -1,15 +1,5 @@
 import SwiftUI
 
-/// Identité du menu du filtre de matières dans le registre des menus ancrés
-/// (`DropdownOverlay`) : l'`anchorRef`/`coordinationScope` du RN
-/// (`EnhancedProgressScreen.tsx:322-323`).
-enum ProgressSubjectPicker {
-    /// Identité du déclencheur (`subjectPickerTriggerRef`).
-    static let anchorID = "progress-subject-picker"
-    /// `coordinationScope="enhanced-progress"`.
-    static let scope = "enhanced-progress"
-}
-
 /// En-tête de l'écran « Progression » : filtre de matières à sélection multiple
 /// puis, en mode embarqué, résumé compact de toutes les matières. Extension de
 /// `DuelloProgressView` (voir `ProgressScreen.swift` pour le découpage).
@@ -33,7 +23,7 @@ extension DuelloProgressView {
                         .foregroundStyle(Theme.ink)
                     Spacer(minLength: 8)
                     Image(systemName: subjectPickerOpen ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(.system(size: 15, weight: .semibold))
                         .foregroundStyle(Theme.inkSoft)
                 }
                 .padding(.vertical, 12)
@@ -45,25 +35,16 @@ extension DuelloProgressView {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            // Déclencheur du menu ancré : sa position est publiée dans le
-            // registre pour que `DropdownOverlay` (posé à la racine de l'écran,
-            // `ProgressScreen.swift`) ancre le panneau juste dessous.
-            .dropdownAnchor(
-                ProgressSubjectPicker.anchorID,
-                in: pickerRegistry,
-                scope: ProgressSubjectPicker.scope,
-                onRequestOpen: { subjectPickerOpen = true }
-            )
+
+            if subjectPickerOpen {
+                subjectPickerPanel
+                    .padding(.top, 8)
+            }
         }
     }
 
     /// Panneau déplié du filtre : raccourcis, puis une case par matière.
-    ///
-    /// Rendu par `DropdownOverlay` (racine de l'écran) : le panneau porte le
-    /// `marginTop` de 8 de `pickerPanel` (RN) et son ombre ; l'écart de 6 du
-    /// voile s'y ajoute (écart réel déclencheur→panneau = 8 + 6 = 14), et le
-    /// voile rogne l'ombre comme l'`overflow: hidden` du RN.
-    var subjectPickerPanel: some View {
+    private var subjectPickerPanel: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 8) {
                 quickButton("Tout") { selectedSubjectNames = Set(subjectNames) }
@@ -94,7 +75,6 @@ extension DuelloProgressView {
         .background(Theme.surface)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
         .duelloShadow()
-        .padding(.top, 8)
     }
 
     /// Raccourci de sélection du filtre (« Tout », « Aucune »).
@@ -120,7 +100,7 @@ extension DuelloProgressView {
                 .stroke(checked ? Theme.primary : Theme.inkFaint, lineWidth: 2)
             if checked {
                 Image(systemName: "checkmark")
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.system(size: 13, weight: .bold))
                     .foregroundStyle(Theme.surface)
             }
         }
@@ -153,7 +133,6 @@ extension DuelloProgressView {
                     Text(subject.name)
                         .font(.system(size: 15, weight: .black))
                         .foregroundStyle(Theme.ink)
-                        .lineSpacing(5)
 
                     EmbeddedMetric(
                         label: "Exercices",

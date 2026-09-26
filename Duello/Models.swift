@@ -203,9 +203,19 @@ struct MatchView: Codable, Equatable, Identifiable {
     var subject: String
     var chapterKey: String
     var exerciseId: String
+    /// Série commune, déterminée dès l'appariement (`exerciseSequence`,
+    /// absente des appariements mono-exercice).
+    var exerciseSequence: [ChallengeExerciseRef]?
     var durationMinutes: Int
     var startedAt: Double
     var opponent: Opponent
+}
+
+/// Référence d'un exercice de la série, servie par le serveur
+/// (`ChallengeExerciseRef` de `utils/matchmaking.ts`).
+struct ChallengeExerciseRef: Codable, Equatable {
+    var chapterKey: String
+    var exerciseId: String
 }
 
 /// État de la file, tel que le serveur le décrit au téléphone.

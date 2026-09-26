@@ -9,10 +9,9 @@
 //                                currentTrackChoices, isFirstYear, isLyceeYear)
 //
 //  `TrackSettingsView` (lot Account) édite déjà filière/année/option/prépa/
-//  ville via des `Picker` segmentés, sans description. Cette vue-ci porte
-//  l'écran complet de `AccountTrackScreen.tsx` : chevron de retour, chapeau
-//  (titre + sous-titre dépendant de l'année), puis le choix de filière en
-//  cartes radio, avec la description de chaque filière et l'état accessible
+//  ville via des `Picker` segmentés, sans description. Cette vue-ci porte **ce
+//  qui manque** : le choix de filière en cartes radio, avec la description de
+//  chaque filière, le sous-titre dépendant de l'année et l'état accessible
 //  radio/coché. Aucun type existant n'est redéfini (`OnbFlowAcademic` reste
 //  utilisé par l'onboarding, il n'est pas touché).
 //
@@ -68,44 +67,16 @@ struct AcctSubTrackChoiceList: View {
     let year: String
     let selected: String
     let onSelect: (String) -> Void
-    /// `onBack` de la source : le chevron de retour est toujours rendu, comme
-    /// `AccountTrackScreen.tsx` qui place un `BackButton` en tête de contenu.
-    var onBack: (() -> Void)? = nil
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                backButton
-                heading
-                    .padding(.top, 28)
-                VStack(spacing: 10) {
-                    ForEach(AcctSubTrackCatalog.choices(forYear: year), id: \.self) { track in
-                        optionRow(track)
-                    }
+        VStack(alignment: .leading, spacing: 24) {
+            heading
+            VStack(spacing: 10) {
+                ForEach(AcctSubTrackCatalog.choices(forYear: year), id: \.self) { track in
+                    optionRow(track)
                 }
-                .padding(.top, 24)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 24)
-            .padding(.top, 8)
-            .padding(.bottom, 36)
         }
-        .scrollIndicators(.hidden)
-        .background(Theme.background)
-    }
-
-    /// `BackButton` de la source (`iconColor=colors.ink`, `iconSize=20`,
-    /// `style={alignSelf:'flex-start', minHeight:40}`) : composant partagé
-    /// `DuelloBackButton` — boîte 40×40, chevron centré puis `translateX(-4)`.
-    /// L'alignement au bord du contenu (`alignSelf:'flex-start'`) est porté par
-    /// le `VStack(alignment: .leading)` parent, pas par la boîte.
-    private var backButton: some View {
-        DuelloBackButton(
-            iconColor: Theme.ink,
-            iconSize: 20,
-            accessibilityLabel: "Retour à mes informations",
-            action: { onBack?() }
-        )
     }
 
     private var heading: some View {
@@ -115,7 +86,6 @@ struct AcctSubTrackChoiceList: View {
                 .foregroundStyle(Theme.ink)
             Text("Les filières proposées correspondent à ta \(year).")
                 .font(.system(size: 13, weight: .semibold))
-                .lineSpacing(6)
                 .foregroundStyle(Theme.inkSoft)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -135,15 +105,14 @@ struct AcctSubTrackChoiceList: View {
                         .foregroundStyle(isSelected ? Theme.surface : Theme.ink)
                     Text(description)
                         .font(.system(size: 11, weight: .semibold))
-                        .lineSpacing(5)
                         .foregroundStyle(isSelected ? Theme.primaryLight : Theme.inkSoft)
                         .multilineTextAlignment(.leading)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 if isSelected {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 22))
+                    Image(systemName: "checkmark.circle")
+                        .font(.system(size: 22, weight: .semibold))
                         .foregroundStyle(Theme.surface)
                 }
             }

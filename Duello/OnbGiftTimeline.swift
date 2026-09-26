@@ -194,7 +194,7 @@ struct OnbGiftDayBadge: View {
     var body: some View {
         let motion = badgeMotion
 
-        return VStack(spacing: 0) {
+        return VStack(spacing: 1) {
             Text("\(PremOfferCatalog.trialDays) jours")
                 .font(.system(size: 18, weight: .black))
                 .tracking(0.3)

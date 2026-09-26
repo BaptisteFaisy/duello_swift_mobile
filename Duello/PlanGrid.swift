@@ -84,18 +84,15 @@ struct PlanTimelineBlock: View {
                     Text(compact ? "\(session.startTime) · \(session.title)" : session.title)
                         .font(.system(size: tiny ? 9 : 12, weight: .heavy))
                         .foregroundStyle(Theme.ink)
-                        .lineSpacing(tiny ? 3 : 0)
                         .lineLimit(1)
                     if !compact {
                         Text(session.subtitle)
                             .font(.system(size: 10, weight: .medium))
                             .foregroundStyle(Theme.inkSoft)
-                            .lineSpacing(4)
                             .lineLimit(1)
                         Text("\(session.startTime)–\(session.endTime) · \(PlanDateEngine.formatDuration(session.durationMinutes))")
                             .font(.system(size: 9, weight: .bold))
                             .foregroundStyle(Theme.inkFaint)
-                            .padding(.top, 1)
                             .lineLimit(1)
                     }
                 }
@@ -115,19 +112,10 @@ struct PlanTimelineBlock: View {
             .clipped()
             .opacity(session.isDone ? 0.5 : 1)
         }
-        .buttonStyle(PlanPressOpacityStyle())
+        .buttonStyle(.plain)
         .padding(.leading, 42)
         .offset(y: top)
         .accessibilityLabel("\(session.startTime) \(session.title) — \(session.subtitle), \(PlanDateEngine.formatDuration(session.durationMinutes))")
-    }
-}
-
-/// Retour d'appui de la source (`agendaSessionPressed` du bloc de séance,
-/// `todayButtonPressed` du bouton « Aujourd'hui ») : opacité 0.7 tant que le
-/// doigt reste posé.
-struct PlanPressOpacityStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label.opacity(configuration.isPressed ? 0.7 : 1)
     }
 }
 
@@ -155,7 +143,7 @@ struct PlanDayPage: View {
                     .font(.system(size: 14, weight: .heavy))
                     .foregroundStyle(Theme.ink)
                     .lineLimit(1)
-                Spacer(minLength: 12)
+                Spacer(minLength: 8)
                 Text(sessions.isEmpty
                      ? "Rien de prévu"
                      : "\(sessions.count) \(sessions.count > 1 ? "blocs" : "bloc") · \(PlanDateEngine.formatDuration(plannedMinutes))")
@@ -188,7 +176,7 @@ struct PlanDayPage: View {
                 if sessions.isEmpty {
                     HStack(spacing: 7) {
                         Image(systemName: "leaf")
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.system(size: 13, weight: .semibold))
                             .foregroundStyle(Theme.inkFaint)
                         Text("Journée libre")
                             .font(.system(size: 10, weight: .bold))

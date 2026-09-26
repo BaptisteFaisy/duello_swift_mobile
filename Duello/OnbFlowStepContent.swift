@@ -63,19 +63,17 @@ struct OnbFlowStepContent: View {
     /// (`(level === 'Lycée') === isLyceeFlow` et année connue de ce monde).
     private var levelStep: some View {
         OnbUiChoiceSection(dark: true) {
-            VStack(alignment: .leading, spacing: 9) {
-                ForEach(OnbUiConstants.onboardingLevels, id: \.self) { level in
-                    OnbUiChoiceChip(
-                        label: level,
-                        isSelected: (level == "Lycée") == coordinator.isLyceeFlow
-                            && (coordinator.isLyceeFlow
-                                || OnbUiConstants.years.contains(coordinator.profile.year)
-                                || OnbFlowAcademic.lyceeYears.contains(coordinator.profile.year)),
-                        action: { coordinator.chooseOnboardingLevel(level) },
-                        wide: true,
-                        dark: true
-                    )
-                }
+            ForEach(OnbUiConstants.onboardingLevels, id: \.self) { level in
+                OnbUiChoiceChip(
+                    label: level,
+                    isSelected: (level == "Lycée") == coordinator.isLyceeFlow
+                        && (coordinator.isLyceeFlow
+                            || OnbUiConstants.years.contains(coordinator.profile.year)
+                            || OnbFlowAcademic.lyceeYears.contains(coordinator.profile.year)),
+                    action: { coordinator.chooseOnboardingLevel(level) },
+                    wide: true,
+                    dark: true
+                )
             }
         }
     }
@@ -84,11 +82,13 @@ struct OnbFlowStepContent: View {
     /// `LYCEE_YEARS` au lycée, `YEARS` en prépa).
     private var yearStep: some View {
         // `choiceGrid` de la source : `flexDirection: 'row', flexWrap: 'wrap',
-        // gap: 9` — les années s'affichent côte à côte, à leur largeur de
-        // contenu (deux ou trois libellés courts, jamais de retour à la ligne
-        // sur iPhone). Un `LazyVGrid` leur imposerait des colonnes de largeur
-        // égale, que la source n'a pas.
-        HStack(alignment: .top, spacing: 9) {
+        // gap: 9` — les années s'affichent côte à côte et passent à la ligne
+        // au besoin (les puces `wide` des autres étapes restent en colonne).
+        LazyVGrid(
+            columns: [GridItem(.adaptive(minimum: 110))],
+            alignment: .leading,
+            spacing: 9
+        ) {
             ForEach(coordinator.yearChoices, id: \.self) { year in
                 OnbUiChoiceChip(
                     label: year,
@@ -103,19 +103,17 @@ struct OnbFlowStepContent: View {
     /// `current-track` : la filière actuelle (`onboardingCurrentTrackChoices`).
     private var currentTrackStep: some View {
         OnbUiChoiceSection(dark: true) {
-            VStack(alignment: .leading, spacing: 9) {
-                // Filières indexées par position : la source peut renvoyer deux
-                // fois « PT » en 2e année (`SECOND_YEAR_TRACKS`), ce qui ferait
-                // lever `ForEach(… id: \.self)` sur identifiants dupliqués.
-                ForEach(Array(coordinator.currentTrackChoices.enumerated()), id: \.offset) { _, track in
-                    OnbUiChoiceChip(
-                        label: track,
-                        isSelected: coordinator.path.currentTrack == track,
-                        action: { coordinator.chooseCurrentTrack(track) },
-                        wide: true,
-                        dark: true
-                    )
-                }
+            // Filières indexées par position : la source peut renvoyer deux
+            // fois « PT » en 2e année (`SECOND_YEAR_TRACKS`), ce qui ferait
+            // lever `ForEach(… id: \.self)` sur identifiants dupliqués.
+            ForEach(Array(coordinator.currentTrackChoices.enumerated()), id: \.offset) { _, track in
+                OnbUiChoiceChip(
+                    label: track,
+                    isSelected: coordinator.path.currentTrack == track,
+                    action: { coordinator.chooseCurrentTrack(track) },
+                    wide: true,
+                    dark: true
+                )
             }
         }
     }
@@ -126,18 +124,14 @@ struct OnbFlowStepContent: View {
             Text("Nous gardons cette information pour tes révisions et tes prérequis de concours.")
                 .font(.system(size: 13))
                 .foregroundStyle(Theme.inkSoft)
-                // `pathExplanation.lineHeight` 19 − 13.
-                .lineSpacing(6)
             OnbUiChoiceSection(label: "Quelle filière suivais-tu en 1re année ?") {
-                VStack(alignment: .leading, spacing: 9) {
-                    ForEach(coordinator.originChoices, id: \.self) { track in
-                        OnbUiChoiceChip(
-                            label: track,
-                            isSelected: coordinator.path.firstYearTrack == track,
-                            action: { coordinator.chooseOrigin(track) },
-                            wide: true
-                        )
-                    }
+                ForEach(coordinator.originChoices, id: \.self) { track in
+                    OnbUiChoiceChip(
+                        label: track,
+                        isSelected: coordinator.path.firstYearTrack == track,
+                        action: { coordinator.chooseOrigin(track) },
+                        wide: true
+                    )
                 }
             }
         }
@@ -148,16 +142,14 @@ struct OnbFlowStepContent: View {
     /// page n'existe pas en 2de (aucun choix).
     private var specialtyStep: some View {
         OnbUiChoiceSection(dark: true) {
-            VStack(alignment: .leading, spacing: 9) {
-                ForEach(coordinator.lyceeSpecialtyChoices) { choice in
-                    OnbUiChoiceChip(
-                        label: choice.label,
-                        isSelected: coordinator.path.currentOption == choice.value,
-                        action: { coordinator.chooseLyceeSpecialty(choice.value) },
-                        wide: true,
-                        dark: true
-                    )
-                }
+            ForEach(coordinator.lyceeSpecialtyChoices) { choice in
+                OnbUiChoiceChip(
+                    label: choice.label,
+                    isSelected: coordinator.path.currentOption == choice.value,
+                    action: { coordinator.chooseLyceeSpecialty(choice.value) },
+                    wide: true,
+                    dark: true
+                )
             }
         }
     }
@@ -165,16 +157,14 @@ struct OnbFlowStepContent: View {
     /// `options` : le niveau de mathématiques (`onboardingMathOptionChoices`).
     private var optionsStep: some View {
         OnbUiChoiceSection(dark: true) {
-            VStack(alignment: .leading, spacing: 9) {
-                ForEach(coordinator.mathOptions) { option in
-                    OnbUiChoiceChip(
-                        label: option.label,
-                        isSelected: coordinator.path.currentOption.hasPrefix(option.label),
-                        action: { coordinator.chooseOption(option) },
-                        wide: true,
-                        dark: true
-                    )
-                }
+            ForEach(coordinator.mathOptions) { option in
+                OnbUiChoiceChip(
+                    label: option.label,
+                    isSelected: coordinator.path.currentOption.hasPrefix(option.label),
+                    action: { coordinator.chooseOption(option) },
+                    wide: true,
+                    dark: true
+                )
             }
         }
     }
@@ -215,8 +205,6 @@ struct OnbFlowStepContent: View {
                 .font(.system(size: 12))
                 .foregroundStyle(Theme.inkSoft)
                 .multilineTextAlignment(.center)
-                // `helperText.lineHeight` 18 − 12.
-                .lineSpacing(6)
                 .frame(maxWidth: .infinity)
         }
     }
@@ -240,8 +228,6 @@ struct OnbFlowStepContent: View {
                 .font(.system(size: 12))
                 .foregroundStyle(OnbFlowPalette.helper)
                 .multilineTextAlignment(.center)
-                // `helperText.lineHeight` 18 − 12.
-                .lineSpacing(6)
                 .frame(maxWidth: .infinity)
         }
     }
@@ -264,8 +250,7 @@ struct OnbFlowStepContent: View {
                     icon: "mail",
                     keyboardType: .emailAddress,
                     autoCapitalize: .none,
-                    dark: true,
-                    whiteBorder: true
+                    dark: true
                 ))
             }
             OnbFlowProviderButtons(

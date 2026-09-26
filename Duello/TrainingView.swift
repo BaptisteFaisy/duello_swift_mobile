@@ -94,7 +94,7 @@ struct TrainingView: View {
                     }
                     .listRowSeparator(.hidden)
                     .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 8, trailing: 20))
+                    .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
                 }
             } footer: {
                 Text("Choisis une matière pour voir son programme et lancer un entraînement.")
@@ -124,29 +124,38 @@ private struct SubjectRow: View {
     let subject: TrackSubject
 
     var body: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: 12) {
             ZStack {
-                RoundedRectangle(cornerRadius: 15)
+                RoundedRectangle(cornerRadius: Theme.radiusSmall)
                     .fill(Theme.primaryLight)
-                    .frame(width: 44, height: 44)
+                    .frame(width: 42, height: 42)
                 Image(systemName: subject.icon)
-                    .font(.system(size: 20))
-                    .foregroundStyle(Theme.primary)
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(Theme.ink)
             }
-            Text(subject.name)
-                .font(.system(size: 16, weight: .heavy))
-                .foregroundStyle(Theme.ink)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            Image(systemName: "chevron.forward")
-                .font(.system(size: 20))
-                .foregroundStyle(Theme.inkSoft)
-                .frame(width: 44, alignment: .trailing)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(subject.name)
+                    .font(.system(size: 16, weight: .heavy))
+                    .foregroundStyle(Theme.ink)
+                if let fullName = subject.fullName {
+                    Text(fullName)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Theme.inkFaint)
+                        .lineLimit(1)
+                }
+            }
+            Spacer()
+            Text("\(subject.chapters.count) ch.")
+                .font(.system(size: 12, weight: .heavy))
+                .foregroundStyle(Theme.inkFaint)
         }
-        .padding(16)
+        .padding(12)
         .background(Theme.surface)
-        .clipShape(RoundedRectangle(cornerRadius: 18))
-        // `...cardShadow` de `styles.subjectCard` (0/2, opacité 0.04, rayon 8).
-        .shadow(color: Theme.ink.opacity(0.04), radius: 8, x: 0, y: 2)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.radiusMedium)
+                .stroke(Theme.border, lineWidth: 1)
+        )
     }
 }
 
@@ -164,7 +173,7 @@ struct ChapterListView: View {
                                 .font(.system(size: 15, weight: .semibold))
                                 .foregroundStyle(Theme.inkFaint)
                             Text(chapter.name)
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(Theme.readingFont)
                                 .foregroundStyle(Theme.ink)
                             Spacer()
                         }

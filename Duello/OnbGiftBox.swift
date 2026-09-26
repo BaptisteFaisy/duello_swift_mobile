@@ -53,7 +53,9 @@ struct OnbGiftBox: View {
         let scaleY = 1 - float * 0.02 * calm - squash * 0.18 + burst * 0.4
 
         return ZStack {
-            OnbGiftGlyph(size: 48, color: OnbGiftTimeline.giftWhite)
+            Image(systemName: "gift")
+                .font(.system(size: 48, weight: .regular))
+                .foregroundStyle(OnbGiftTimeline.giftWhite)
             OnbGiftCracks(crackStage: crackStage)
         }
         .frame(width: Self.badgeSize, height: Self.badgeSize)
@@ -92,43 +94,6 @@ struct OnbGiftBox: View {
 
     private static let badgeSize: CGFloat = 88
     private static let flashSize: CGFloat = 200
-}
-
-/// `GiftGlyph` : le pictogramme cadeau **plein** de la source — dessiné, et non
-/// pris dans une police d'icônes : une icône cadeau usuelle laisse le ruban en
-/// creux, ce qui percerait un petit carré sombre au milieu du cadeau.
-///
-/// Reproduit le SVG `0 0 48 48` de `GiftGlyph` (`OnboardingPremiumGiftBox.tsx`) :
-/// deux boucles de nœud tracées (rayon 4,6, trait 2), un couvercle et une boîte
-/// arrondis, en blanc.
-private struct OnbGiftGlyph: View {
-    let size: CGFloat
-    let color: Color
-
-    var body: some View {
-        let s = size / 48
-        ZStack {
-            loop(cx: 18.2, cy: 9.6, scale: s)
-            loop(cx: 29.8, cy: 9.6, scale: s)
-            RoundedRectangle(cornerRadius: 3 * s)
-                .fill(color)
-                .frame(width: 39 * s, height: 10.5 * s)
-                .position(x: (4 + 39 / 2) * s, y: (13.5 + 10.5 / 2) * s)
-            RoundedRectangle(cornerRadius: 3.5 * s)
-                .fill(color)
-                .frame(width: 32 * s, height: 20 * s)
-                .position(x: (7 + 32 / 2) * s, y: (24 + 20 / 2) * s)
-        }
-        .frame(width: size, height: size)
-    }
-
-    /// Une boucle du nœud : cercle tracé (non rempli) de rayon 4,6.
-    private func loop(cx: CGFloat, cy: CGFloat, scale: CGFloat) -> some View {
-        Circle()
-            .stroke(color, lineWidth: 2 * scale)
-            .frame(width: 4.6 * 2 * scale, height: 4.6 * 2 * scale)
-            .position(x: cx * scale, y: cy * scale)
-    }
 }
 
 /// `GiftCracks` : segments posés sur le cadeau, révélés tap après tap.

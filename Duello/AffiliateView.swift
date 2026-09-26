@@ -11,10 +11,9 @@ import SwiftUI
 // compatibilité, code d'affiliation, carte Stripe, formulaire de retrait, avis
 // d'erreur et de succès, historique des retraits.
 //
-// Chaque section porte la marge haute de la source (`marginTop` par carte) :
-// l'empilement se fait donc sans espacement implicite. Le portefeuille est relu
-// au retour au premier plan via `scenePhase` (équivalent de l'écouteur `AppState`
-// de React Native).
+// Écarts assumés : l'espacement est uniforme (`14`) là où la source pose des
+// marges par carte, et le portefeuille est relu au retour au premier plan via
+// `scenePhase` (équivalent de l'écouteur `AppState` de React Native).
 
 /// Espace affiliation : gains, paliers, portefeuille et retraits.
 struct AffiliateView: View {
@@ -28,7 +27,7 @@ struct AffiliateView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 14) {
                 AffiliateScreenHeader(
                     onBack: goBack,
                     refreshing: controller.refreshing,
@@ -50,7 +49,6 @@ struct AffiliateView: View {
             .padding(.bottom, 42)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .scrollIndicators(.hidden)
         .background(Theme.surface)
         .task { await controller.load(token: session.token) }
         .onChange(of: scenePhase) { phase in

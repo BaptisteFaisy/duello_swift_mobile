@@ -92,8 +92,7 @@ struct CtdDocumentViewer: View {
         }
         .frame(maxWidth: .infinity)
         .frame(height: height)
-        // `container.backgroundColor` du lecteur Expo : `#E9E9E7`.
-        .background(Color(hex: 0xE9E9E7))
+        .background(Theme.surfaceMuted)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
         .task(id: loadKey) { load() }
     }
@@ -138,7 +137,6 @@ struct CtdDocumentViewer: View {
         if type == "error" { failed = true }
     }
 
-    /// `status` du lecteur Expo : colonne centrée, `gap: 10`, `padding: 24`.
     private var loading: some View {
         VStack(spacing: 10) {
             ProgressView()
@@ -148,15 +146,12 @@ struct CtdDocumentViewer: View {
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(Theme.inkSoft)
         }
-        .padding(24)
     }
 
     private var failure: some View {
         VStack(spacing: 10) {
             Text("Le cours n’a pas pu être ouvert.")
-                // `errorText` : graisse par défaut (400), `lineHeight: 20`.
-                .font(.system(size: 14, weight: .regular))
-                .lineSpacing(6)
+                .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(Theme.inkSoft)
                 .multilineTextAlignment(.center)
             Button { retryRevision += 1 } label: {
@@ -179,20 +174,15 @@ struct CtdDocumentViewer: View {
 
 /// Bouton d'ouverture plein écran, posé sur le lecteur.
 ///
-/// Reprend `courseFullscreenButton` de la section « Mon cours » de
-/// `SubjectsScreen.tsx` (lignes 10970-10983) : carré arrondi blanc à bord fin,
-/// posé en haut à droite du document (`top: 10`, `right: 10`).
-///
-/// Note de glyphe : le source utilise l'Ionicons `expand-outline` (taille 22) ;
-/// le SF Symbol `arrow.up.left.and.arrow.down.right` en est le plus proche
-/// (quatre flèches en diagonale), sans être identique (épaisseur de trait).
+/// Reprend le bouton de la section « Mon cours » de `SubjectsScreen.tsx` :
+/// carré arrondi blanc à bord fin, posé en haut à droite du document.
 struct CtdFullscreenButton: View {
     let onOpen: () -> Void
 
     var body: some View {
         Button(action: onOpen) {
             Image(systemName: "arrow.up.left.and.arrow.down.right")
-                .font(.system(size: 22, weight: .bold))
+                .font(.system(size: 15, weight: .bold))
                 .foregroundStyle(Theme.ink)
                 .frame(width: 42, height: 42)
                 .background(Theme.surface.opacity(0.94))

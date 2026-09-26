@@ -540,6 +540,8 @@ public extension TextField where Label == Text {
     // Variantes `axis:` — iOS 16, utilisées pour les champs multilignes.
     init(_ titleKey: LocalizedStringKey, text: Binding<String>, axis: Axis) {}
     init<S: StringProtocol>(_ title: S, text: Binding<String>, axis: Axis) {}
+    init(_ titleKey: LocalizedStringKey, text: Binding<String>, prompt: Text?, axis: Axis) {}
+    init<S: StringProtocol>(_ title: S, text: Binding<String>, prompt: Text?, axis: Axis) {}
     init(_ titleKey: LocalizedStringKey, text: Binding<String>, onEditingChanged: @escaping (Bool) -> Void, onCommit: @escaping () -> Void) {}
     init<S: StringProtocol>(_ title: S, text: Binding<String>, onEditingChanged: @escaping (Bool) -> Void, onCommit: @escaping () -> Void) {}
     init<V>(_ titleKey: LocalizedStringKey, value: Binding<V>, formatter: Formatter) {}

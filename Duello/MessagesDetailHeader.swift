@@ -15,14 +15,9 @@ struct DetailHeader: View {
     let onBack: () -> Void
 
     var body: some View {
-        HStack(spacing: 0) {
-            DuelloBackButton(
-                iconSize: 20,
-                accessibilityLabel: "Retour",
-                action: onBack
-            )
+        HStack(spacing: 10) {
+            DetailBackButton(action: onBack)
             avatarView
-                .padding(.leading, 9)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(title)
@@ -34,7 +29,6 @@ struct DetailHeader: View {
                     .foregroundStyle(Theme.inkSoft)
                     .lineLimit(1)
             }
-            .padding(.leading, 10)
 
             Spacer(minLength: 0)
         }
@@ -66,16 +60,31 @@ struct DetailHeader: View {
                     .fill(background)
                     .frame(width: 39, height: 39)
                 Image(systemName: name)
-                    .font(.system(size: 19, weight: .semibold))
+                    .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(Theme.ink)
             }
         }
     }
 }
 
-// Le bouton retour local (`DetailBackButton`) a été retiré en vague 3 : il
-// ré-implémentait ce que le composant partagé `DuelloBackButton`
-// (`DuelloBackButton.swift`, port de `BackButton.tsx`) porte désormais — boîte
-// 40 × 40, chevron `ink` décalé de −4 (`translateX`), sans fond/bord/rayon.
-// `DetailHeader` l'appelle directement (`iconSize: 20`, libellé « Retour »,
-// comme `MessagesScreen.tsx:428` / `:488`).
+/// Bouton de retour en pastille, comme le `BackButton` d'Expo.
+struct DetailBackButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "chevron.left")
+                .font(.system(size: 16, weight: .bold))
+                .foregroundStyle(Theme.ink)
+                .frame(width: 38, height: 38)
+                .background(Theme.surface)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(Theme.border, lineWidth: 1)
+                )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Retour")
+    }
+}

@@ -15,7 +15,7 @@
 //  Compléments portés :
 //    - chargement (« Chargement… ») et erreur de chargement + « Réessayer » ;
 //    - erreur en ligne discrète quand une liste est déjà affichée ;
-//    - confirmation `AppAlert` (fenêtre partagée) avant déblocage (texte source exact) ;
+//    - confirmation `Alert` avant déblocage (texte source exact) ;
 //    - état occupé du bouton (spinner, boutons désactivés pendant l'appel) ;
 //    - chapeau « SÉCURITÉ » + titre ;
 //    - pastille de présence (`SocPresenceStore`, AvatarPresence) et photo ;
@@ -42,86 +42,73 @@ struct AcctSubBlockedUsersView: View {
     @State private var errorMessage = ""
     @State private var attempt = 0
     @State private var unblockingId: String? = nil
+    @State private var pendingUnblock: ReportBlockedProfile? = nil
 
     private static let loadErrorMessage = "Impossible de charger les comptes bloqués."
     private static let unblockErrorMessage = "Impossible de débloquer ce compte."
     private static let unblockConfirmationMessage = "Ce compte et le tien pourront à nouveau se trouver dans l’annuaire et interagir sur Duello."
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    explanationCard
-                    stateContent
-                        .padding(.top, 16)
-                    if !errorMessage.isEmpty && !profiles.isEmpty {
-                        inlineError
-                            .padding(.top, 12)
-                    }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                backButton
+                header
+                explanationCard
+                stateContent
+                if !errorMessage.isEmpty && !profiles.isEmpty {
+                    inlineError
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
-                .padding(.bottom, 36)
             }
-            .scrollIndicators(.hidden)
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+            .padding(.bottom, 36)
         }
         .background(Theme.background)
         .task(id: attempt) { await load() }
+        .alert(
+            "Débloquer \(pendingUnblock?.displayName ?? "") ?",
+            isPresented: confirmBinding,
+            presenting: pendingUnblock
+        ) { member in
+            Button("Annuler", role: .cancel) {}
+            Button("Débloquer") { performUnblock(member) }
+        } message: { _ in
+            Text(Self.unblockConfirmationMessage)
+        }
     }
 
-    /// `requestUnblock` de la source : la confirmation passe par la fenêtre
-    /// **partagée** `AppAlert` (le RN n'utilise aucune alerte native —
-    /// `import { AppAlert as Alert }`), bouton `cancel` « Annuler » puis bouton
-    /// primaire « Débloquer ». Aucune option : fenêtre non `cancelable`, sans
-    /// croix. La fenêtre est montée à la racine via `.appAlertHost()`
-    /// (`DuelloApp.swift`) — hors de ce fichier.
-    private func requestUnblock(_ member: ReportBlockedProfile) {
-        AppAlert.alert(
-            "Débloquer \(member.displayName) ?",
-            Self.unblockConfirmationMessage,
-            [
-                AppAlertButton("Annuler", style: .cancel),
-                AppAlertButton("Débloquer") { performUnblock(member) },
-            ]
+    /// `pendingUnblock != nil` pilote la boîte de confirmation.
+    private var confirmBinding: Binding<Bool> {
+        Binding(
+            get: { pendingUnblock != nil },
+            set: { if !$0 { pendingUnblock = nil } }
         )
     }
 
-    /// En-tête (`header` de la source) : chevron puis chapeau « SÉCURITÉ » et
-    /// titre, sur une seule ligne (`flexDirection: row`, `gap: 8`), **hors** du
-    /// défilement — le RN le place en frère de la `ScrollView`, pas dedans.
-    private var header: some View {
-        HStack(alignment: .center, spacing: 8) {
-            backButton
-            VStack(alignment: .leading, spacing: 2) {
-                Text("SÉCURITÉ")
-                    .font(.system(size: 10, weight: .black))
-                    .tracking(1.1)
-                    .foregroundStyle(Theme.inkSoft)
-                Text("Comptes bloqués")
-                    .font(.system(size: 22, weight: .black))
-                    .foregroundStyle(Theme.ink)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+    /// Chevron de retour en tête de contenu : sans lui, l'écran présenté en
+    /// feuille n'est pas refermable (`BackButton` de la source).
+    private var backButton: some View {
+        Button { dismiss() } label: {
+            Image(systemName: "chevron.left")
+                .font(.system(size: 20, weight: .bold))
+                .foregroundStyle(Theme.ink)
+                .frame(width: 40, height: 40, alignment: .leading)
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 8)
-        .padding(.bottom, 8)
+        .buttonStyle(.plain)
+        .accessibilityLabel("Retour aux paramètres")
     }
 
-    /// Retour : composant partagé `DuelloBackButton` (`BackButton` de la source).
-    /// La source passe `iconSize={20}`, `iconColor={colors.ink}` et
-    /// `style={styles.backButton}` (`minHeight: 40`, déjà la valeur par défaut du
-    /// composant) : boîte 40×40, chevron centré puis `translateX(-4)`, sans fond.
-    /// Aucun `frame`/`offset` local n'est ajouté : le composant les porte déjà
-    /// (pas de double décalage).
-    private var backButton: some View {
-        DuelloBackButton(
-            iconColor: Theme.ink,
-            iconSize: 20,
-            accessibilityLabel: "Retour aux paramètres"
-        ) { dismiss() }
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text("SÉCURITÉ")
+                .font(.system(size: 10, weight: .black))
+                .tracking(1.1)
+                .foregroundStyle(Theme.inkSoft)
+            Text("Comptes bloqués")
+                .font(.system(size: 22, weight: .black))
+                .foregroundStyle(Theme.ink)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var explanationCard: some View {
@@ -131,7 +118,6 @@ struct AcctSubBlockedUsersView: View {
                 .foregroundStyle(Theme.ink)
             Text("Tu ne peux plus trouver ni suivre ces comptes, recevoir leurs notifications ou les inviter à un défi, et réciproquement. Ils sont aussi retirés de tes espaces sociaux.")
                 .font(.system(size: 13, weight: .semibold))
-                .lineSpacing(6)
                 .foregroundStyle(Theme.inkSoft)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -159,7 +145,6 @@ struct AcctSubBlockedUsersView: View {
             ProgressView().tint(Theme.ink)
             Text("Chargement…")
                 .font(.system(size: 13, weight: .bold))
-                .lineSpacing(6)
                 .foregroundStyle(Theme.inkSoft)
         }
         .frame(maxWidth: .infinity)
@@ -175,7 +160,6 @@ struct AcctSubBlockedUsersView: View {
                 .foregroundStyle(Theme.like)
             Text(errorMessage)
                 .font(.system(size: 13, weight: .bold))
-                .lineSpacing(6)
                 .foregroundStyle(Theme.inkSoft)
                 .multilineTextAlignment(.center)
             Button {
@@ -201,7 +185,6 @@ struct AcctSubBlockedUsersView: View {
                 .foregroundStyle(Theme.ink)
             Text("Aucun compte bloqué.")
                 .font(.system(size: 13, weight: .bold))
-                .lineSpacing(6)
                 .foregroundStyle(Theme.inkSoft)
                 .multilineTextAlignment(.center)
         }
@@ -222,7 +205,6 @@ struct AcctSubBlockedUsersView: View {
     private var inlineError: some View {
         Text(errorMessage)
             .font(.system(size: 12, weight: .bold))
-            .lineSpacing(5)
             .foregroundStyle(Theme.like)
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
@@ -241,7 +223,7 @@ struct AcctSubBlockedUsersView: View {
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(Theme.inkFaint)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            Spacer(minLength: 8)
             unblockButton(member)
         }
         .padding(11)
@@ -254,8 +236,7 @@ struct AcctSubBlockedUsersView: View {
         )
     }
 
-    /// Avatar : initiale, photo facultative (`AsyncImage`) et point de présence
-    /// (10 pt, bord blanc 2 pt, vert `online` — cf. `OnlineDot`/`AvatarPresence`).
+    /// Avatar : initiale, photo facultative (`AsyncImage`) et point de présence.
     private func avatar(_ member: ReportBlockedProfile) -> some View {
         ZStack(alignment: .bottomTrailing) {
             ZStack {
@@ -276,9 +257,9 @@ struct AcctSubBlockedUsersView: View {
 
             if presence.isOnline(member.id) {
                 Circle()
-                    .fill(Theme.online)
-                    .frame(width: 10, height: 10)
-                    .overlay(Circle().stroke(Theme.white, lineWidth: 2))
+                    .fill(Theme.progress)
+                    .frame(width: 11, height: 11)
+                    .overlay(Circle().stroke(Theme.surface, lineWidth: 2))
             }
         }
         .accessibilityHidden(true)
@@ -286,7 +267,7 @@ struct AcctSubBlockedUsersView: View {
 
     private func unblockButton(_ member: ReportBlockedProfile) -> some View {
         Button {
-            requestUnblock(member)
+            pendingUnblock = member
         } label: {
             Group {
                 if unblockingId == member.id {
@@ -297,8 +278,8 @@ struct AcctSubBlockedUsersView: View {
                         .foregroundStyle(Theme.ink)
                 }
             }
-            .padding(.horizontal, 11)
             .frame(minWidth: 86, minHeight: 36)
+            .padding(.horizontal, 11)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
                     .stroke(Theme.border, lineWidth: 1)
@@ -322,6 +303,7 @@ struct AcctSubBlockedUsersView: View {
     }
 
     private func performUnblock(_ member: ReportBlockedProfile) {
+        pendingUnblock = nil
         unblockingId = member.id
         errorMessage = ""
         Task {
@@ -347,20 +329,14 @@ struct AcctSubBlockedUsersView: View {
 }
 
 /// Bouton « Réessayer » de la carte d'erreur : encre pleine, rayon 12
-/// (`retryButton` de la source : `minHeight 36`, `paddingHorizontal 16`,
-/// `borderRadius 12`, fond `ink` ; `retryText` 12/900/blanc).
-///
-/// Ce style reste **local** : `DuelloPrimaryButton` (kit-boutons) ne couvre pas
-/// ce cas — il impose 15/900 et n'a ni `minHeight 36` ni le libellé 12 pt du RN ;
-/// le reprendre dégraderait un écart conforme de la vague 1. La seule
-/// réconciliation kit-boutons applicable est l'appui : le RN n'a **aucun** retour
-/// d'appui (`AppPressable` fige `pressed` à `false`, `RESTING_PRESS_STATE`),
-/// l'`opacity 0.84` de la vague 1 est donc une valeur fausse — retirée.
+/// (`retryButton` de la source), distinct du rayon 18 de `DuelloPrimaryButton`.
 private struct SubBlockedRetryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .foregroundStyle(Theme.surface)
             .background(Theme.ink)
             .clipShape(RoundedRectangle(cornerRadius: 12))
+            .opacity(configuration.isPressed ? 0.84 : 1)
     }
 }
+

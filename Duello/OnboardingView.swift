@@ -103,6 +103,7 @@ struct SignupFlowView: View {
     var onFinish: () -> Void
 
     @EnvironmentObject private var session: SessionStore
+    @State private var errorMessage: String?
 
     var body: some View {
         OnbFlowView(
@@ -113,6 +114,11 @@ struct SignupFlowView: View {
             },
             onCancel: onFinish
         )
+        .alert("Création du compte impossible", isPresented: errorPresented) {
+            Button("OK", role: .cancel) { errorMessage = nil }
+        } message: {
+            Text(errorMessage ?? "")
+        }
     }
 
     /// `completeOnboarding` : ouvre le compte construit par le parcours.
@@ -138,7 +144,7 @@ struct SignupFlowView: View {
                     displayName: profile.displayName
                 )
             } else {
-                presentCreationFailure("Aucun moyen de connexion n’a été choisi.")
+                errorMessage = "Aucun moyen de connexion n’a été choisi."
                 return
             }
 
@@ -146,16 +152,15 @@ struct SignupFlowView: View {
             session.persistProfile()
             onFinish()
         } catch {
-            presentCreationFailure(error.localizedDescription)
+            errorMessage = error.localizedDescription
         }
     }
 
-    /// `Alert.alert('Création du compte impossible', …)` (`OnboardingScreen.tsx:979`) :
-    /// l'échec d'ouverture du compte est rendu par la **fenêtre partagée**
-    /// (`AppAlertView`), jamais par `.alert` natif — le RN n'utilise aucune
-    /// alerte native (`import { AppAlert as Alert }`). Sans bouton explicite, la
-    /// fenêtre porte le bouton unique « Compris » (style `default`).
-    private func presentCreationFailure(_ message: String) {
-        AppAlert.alert("Création du compte impossible", message)
+    /// `errorMessage != nil` ⇔ alerte d'échec de création de compte présentée.
+    private var errorPresented: Binding<Bool> {
+        Binding(
+            get: { errorMessage != nil },
+            set: { presented in if !presented { errorMessage = nil } }
+        )
     }
 }

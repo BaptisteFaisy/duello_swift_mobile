@@ -1,16 +1,25 @@
 import SwiftUI
 
-/// Écran « Messages » : deux onglets, Direct et Forum, repris de
+/// Écran « Messages » : deux onglets, Messages et Forums, repris de
 /// `src/screens/MessagesScreen.tsx` de l'application Expo.
 /// Conversations, sujets et messages sont des données de démonstration
 /// locales : aucun appel réseau, tout l'état vit dans la vue.
 ///
 /// Découpage par responsabilité, sans changement de type ni de signature :
 /// ce fichier porte l'état et la coquille (onglets, en-tête de liste) ;
-/// `MessagesDirectTab.swift` l'onglet Direct, `MessagesForumTab.swift`
-/// l'onglet Forum, `MessagesActions.swift` la recherche, l'ouverture et
+/// `MessagesDirectTab.swift` l'onglet Messages, `MessagesForumTab.swift`
+/// l'onglet Forums, `MessagesActions.swift` la recherche, l'ouverture et
 /// l'envoi. Les membres partagés entre fichiers sont `internal`.
 struct MessagesView: View {
+    /// Profil de l'élève connecté (contrat `MessagesScreenProps.profile`).
+    var profile: UserProfile = UserProfile()
+    /// Non-lus globaux (contrat `MessagesScreenProps.unreadCount`). Le badge
+    /// de l'onglet et l'état non-lu des lignes suivent cette valeur fournie
+    /// par le parent, pas la somme locale des conversations.
+    var unreadCount: Int = DemoConversation.samples.reduce(0) { $0 + $1.unread }
+    /// Appelé à l'ouverture d'une conversation (`onClearUnread`) : le parent
+    /// remet le badge à zéro.
+    var onClearUnread: () -> Void = {}
     /// Onglet affiché.
     @State private var activeTab: MessagesTab = .direct
     /// Conversations directes, avec leur compteur de non-lus.
@@ -26,9 +35,12 @@ struct MessagesView: View {
     /// Contenu du champ de saisie, partagé par les deux vues détail.
     @State var composer = ""
 
-    /// Initiale de l'élève connecté. L'écran Expo lit `profile.displayName` ;
-    /// la vue reste autonome, d'où cette constante (repli « P » d'Expo).
-    private let myInitial = "P"
+    /// Initiale de l'élève connecté : premier caractère de
+    /// `profile.displayName` en capitale, comme
+    /// `profile.displayName.charAt(0).toUpperCase() || 'P'` d'Expo.
+    private var myInitial: String {
+        profile.displayName.first.map { String($0).uppercased() } ?? "P"
+    }
 
     @Environment(\.dismiss) private var dismiss
 
@@ -83,33 +95,33 @@ struct MessagesView: View {
         }
     }
 
-    /// Bascule Direct / Forum, sur le motif d'onglets d'Expo.
+    /// Bascule Messages / Forums, sur le motif d'onglets d'Expo.
     private var tabBar: some View {
         HStack(spacing: 5) {
-            tabButton(.direct, title: "Messages", icon: "bubble.left", iconSize: 17, badge: totalUnread)
-            tabButton(.forums, title: "Forums", icon: "person.2", iconSize: 18, badge: 0)
+            tabButton(.direct, title: "Messages", icon: "bubble.left", badge: unreadCount)
+            tabButton(.forums, title: "Forums", icon: "person.2", badge: 0)
         }
         .padding(4)
         .background(Theme.surfaceMuted)
         .clipShape(RoundedRectangle(cornerRadius: 18))
     }
 
-    private func tabButton(_ tab: MessagesTab, title: String, icon: String, iconSize: CGFloat, badge: Int) -> some View {
+    private func tabButton(_ tab: MessagesTab, title: String, icon: String, badge: Int) -> some View {
         let selected = activeTab == tab
         return Button {
             activeTab = tab
         } label: {
             HStack(spacing: 7) {
                 Image(systemName: icon)
-                    .font(.system(size: iconSize, weight: .semibold))
+                    .font(.system(size: 15, weight: .semibold))
                 Text(title)
                     .font(.system(size: 11, weight: selected ? .black : .bold))
                 if badge > 0 {
                     Text("\(badge)")
                         .font(.system(size: 9, weight: .black))
                         .foregroundStyle(Theme.surface)
-                        .padding(.horizontal, 5)
                         .frame(minWidth: 20, minHeight: 20)
+                        .padding(.horizontal, 5)
                         .background(Theme.ink)
                         .clipShape(Capsule())
                 }

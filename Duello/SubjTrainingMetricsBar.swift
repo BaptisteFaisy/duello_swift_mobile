@@ -101,14 +101,7 @@ struct SubjTrainingMetricsBar: View {
             }
             .frame(height: 6)
         }
-        // `flex: 1, maxWidth: 230` : la piste absorbe la place restante entre
-        // le sélecteur d'année et le bouton de classement, plafonnée à 230.
-        // `marginLeft: 6` / `marginRight: 12` de `trainingProgress` : ces
-        // marges s'ajoutent au `gap: 8` de la barre.
-        .frame(maxWidth: .infinity)
         .frame(maxWidth: 230)
-        .padding(.leading, 6)
-        .padding(.trailing, 12)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(succeeded) sujets réussis sur \(total)")
     }
@@ -129,11 +122,7 @@ struct SubjTrainingMetricsBar: View {
                 .font(.system(size: 21, weight: .semibold))
                 .foregroundStyle(Theme.ink)
                 .frame(width: 40, height: 40)
-                // `PerformanceMetricIcon` (`outlined`) : pastille de 40 pt
-                // remplie de `surfaceMuted` et cerclée à 1,5 pt d'encre.
-                .background(Circle().fill(Theme.surfaceMuted))
-                .overlay(Circle().stroke(Theme.ink, lineWidth: 1.5))
-                .contentShape(Circle())
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Ouvrir le classement de Mathématiques")

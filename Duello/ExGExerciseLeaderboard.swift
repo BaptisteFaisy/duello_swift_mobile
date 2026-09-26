@@ -181,17 +181,16 @@ struct ExGLeaderboardSheet: View {
 
     private var header: some View {
         HStack(spacing: 12) {
-            // `BackButton` partagé (kit-back) : le chevron local ré-implémenté
-            // (fond `surfaceMuted` + rayon 13) est retiré — `styles.button`
-            // neutralise fond/bord/rayon dans la source RN. Seule la boîte
-            // 42×42 de `leaderboardPageStyles.backButton` survit (`width`/
-            // `height` ne sont pas annulés) ; elle est posée par l'appelant.
-            DuelloBackButton(
-                iconSize: 22,
-                accessibilityLabel: "Fermer le classement",
-                action: { dismiss() }
-            )
-            .frame(width: 42, height: 42)
+            Button(action: { dismiss() }) {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(Theme.ink)
+                    .frame(width: 42, height: 42)
+                    .background(Theme.surfaceMuted)
+                    .clipShape(RoundedRectangle(cornerRadius: 13))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Fermer le classement")
 
             if trophy.activity == .colle || trophy.isAnnale {
                 VStack(spacing: 2) {

@@ -19,12 +19,6 @@
 //    - `persistAccount` est un no-op documenté.
 //  La connexion Apple passe par `LoginIntSession` (pont documenté).
 //
-//  Vague 3 (kit-alert) — l'échec d'ouverture d'une session fournisseur
-//  (Apple/Google) était rendu par un `.alert` **natif** ; il passe désormais
-//  par la fenêtre commune `AppAlert` (`AppAlertView.swift`), montée une seule
-//  fois à la racine (`DuelloApp.swift` → `.appAlertHost()`), comme
-//  `AppAlert.alert(...)` côté Expo.
-//
 //  Cible : iOS 16. Aucune dépendance externe.
 //
 
@@ -37,11 +31,18 @@ struct LoginIntAssembly: View {
 
     /// Adresse à réinitialiser (feuille `PasswordResetView`).
     @State private var resetEmail: String?
+    /// Message d'échec fournisseur (Apple), sans canal dans `LoginScrScreen`.
+    @State private var providerError: String?
 
     var body: some View {
         LoginScrScreen(props: props)
             .sheet(isPresented: isResetPresented) {
                 PasswordResetView(email: resetEmail ?? "")
+            }
+            .alert("Connexion", isPresented: isProviderErrorPresented) {
+                Button("OK", role: .cancel) { providerError = nil }
+            } message: {
+                Text(providerError ?? "")
             }
     }
 
@@ -67,9 +68,7 @@ struct LoginIntAssembly: View {
                             payload: payload
                         )
                     } catch {
-                        // Échec fournisseur : fenêtre commune `AppAlert`
-                        // (jamais `.alert` natif), rendue à la racine.
-                        AppAlert.alert("Connexion", error.localizedDescription)
+                        providerError = error.localizedDescription
                     }
                 }
             },
@@ -82,7 +81,7 @@ struct LoginIntAssembly: View {
                             payload: payload
                         )
                     } catch {
-                        AppAlert.alert("Connexion", error.localizedDescription)
+                        providerError = error.localizedDescription
                     }
                 }
             },
@@ -109,6 +108,14 @@ struct LoginIntAssembly: View {
         Binding(
             get: { resetEmail != nil },
             set: { presented in if !presented { resetEmail = nil } }
+        )
+    }
+
+    /// `providerError != nil` ⇔ alerte d'échec fournisseur présentée.
+    private var isProviderErrorPresented: Binding<Bool> {
+        Binding(
+            get: { providerError != nil },
+            set: { presented in if !presented { providerError = nil } }
         )
     }
 }

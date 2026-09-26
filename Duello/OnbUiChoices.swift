@@ -30,7 +30,7 @@ struct OnbUiChoiceSection<Content: View>: View {
         VStack(alignment: .leading, spacing: 10) {
             if let label = label {
                 Text(label)
-                    .font(.system(size: 11, weight: .black))
+                    .font(.system(size: 11, weight: .heavy))
                     .tracking(1.5)
                     .textCase(.uppercase)
                     .foregroundStyle(dark ? Color.white : Theme.ink)
@@ -63,8 +63,6 @@ struct OnbUiChoiceChip: View {
                             .font(.system(size: 11, weight: .medium))
                             .foregroundStyle(descriptionColor)
                             .multilineTextAlignment(.leading)
-                            // `choiceChipDescription.lineHeight` 15 − 11.
-                            .lineSpacing(4)
                     }
                 }
 
@@ -72,7 +70,7 @@ struct OnbUiChoiceChip: View {
 
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(dark ? Color.black : Color.white)
                 }
             }
@@ -112,10 +110,9 @@ struct OnbUiChoiceChip: View {
         return isSelected ? Theme.surface : Theme.inkSoft
     }
 
-    /// Description : `primaryLight` si sélectionnée, `mutedSurfaceText` sinon ;
-    /// variante invité `#333333` / `#B8B8B8`.
+    /// Description : teinte verte claire si sélectionnée, gris sinon.
     private var descriptionColor: Color {
-        if dark { return isSelected ? Color(hex: 0x333333) : Color(hex: 0xB8B8B8) }
-        return isSelected ? Theme.primaryLight : Theme.inkSoft
+        if dark { return isSelected ? Color(white: 0.2) : Color(white: 0.72) }
+        return isSelected ? Theme.progressLight : Theme.inkSoft
     }
 }

@@ -23,6 +23,7 @@ struct HecJourneyAdmissionView: View {
     @State private var schoolId: String
     @State private var rankText: String
     @State private var customSchoolName: String
+    @State private var confirmReset = false
 
     init(
         admission: HecJourneyAdmission?,
@@ -112,6 +113,12 @@ struct HecJourneyAdmissionView: View {
             }
         }
         .background(Theme.background)
+        .alert(HecJourneyAdmissionCopy.resetQuestion, isPresented: $confirmReset) {
+            Button(HecJourneyAdmissionCopy.cancel, role: .cancel) { }
+            Button(HecJourneyAdmissionCopy.resetAction, role: .destructive) { onReset() }
+        } message: {
+            Text(HecJourneyAdmissionCopy.resetMessage)
+        }
     }
 
     // MARK: En-tête
@@ -129,11 +136,12 @@ struct HecJourneyAdmissionView: View {
                     .foregroundStyle(Theme.ink)
             }
             HStack {
-                // Retour : composant partagé `DuelloBackButton` (chevron nu, sans
-                // fond ni cadre), au lieu du `IconButton` local de la feuille.
-                DuelloBackButton(
-                    iconColor: Theme.ink,
-                    accessibilityLabel: HecJourneyCopy.a11yBackToJourney,
+                HecJourneySheet.IconButton(
+                    systemName: "chevron.left",
+                    label: HecJourneyCopy.a11yBackToJourney,
+                    size: 18,
+                    tint: Theme.ink,
+                    frame: 40,
                     action: onBack
                 )
                 Spacer(minLength: 0)
@@ -235,7 +243,7 @@ struct HecJourneyAdmissionView: View {
 
     private var resetButton: some View {
         Button {
-            askResetConfirmation()
+            confirmReset = true
         } label: {
             Text(HecJourneyAdmissionCopy.reset)
                 .font(.system(size: 13, weight: .heavy))
@@ -254,22 +262,5 @@ struct HecJourneyAdmissionView: View {
         .opacity(admission == nil ? 0.45 : 1)
         .padding(.top, 10)
         .accessibilityLabel(HecJourneyAdmissionCopy.resetA11y)
-    }
-
-    /// `reset` de la source : la confirmation passe par la fenêtre **partagée**
-    /// `AppAlert` (le RN n'utilise aucune alerte native — `import { AppAlert as
-    /// Alert }`), bouton `cancel` « Annuler » puis bouton `destructive`
-    /// « Réinitialiser ». Aucune option : fenêtre non `cancelable`, sans croix.
-    /// La fenêtre est montée à la racine via `.appAlertHost()`
-    /// (`DuelloApp.swift`) — hors de ce fichier.
-    private func askResetConfirmation() {
-        AppAlert.alert(
-            HecJourneyAdmissionCopy.resetQuestion,
-            HecJourneyAdmissionCopy.resetMessage,
-            [
-                AppAlertButton(HecJourneyAdmissionCopy.cancel, style: .cancel),
-                AppAlertButton(HecJourneyAdmissionCopy.resetAction, style: .destructive) { onReset() },
-            ]
-        )
     }
 }

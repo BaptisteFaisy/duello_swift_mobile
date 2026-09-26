@@ -42,8 +42,7 @@ struct AcctShowXpSeriesSection: View {
             iconColor: ChartGoogleGColors.blue,
             title: "Évolution de l’XP",
             subtitle: subtitle,
-            trailing: pill,
-            topPadding: 12
+            trailing: pill
         ) {
             content
         }

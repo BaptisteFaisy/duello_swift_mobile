@@ -29,7 +29,7 @@ extension AnnCopyCorrectionSheet {
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(Theme.ink)
             }
-            DuelloProgressTrack(fraction: job.progressFraction, tint: Theme.ink, track: Theme.border, height: 8)
+            DuelloProgressTrack(fraction: job.progressFraction, tint: Theme.ink, height: 8)
             Text(job.error ?? "Tu peux quitter cette page : la correction continue sur le serveur.")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Theme.inkSoft)

@@ -63,9 +63,7 @@ struct SubjHecCoursePdfReader: View {
     private static let cursorPercentRange: ClosedRange<Double> = 8...92
 
     var body: some View {
-        // Le source empile le lecteur et sa légende **sans** écart (aucun `gap`
-        // sur la `View` racine de `HecCoursePdfReader`).
-        VStack(spacing: 0) {
+        VStack(spacing: 10) {
             reader
             Text("Fais défiler le cours jusqu’à l’endroit où tu t’es arrêté en classe.")
                 .font(.system(size: 13, weight: .heavy))

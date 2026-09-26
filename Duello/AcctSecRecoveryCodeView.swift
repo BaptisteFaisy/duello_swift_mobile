@@ -28,8 +28,7 @@ struct AcctSecRecoveryCodeView: View {
                 .fixedSize(horizontal: false, vertical: true)
             Text(description)
                 .font(.system(size: 14))
-                // `description.lineHeight` 21 − 14.
-                .lineSpacing(7)
+                .lineSpacing(4)
                 .foregroundStyle(Theme.inkSoft)
                 .fixedSize(horizontal: false, vertical: true)
             codeShell
@@ -39,6 +38,10 @@ struct AcctSecRecoveryCodeView: View {
         .padding(22)
         .background(Theme.surface)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.radiusLarge)
+                .stroke(Theme.border, lineWidth: 1)
+        )
         .padding(22)
     }
 
@@ -54,8 +57,7 @@ struct AcctSecRecoveryCodeView: View {
 
     private var codeShell: some View {
         Text(code)
-            // `code.fontFamily: 'Menlo'` + `fontWeight: '900'` → Menlo-Bold sur iOS.
-            .font(.custom("Menlo-Bold", size: 20))
+            .font(.system(size: 20, weight: .black, design: .monospaced))
             .tracking(2)
             .foregroundStyle(Theme.ink)
             .textSelection(.enabled)
@@ -77,8 +79,6 @@ struct AcctSecRecoveryCodeView: View {
                 .foregroundStyle(Theme.ink)
             Text("Ce code ne sera plus affiché. Note-le hors de l’application.")
                 .font(.system(size: 12, weight: .bold))
-                // `warningText.lineHeight` 17 − 12.
-                .lineSpacing(5)
                 .foregroundStyle(Theme.ink)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -95,10 +95,6 @@ struct AcctSecRecoveryCodeView: View {
             Text("J’ai noté ce code")
                 .frame(maxWidth: .infinity, minHeight: 52)
         }
-        // `button` de la source : rayon 17 (et non 18 par défaut du composant),
-        // 15 / 900, fond `primary`, texte `white` — tous portés par
-        // `DuelloPrimaryButton`. L'appui 0.84 / 0.99 est mort dans la source
-        // (`AppPressable` fige `pressed` à `false`) : pas de style d'appui ici.
-        .buttonStyle(DuelloPrimaryButton(radius: 17))
+        .buttonStyle(DuelloPrimaryButton())
     }
 }

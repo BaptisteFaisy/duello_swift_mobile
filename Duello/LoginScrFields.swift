@@ -118,9 +118,6 @@ struct LoginScrField: View {
         .textContentType(contentType)
         .font(.system(size: 15, weight: .regular))
         .foregroundStyle(LoginScrPalette.onDark)
-        // `input.paddingVertical` de la source (13) ; sans effet visible, le
-        // champ restant plus court que le `minHeight` 55 de la coquille.
-        .padding(.vertical, 13)
         .onChange(of: text) { _ in onEdit() }
     }
 
@@ -170,8 +167,6 @@ struct LoginScrErrorCard: View {
                 .foregroundStyle(LoginScrPalette.onDark)
             Text(message)
                 .font(.system(size: 12, weight: .bold))
-                // `errorText.lineHeight` 17 − 12.
-                .lineSpacing(5)
                 .foregroundStyle(LoginScrPalette.onDark)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
@@ -212,16 +207,12 @@ struct LoginScrDivider: View {
 
 // MARK: - Boutons
 
-/// Effet d'appui commun aux commandes de l'écran de connexion.
-///
-/// La source fait passer ses `Pressable` par `AppPressable`, qui fige `pressed`
-/// à `false` (`RESTING_PRESS_STATE`, `AppPressable.tsx:14`) : le `styles.pressed`
-/// de `LoginScreen.tsx` (opacité 0.84 + échelle 0.99) est **mort** et ne doit
-/// pas être porté. Le défaut est donc **neutre** (aucun retour d'appui) ; seul
-/// le bouton retour demande explicitement l'opacité 0.6 (`BackButton.tsx:95`).
+/// Effet d'appui commun aux commandes de l'écran de connexion : opacité et
+/// échelle réduites à l'appui (`pressed` de la source : 0.84 / 0.99 ; le
+/// bouton retour de la source n'abaisse que l'opacité, à 0.6).
 struct LoginScrPressStyle: ButtonStyle {
-    var pressedOpacity: Double = 1
-    var pressedScale: Double = 1
+    var pressedOpacity: Double = 0.84
+    var pressedScale: Double = 0.99
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -244,7 +235,6 @@ struct LoginScrBiometricButton: View {
                     .font(.system(size: 13, weight: .black))
             }
             .foregroundStyle(LoginScrPalette.onDark)
-            .padding(.horizontal, 15)
             .frame(maxWidth: .infinity, minHeight: 54)
             .background(LoginScrPalette.background)
             .clipShape(RoundedRectangle(cornerRadius: 17))

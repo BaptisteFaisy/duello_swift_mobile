@@ -44,7 +44,7 @@ struct TrainIntFlashcardsSection: View {
     private var decks: [CollDeckDefinition] { [] }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
             DuelloSectionHeader(title: "Cartes du cours")
             SubjFlashcardChapterDropdown(
                 options: [],
@@ -71,15 +71,6 @@ struct TrainIntFlashcardsSection: View {
                 onChangeBack: { back = $0 }
             )
         }
-        // `flashcardEditorPanel` : `padding: 14`, `gap: 12`, bord fin,
-        // rayon `radii.large`, fond `surface`, plus `marginTop: 14`.
-        .padding(14)
-        .background(Theme.surface)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
-        .overlay(
-            RoundedRectangle(cornerRadius: Theme.radiusLarge)
-                .stroke(Theme.border, lineWidth: 1)
-        )
-        .padding(.top, 14)
+        .padding(20)
     }
 }

@@ -35,14 +35,17 @@ enum ChalIntDuelResult {
     }
 
     /// Assemble le bilan lu par `ChalRunResultView` / `ChalRunAbandonVictoryView`.
+    /// `exercise` est la copie assemblée notée par le juge, `seriesAnswers`
+    /// ses réponses réindexées ; `state.exercise` reste l'exercice ouvert en
+    /// dernier, rouvert par la cible de reprise.
     static func build(
         verdict: DuelVerdict,
         match: MatchView,
         exercise: DuelExercise,
+        seriesAnswers: [String: String],
         state: ChalRunRoundState,
         profile: UserProfile
     ) -> ChalRunResult {
-        let answers = attemptedDuelAnswers(exercise, state.answers)
         return ChalRunResult(
             verdict: verdict,
             opponentName: match.opponent.displayName,
@@ -52,21 +55,21 @@ enum ChalIntDuelResult {
             prompt: duelExercisePrompt(exercise),
             solution: exercise.solution,
             questions: exercise.questions,
-            answers: answers,
+            answers: seriesAnswers,
             opponentAnswers: verdict.opponentAnswers ?? [:],
             scorePenalty: 0,
             scoreBonus: 0,
             needsContinuation: ChalProgress.needsContinuation(
                 questionIds: exercise.questions.map { $0.id },
-                answers: answers,
+                answers: seriesAnswers,
                 score: verdict.me.score
             ),
-            exerciseCount: max(1, state.seriesCount),
+            exerciseCount: state.exerciseIndex + 1,
             minutes: match.durationMinutes,
             subject: match.subject,
             trainingTarget: ChalRunTrainingTarget(
-                itemId: match.exerciseId,
-                itemTitle: match.exerciseId,
+                itemId: state.exercise.id,
+                itemTitle: state.exercise.id,
                 subjectId: subjectId,
                 chapterId: match.chapterKey,
                 year: profile.year,

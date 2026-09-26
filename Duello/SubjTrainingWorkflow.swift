@@ -72,7 +72,7 @@ struct SubjTrainingWorkflowIcons: View {
     var compact: Bool = false
 
     var body: some View {
-        HStack(alignment: .center, spacing: 4) {
+        HStack(alignment: .top, spacing: 4) {
             ForEach(SubjTrainingWorkflow.steps) { step in
                 if step.id != SubjTrainingWorkflow.steps.first?.id {
                     arrow
@@ -106,21 +106,16 @@ struct SubjTrainingWorkflowIcons: View {
                 .padding(.top, 5)
         }
         // La correction est légèrement plus étroite et décalée vers la droite.
-        // `flex: 1` de la source : chaque étape prend sa part de la frise
-        // (plafonnée à `maxWidth`), au lieu de se réduire à son contenu.
-        .frame(maxWidth: .infinity)
         .frame(maxWidth: isCorrection ? 60 : 64)
         .offset(x: isCorrection ? 5 : 0)
     }
 
-    /// Flèche de liaison (`arrow-forward`), alignée sur le haut de l'icône
-    /// (`alignSelf: 'flex-start'`, `marginTop: 11` de la source).
+    /// Flèche de liaison (`arrow-forward`), alignée sur le haut de l'icône.
     private var arrow: some View {
         Image(systemName: "arrow.right")
             .font(.system(size: compact ? 13 : 16))
             .foregroundStyle(Theme.inkFaint)
             .padding(.top, 11)
-            .frame(maxHeight: .infinity, alignment: .top)
     }
 }
 
@@ -146,7 +141,7 @@ struct SubjTrainingWorkflowGuide: View {
     /// donc pas.
     private var guideTitle: some View {
         Text(subjWorkflowTitle)
-            .font(.system(size: 10, weight: .heavy))
+            .font(.system(size: 10, weight: .black))
             .textCase(.uppercase)
             .tracking(0.5)
             .foregroundStyle(Theme.inkSoft)

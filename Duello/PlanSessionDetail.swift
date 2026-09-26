@@ -23,7 +23,7 @@ struct PlanSessionSheet: View {
                         .fill(session.color)
                         .frame(width: 44, height: 44)
                     Image(systemName: session.icon)
-                        .font(.system(size: 22, weight: .semibold))
+                        .font(.system(size: 20, weight: .semibold))
                         .foregroundStyle(Theme.ink)
                 }
                 VStack(alignment: .leading, spacing: 3) {
@@ -39,7 +39,7 @@ struct PlanSessionSheet: View {
                     dismiss()
                 } label: {
                     Image(systemName: "xmark")
-                        .font(.system(size: 20, weight: .bold))
+                        .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(Theme.inkSoft)
                         .frame(width: 34, height: 34)
                         .background(Theme.surfaceMuted)
@@ -58,7 +58,6 @@ struct PlanSessionSheet: View {
 
             Text(session.subtitle)
                 .font(.system(size: 14, weight: .bold))
-                .lineSpacing(6)
                 .foregroundStyle(Theme.ink)
                 .padding(.top, 6)
 
@@ -91,7 +90,7 @@ struct PlanMetaChip: View {
     var body: some View {
         HStack(spacing: 5) {
             Image(systemName: icon)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: 11, weight: .semibold))
             Text(text)
                 .font(.system(size: 10, weight: .bold))
         }

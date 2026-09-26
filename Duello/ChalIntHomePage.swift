@@ -72,8 +72,7 @@ struct ChalIntHomePage: View {
                         .padding(.horizontal, 20)
                 }
             }
-            .padding(.top, 8)
-            .padding(.bottom, 34)
+            .padding(.bottom, 24)
         }
     }
 }

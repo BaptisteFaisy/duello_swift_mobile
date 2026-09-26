@@ -159,7 +159,7 @@ extension AnnReaderView {
                     .foregroundStyle(unlocked ? Theme.ink : Theme.inkFaint)
             }
             Text(questionCorrectionText(question, unlocked: unlocked))
-                .font(Theme.readingFont(size: Theme.readingSizeReader))
+                .font(Theme.readingFont)
                 .foregroundStyle(unlocked ? Theme.ink : Theme.inkFaint)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -221,7 +221,7 @@ extension AnnReaderView {
             }
             if let text, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 Text(LatexToUnicode.toUnicodeMath(text))
-                    .font(Theme.readingFont(size: Theme.readingSizeReader))
+                    .font(Theme.readingFont)
                     .foregroundStyle(Theme.ink)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {

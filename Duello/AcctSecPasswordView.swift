@@ -24,52 +24,38 @@ struct AcctSecPasswordView: View {
     @State private var isSaving = false
 
     var body: some View {
-        GeometryReader { proxy in
-            ScrollView {
-                VStack(spacing: 0) {
-                    backButton
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                backButton
+                AcctSecPasswordField(
+                    title: "Nouveau mot de passe",
+                    text: $password,
+                    isVisible: showPassword,
+                    onToggle: { showPassword.toggle() },
+                    onSubmit: { submit() }
+                )
+                .onChange(of: password) { _ in errorMessage = "" }
 
-                    Spacer(minLength: 0)
-
-                    VStack(alignment: .leading, spacing: 0) {
-                        AcctSecPasswordField(
-                            title: "Nouveau mot de passe",
-                            text: $password,
-                            isVisible: showPassword,
-                            onToggle: { showPassword.toggle() },
-                            onSubmit: { submit() }
-                        )
-                        .onChange(of: password) { _ in errorMessage = "" }
-
-                        if !errorMessage.isEmpty {
-                            Text(errorMessage)
-                                .font(.system(size: 11, weight: .bold))
-                                .lineSpacing(5)
-                                .foregroundStyle(Theme.ink)
-                                .padding(.top, 10)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                    .frame(width: min((proxy.size.width - 40) * 0.82, 420))
-
-                    Spacer(minLength: 0)
-
-                    saveButton
+                if !errorMessage.isEmpty {
+                    Text(errorMessage)
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(Theme.ink)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
-                .padding(.bottom, 36)
-                .frame(maxWidth: .infinity, minHeight: proxy.size.height)
+                saveButton
+                Spacer(minLength: 24)
             }
-            .scrollIndicators(.hidden)
-            .background(Theme.background)
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+            .padding(.bottom, 24)
         }
+        .background(Theme.background)
     }
 
     // MARK: Politique de mot de passe (voir `new-password-policy.mjs`)
 
     /// Message annonçant les deux bornes, repris mot pour mot de la source.
-    static let policyMessage = "Choisis un mot de passe de 8 à 128 caractères."
+    static let policyMessage = "Le mot de passe doit contenir entre 8 et 128 caractères."
 
     static func isValidNewPassword(_ value: String) -> Bool {
         value.count >= 8 && value.count <= 128
@@ -79,17 +65,18 @@ struct AcctSecPasswordView: View {
 
     /// Bouton retour gauche (`BackButton` « Retour aux paramètres » de la
     /// source) : `AccountPasswordScreen.tsx` n'a pas de barre de navigation.
-    /// Repris du composant partagé `DuelloBackButton` — géométrie 40 × 40,
-    /// pictogramme 20 centré puis `translateX(-4)` ; le décalage X et l'appui
-    /// viennent du composant (ne pas les cumuler ici). `alignSelf: 'flex-start'`
-    /// de la source → forcé à gauche.
     private var backButton: some View {
-        DuelloBackButton(
-            iconSize: 20,
-            accessibilityLabel: "Retour aux paramètres",
-            action: { dismiss() }
-        )
-        .frame(maxWidth: .infinity, alignment: .leading)
+        Button {
+            dismiss()
+        } label: {
+            Image(systemName: "chevron.backward")
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundStyle(Theme.ink)
+                .frame(width: 44, height: 44, alignment: .leading)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Retour aux paramètres")
     }
 
     private var saveButton: some View {
@@ -105,9 +92,8 @@ struct AcctSecPasswordView: View {
             }
             .frame(maxWidth: .infinity, minHeight: 52)
         }
-        .buttonStyle(DuelloPrimaryButton(weight: .heavy))
+        .buttonStyle(DuelloPrimaryButton())
         .disabled(isSaving)
-        .opacity(isSaving ? 0.55 : 1)
     }
 
     // MARK: Soumission
@@ -173,7 +159,7 @@ private struct AcctSecPasswordField: View {
                 }
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
-                .font(.system(size: 14, weight: .regular))
+                .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(Theme.ink)
                 .onSubmit { onSubmit?() }
 

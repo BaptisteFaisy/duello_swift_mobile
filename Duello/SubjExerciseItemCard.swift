@@ -84,8 +84,6 @@ struct SubjItemCard: View {
             RoundedRectangle(cornerRadius: Theme.radiusLarge)
                 .stroke(Theme.border, lineWidth: 1)
         )
-        // `...cardShadow` de `styles.itemCard` (0/2, opacité 0.04, rayon 8).
-        .shadow(color: Theme.ink.opacity(0.04), radius: 8, x: 0, y: 2)
         .padding(.bottom, 8)
         .contentShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
         .onTapGesture { if isEnabled { onOpen() } }
@@ -236,9 +234,6 @@ private extension SubjItemCard {
                 .font(.system(size: 12, weight: .heavy))
                 .foregroundStyle(Theme.ink)
         }
-        // `itemProgressRow.marginTop: 10` : 2 pt de plus que le `gap` de 8 des
-        // autres lignes de la fiche.
-        .padding(.top, 2)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Avancement : \(percentage) %")
     }
@@ -275,8 +270,6 @@ private extension SubjItemCard {
         Text(text)
             .font(.system(size: 11, weight: .semibold))
             .foregroundStyle(Theme.inkSoft)
-            // `lineHeight: 16` de `prerequisitesPanelText` → 16 − 11 = 5.
-            .lineSpacing(5)
             .fixedSize(horizontal: false, vertical: true)
     }
 
@@ -286,26 +279,18 @@ private extension SubjItemCard {
         Button {
             onOpenAchieverProfile?(achiever.id)
         } label: {
-            achieverAvatar(achiever)
-                .frame(width: 24, height: 24)
-                .clipShape(Circle())
-                .frame(width: 32, height: 32)
-                .background(Theme.surface)
-                .clipShape(Circle())
-                .overlay(Circle().stroke(Theme.primary, lineWidth: 2))
-                .overlay(alignment: .bottomTrailing) {
-                    // `achievementRankBadge` : pastille d'encre de 14 pt,
-                    // cerclée de 1 pt de blanc, débordant de 4 pt.
-                    Text("1")
-                        .font(.system(size: 8, weight: .black))
-                        .foregroundStyle(Color.white)
-                        .frame(width: 14, height: 14)
-                        .background(Theme.primary)
-                        .clipShape(Circle())
-                        .overlay(Circle().stroke(Theme.surface, lineWidth: 1))
-                        .offset(x: 4, y: 4)
-                }
-                .contentShape(Rectangle())
+            ZStack(alignment: .bottomTrailing) {
+                achieverAvatar(achiever)
+                Text("1")
+                    .font(.system(size: 9, weight: .heavy))
+                    .foregroundStyle(Theme.surface)
+                    .padding(3)
+                    .background(Theme.ink)
+                    .clipShape(Circle())
+                    .offset(x: 2, y: 2)
+            }
+            .frame(width: 32, height: 32)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(
@@ -319,12 +304,12 @@ private extension SubjItemCard {
             CachedRemoteImage(url: url) { image in
                 image.resizable().scaledToFill()
             } placeholder: {
-                DuelloAvatar(initial: achiever.initial, size: 24)
+                DuelloAvatar(initial: achiever.initial, size: 28)
             }
-            .frame(width: 24, height: 24)
+            .frame(width: 28, height: 28)
             .clipShape(Circle())
         } else {
-            DuelloAvatar(initial: achiever.initial, size: 24)
+            DuelloAvatar(initial: achiever.initial, size: 28)
         }
     }
 }

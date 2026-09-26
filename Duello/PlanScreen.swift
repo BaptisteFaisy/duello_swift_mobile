@@ -209,7 +209,7 @@ struct PlanView: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 9) {
                 Image(systemName: "calendar")
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(Theme.inkSoft)
 
                 TextField("JJ/MM/AAAA", text: $dateInput)
@@ -217,7 +217,6 @@ struct PlanView: View {
                     .submitLabel(.go)
                     .focused($dateFieldFocused)
                     .font(.system(size: 14, weight: .heavy))
-                    .tracking(0.5)
                     .foregroundStyle(Theme.ink)
                     .accessibilityLabel("Aller à une date")
 
@@ -233,7 +232,7 @@ struct PlanView: View {
                             .background(Theme.surfaceMuted)
                             .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
                     }
-                    .buttonStyle(PlanPressOpacityStyle())
+                    .buttonStyle(.plain)
                     .accessibilityLabel("Revenir à aujourd’hui")
                 }
             }
@@ -261,11 +260,10 @@ struct PlanView: View {
     private var scheduleHint: some View {
         HStack(spacing: 9) {
             Image(systemName: "clock")
-                .font(.system(size: 18, weight: .semibold))
+                .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(Theme.ink)
             Text("Ajoute tes horaires de cours dans ton profil pour éviter automatiquement ces créneaux.")
                 .font(.system(size: 10, weight: .semibold))
-                .lineSpacing(4)
                 .foregroundStyle(Theme.inkSoft)
             Spacer(minLength: 0)
         }
@@ -359,42 +357,24 @@ struct PlanBanner: View {
     let text: String
     var showsSpinner: Bool = false
 
-    /// `successBanner` de la source : `gap` 8 ; `scheduleHint` : `gap` 9.
-    private var spacing: CGFloat { tone == .warning ? 9 : 8 }
-    /// Icônes de la source : `checkmark-circle` 19, `warning-outline` 18.
-    private var iconSize: CGFloat { tone == .warning ? 18 : 19 }
-
     var body: some View {
-        HStack(spacing: spacing) {
+        HStack(spacing: 8) {
             if showsSpinner {
                 ProgressView()
-                    .tint(Theme.ink)
+                    .scaleEffect(0.8)
             } else if let icon {
                 Image(systemName: icon)
-                    .font(.system(size: iconSize, weight: .semibold))
+                    .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(Theme.ink)
             }
-            if tone == .warning {
-                // `scheduleHintText` : 10 / semibold / `lineHeight` 14.
-                Text(text)
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(Theme.inkSoft)
-                    .lineSpacing(4)
-                Spacer(minLength: 0)
-            } else {
-                // `successText` : 11 / heavy / encre.
-                Text(text)
-                    .font(.system(size: 11, weight: .heavy))
-                    .foregroundStyle(Theme.ink)
-                Spacer(minLength: 0)
-            }
+            Text(text)
+                .font(.system(size: 11, weight: .heavy))
+                .foregroundStyle(tone == .warning ? Theme.inkSoft : Theme.ink)
+            Spacer(minLength: 0)
         }
         .padding(12)
         .background(Theme.primaryLight)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
         .padding(.horizontal, 20)
-        // `successBanner` porte `marginBottom` 4, `scheduleHint` 12 : le VStack
-        // espace déjà de 12, d'où le retrait de 8 sur les bandeaux de retour.
-        .padding(.bottom, tone == .warning ? 0 : -8)
     }
 }

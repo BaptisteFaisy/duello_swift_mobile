@@ -247,9 +247,12 @@ struct AdmPasswordCard: View {
 struct AdmLogoutCard: View {
     var onLogout: () async throws -> Void
 
+    @State private var isConfirming = false
+    @State private var didFail = false
+
     var body: some View {
         Button {
-            askLogoutConfirmation()
+            isConfirming = true
         } label: {
             HStack(spacing: 9) {
                 Image(systemName: "rectangle.portrait.and.arrow.right")
@@ -269,22 +272,23 @@ struct AdmLogoutCard: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Se déconnecter")
-    }
-
-    /// `askLogoutConfirmation` : `AppAlert.alert` (Annuler / Se déconnecter),
-    /// refermable en touchant le fond (`{ cancelable: true }`).
-    private func askLogoutConfirmation() {
-        AppAlert.alert(
+        .confirmationDialog(
             "Se déconnecter ?",
-            "Les réglages administrateur resteront associés à ce compte.",
-            [
-                AppAlertButton("Annuler", style: .cancel),
-                AppAlertButton("Se déconnecter", style: .destructive) {
-                    Task { await performLogout() }
-                },
-            ],
-            options: AppAlertOptions(cancelable: true)
-        )
+            isPresented: $isConfirming,
+            titleVisibility: .visible
+        ) {
+            Button("Se déconnecter", role: .destructive) {
+                Task { await performLogout() }
+            }
+            Button("Annuler", role: .cancel) {}
+        } message: {
+            Text("Les réglages administrateur resteront associés à ce compte.")
+        }
+        .alert("Déconnexion impossible", isPresented: $didFail) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("La session n’a pas pu être fermée sur cet appareil. Réessaie.")
+        }
     }
 
     @MainActor
@@ -292,11 +296,7 @@ struct AdmLogoutCard: View {
         do {
             try await onLogout()
         } catch {
-            // `Alert.alert('Déconnexion impossible', …)` : bouton unique « Compris ».
-            AppAlert.alert(
-                "Déconnexion impossible",
-                "La session n’a pas pu être fermée sur cet appareil. Réessaie."
-            )
+            didFail = true
         }
     }
 }

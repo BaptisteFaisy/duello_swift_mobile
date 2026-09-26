@@ -30,6 +30,9 @@ enum AcctInfoSettingsStyle {
     static let bottomPadding: CGFloat = 36
     /// `settingsHeader.marginBottom`.
     static let headerBottom: CGFloat = 12
+    /// `settingsBackButton` : carré du bouton de retour. La source pose 38 pt,
+    /// mais le `BackButton` impose `minWidth/minHeight: 40`, qui l'emporte.
+    static let backButtonSize: CGFloat = 40
     /// `settingsTabs` : écart entre onglets et retrait après le bouton.
     static let tabsSpacing: CGFloat = 8
     static let tabsLeading: CGFloat = 10
@@ -150,21 +153,19 @@ struct AcctInfoSettingsView: View {
     }
 
     /// Retour : catégories depuis une sous-page, sinon sortie des réglages.
-    ///
-    /// Composant partagé `DuelloBackButton` (kit-back, port de
-    /// `components/BackButton.tsx`). La source lui passe `iconColor={colors.ink}`,
-    /// `iconSize={21}` et `style={styles.settingsBackButton}` (38×38, fond blanc) —
-    /// mais `styles.button` du composant, appliqué **après**, neutralise fond/bord/
-    /// rayon et réimpose `minWidth/minHeight: 40` : la boîte réelle est 40×40, fond
-    /// transparent, chevron nu décalé de −4. Le chevron local (21 sans graisse,
-    /// `frame` 40×40 en dur, `.buttonStyle(.plain)`) est retiré : la boîte, l'offset
-    /// et l'appui 0.6 viennent désormais du composant (pas de double application).
     private var backButton: some View {
-        DuelloBackButton(
-            iconSize: 21,
-            accessibilityLabel: backLabel,
-            action: leaveSettingsOrInformationPage
-        )
+        Button(action: leaveSettingsOrInformationPage) {
+            Image(systemName: "chevron.left")
+                .font(.system(size: 21))
+                .foregroundStyle(Theme.ink)
+                .frame(
+                    width: AcctInfoSettingsStyle.backButtonSize,
+                    height: AcctInfoSettingsStyle.backButtonSize
+                )
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(backLabel)
     }
 
     private var backLabel: String {

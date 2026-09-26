@@ -79,17 +79,6 @@ enum TrainGridStyles {
     /// l'intention et sert de garde-fou si un jour la ligne doit se replier.
     static let filterRowWraps = false
 
-    /// `gap: 4` de `chapterHeaderFilters` : écart entre les menus de l'en-tête
-    /// de chapitre. (La rangée de filtres d'annales, elle, hérite du `gap: 6` de
-    /// `badgeFilters`.)
-    static let filterRowGap: CGFloat = 4
-
-    /// `marginLeft: 4` de `chapterHeaderFilters` : retrait du premier menu.
-    static let filterRowLeadingInset: CGFloat = 4
-
-    /// `transform: [{ translateY: 3 }]` de `chapterHeaderFilters`.
-    static let filterRowVerticalOffset: CGFloat = 3
-
     // MARK: - Identités de liste
 
     /// `key` de la `FlatList` en mode grille (`trainingGrid` vrai).
