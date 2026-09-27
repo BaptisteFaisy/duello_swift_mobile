@@ -7,8 +7,10 @@
 //  Fournit les rappels de `LoginScrProps` (lot 14-A, porté de
 //  `src/screens/LoginScreen.tsx`) à `LoginScrScreen`, en les câblant sur
 //  l'application : `SessionStore` (connexion serveur), fermeture de la feuille
-//  (« lien de retour ») et réinitialisation serveur du mot de passe
-//  (`PasswordResetView`). C'est ce type que branche `LoginView`.
+//  (« lien de retour ») et demande de lien de réinitialisation
+//  (`ForgotPasswordView`, R1-AUTH U03#1 : `openPasswordResetRequest` de
+//  `App.tsx:2226-2228` → `ForgotPasswordScreen`). C'est ce type que branche
+//  `LoginView`.
 //
 //  Câblage vague 2 (24/09/2026) :
 //    - registre local (U8 §2) : `accounts` et `persistAccount` sont branchés sur
@@ -36,7 +38,7 @@ struct LoginIntAssembly: View {
     @EnvironmentObject private var session: SessionStore
     @Environment(\.dismiss) private var dismiss
 
-    /// Adresse à réinitialiser (feuille `PasswordResetView`).
+    /// Adresse préremplie de la demande de lien (feuille `ForgotPasswordView`).
     @State private var resetEmail: String?
     /// Message d'échec fournisseur (Apple), sans canal dans `LoginScrScreen`.
     @State private var providerError: String?
@@ -46,7 +48,11 @@ struct LoginIntAssembly: View {
     var body: some View {
         LoginScrScreen(props: props)
             .sheet(isPresented: isResetPresented) {
-                PasswordResetView(email: resetEmail ?? "")
+                // Unité 03 : le lien « J'ai oublié mon mot de passe » ouvre
+                // l'écran de **demande de lien** (`ForgotPasswordScreen`), pas
+                // le formulaire de nouveau mot de passe (réservé au lien
+                // entrant, `PasswordResetView`).
+                ForgotPasswordView(initialEmail: resetEmail ?? "")
             }
             .alert("Connexion", isPresented: isProviderErrorPresented) {
                 Button("OK", role: .cancel) { providerError = nil }

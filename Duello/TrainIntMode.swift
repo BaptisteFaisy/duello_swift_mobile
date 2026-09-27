@@ -20,14 +20,17 @@
 //  `SubjTrainingWorkflowGuide`, `DuelloEmptyState` et les briques déjà en place
 //  dans `TrainingCatalogView+Content.swift`.
 //
-//  Limite assumée : la section Annales n'a pas de banque servie dans cet écran,
-//  l'onglet Annales est donc retiré (l'ancien état vide était visible en ECG et
-//  MPSI). Le mode « Cours » n'ouvre pas de document PDF ici :
-//  `SubjCourseChapterRow` lit le statut du chapitre, faute de repère.
+//  Limite assumée : le mode « Cours » n'ouvre pas de document PDF ici :
+//  `SubjCourseChapterRow` ouvre la page « Mon cours » du chapitre
+//  (`openCoursePage`).
 //
 //  Cible iOS 16, aucune dépendance externe.
 //
 import SwiftUI
+
+// V1 2026-09-26 (U06#2) : onglet Annales rétabli (filtre `.annales` retiré de
+// `modeOptions`), `AnnalesView` instancié pour `activeMode == .annales`,
+// `annalesFallback` supprimé.
 
 extension TrainingCatalogView {
 
@@ -38,16 +41,15 @@ extension TrainingCatalogView {
         modeOverride ?? TrainIntProgram.defaultMode(forSubjectId: subject.id)
     }
 
-    /// Onglets réellement proposés pour la matière. L'onglet Annales est retiré
-    /// tant que la banque d'annales n'est pas branchée sur cet écran : sa
-    /// section s'arrête sinon sur un état vide, visible dès que `hasAnnaleBank`
-    /// est vrai (ECG et MPSI) — cf. `annalesFallback`.
+    /// Onglets réellement proposés pour la matière (`availableTrainingModesFor`
+    /// + `hasMathsAnnales`, `SubjectsScreen.tsx:9443`) : le Cours et les
+    /// Annales ne concernent que les maths (les Annales seulement si elles sont
+    /// servies).
     var modeOptions: [SubjTrainingModeOption] {
         SubjTrainingModeCatalog.options(
             forSubjectId: subject.id,
             hasMathsAnnales: SubjTrainingModeCatalog.hasAnnaleBank(track: session.profile.track)
         )
-        .filter { $0.mode != .annales }
     }
 
     /// Barre d'onglets : le retour visuel reste sous le doigt, le contenu se
@@ -91,7 +93,7 @@ extension TrainingCatalogView {
                     .padding(.top, 12)
             }
             if activeMode == .annales {
-                annalesFallback
+                annalesSection
             } else {
                 chapterCatalogue
             }
@@ -99,14 +101,20 @@ extension TrainingCatalogView {
         }
     }
 
-    /// État vide de la section Annales, faute de banque servie dans cet écran.
-    var annalesFallback: some View {
-        DuelloEmptyState(
-            icon: "books.vertical",
-            title: "Annales indisponibles",
-            message: "Les annales de cette matière ne sont pas encore chargées sur l’appareil."
+    /// Section Annales (`10084-10183`) : la liste filtrable des annales de la
+    /// matière, avec son lecteur et sa correction de copie (`AnnalesView`). La
+    /// banque réelle est un catalogue généré côté Expo, non porté : la banque
+    /// embarquée sert de démonstration et de forme d'échange.
+    var annalesSection: some View {
+        AnnalesView(
+            subject: subject.name,
+            subjectId: subject.id,
+            track: session.profile.track,
+            specialty: session.profile.specialty
         )
-        .padding(.top, 20)
+        .environmentObject(session)
+        .environmentObject(progress)
+        .padding(.top, 8)
     }
 
     /// Pied du panneau : rappel statique de la légende — pour **toute** matière

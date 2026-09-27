@@ -11,18 +11,41 @@ struct DuelloApp: App {
     /// (voir `LevelUpQueue.start(observing:)`), présentée à la racine par
     /// `LevelUpCelebrationCoordinator` — équivalent du `useLevelUpQueue` Expo.
     @StateObject private var levelUpQueue = LevelUpQueue()
-    /// Demande de réinitialisation reçue par lien profond
-    /// (`duello-dev://reset-password?email=…&token=…`) : présentée en plein
-    /// écran, comme `PasswordResetScreen` côté Expo.
+    /// Demande de réinitialisation reçue par lien profond : présentée en plein
+    /// écran par le **seul** écran « Nouveau mot de passe » (`PasswordResetView`),
+    /// comme `PasswordResetScreen` côté Expo (R1-AUTH, U04#3).
     @State private var passwordResetRequest: AcctSecResetRequest?
 
     /// Schéma d'URL de la variante (dev : `duello-dev`, cf. `CFBundleURLTypes`
-    /// de `Info.plist` et `DUELLO_PASSWORD_RESET_APP_SCHEME` du backend).
+    /// de `Info.plist` et `DUELLO_PASSWORD_RESET_APP_SCHEME` du backend) : repli
+    /// `legacy-native` du contexte de lecture.
     private static let resetScheme = "duello-dev"
+
+    /// App Link HTTPS de développement (`passwordResetAppUrl` de
+    /// `config/duello-development.json`, lu par `config/appLinking.ts`) : le
+    /// lien entrant y porte ses paramètres dans le fragment
+    /// (`…/reset-password/app#reset-password?email=…&token=…`, R1-AUTH, U08#1).
+    private static let resetAppURL: String? =
+        "https://duello-development-api-relay.duello.workers.dev/reset-password/app"
+
+    /// Contexte de lecture du lien de réinitialisation : branche `app` (App Link
+    /// HTTPS) d'abord, schéma personnalisé en repli — comme
+    /// `useDuelloIncomingLinkSubscription` (`app` si `passwordResetAppUrl`, sinon
+    /// `legacy-native`).
+    private static var resetContext: AcctSecResetLinkContext {
+        if let appURL = resetAppURL {
+            return .app(baseURL: appURL, legacyScheme: resetScheme)
+        }
+        return .legacyNative(scheme: resetScheme)
+    }
 
     var body: some Scene {
         WindowGroup {
             RootView()
+                // Hôte racine de la fenêtre de paiement des outils Premium
+                // (`PremiumToolPaywallHost` de la source, `App.tsx:2587`) : une
+                // seule fenêtre suffit pour tous les outils Premium.
+                .premToolPaywallHost(token: session.token)
                 .environmentObject(session)
                 .environmentObject(progress)
                 // Retrait du focus clavier quand l'app quitte le premier plan
@@ -41,31 +64,23 @@ struct DuelloApp: App {
                 // iOS inversé), comme le handle de lien profond Expo.
                 .onOpenURL { url in
                     GoogleAuthService.shared.handle(url)
-                    // Lien de réinitialisation servi par le backend
-                    // (`passwordResetLink.ts`, branche `legacy-native`).
+                    // Lien de réinitialisation servi par le backend : App Link
+                    // HTTPS (branche `app`) ou schéma personnalisé en repli.
                     if let request = AcctSecResetLink.request(
                         from: url.absoluteString,
-                        scheme: Self.resetScheme
+                        context: Self.resetContext
                     ) {
                         passwordResetRequest = request
                     }
                 }
                 .fullScreenCover(item: $passwordResetRequest) { request in
-                    NavigationStack {
-                        AcctSecPasswordResetForm(
-                            email: request.email,
-                            token: request.token,
-                            onAuthenticated: { serverSession in
-                                try? session.installSession(serverSession)
-                                passwordResetRequest = nil
-                            }
-                        )
-                        .toolbar {
-                            ToolbarItem(placement: .cancellationAction) {
-                                Button("Fermer") { passwordResetRequest = nil }
-                            }
+                    PasswordResetView(
+                        email: request.email,
+                        token: request.token,
+                        onAuthenticated: { serverSession in
+                            try? session.installSession(serverSession)
                         }
-                    }
+                    )
                 }
         }
     }
@@ -125,5 +140,22 @@ struct RootView: View {
             }
         }
         .animation(.easeInOut(duration: 0.25), value: session.isSignedIn)
+        // Services racine montés dès qu'une session est ouverte (R7, U19#3 /
+        // U20#1) : synchronisation d'abonnement (`SubscriptionPaymentSync`,
+        // `App.tsx:2599`) et inscription aux notifications poussées
+        // (`PushNotificationCoordinator`, `App.tsx:2636`). Vues sans rendu
+        // (0 × 0) ; l'abonnement est recréé par compte (`.id`).
+        .overlay {
+            if session.isSignedIn {
+                ZStack {
+                    PremSubscriptionSyncView(
+                        email: session.profile.email,
+                        token: session.token
+                    )
+                    .id(session.profile.email)
+                    PushNotifRootMount()
+                }
+            }
+        }
     }
 }

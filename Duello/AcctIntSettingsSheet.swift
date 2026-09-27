@@ -10,11 +10,15 @@
 //  `'settings'` — le rendu hors `page === 'profile'`, qui empile
 //  `SETTINGS_SWIPE_PAGES` dans un `OrderedTabPager`.
 //
-//  Replis documentés : la suppression de compte (`onDeleteAccount`) est un
-//  no-op — aucun point de terminaison de suppression n'est porté ; la bascule
-//  biométrique (`onBiometricChange`) reste au repli par défaut de
-//  `AcctInfoSettingsView` (la politique `AcctSecBiometricPolicy` n'est pas
-//  branchée ici).
+//  Replis documentés : la bascule biométrique (`onBiometricChange`) reste au
+//  repli par défaut de `AcctInfoSettingsView` (la politique
+//  `AcctSecBiometricPolicy` n'est pas branchée ici — écart U08#21, P1).
+//
+//  V1 (2026-09-26) — écart U08#2 : `onDeleteAccount` n'est plus un no-op ; il
+//  exécute la suppression réelle du compte (`DELETE /auth/account` + purge,
+//  `SessionStore.deleteAccount`). La fermeture de session qui s'ensuit fait
+//  disparaître la racine connectée — donc cette feuille — sans appel explicite
+//  à `dismiss`, comme `onLogout`.
 //
 //  Cible : iOS 16, aucune API iOS 17.
 //
@@ -62,7 +66,10 @@ struct AcctIntSettingsSheet: View {
                 onOpenPassword: { presented = .password },
                 onOpenBlocked: { presented = .blocked },
                 onLogout: { Task { await session.signOut() } },
-                onDeleteAccount: {},
+                // La déconnexion qui suit la suppression fait disparaître
+                // `MainTabView` (donc cette feuille), comme pour `onLogout` :
+                // aucune fermeture explicite n'est nécessaire.
+                onDeleteAccount: { try await session.deleteAccount() },
                 token: session.token,
                 premiumDaysLabel: premiumDaysLabel,
                 onClose: { dismiss() }

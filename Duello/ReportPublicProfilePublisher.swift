@@ -63,7 +63,7 @@ final class ReportPublicProfilePublisher: ObservableObject {
     private let snapshots: ReportPublicProfileSnapshotProviding
     private let guestSessions: ReportGuestSessionEnsuring
     private let publisher: ReportPublicProfilePublishing
-    private let tokenProvider: () -> String?
+    private var tokenProvider: () -> String?
 
     private var accountId = ""
     private var profile = UserProfile()
@@ -92,6 +92,7 @@ final class ReportPublicProfilePublisher: ObservableObject {
         self.publisher = publisher
         self.tokenProvider = tokenProvider
     }
+    func setTokenProvider(_ provider: @escaping () -> String?) { tokenProvider = provider }
 
     /// Monte le coordinateur : abonnement au stockage du compte et recalcul au
     /// début de chaque journée locale. Remplace tout montage précédent.
