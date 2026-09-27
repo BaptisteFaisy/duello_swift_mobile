@@ -20,6 +20,7 @@
 		AA000001AAAAAAAAAAAAAA11 /* GoogleAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001AAAAAAAAAAAAAA11 /* GoogleAuth.swift */; };
 		AA000001AAAAAAAAAAAAAA20 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = AE000001AAAAAAAAAAAAAA21 /* GoogleSignIn */; };
 		AA000001AAAAAAAAAAAAAA0C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AB000001AAAAAAAAAAAAAA0C /* Assets.xcassets */; };
+		AA000001AAAAAAAAAAAAAAF0 /* Ionicons.ttf in Resources */ = {isa = PBXBuildFile; fileRef = AB000001AAAAAAAAAAAAAAF0 /* Ionicons.ttf */; };
 		EE889E69E94AF6444BD44845 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C29620B927AEC396B51ACC99 /* OnboardingView.swift */; };
 		49C84C2F41F77D3BE1CD6F52 /* ProgressStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB14A8E05E2262DB7E43328B /* ProgressStore.swift */; };
 		272113D7714F8F0BDB406461 /* DuelloUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7703F40172E94E96227F04DD /* DuelloUI.swift */; };
@@ -796,6 +797,8 @@
 		1C8CDEF635A2094FFCE2629C /* PushNotifRootMount.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EC1D52AC2565955266D43CA /* PushNotifRootMount.swift */; };
 		E0D020815011AD5AC43F4B8A /* OnbFlowSteps+Alerts.swift in Sources */ = {isa = PBXBuildFile; fileRef = A49074BBE618B40D6857003B /* OnbFlowSteps+Alerts.swift */; };
 		EAFAE5B65094DB0AA932DEF7 /* TrainChapterFlashcards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2569B9FF9DBBBB5658DD5BC7 /* TrainChapterFlashcards.swift */; };
+		01D6E23160A173C14C42244A /* IonIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8907398F420F8D304EA258D2 /* IonIcon.swift */; };
+		4201CBCAE462150980190083 /* IoniconsGlyphs.generated.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1ABB833690D4F7EDD377AA86 /* IoniconsGlyphs.generated.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -813,6 +816,7 @@
 		AB000001AAAAAAAAAAAAAA11 /* GoogleAuth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleAuth.swift; sourceTree = "<group>"; };
 		AB000001AAAAAAAAAAAAAA12 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		AB000001AAAAAAAAAAAAAA0C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		AB000001AAAAAAAAAAAAAAF0 /* Ionicons.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Ionicons.ttf; sourceTree = "<group>"; };
 		C29620B927AEC396B51ACC99 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		CB14A8E05E2262DB7E43328B /* ProgressStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressStore.swift; sourceTree = "<group>"; };
 		7703F40172E94E96227F04DD /* DuelloUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuelloUI.swift; sourceTree = "<group>"; };
@@ -1589,6 +1593,8 @@
 		8EC1D52AC2565955266D43CA /* PushNotifRootMount.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushNotifRootMount.swift; sourceTree = "<group>"; };
 		A49074BBE618B40D6857003B /* OnbFlowSteps+Alerts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OnbFlowSteps+Alerts.swift"; sourceTree = "<group>"; };
 		2569B9FF9DBBBB5658DD5BC7 /* TrainChapterFlashcards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainChapterFlashcards.swift; sourceTree = "<group>"; };
+		8907398F420F8D304EA258D2 /* IonIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IonIcon.swift; sourceTree = "<group>"; };
+		1ABB833690D4F7EDD377AA86 /* IoniconsGlyphs.generated.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IoniconsGlyphs.generated.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1628,6 +1634,7 @@
 				AB000001AAAAAAAAAAAAAA11 /* GoogleAuth.swift */,
 				AB000001AAAAAAAAAAAAAA12 /* Info.plist */,
 				AB000001AAAAAAAAAAAAAA0C /* Assets.xcassets */,
+				AB000001AAAAAAAAAAAAAAF0 /* Ionicons.ttf */,
 				C29620B927AEC396B51ACC99 /* OnboardingView.swift */,
 				CB14A8E05E2262DB7E43328B /* ProgressStore.swift */,
 				7703F40172E94E96227F04DD /* DuelloUI.swift */,
@@ -2403,6 +2410,8 @@
 				8EC1D52AC2565955266D43CA /* PushNotifRootMount.swift */,
 				A49074BBE618B40D6857003B /* OnbFlowSteps+Alerts.swift */,
 				2569B9FF9DBBBB5658DD5BC7 /* TrainChapterFlashcards.swift */,
+				8907398F420F8D304EA258D2 /* IonIcon.swift */,
+				1ABB833690D4F7EDD377AA86 /* IoniconsGlyphs.generated.swift */,
 			);
 			path = Duello;
 			sourceTree = "<group>";
@@ -2476,6 +2485,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				AA000001AAAAAAAAAAAAAA0C /* Assets.xcassets in Resources */,
+				AA000001AAAAAAAAAAAAAAF0 /* Ionicons.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -3273,6 +3283,8 @@
 				1C8CDEF635A2094FFCE2629C /* PushNotifRootMount.swift in Sources */,
 				E0D020815011AD5AC43F4B8A /* OnbFlowSteps+Alerts.swift in Sources */,
 				EAFAE5B65094DB0AA932DEF7 /* TrainChapterFlashcards.swift in Sources */,
+				01D6E23160A173C14C42244A /* IonIcon.swift in Sources */,
+				4201CBCAE462150980190083 /* IoniconsGlyphs.generated.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

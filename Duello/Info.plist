@@ -46,5 +46,12 @@
 	     Swift sur le RN. -->
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<!-- Police Ionicons embarquée : rend les MÊMES glyphes que la source React
+	     Native (`@expo/vector-icons`), au lieu d'un substitut SF Symbol. Le nom
+	     de famille enregistré est « Ionicons ». -->
+	<key>UIAppFonts</key>
+	<array>
+		<string>Ionicons.ttf</string>
+	</array>
 </dict>
 </plist>
