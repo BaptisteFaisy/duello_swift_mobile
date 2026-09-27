@@ -55,7 +55,14 @@ struct AccountView: View {
             // La source n'a pas d'en-tête de navigation : la page commence par
             // la ligne de recherche, sans titre centré.
             .sheet(isPresented: $notificationsOpen) {
-                AcctIntNotificationsSheet()
+                // Le tap sur une notification ouvre la fiche du membre
+                // (`openMember` de `AccountScreen.tsx:2271`) puis referme la
+                // feuille (`leaveNotifications`) : la fiche se pose alors sur
+                // le profil de l'onglet « Mon compte ».
+                AcctIntNotificationsSheet(onOpenMember: { memberId in
+                    search.openMember(memberId)
+                    notificationsOpen = false
+                })
             }
             .sheet(isPresented: $settingsOpen) {
                 AcctIntSettingsSheet(email: session.profile.email, token: session.token)

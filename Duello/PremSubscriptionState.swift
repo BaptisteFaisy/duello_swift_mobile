@@ -2,35 +2,30 @@ import Foundation
 
 // MARK: - État d'abonnement du portage
 
-/// Achat Premium — simulé, sans aucune dépendance de facturation.
+/// Point d'entrée de la facturation native.
 ///
-/// ⚠️ **Aucun paiement réel.** La cible n'embarque ni StoreKit ni RevenueCat
-/// (dépendance externe interdite par le brief de portage). `isAvailable` reste
-/// donc `false` : le bouton « Accéder à Premium » garde son état désactivé
-/// d'origine et son libellé d'accessibilité « …, bientôt disponible », et la
-/// fenêtre affiche la mention d'indisponibilité. Le message ci-dessous est
-/// celui de `src/hooks/usePremiumPurchase.ts`, repris mot pour mot.
+/// V1 (26/09/2026, écart 19#1) : `isAvailable` n'est plus figé à `false`. La
+/// disponibilité vient de la couture `PremStoreKitPurchases` — le bouton
+/// « Accéder à Premium » est câblé à `PremPurchaseFlow` et répond à l'élève. Un
+/// achat impossible refuse **clairement** par alerte, jamais en silence.
 ///
-/// absent : `PURCHASE_FAILURE_MESSAGE` (« Le paiement n’a pas abouti. Vérifie
-/// ta connexion puis réessaie — aucun montant n’a été prélevé. ») — sans flux
-/// d'achat, aucun échec de paiement n'est possible ici.
+/// ⚠️ **RevenueCat n'est pas embarqué** (dépendance externe interdite) : le
+/// catalogue de produits StoreKit est vide, donc `beginPurchase` refuse pour
+/// l'instant. Le jour où les identifiants de produits sont renseignés
+/// (`PremStoreKitPurchases.productIds`), l'achat part réellement, sans toucher
+/// au reste du flux.
+///
 /// absent : la restauration d'abonnement et le centre de gestion
 /// (`presentCustomerCenter`, `hasActiveEntitlement`, `logInPurchases`,
-/// `presentPaywallIfNeeded` de `purchaseService.ts`) — sans facturation
-/// native, il n'y a rien à restaurer ni à gérer.
-/// absent : les alertes du flux d'achat de `usePremiumPurchase.ts` —
-/// « Connexion requise », « Connecte-toi à ton compte avant de t’abonner. »,
-/// « Achat indisponible », « Paiement impossible », « Bienvenue en Premium »,
-/// « Abonnement restauré » : aucun flux d'achat ne les déclenche.
+/// `presentPaywallIfNeeded` de `purchaseService.ts`) — sans RevenueCat, il n'y a
+/// rien à restaurer ni à gérer.
 enum PremPurchaseService {
     /// `isPurchaseAvailable()` : la facturation native est-elle opérationnelle ?
-    /// Jamais dans ce portage — voir l'avertissement ci-dessus.
-    static let isAvailable = false
+    static var isAvailable: Bool { PremStoreKitPurchases().isAvailable }
 
     /// `PAYWALL_UNAVAILABLE_MESSAGE` : la fenêtre d'abonnement n'est pas
-    /// activée sur cette application.
-    static let paywallUnavailableMessage =
-        "La fenêtre d’abonnement n’est pas encore activée sur cette application."
+    /// activée sur cette application (message unique, porté par le flux).
+    static let paywallUnavailableMessage = PremPurchaseFlow.paywallUnavailableMessage
 }
 
 // MARK: - Quota de corrections

@@ -43,13 +43,13 @@ final class PremToolPaywallCenter: ObservableObject {
 
     /// Couture d'achat de la fenêtre (`PremCodePurchases`) : un seul point
     /// interroge la disponibilité de la facturation native, jamais une seconde
-    /// couture. Dans ce build, la couture simulée refuse
-    /// (`PremCodeSimulatedPurchases.isAvailable == false`) : le bouton
-    /// d'abonnement garde son état désactivé.
-    let purchases: PremCodePurchases = PremCodeSimulatedPurchases()
+    /// couture. V1 (écart 19#1) : la couture simulée a laissé la place à la
+    /// couture StoreKit (`PremStoreKitPurchases`), qui reste actionnable et
+    /// refuse clairement tant qu'aucun produit n'est configuré.
+    let purchases: PremCodePurchases = PremStoreKitPurchases()
 
     /// `isPurchaseAvailable()` : la facturation native est-elle opérationnelle ?
-    /// Jamais ici — voir `PremPurchaseService.isAvailable`.
+    /// Voir `PremPurchaseService.isAvailable`.
     var isPurchaseAvailable: Bool { purchases.isAvailable }
 
     private init() {}
@@ -99,9 +99,10 @@ struct PremToolPaywallHost: ViewModifier {
 /// Disponibilité de la facturation native, publiée par l'hôte du paywall
 /// (`PremToolPaywallHost`) au contenu qu'il présente : un seul point interroge
 /// la couture `PremCodePurchases`. La valeur par défaut est celle de cette
-/// couture (`PremCodeSimulatedPurchases`), qui refuse dans ce build.
+/// couture (`PremStoreKitPurchases`), actionnable et refusant clairement tant
+/// qu'aucun produit n'est configuré.
 struct PremPurchaseAvailableKey: EnvironmentKey {
-    static let defaultValue = PremCodeSimulatedPurchases().isAvailable
+    static let defaultValue = PremStoreKitPurchases().isAvailable
 }
 
 extension EnvironmentValues {

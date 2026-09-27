@@ -17,6 +17,10 @@ struct UserProfile: Codable, Equatable {
     var track: String = ""
     var year: String = ""
     var specialty: String = ""
+    /// Parcours détaillé (`academicPath` de `src/types.ts:72-76`), ajouté après
+    /// le format historique `track`/`year`/`specialty`. Irrégulièrement présent
+    /// (comptes existants) : `normalizeAcademicPath` le reconstruit alors.
+    var academicPath: AcademicPath? = nil
     var targetSchool: String = ""
     var personalGoal: String = ""
     var isPublic: Bool = false
@@ -26,7 +30,7 @@ struct UserProfile: Codable, Equatable {
         case displayName, firstName, lastName, email
         case prepName, prepCity, holidayZone, prepType
         case className = "class"
-        case track, year, specialty, targetSchool
+        case track, year, specialty, academicPath, targetSchool
         case personalGoal, isPublic, photoUri
     }
 
@@ -46,6 +50,7 @@ struct UserProfile: Codable, Equatable {
         track = Self.string(c, .track)
         year = Self.string(c, .year)
         specialty = Self.string(c, .specialty)
+        academicPath = try? c.decodeIfPresent(AcademicPath.self, forKey: .academicPath)
         targetSchool = Self.string(c, .targetSchool)
         personalGoal = Self.string(c, .personalGoal)
         isPublic = (try? c.decodeIfPresent(Bool.self, forKey: .isPublic)) ?? false
@@ -66,6 +71,7 @@ struct UserProfile: Codable, Equatable {
         try c.encode(track, forKey: .track)
         try c.encode(year, forKey: .year)
         try c.encode(specialty, forKey: .specialty)
+        try c.encodeIfPresent(academicPath, forKey: .academicPath)
         try c.encode(targetSchool, forKey: .targetSchool)
         try c.encode(personalGoal, forKey: .personalGoal)
         try c.encode(isPublic, forKey: .isPublic)
@@ -81,6 +87,73 @@ struct UserProfile: Codable, Equatable {
         let source = firstName.trimmingCharacters(in: .whitespaces)
             .isEmpty ? displayName : firstName
         return String(source.prefix(1)).uppercased()
+    }
+
+    /// Filière réellement suivie (`currentTrackForProfile`) : normalisée, elle
+    /// remplace le champ historique `track`, qui perd BCPST et B/L derrière
+    /// MPSI (`RankingsScreen.tsx:403-407`).
+    var followedTrack: String {
+        AcademicPathNormalization.currentTrackForProfile(self)
+    }
+}
+
+// MARK: - Parcours scolaire (filière suivie)
+
+/// Parcours détaillé du compte (`AcademicPath` de `src/types.ts:32-41`).
+/// Ajouté après le format historique `track`/`year`/`specialty` ; optionnel
+/// pour les comptes existants, que `normalizeAcademicPath` reconstruit.
+struct AcademicPath: Codable, Equatable {
+    /// Filière réellement suivie pendant l'année indiquée dans le profil.
+    var currentTrack: String
+    /// Filière suivie en 1re année, conservée pour les révisions cumulatives.
+    var firstYearTrack: String
+    /// Option de 1re année lorsqu'elle modifie le programme étudié.
+    var firstYearOption: String
+    /// Option actuelle lorsqu'elle modifie le programme étudié.
+    var currentOption: String
+}
+
+/// Filière suivie **normalisée** du compte (`normalizeAcademicPath` /
+/// `currentTrackForProfile` de `src/utils/academicPath.ts`).
+///
+/// La filière normalisée remplace le champ historique `track`, qui perd BCPST
+/// et B/L derrière MPSI : un élève BCPST a `track == "MPSI"`. Les ligues Elo
+/// doivent donc suivre la filière suivie (`RankingsScreen.tsx:403-407`).
+enum AcademicPathNormalization {
+    /// `FIRST_YEAR_TRACKS` (`academicPath.ts:8-16`).
+    static let firstYearTracks = ["MPSI", "MP2I", "PCSI", "PTSI", "BCPST", "B/L", "ECG"]
+    /// `SECOND_YEAR_TRACKS` (`academicPath.ts:17-26`).
+    static let secondYearTracks = ["MP", "MPI", "PC", "PT", "PSI", "BCPST", "B/L", "ECG"]
+    /// `LYCEE_YEARS` (`academicPath.ts:207`).
+    static let lyceeYears = ["2de", "1re", "Terminale"]
+    /// `LYCEE_TRACKS` (`academicPath.ts:215`).
+    static let lyceeTracks = ["Lycée"]
+
+    /// `currentTrackChoices` : filières proposées selon l'année du profil.
+    static func currentTrackChoices(year: String) -> [String] {
+        if lyceeYears.contains(year) { return lyceeTracks }
+        return year == "1re année" ? firstYearTracks : secondYearTracks
+    }
+
+    /// `defaultCurrentTrack` : filière de repli d'un profil enregistré.
+    static func defaultCurrentTrack(track: String, year: String) -> String {
+        if track == "ECG" { return "ECG" }
+        if track == "Lycée" { return "Lycée" }
+        return year == "1re année" ? "MPSI" : "MP"
+    }
+
+    /// `currentTrackForProfile` : filière réellement suivie.
+    ///
+    /// `academicPath.currentTrack` prime lorsqu'il appartient aux filières de
+    /// l'année ; sinon repli sur `defaultCurrentTrack(track:year:)`, puis sur la
+    /// première filière autorisée (résolution de `normalizeAcademicPath`).
+    static func currentTrackForProfile(_ profile: UserProfile) -> String {
+        let allowed = currentTrackChoices(year: profile.year)
+        if let saved = profile.academicPath?.currentTrack, allowed.contains(saved) {
+            return saved
+        }
+        let fallback = defaultCurrentTrack(track: profile.track, year: profile.year)
+        return allowed.contains(fallback) ? fallback : (allowed.first ?? "")
     }
 }
 

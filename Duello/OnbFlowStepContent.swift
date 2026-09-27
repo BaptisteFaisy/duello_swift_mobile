@@ -103,13 +103,14 @@ struct OnbFlowStepContent: View {
     /// `current-track` : la filière actuelle (`onboardingCurrentTrackChoices`).
     private var currentTrackStep: some View {
         OnbUiChoiceSection(dark: true) {
-            // Filières indexées par position : la source peut renvoyer deux
-            // fois « PT » en 2e année (`SECOND_YEAR_TRACKS`), ce qui ferait
-            // lever `ForEach(… id: \.self)` sur identifiants dupliqués.
+            // Filières indexées par position (robuste à tout doublon) ; la
+            // source n'en renvoie plus depuis le retrait du doublon « PT »
+            // (`V1`, écart 05#5). Seule la filière réellement choisie est
+            // active : le repli du profil ne vaut pas un choix.
             ForEach(Array(coordinator.currentTrackChoices.enumerated()), id: \.offset) { _, track in
                 OnbUiChoiceChip(
                     label: track,
-                    isSelected: coordinator.path.currentTrack == track,
+                    isSelected: coordinator.selectedOnboardingTrack == track,
                     action: { coordinator.chooseCurrentTrack(track) },
                     wide: true,
                     dark: true

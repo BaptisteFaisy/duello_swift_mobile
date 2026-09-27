@@ -781,6 +781,21 @@
 		873534ACE958A754F0BC1E71 /* TrainContent+Scope.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91096D1E14D2BE4850546C5C /* TrainContent+Scope.swift */; };
 		64F1D5D17CC97AD5FF4AFF51 /* TrainExercisePrereq.swift in Sources */ = {isa = PBXBuildFile; fileRef = F182D379AAEC506EAB9056FB /* TrainExercisePrereq.swift */; };
 		75E2B8CC657E0096EABE9002 /* TrainIntItems+Prereq.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42934DE0CD7D66CFB601DC2B /* TrainIntItems+Prereq.swift */; };
+		2EFF8EC69BF7C00440DA7453 /* SessionStore+AccountDeletion.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0D9D99125A954EF212F9180 /* SessionStore+AccountDeletion.swift */; };
+		F78136977A2D913887BEECC0 /* SocChallengeChapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C0E21C378E5EC66D4AD7B3B /* SocChallengeChapters.swift */; };
+		9CAF4E71C16E547F8631FDDF /* AcctNotificationCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = D29AB39ADDDE350582DF0E1A /* AcctNotificationCard.swift */; };
+		FFC9F2F6CAE062094DBFFB5B /* AcctNotifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5A756DC4D040BC307996D9 /* AcctNotifications.swift */; };
+		90841DE8F5D0751E0DE59D5F /* AcctNotificationsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8051EA8AA6FA0554981C3B88 /* AcctNotificationsStore.swift */; };
+		517D98EA4E64E31EADF06FD8 /* PremPurchaseFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7640551C8F554751E037FF88 /* PremPurchaseFlow.swift */; };
+		2EBEBF124209F09183C53276 /* PremStoreKitPurchases.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8E31109C6720F3677C0F96 /* PremStoreKitPurchases.swift */; };
+		E5FF10F01EB2DA8FDDB31C05 /* PremSubscriptionSyncView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08F2F2098356BB653783B40C /* PremSubscriptionSyncView.swift */; };
+		DA5DB27E3DE7E7DA0B94CBEE /* TrainCoursePage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60268A79411825FD2E286CE8 /* TrainCoursePage.swift */; };
+		0BEB6E75C22DFF228BD43552 /* TrainCourseStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D364BB008780A6F9241B9373 /* TrainCourseStore.swift */; };
+		BB3E8E85976576652512E0A5 /* TrainFlashcardReviewPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F374A62501B220C9A7C065D5 /* TrainFlashcardReviewPanel.swift */; };
+		601BCE3C5A24D6DF32FF6587 /* TrainFlashcardsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 209A3462BD99771A24FB83AA /* TrainFlashcardsPanel.swift */; };
+		1C8CDEF635A2094FFCE2629C /* PushNotifRootMount.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EC1D52AC2565955266D43CA /* PushNotifRootMount.swift */; };
+		E0D020815011AD5AC43F4B8A /* OnbFlowSteps+Alerts.swift in Sources */ = {isa = PBXBuildFile; fileRef = A49074BBE618B40D6857003B /* OnbFlowSteps+Alerts.swift */; };
+		EAFAE5B65094DB0AA932DEF7 /* TrainChapterFlashcards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2569B9FF9DBBBB5658DD5BC7 /* TrainChapterFlashcards.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -1559,6 +1574,21 @@
 		91096D1E14D2BE4850546C5C /* TrainContent+Scope.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TrainContent+Scope.swift"; sourceTree = "<group>"; };
 		F182D379AAEC506EAB9056FB /* TrainExercisePrereq.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainExercisePrereq.swift; sourceTree = "<group>"; };
 		42934DE0CD7D66CFB601DC2B /* TrainIntItems+Prereq.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TrainIntItems+Prereq.swift"; sourceTree = "<group>"; };
+		C0D9D99125A954EF212F9180 /* SessionStore+AccountDeletion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SessionStore+AccountDeletion.swift"; sourceTree = "<group>"; };
+		3C0E21C378E5EC66D4AD7B3B /* SocChallengeChapters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SocChallengeChapters.swift; sourceTree = "<group>"; };
+		D29AB39ADDDE350582DF0E1A /* AcctNotificationCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctNotificationCard.swift; sourceTree = "<group>"; };
+		6E5A756DC4D040BC307996D9 /* AcctNotifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctNotifications.swift; sourceTree = "<group>"; };
+		8051EA8AA6FA0554981C3B88 /* AcctNotificationsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctNotificationsStore.swift; sourceTree = "<group>"; };
+		7640551C8F554751E037FF88 /* PremPurchaseFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PremPurchaseFlow.swift; sourceTree = "<group>"; };
+		9F8E31109C6720F3677C0F96 /* PremStoreKitPurchases.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PremStoreKitPurchases.swift; sourceTree = "<group>"; };
+		08F2F2098356BB653783B40C /* PremSubscriptionSyncView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PremSubscriptionSyncView.swift; sourceTree = "<group>"; };
+		60268A79411825FD2E286CE8 /* TrainCoursePage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainCoursePage.swift; sourceTree = "<group>"; };
+		D364BB008780A6F9241B9373 /* TrainCourseStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainCourseStore.swift; sourceTree = "<group>"; };
+		F374A62501B220C9A7C065D5 /* TrainFlashcardReviewPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainFlashcardReviewPanel.swift; sourceTree = "<group>"; };
+		209A3462BD99771A24FB83AA /* TrainFlashcardsPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainFlashcardsPanel.swift; sourceTree = "<group>"; };
+		8EC1D52AC2565955266D43CA /* PushNotifRootMount.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushNotifRootMount.swift; sourceTree = "<group>"; };
+		A49074BBE618B40D6857003B /* OnbFlowSteps+Alerts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OnbFlowSteps+Alerts.swift"; sourceTree = "<group>"; };
+		2569B9FF9DBBBB5658DD5BC7 /* TrainChapterFlashcards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainChapterFlashcards.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -2358,6 +2388,21 @@
 				91096D1E14D2BE4850546C5C /* TrainContent+Scope.swift */,
 				F182D379AAEC506EAB9056FB /* TrainExercisePrereq.swift */,
 				42934DE0CD7D66CFB601DC2B /* TrainIntItems+Prereq.swift */,
+				C0D9D99125A954EF212F9180 /* SessionStore+AccountDeletion.swift */,
+				3C0E21C378E5EC66D4AD7B3B /* SocChallengeChapters.swift */,
+				D29AB39ADDDE350582DF0E1A /* AcctNotificationCard.swift */,
+				6E5A756DC4D040BC307996D9 /* AcctNotifications.swift */,
+				8051EA8AA6FA0554981C3B88 /* AcctNotificationsStore.swift */,
+				7640551C8F554751E037FF88 /* PremPurchaseFlow.swift */,
+				9F8E31109C6720F3677C0F96 /* PremStoreKitPurchases.swift */,
+				08F2F2098356BB653783B40C /* PremSubscriptionSyncView.swift */,
+				60268A79411825FD2E286CE8 /* TrainCoursePage.swift */,
+				D364BB008780A6F9241B9373 /* TrainCourseStore.swift */,
+				F374A62501B220C9A7C065D5 /* TrainFlashcardReviewPanel.swift */,
+				209A3462BD99771A24FB83AA /* TrainFlashcardsPanel.swift */,
+				8EC1D52AC2565955266D43CA /* PushNotifRootMount.swift */,
+				A49074BBE618B40D6857003B /* OnbFlowSteps+Alerts.swift */,
+				2569B9FF9DBBBB5658DD5BC7 /* TrainChapterFlashcards.swift */,
 			);
 			path = Duello;
 			sourceTree = "<group>";
@@ -3213,6 +3258,21 @@
 				873534ACE958A754F0BC1E71 /* TrainContent+Scope.swift in Sources */,
 				64F1D5D17CC97AD5FF4AFF51 /* TrainExercisePrereq.swift in Sources */,
 				75E2B8CC657E0096EABE9002 /* TrainIntItems+Prereq.swift in Sources */,
+				2EFF8EC69BF7C00440DA7453 /* SessionStore+AccountDeletion.swift in Sources */,
+				F78136977A2D913887BEECC0 /* SocChallengeChapters.swift in Sources */,
+				9CAF4E71C16E547F8631FDDF /* AcctNotificationCard.swift in Sources */,
+				FFC9F2F6CAE062094DBFFB5B /* AcctNotifications.swift in Sources */,
+				90841DE8F5D0751E0DE59D5F /* AcctNotificationsStore.swift in Sources */,
+				517D98EA4E64E31EADF06FD8 /* PremPurchaseFlow.swift in Sources */,
+				2EBEBF124209F09183C53276 /* PremStoreKitPurchases.swift in Sources */,
+				E5FF10F01EB2DA8FDDB31C05 /* PremSubscriptionSyncView.swift in Sources */,
+				DA5DB27E3DE7E7DA0B94CBEE /* TrainCoursePage.swift in Sources */,
+				0BEB6E75C22DFF228BD43552 /* TrainCourseStore.swift in Sources */,
+				BB3E8E85976576652512E0A5 /* TrainFlashcardReviewPanel.swift in Sources */,
+				601BCE3C5A24D6DF32FF6587 /* TrainFlashcardsPanel.swift in Sources */,
+				1C8CDEF635A2094FFCE2629C /* PushNotifRootMount.swift in Sources */,
+				E0D020815011AD5AC43F4B8A /* OnbFlowSteps+Alerts.swift in Sources */,
+				EAFAE5B65094DB0AA932DEF7 /* TrainChapterFlashcards.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -17,6 +17,9 @@
 //  Découpé hors de `AcctInfoPages.swift` pour tenir la règle des 10 `func`
 //  par fichier. À présenter dans un `NavigationStack` par l'écran hôte.
 //
+//  V1 (2026-09-26) — écart U08#2 : `onDeleteAccount` devient asynchrone et
+//  faillible, pour porter la suppression réelle du compte.
+//
 import SwiftUI
 
 /// Mesures et couleurs de l'écran de réglages (`settingsHeader`, `settingsTab`,
@@ -67,7 +70,8 @@ struct AcctInfoSettingsView: View {
     var onOpenPassword: () -> Void = {}
     var onOpenBlocked: () -> Void = {}
     var onLogout: () -> Void = {}
-    var onDeleteAccount: () -> Void = {}
+    // Suppression réelle du compte (asynchrone, faillible), portée V1 U08#2.
+    var onDeleteAccount: () async throws -> Void = {}
     /// Jeton de session, transmis au carrousel d'offres Premium.
     var token: String? = nil
     /// « N jours Premium restants » ; `nil` hors abonnement actif.
@@ -96,7 +100,7 @@ struct AcctInfoSettingsView: View {
         onOpenPassword: @escaping () -> Void = {},
         onOpenBlocked: @escaping () -> Void = {},
         onLogout: @escaping () -> Void = {},
-        onDeleteAccount: @escaping () -> Void = {},
+        onDeleteAccount: @escaping () async throws -> Void = {},
         token: String? = nil,
         premiumDaysLabel: String? = nil,
         onClose: @escaping () -> Void = {}

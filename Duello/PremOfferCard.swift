@@ -8,11 +8,17 @@ import SwiftUI
 ///
 /// absent : l'agrandissement au survol (`onPointerEnter` + `scale(1.025)`),
 /// réservé au client de bureau téléchargé, sans objet sur iOS.
-/// absent : l'état `busy` (« Ouverture… ») — aucun flux d'achat dans ce
-/// portage, voir `PremPurchaseService`.
+/// V1 (26/09/2026, écart 19#1) : le flux d'achat est câblé — `PremPurchaseFlow`
+/// (`usePremiumPurchase`) pilote `available` / `busy` / `onPurchase`, et un
+/// achat impossible refuse clairement par alerte (jamais en silence).
+///
+/// `@MainActor` : la carte possède son flux d'achat, isolé au fil principal —
+/// même motif que `AccountView` / `AcctIntDirectorySheet`.
+@MainActor
 struct PremOfferCard: View {
     let offer: PremOffer
     var discount: PremDiscount? = nil
+    @StateObject private var purchase = PremPurchaseFlow()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -59,7 +65,12 @@ struct PremOfferCard: View {
             Spacer(minLength: 16)
 
             if let label = offer.ctaLabel {
-                PremOfferCallToAction(label: label, available: PremPurchaseService.isAvailable)
+                PremOfferCallToAction(
+                    label: label,
+                    available: purchase.available,
+                    busy: purchase.busy,
+                    onPurchase: { Task { await purchase.launch(offerId: offer.id) } }
+                )
             }
         }
         .padding(18)
@@ -68,6 +79,18 @@ struct PremOfferCard: View {
         .clipShape(RoundedRectangle(cornerRadius: 20))
         .accessibilityElement(children: .contain)
         .accessibilityLabel(offer.accessibilityLabel)
+        .alert(
+            purchase.alert?.title ?? "",
+            isPresented: Binding(
+                get: { purchase.alert != nil },
+                set: { if !$0 { purchase.alert = nil } }
+            ),
+            presenting: purchase.alert
+        ) { _ in
+            Button("OK", role: .cancel) { purchase.alert = nil }
+        } message: { alert in
+            Text(alert.message)
+        }
     }
 }
 
@@ -136,19 +159,19 @@ struct PremOfferFeatures: View {
 
 /// `PremiumCallToAction` : le bouton d'abonnement de la carte.
 ///
-/// ⚠️ La conformité App Store 3.1.1 porte sur le bouton, pas sur les tarifs :
-/// tant que la facturation native n'est pas embarquée (`available == false`),
-/// le bouton reste désactivé, en encre atténuée, et annonce « bientôt
-/// disponible » aux lecteurs d'écran. `onPurchase` est le point de branchement
-/// de `purchase.launch(offer.id)` le jour où StoreKit arrive.
+/// V1 (26/09/2026, écart 19#1) : le bouton est **câblé** au flux d'achat. Tant
+/// que la facturation native n'est pas configurée, `available` reste vrai (le
+/// bouton répond) mais `beginPurchase` refuse clairement par alerte — jamais un
+/// bouton mort. `busy` affiche « Ouverture… », comme la source.
 struct PremOfferCallToAction: View {
     let label: String
     let available: Bool
+    var busy: Bool = false
     var onPurchase: (() -> Void)? = nil
 
     var body: some View {
         Button { onPurchase?() } label: {
-            Text(label)
+            Text(busy ? "Ouverture…" : label)
                 .font(.system(size: 13, weight: .black))
                 .foregroundStyle(available ? Theme.ink : Theme.inkSoft)
                 .frame(maxWidth: .infinity, minHeight: 48)
@@ -157,7 +180,7 @@ struct PremOfferCallToAction: View {
                 .opacity(available ? 1 : 0.85)
         }
         .buttonStyle(.plain)
-        .disabled(!available)
+        .disabled(!available || busy)
         .accessibilityLabel(available ? label : "\(label), bientôt disponible")
         .accessibilityAddTraits(.isButton)
     }

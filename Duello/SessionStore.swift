@@ -61,9 +61,12 @@ final class SessionStore: ObservableObject {
     /// capture (`ScreenshotTour`, outil de dev) qui sème une session factice.
     var session: ServerSession?
 
-    private static let service = "com.duello.ios.session"
-    private static let account = "session-v1"
-    private static let profileKey = "com.duello.ios.profile"
+    /// Service/compte du trousseau et clé du profil, partagés avec l'extension
+    /// de suppression du compte (`SessionStore+AccountDeletion`) — V1
+    /// 2026-09-26, écart U08#2.
+    static let service = "com.duello.ios.session"
+    static let account = "session-v1"
+    static let profileKey = "com.duello.ios.profile"
 
     /// Relais des changements du sous-store : voir `init()`.
     private var cancellables = Set<AnyCancellable>()

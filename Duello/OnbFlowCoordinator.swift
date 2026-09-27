@@ -40,6 +40,10 @@ final class OnbFlowCoordinator: ObservableObject {
     @Published var stepIndex = 0
     @Published var profile: UserProfile
     @Published var path: OnbFlowAcademicPath
+    /// Filière réellement choisie par l'élève (`chosenTrack`) : `nil` tant
+    /// qu'aucune puce n'a été touchée. Le repli technique du profil (ECG) ne
+    /// vaut jamais un choix.
+    @Published var chosenTrack: String?
     @Published var password = ""
     @Published var showPassword = false
     @Published var biometricVerified = false
@@ -156,6 +160,22 @@ final class OnbFlowCoordinator: ObservableObject {
         OnbFlowAcademic.currentTrackChoices(year: profile.year)
     }
 
+    /// `selectedOnboardingTrack` (`chosenOnboardingTrack` de
+    /// `utils/academicPath.ts`) : la filière retenue pour l'affichage et le
+    /// blocage de l'étape. `nil` tant que le choix explicite ne correspond pas
+    /// à la filière courante — un changement de niveau ou d'année qui remplace
+    /// la filière annule donc le choix.
+    var selectedOnboardingTrack: String? {
+        guard let chosenTrack, chosenTrack == path.currentTrack else { return nil }
+        return chosenTrack
+    }
+
+    /// `trackChoicePending` : l'étape « TA FILIÈRE ACTUELLE » reste bloquée
+    /// tant que l'élève n'a pas choisi une filière.
+    var trackChoicePending: Bool {
+        currentStep == .currentTrack && selectedOnboardingTrack == nil
+    }
+
     /// `originChoices` de la filière courante.
     var originChoices: [String] {
         OnbFlowAcademic.originChoices(currentTrack: path.currentTrack)
@@ -205,6 +225,7 @@ final class OnbFlowCoordinator: ObservableObject {
             isCompleting: isCompleting,
             isCheckingRegistrationDetails: isCheckingRegistrationDetails,
             isCheckingUsername: isCheckingUsername,
+            trackChoicePending: trackChoicePending,
             premiumGiftOpenPending: premiumGiftOpenPending,
             preflightReady: preflightState == .ready,
             isCheckingPreflight: preflightState == .checking
@@ -214,6 +235,7 @@ final class OnbFlowCoordinator: ObservableObject {
     var validationState: OnbFlowValidationState {
         OnbFlowValidationState(
             step: currentStep,
+            trackChoicePending: trackChoicePending,
             asksForMathOption: asksForMathOption,
             currentOption: path.currentOption,
             targetSchool: profile.targetSchool,
@@ -272,6 +294,7 @@ final class OnbFlowCoordinator: ObservableObject {
     /// `chooseCurrentTrack` : repart de l'origine et de l'option par défaut de
     /// la filière choisie.
     func chooseCurrentTrack(_ currentTrack: String) {
+        chosenTrack = currentTrack
         let origins = OnbFlowAcademic.originChoices(currentTrack: currentTrack)
         let firstYearTrack = origins.contains(path.firstYearTrack)
             ? path.firstYearTrack
