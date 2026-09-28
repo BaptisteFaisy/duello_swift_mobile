@@ -16,9 +16,9 @@
 //
 //  ⚠️ Deux écarts assumés, documentés :
 //   - la source s’appuie sur le fond noir de l’écran d’onboarding
-//     (`usesDarkOnboardingAppearance = true`) ; la vue porte donc son propre
-//     fond noir, et borne l’explosion (`clipShape`) là où la source laisse les
-//     débris dépasser de la scène ;
+//     (`usesDarkOnboardingAppearance = true`) : la vue se pose sur ce fond
+//     (transparent, comme `surface` de la source) et borne l’explosion
+//     (`clipShape`) là où la source laisse les débris dépasser de la scène ;
 //   - le message « Tu as en cadeau N jours Premium offerts ! » n’est, comme
 //     dans la source, qu’un libellé d’accessibilité : la source ne l’affiche
 //     nulle part (les fenêtres `T_MESSAGE_*` de la timeline restent inutilisées).
@@ -58,8 +58,10 @@ struct OnbGiftStepView: View {
         .accessibilityLabel(opened ? message : Self.crackHint)
         .accessibilityAddTraits(.isButton)
         .frame(maxWidth: .infinity)
-        .frame(height: Self.panelHeight)
-        .background(Color.black)
+        // `surface` de la source : pas de panneau opaque — la scène se pose
+        // directement sur le fond noir de l'écran d'onboarding
+        // (`OnboardingPremiumGiftStep.tsx:142-146`).
+        .padding(.vertical, 10)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
         .onAppear { startedAt = Date() }
         .onChange(of: opened) { isOpen in
@@ -121,5 +123,4 @@ struct OnbGiftStepView: View {
     }
 
     private static let crackHint = "Fissurer le cadeau pour révéler les jours Premium offerts"
-    private static let panelHeight: CGFloat = 340
 }

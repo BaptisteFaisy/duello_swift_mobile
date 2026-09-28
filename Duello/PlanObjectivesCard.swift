@@ -53,13 +53,16 @@ struct PlanObjectivesCard: View {
                         Button {
                             onSelect(session)
                         } label: {
-                            DuelloListRow(
-                                title: session.title,
-                                subtitle: "\(session.startTime)–\(session.endTime) · \(session.subtitle)",
-                                icon: session.icon,
-                                trailing: PlanDateEngine.formatDuration(session.durationMinutes),
-                                showsChevron: true
-                            )
+                            HStack(spacing: 12) {
+                                IonIcon(name: session.icon, size: 15, color: Theme.inkSoft)
+                                    .frame(width: 28)
+                                DuelloListRow(
+                                    title: session.title,
+                                    subtitle: "\(session.startTime)–\(session.endTime) · \(session.subtitle)",
+                                    trailing: PlanDateEngine.formatDuration(session.durationMinutes),
+                                    showsChevron: true
+                                )
+                            }
                             .opacity(session.isDone ? 0.5 : 1)
                         }
                         .buttonStyle(.plain)

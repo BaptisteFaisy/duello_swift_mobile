@@ -40,9 +40,21 @@ enum ChalIntDuelResult {
         match: MatchView,
         exercise: DuelExercise,
         state: ChalRunRoundState,
-        profile: UserProfile
+        profile: UserProfile,
+        subjectElos: [String: Int]
     ) -> ChalRunResult {
         let answers = attemptedDuelAnswers(exercise, state.answers)
+        // Promotion de la cote **moyenne** après un défi arbitré
+        // (`eloLeaguePromotionAfterSubjectResult`).
+        let promotion: LeaguePromotion? = {
+            guard verdict.ranked, let eloAfter = verdict.elo?.after else { return nil }
+            return leaguePromotionAfterSubjectResult(
+                subjectElos: subjectElos,
+                subject: match.subject,
+                eloAfter: eloAfter,
+                track: profile.followedTrack
+            )
+        }()
         return ChalRunResult(
             verdict: verdict,
             opponentName: match.opponent.displayName,
@@ -64,6 +76,7 @@ enum ChalIntDuelResult {
             exerciseCount: max(1, state.seriesCount),
             minutes: match.durationMinutes,
             subject: match.subject,
+            leaguePromotion: promotion,
             trainingTarget: ChalRunTrainingTarget(
                 itemId: match.exerciseId,
                 itemTitle: match.exerciseId,

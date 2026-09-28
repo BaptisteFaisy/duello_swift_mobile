@@ -6,7 +6,7 @@
 //
 //  Fichier source Expo porté : src/admin/AdminWaitlistScreen.tsx
 //  (`AdminWaitlistScreen`, recherche téléphone/e-mail/prépa, carte de contact).
-//  Les libellés sont repris mot pour mot.
+//  Les libellés et les mesures sont repris mot pour mot.
 //
 //  Cible : iOS 16. Aucune dépendance externe.
 //
@@ -28,14 +28,19 @@ struct AdmWaitlistScreen: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 16) {
                 header
                 AdmNoticeCard(
-                    icon: "checkmark.shield",
+                    icon: "shield-checkmark-outline",
                     text: "Ces adresses e-mail sont visibles uniquement dans ton espace administrateur.",
-                    tint: Theme.primary
+                    tint: Theme.primary,
+                    iconSize: 19,
+                    textSize: 12,
+                    padding: 13,
+                    background: Theme.primaryLight,
+                    alignment: .center
                 )
-                AdmSearchBar(placeholder: "E-mail ou prépa…", text: $query)
+                AdmSearchBar(placeholder: "E-mail ou prépa…", text: $query, showsClearButton: false)
                 content
             }
             .padding(.horizontal, 20)
@@ -75,12 +80,17 @@ struct AdmWaitlistScreen: View {
     @ViewBuilder
     private var content: some View {
         if isLoading {
-            AdmStateCard(icon: "person.2", message: "Chargement des inscriptions…", isLoading: true)
+            AdmStateCard(
+                icon: "people-outline",
+                message: "Chargement des inscriptions…",
+                isLoading: true,
+                showsIconWhenLoading: true
+            )
         } else if !errorMessage.isEmpty {
-            AdmStateCard(icon: "person.2", message: errorMessage)
+            AdmStateCard(icon: "people-outline", message: errorMessage)
         } else if visibleEntries.isEmpty {
             AdmStateCard(
-                icon: "person.2",
+                icon: "people-outline",
                 message: query.isEmpty
                     ? "Aucune inscription pour le moment."
                     : "Aucune inscription ne correspond."
@@ -94,32 +104,36 @@ struct AdmWaitlistScreen: View {
         }
     }
 
+    /// `entryCard` : `minHeight: 76`, `...cardShadow`.
     private func row(_ entry: AdmWaitlistEntry) -> some View {
         HStack(spacing: 12) {
-            Image(systemName: entry.phoneOrNil == nil ? "envelope" : "phone")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(Theme.ink)
-                .frame(width: 40, height: 40)
-                .background(Theme.primaryLight)
-                .clipShape(RoundedRectangle(cornerRadius: 14))
+            IonIcon(
+                name: entry.phone?.isEmpty == false ? "call-outline" : "mail-outline",
+                size: 18,
+                color: Theme.ink
+            )
+            .frame(width: 40, height: 40)
+            .background(Theme.primaryLight)
+            .clipShape(RoundedRectangle(cornerRadius: 14))
             VStack(alignment: .leading, spacing: 3) {
                 Text(entry.contact)
-                    .font(.system(size: 14, weight: .heavy))
+                    .font(.system(size: 14, weight: .black))
                     .foregroundStyle(Theme.ink)
                     .textSelection(.enabled)
                     .lineLimit(1)
                 Text(entry.school)
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 12, weight: .regular))
                     .foregroundStyle(Theme.inkSoft)
                     .lineLimit(1)
                 Text(metaText(entry))
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(.system(size: 10, weight: .regular))
                     .foregroundStyle(Theme.inkFaint)
                     .lineLimit(1)
+                    .padding(.top, 2)
             }
             Spacer(minLength: 8)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, minHeight: 76, alignment: .leading)
         .padding(14)
         .background(Theme.surface)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
@@ -127,6 +141,7 @@ struct AdmWaitlistScreen: View {
             RoundedRectangle(cornerRadius: Theme.radiusLarge)
                 .stroke(Theme.border, lineWidth: 1)
         )
+        .admCardShadow()
     }
 
     /// « Rang 12 · inscrit · 3 filleuls » (les parrainages sont facultatifs).

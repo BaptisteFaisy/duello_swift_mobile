@@ -52,8 +52,8 @@
 //    actif et l'effacement retire son dernier caractère. Les chevrons et la
 //    touche retour déplacent le champ actif, pas le curseur.
 //  - La rangée de suggestions « propres à l'exercice » (`suggestions` /
-//    `pinnedKeys`) n'est pas portée : elle dépend d'une donnée que le contrat
-//    d'intégration ne transporte pas.
+//    `pinnedKeys`) est portée : `MathKeyboardView` l'affiche à partir du
+//    paramètre `suggestions` fourni par l'appelant, qui en calcule le contenu.
 //
 //  Extrait de `MathKeyboardView.swift` : découpage en modules, sans
 //  renommage de type, de membre ni de signature.
@@ -84,6 +84,11 @@ struct MathKeyboardView: View {
     private let backspace: () -> Void
     let close: () -> Void
 
+    /// Touches suggérées pour l'exercice en cours (rangée `pinnedKeys` du RN),
+    /// posées en tête du clavier. Vide : aucune rangée. Le calcul reste à
+    /// l'appelant (`KbSupSuggestions`).
+    let suggestions: [MathKbKey]
+
     /// Signature d'intégration : `onInsert` ne transporte que le texte. Les
     /// touches à recul de curseur (`back`) sont insérées sans ce recul ; pour le
     /// conserver, utiliser `init(mode:onInsertWithBack:onBackspace:onClose:)`.
@@ -91,12 +96,14 @@ struct MathKeyboardView: View {
         mode: MathKbMode,
         onInsert: @escaping (String) -> Void,
         onBackspace: @escaping () -> Void,
-        onClose: @escaping () -> Void
+        onClose: @escaping () -> Void,
+        suggestions: [MathKbKey] = []
     ) {
         self.mode = mode
         self.insertText = { text, _ in onInsert(text) }
         self.backspace = onBackspace
         self.close = onClose
+        self.suggestions = suggestions
         _sectionId = State(initialValue: MathKbLayout.initialSectionId(for: mode))
     }
 
@@ -106,12 +113,14 @@ struct MathKeyboardView: View {
         mode: MathKbMode,
         onInsertWithBack: @escaping (String, Int) -> Void,
         onBackspace: @escaping () -> Void,
-        onClose: @escaping () -> Void
+        onClose: @escaping () -> Void,
+        suggestions: [MathKbKey] = []
     ) {
         self.mode = mode
         self.insertText = onInsertWithBack
         self.backspace = onBackspace
         self.close = onClose
+        self.suggestions = suggestions
         _sectionId = State(initialValue: MathKbLayout.initialSectionId(for: mode))
     }
 
@@ -151,6 +160,17 @@ struct MathKeyboardView: View {
     var body: some View {
         VStack(spacing: 0) {
             tabsRow
+
+            // Rangée de suggestions de l'exercice (`pinnedKeys` du RN) : affichée
+            // seulement hors éditeur guidé et si l'appelant fournit des touches.
+            if !draftOpen, !suggestions.isEmpty {
+                KbSupSuggestionsRow(
+                    keys: suggestions,
+                    onInsert: { texte, recul in insertDraftText(texte, back: recul) },
+                    onAction: { action in startTool(action) },
+                    lowering: lowering
+                )
+            }
 
             if let draft = matrixDraft {
                 matrixEditor(draft)
@@ -264,6 +284,34 @@ struct MathKeyboardView: View {
 
     // MARK: Outils
 
+    /// Décale la section active de `step` (+1 suivante, -1 précédente),
+    /// bornée aux extrémités comme le RN PanResponder.
+    func shiftSection(_ step: Int) {
+        guard let currentIndex = sections.firstIndex(where: { $0.id == currentSection.id }) else { return }
+        let nextIndex = max(0, min(sections.count - 1, currentIndex + step))
+        guard nextIndex != currentIndex else { return }
+        sectionId = sections[nextIndex].id
+    }
+
+    /// Geste de balayage horizontal sur la grille de touches (portage PanResponder
+    /// RN : seuil dx 14, déclenchement si |dx| > 46 ou vélocité approximée via
+    /// `predictedEndTranslation`).
+    var sectionSwipeGesture: some Gesture {
+        DragGesture(minimumDistance: 14)
+            .onEnded { value in
+                let dx = value.translation.width
+                let dy = value.translation.height
+                // Réclamation : déplacement franc et dominante horizontale
+                // (|dx| > 14 et |dx| > |dy| * 1.5, comme le RN).
+                guard abs(dx) > 14, abs(dx) > abs(dy) * 1.5 else { return }
+                let predictedDx = value.predictedEndTranslation.width
+                // Déclenchement si déplacement suffisant ou élan marqué.
+                let triggered = abs(dx) > 46 || abs(predictedDx) > 80
+                guard triggered else { return }
+                shiftSection(dx < 0 ? 1 : -1)
+            }
+    }
+
     func operatorKind(for action: MathKbAction?) -> MathKbOperatorKind? {
         guard let action = action else { return nil }
         switch action {
@@ -295,11 +343,12 @@ struct MathKeyboardView: View {
                         .padding(.vertical, 4)
                         .padding(.horizontal, 9)
                         .frame(minWidth: 46)
-                        .background(Theme.surface)
-                        .clipShape(Capsule())
-                        .overlay(Capsule().stroke(Theme.border, lineWidth: 1))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(MathKbPressStyle(
+                    background: Theme.primaryLight,
+                    border: Theme.primary,
+                    capsule: true
+                ))
                 .accessibilityLabel(
                     "Écrire \(bound == "+∞" ? "plus l’infini" : "moins l’infini") dans le champ \(target)"
                 )

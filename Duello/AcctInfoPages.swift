@@ -9,15 +9,11 @@
 //    - src/screens/AccountScreen.tsx (3590-4132) : `informationSettingsPage`
 //      (`'menu' | 'duello' | 'personal' | 'account'`) et le rendu des quatre
 //      pages — menu des catégories, préférences Duello (liens légaux + bug),
-//      informations personnelles (nom + année), compte (sécurité + actions) ;
+//      informations personnelles (nom + année + filière PSI), compte
+//      (sécurité + actions) ;
 //    - src/utils/settingsTabSwipe.ts / notificationsTabSwipe.ts : rubans déjà
 //      portés par `SwipeSettingsTabs` / `SwipeNotificationsTabs`, seulement
 //      réexposés ici (aucune duplication).
-//
-//  ⚠️ Les plages de lignes annoncées par le brief (371-383, 496-1600) ne
-//  contiennent, dans le fichier courant, que les constantes de ruban et les
-//  hooks du méga-composant : le JSX des quatre pages vit en réalité en
-//  3590-4132. Le portage suit donc les surfaces réellement rendues.
 //
 //  Limite documentée : `AccountView.swift` porte déjà une version réduite du
 //  profil (parcours, année, prépa) et n'est pas modifié ; cette tranche ajoute
@@ -26,7 +22,18 @@
 //  V1 (2026-09-26) — écart U08#2 : `AcctInfoAccountPage.onDeleteAccount`
 //  devient asynchrone et faillible (suppression réelle du compte).
 //
+//  V2 (2026-09-28) — parité Swift↔RN :
+//    - #17/#18/#27 : le nom et l'année sont liés au profil (persistance) et le
+//      changement d'année recalcule la filière (`changeDraftYear`) ;
+//    - #19 : bloc « Filière de 1re/2e année » pour un élève PSI ;
+//    - #20 : le bouton photo ouvre `PhotoPickSheet` (portage du sélecteur RN) ;
+//    - #21 : bascule biométrique branchée sur `AcctSecBiometricPolicy` ;
+//    - #22/#23 : encre/danger exacts des lignes ;
+//    - #51 : icônes `IonIcon` (noms RN) au lieu de SF Symbols ;
+//    - #53 : dropdown maison (overlay + coche) au lieu d'un `Menu` natif.
+//
 import SwiftUI
+import UIKit
 
 // MARK: - Navigation
 
@@ -77,8 +84,8 @@ struct AcctInfoMenuPage: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            AcctInfoCategoryRow(icon: "person", label: "Mes informations") { onSelect(.personal) }
-            AcctInfoCategoryRow(icon: "gearshape", label: "Mon compte") { onSelect(.account) }
+            AcctInfoCategoryRow(icon: "person-outline", label: "Mes informations") { onSelect(.personal) }
+            AcctInfoCategoryRow(icon: "settings-outline", label: "Mon compte") { onSelect(.account) }
             AcctInfoCategoryRow(
                 icon: "cube.transparent",
                 assetIcon: Self.duelloLogoAsset,
@@ -102,19 +109,19 @@ struct AcctInfoDuelloPage: View {
     var body: some View {
         VStack(spacing: 8) {
             AcctInfoActionRow(
-                icon: "bubble.left.and.text.bubble.right",
+                icon: "chatbubble-ellipses-outline",
                 title: "Un bug ?",
                 accessibilityLabel: "Signaler un bug",
                 action: onReportBug
             )
             AcctInfoActionRow(
-                icon: "checkmark.shield",
+                icon: "shield-checkmark-outline",
                 title: "Politique de confidentialité",
                 accessibilityLabel: "Consulter la politique de confidentialité",
                 action: onOpenPrivacy
             )
             AcctInfoActionRow(
-                icon: "doc.text",
+                icon: "document-text-outline",
                 title: "Conditions d’utilisation",
                 accessibilityLabel: "Consulter les conditions d’utilisation",
                 action: onOpenTerms
@@ -126,23 +133,40 @@ struct AcctInfoDuelloPage: View {
 
 // MARK: - Page « informations personnelles »
 
-/// Informations personnelles : nom affiché et année d'études.
-/// `identityCard` de la source : fond blanc pleine largeur, lignes
-/// `minHeight: 64`, `gap: 14`, `paddingHorizontal: 8`.
+/// Informations personnelles : nom affiché, année d'études et — pour un élève
+/// PSI — filières de 1re et 2e année. `identityCard` de la source : fond blanc
+/// pleine largeur, lignes `minHeight: 64`, `gap: 14`, `paddingHorizontal: 8`.
 struct AcctInfoPersonalPage: View {
     @Binding var displayName: String
-    @Binding var year: String
+    var firstName: String = ""
+    let year: String
+    /// Filière suivie normalisée (`draftAcademicPath.currentTrack`).
+    var currentTrack: String = ""
+    /// Filière de 1re année (`draftAcademicPath.firstYearTrack`).
+    var firstYearTrack: String = ""
+    var photoUri: String? = nil
     var isGuest: Bool = false
+    var onYearChange: (String) -> Void = { _ in }
+    var onOriginChange: (String) -> Void = { _ in }
+    var onPhotoChange: (String?) -> Void = { _ in }
 
     /// Années proposées par le menu déroulant (`years` de la source).
     private static let years = ["1re année", "2e année"]
+
+    @State private var photoPickerOpen = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             nameField
             yearField
+            if currentTrack == "PSI" {
+                psiTrackCard
+            }
         }
         .background(Theme.surface)
+        .sheet(isPresented: $photoPickerOpen) {
+            PhotoPickSheet(currentPhotoUri: photoUri, onCommit: onPhotoChange)
+        }
     }
 
     /// Nom affiché : bouton photo 34 × 34 (badge caméra) et champ « Ex. Camille ».
@@ -156,72 +180,135 @@ struct AcctInfoPersonalPage: View {
                 .accessibilityLabel("Nom")
             Spacer(minLength: 8)
             if !isGuest {
-                Image(systemName: "pencil")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(Theme.inkSoft)
-                    .accessibilityHidden(true)
+                IonIcon(name: "create-outline", size: 16, color: Theme.inkSoft)
             }
         }
         .frame(minHeight: 64)
         .padding(.horizontal, 8)
     }
 
-    /// Bouton photo de profil (`profilePhotoButton`) : pastille 34 × 34, initiale
-    /// 14 / 900, badge caméra 14 × 14 en bas-droite.
+    /// Bouton photo de profil (`profilePhotoButton`) : ouvre le sélecteur,
+    /// pastille 34 × 34, initiale 14 / 900, badge caméra 14 × 14 en bas-droite.
     private var profilePhotoButton: some View {
-        ZStack(alignment: .bottomTrailing) {
-            Circle()
-                .fill(Theme.primaryLight)
+        Button { photoPickerOpen = true } label: {
+            ZStack(alignment: .bottomTrailing) {
+                Circle()
+                    .fill(Theme.primaryLight)
+                    .frame(width: AcctInfoRowMetrics.iconPill, height: AcctInfoRowMetrics.iconPill)
+                    .overlay(Circle().strokeBorder(Theme.border, lineWidth: 1.5))
+                photoContent
+                IonIcon(name: "camera", size: 8, color: .white)
+                    .frame(width: 14, height: 14)
+                    .background(Circle().fill(Theme.primary))
+                    .overlay(Circle().strokeBorder(Theme.surface, lineWidth: 2))
+                    .offset(x: 2, y: 2)
+            }
+            .frame(width: AcctInfoRowMetrics.iconPill, height: AcctInfoRowMetrics.iconPill)
+            .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(photoUri == nil ? "Ajouter une photo de profil" : "Modifier ma photo de profil")
+    }
+
+    /// Miniature publiée si présente, sinon l'initiale du nom.
+    @ViewBuilder private var photoContent: some View {
+        if let image = decodedPhoto {
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFill()
                 .frame(width: AcctInfoRowMetrics.iconPill, height: AcctInfoRowMetrics.iconPill)
-                .overlay(Circle().strokeBorder(Theme.border, lineWidth: 1.5))
+                .clipShape(Circle())
+        } else {
             Text(currentInitial)
                 .font(.system(size: 14, weight: .black))
                 .foregroundStyle(Theme.inkSoft)
                 .frame(width: AcctInfoRowMetrics.iconPill, height: AcctInfoRowMetrics.iconPill)
-            Image(systemName: "camera")
-                .font(.system(size: 8, weight: .bold))
-                .foregroundStyle(.white)
-                .frame(width: 14, height: 14)
-                .background(Circle().fill(Theme.primary))
-                .overlay(Circle().strokeBorder(Theme.surface, lineWidth: 2))
-                .offset(x: 2, y: 2)
         }
-        .frame(width: AcctInfoRowMetrics.iconPill, height: AcctInfoRowMetrics.iconPill)
-        .accessibilityHidden(true)
     }
 
-    /// Année d'études : menu déroulant, libellé d'action « Choisir mon année ».
+    /// Miniature JPEG `data:` du profil, décodée en image.
+    private var decodedPhoto: UIImage? {
+        guard let uri = PhotoPickUri.publicProfilePhotoUri(photoUri),
+              let comma = uri.firstIndex(of: ","),
+              let data = Data(base64Encoded: String(uri[uri.index(after: comma)...])) else { return nil }
+        return UIImage(data: data)
+    }
+
+    /// Année d'études : dropdown maison, libellé d'action « Choisir mon année ».
     private var yearField: some View {
-        HStack(spacing: 14) {
-            Image(systemName: "calendar")
-                .font(.system(size: AcctInfoRowMetrics.iconSize, weight: .semibold))
-                .foregroundStyle(Theme.ink)
-                .frame(width: AcctInfoRowMetrics.iconPill, height: AcctInfoRowMetrics.iconPill)
-            Menu {
-                ForEach(Self.years, id: \.self) { value in
-                    Button(value) { year = value }
-                }
-            } label: {
-                HStack {
-                    Text(year.isEmpty ? "Choisir mon année" : year)
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(year.isEmpty ? Theme.inkFaint : Theme.ink)
-                    Spacer(minLength: 8)
-                    Image(systemName: "chevron.up.chevron.down")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(Theme.ink)
-                }
-                .contentShape(Rectangle())
-            }
-            .accessibilityLabel("Choisir mon année")
-        }
-        .frame(minHeight: 64)
-        .padding(.horizontal, 8)
+        AcctInfoDropdown(
+            icon: "calendar-outline",
+            value: year.isEmpty ? "Choisir mon année" : year,
+            options: Self.years,
+            accessibilityLabel: "Choisir mon année",
+            onSelect: onYearChange
+        )
     }
 
+    /// Bloc PSI (`draftAcademicPath.currentTrack === 'PSI'`) : filière de 1re
+    /// année (dropdown) puis filière de 2e année (valeur figée).
+    private var psiTrackCard: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            AcctInfoDropdown(
+                icon: "school-outline",
+                label: "Filière de 1re année",
+                value: firstYearTrack,
+                options: OnbFlowAcademic.originChoices(currentTrack: "PSI"),
+                accessibilityLabel: "Choisir ma filière de 1re année",
+                onSelect: onOriginChange
+            )
+            VStack(alignment: .leading, spacing: 7) {
+                Text("Filière de 2e année")
+                    .font(.system(size: 10, weight: .heavy))
+                    .foregroundStyle(Theme.inkSoft)
+                HStack(spacing: 14) {
+                    IonIcon(name: "school-outline", size: AcctInfoRowMetrics.iconSize, color: Theme.ink)
+                        .frame(width: AcctInfoRowMetrics.iconPill, height: AcctInfoRowMetrics.iconPill)
+                    Text(currentTrack)
+                        .font(.system(size: 13, weight: .heavy))
+                        .foregroundStyle(Theme.ink)
+                    Spacer(minLength: 8)
+                }
+                .frame(minHeight: 64)
+                .padding(.horizontal, 8)
+            }
+        }
+    }
+
+    /// Initiale de la pastille : prénom, sinon nom (`firstName || displayName`).
     private var currentInitial: String {
-        let source = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let preferred = firstName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let source = preferred.isEmpty
+            ? displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+            : preferred
         return String((source.isEmpty ? "P" : source).prefix(1)).uppercased()
+    }
+}
+
+// MARK: - Alerte biométrique
+
+/// Alertes de la bascule biométrique (`updateBiometricLogin`,
+/// `AccountScreen.tsx:1300-1366`).
+enum AcctInfoBiometricAlert: String, Identifiable {
+    case unavailable
+    case activationFailed
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .unavailable: return "Biométrie indisponible"
+        case .activationFailed: return "Activation impossible"
+        }
+    }
+
+    var message: String {
+        switch self {
+        case .unavailable:
+            return "Configure d’abord une empreinte digitale ou la reconnaissance faciale dans les réglages de ton téléphone."
+        case .activationFailed:
+            return "L’identité biométrique n’a pas pu être vérifiée."
+        }
     }
 }
 
@@ -239,13 +326,16 @@ struct AcctInfoAccountPage: View {
     var onOpenEmail: () -> Void = {}
     var onOpenPassword: () -> Void = {}
     var onOpenBlocked: () -> Void = {}
-    var onLogout: () -> Void = {}
+    /// Déconnexion réelle, faillible (RN `LogoutControl`).
+    var onLogout: () async throws -> Void = {}
     /// Suppression réelle du compte (asynchrone, faillible) — V1 2026-09-26,
     /// écart U08#2.
     var onDeleteAccount: () async throws -> Void = {}
 
     /// Off par défaut : le compte est public (source).
     @State private var isPrivateAccount = false
+    @State private var isUpdatingBiometric = false
+    @State private var biometricAlert: AcctInfoBiometricAlert?
 
     /// `informationContent` (`gap: 36`) puis `accountActionsGroup` (`gap: 8`).
     /// La carte sécurité est masquée en invité (`{!isGuest ? … : null}`).
@@ -256,33 +346,60 @@ struct AcctInfoAccountPage: View {
             }
             accountActions
         }
+        .alert(biometricAlert?.title ?? "", isPresented: isBiometricAlertPresented) {
+            Button("OK", role: .cancel) { biometricAlert = nil }
+        } message: {
+            Text(biometricAlert?.message ?? "")
+        }
+    }
+
+    /// Liaison d'affichage de l'alerte biométrique : l'`item` optionnel devient
+    /// un drapeau (`alert(_:isPresented:actions:message:)`, iOS 16).
+    private var isBiometricAlertPresented: Binding<Bool> {
+        Binding(
+            get: { biometricAlert != nil },
+            set: { presented in if !presented { biometricAlert = nil } }
+        )
     }
 
     /// Sécurité : e-mail, mot de passe, connexion biométrique.
     /// `securityCard` de la source : fond blanc, sans bordure ni séparateur ;
-    /// les lignes e-mail / mot de passe reprennent `passwordToggle` (60 / 10).
+    /// les lignes e-mail / mot de passe reprennent `passwordToggle` (60 / 10) et
+    /// sont en encre (`colors.ink`).
     private var securityCard: some View {
         VStack(spacing: 0) {
             AcctInfoActionRow(
-                icon: "envelope",
+                icon: "mail-outline",
                 title: "Modifier mon adresse e-mail",
+                tint: Theme.ink,
                 metrics: .password,
                 action: onOpenEmail
             )
             AcctInfoActionRow(
-                icon: "key",
+                icon: "key-outline",
                 title: "Modifier mon mot de passe",
+                tint: Theme.ink,
                 metrics: .password,
                 action: onOpenPassword
             )
             AcctInfoToggleRow(
-                icon: "touchid",
+                icon: "finger-print",
                 title: "Connexion biométrique",
-                isOn: Binding(get: { biometricEnabled }, set: onBiometricChange),
+                isOn: biometricBinding,
+                isDisabled: isUpdatingBiometric,
                 accessibilityLabel: "Activer la connexion biométrique"
             )
         }
         .background(Theme.surface)
+    }
+
+    /// Interrupteur biométrique : la bascule passe par la politique
+    /// `AcctSecBiometricPolicy` (état + alerte) au lieu d'un no-op.
+    private var biometricBinding: Binding<Bool> {
+        Binding(
+            get: { biometricEnabled },
+            set: { enabled in Task { await updateBiometricLogin(enabled) } }
+        )
     }
 
     /// Actions du compte, dans l'ordre de la source (`accountActionsGroup`,
@@ -292,7 +409,7 @@ struct AcctInfoAccountPage: View {
             ConsentAiCard(iconSize: AcctInfoRowMetrics.iconSize)
             NotificationSettingsCard(store: notificationStore, isGuest: isGuest)
             AcctInfoToggleRow(
-                icon: "lock",
+                icon: "lock-closed-outline",
                 title: "Compte privé",
                 description: privateAccountDescription,
                 isOn: $isPrivateAccount,
@@ -308,7 +425,7 @@ struct AcctInfoAccountPage: View {
     private var communityCard: some View {
         VStack(spacing: 0) {
             AcctInfoActionRow(
-                icon: "nosign",
+                icon: "ban-outline",
                 title: "Comptes bloqués",
                 accessibilityLabel: "Gérer les comptes bloqués",
                 action: onOpenBlocked
@@ -321,6 +438,35 @@ struct AcctInfoAccountPage: View {
             }
         }
         .background(Theme.surface)
+    }
+
+    /// `updateBiometricLogin` : disponibilité, vérification biométrique, puis
+    /// activation. Le repli « code de l'appareil » reste désactivé
+    /// (`disableDeviceFallback`).
+    @MainActor
+    private func updateBiometricLogin(_ enabled: Bool) async {
+        guard !isUpdatingBiometric else { return }
+        isUpdatingBiometric = true
+        defer { isUpdatingBiometric = false }
+        if !enabled {
+            onBiometricChange(false)
+            return
+        }
+        guard AcctSecBiometricPolicy.availability() == .available else {
+            biometricAlert = .unavailable
+            return
+        }
+        let outcome = await AcctSecBiometricPolicy.authenticate(
+            prompt: AcctSecBiometricPolicy.activationPrompt
+        )
+        switch outcome {
+        case .success:
+            onBiometricChange(true)
+        case .cancelled:
+            break
+        case .lockout, .failed:
+            biometricAlert = .activationFailed
+        }
     }
 
     private var privateAccountDescription: String {

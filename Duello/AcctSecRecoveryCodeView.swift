@@ -38,19 +38,13 @@ struct AcctSecRecoveryCodeView: View {
         .padding(22)
         .background(Theme.surface)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
-        .overlay(
-            RoundedRectangle(cornerRadius: Theme.radiusLarge)
-                .stroke(Theme.border, lineWidth: 1)
-        )
         .padding(22)
     }
 
     private var iconShell: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 15).fill(Theme.primaryLight)
-            Image(systemName: "key")
-                .font(.system(size: 23, weight: .bold))
-                .foregroundStyle(Theme.ink)
+            IonIcon(name: "key-outline", size: 23, color: Theme.ink)
         }
         .frame(width: 44, height: 44)
     }
@@ -74,9 +68,7 @@ struct AcctSecRecoveryCodeView: View {
 
     private var warning: some View {
         HStack(alignment: .center, spacing: 9) {
-            Image(systemName: "exclamationmark.circle")
-                .font(.system(size: 17, weight: .bold))
-                .foregroundStyle(Theme.ink)
+            IonIcon(name: "alert-circle-outline", size: 17, color: Theme.ink)
             Text("Ce code ne sera plus affiché. Note-le hors de l’application.")
                 .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(Theme.ink)

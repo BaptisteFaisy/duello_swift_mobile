@@ -64,8 +64,17 @@ enum DuelloExerciseCatalog {
     /// Le chapitre complet est `<année>:<matière>:<chapitre>`, exactement le
     /// format de `loadEligibleChallengeChapters` (Expo) que le serveur attend
     /// (`parseChallengeChapterKey`). Seuls les chapitres de mathématiques
-    /// existent en défis, et les chapitres d'informatique sont écartés.
-    static func forProfile(_ profile: UserProfile) -> [String: [String]] {
+    /// existent en défis, et les chapitres d'informatique sont écartés — c'est
+    /// le filtre de `getChallengeTrackSubjects` (`tracks.ts:2018`).
+    ///
+    /// `includeInformatique` sert à l'écran Progression, dont le dénominateur
+    /// d'exercices parcourt **tous** les chapitres de la matière
+    /// (`trainingStats`, `EnhancedProgressScreen.tsx:102`) : il compte donc
+    /// aussi les chapitres `python-*`, à la différence des défis.
+    static func forProfile(
+        _ profile: UserProfile,
+        includeInformatique: Bool = false
+    ) -> [String: [String]] {
         // `toProgramYear` (Expo) : seule la 1re année vaut 1, tout le reste
         // (2e, 3e année) vaut 2.
         let isSecondYear = profile.year != "1re année"
@@ -74,9 +83,9 @@ enum DuelloExerciseCatalog {
             .lowercased()
             .contains("appliqu")
 
-        // Année 2 : les deux années du programme sont jouables (Expo inclut
-        // l'année 1 pour les élèves de 2e année).
-        let years: [Int] = isSecondYear ? [1, 2] : [1]
+        // Année 2 : les deux années du programme sont jouables, l'année en cours
+        // d'abord (`currentYear === 2 ? [2, 1] : [1]`, `subjectProgress.ts:161`).
+        let years: [Int] = isSecondYear ? [2, 1] : [1]
         var result: [String: [String]] = [:]
         for year in years {
             let scope: String?
@@ -93,7 +102,7 @@ enum DuelloExerciseCatalog {
             guard let scope else { continue }
             let chapters = pools[scope] ?? [:]
             for (chapterId, ids) in chapters {
-                if chapterId.hasPrefix("python-") { continue }
+                if !includeInformatique, chapterId.hasPrefix("python-") { continue }
                 result["\(year):maths:\(chapterId)"] = ids
             }
         }
@@ -109,37 +118,13 @@ enum DuelloExerciseCatalog {
         return decoded
     }()
 
-    /// Marge sous la limite serveur de lecture du corps
-    /// (`MAX_BODY_BYTES = 64 × 1024` côté `social-server.mjs`, mesurée en
-    /// production) : un dépassement se solde par une erreur
-    /// `requête invalide` avant même la validation métier. La banque de
-    /// cette version (≈ 18 000 IDs) dépasse la fenêtre utile : on annonce
-    /// donc une sous-banque déterministe — mêmes clés de chapitres en
-    /// premier, IDs triés, tronqués de façon identique chez tous les
-    /// joueurs pour que l'intersection reste large.
-    private static let payloadBudgetBytes = 58 * 1024
-
-    /// Banque annoncée au serveur pour ce profil : celle de `forProfile`,
-    /// bornée au budget d'octets du corps de la requête.
+    /// Banque annoncée au serveur pour ce profil : celle de `forProfile`, en
+    /// entier — la source construit la banque **dynamiquement** depuis le
+    /// catalogue complet, sans plafond (`challengeExercises.ts:210-225` →
+    /// `challengeExerciseIdsForPool`, `[...trainingIds, ...oralIds].sort()`).
+    /// Aucune troncature silencieuse : toutes les clés de chapitres et tous
+    /// leurs identifiants partent au serveur.
     static func queuePools(for profile: UserProfile) -> [String: [String]] {
-        let full = forProfile(profile)
-        var used = 700  // enveloppe : userId, noms, filière, année, matière…
-        var result: [String: [String]] = [:]
-        for key in full.keys.sorted() {
-            let ids = (full[key] ?? []).sorted()
-            // Clé présente deux fois (chapters + exercisePools) + structure JSON.
-            var cost = 2 * (key.utf8.count + 4)
-            var kept: [String] = []
-            for id in ids {
-                let idCost = id.utf8.count + 3
-                if used + cost + idCost > payloadBudgetBytes { break }
-                kept.append(id)
-                cost += idCost
-            }
-            if kept.isEmpty { continue }
-            used += cost
-            result[key] = kept
-        }
-        return result
+        forProfile(profile)
     }
 }

@@ -31,13 +31,18 @@ struct ChallengesView: View {
     var onIncomingMatchHandled: (() -> Void)? = nil
     /// Signale à la racine que l'écran est occupé (`onBusyChange`).
     var onBusyChange: ((Bool) -> Void)? = nil
+    /// Retour par balayage vers l'onglet Entraînement (`onBackToTraining`,
+    /// `OrderedTabPager.yieldBackSwipeToTabPager`) : fourni par la racine, qui
+    /// seule pilote le pager d'onglets.
+    var onBackToTraining: (() -> Void)? = nil
 
     var body: some View {
         ChalIntChallengesTab(
             invites: invites,
             incomingMatch: incomingMatch,
             onIncomingMatchHandled: onIncomingMatchHandled,
-            onBusyChange: onBusyChange
+            onBusyChange: onBusyChange,
+            onBackToTraining: onBackToTraining
         )
     }
 }

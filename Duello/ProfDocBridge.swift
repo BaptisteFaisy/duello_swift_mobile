@@ -17,7 +17,9 @@
 //
 //  Le calque de texte rend chaque mot sélectionnable sans repeindre la page :
 //  les `<span>` transparents se posent sur le texte rasterisé. Une page sans mot
-//  publie `duello-prof-no-text` (scan ou image) pour que l'app l'explique.
+//  publie `duello-prof-no-text` (scan ou image) pour que l'app l'explique, et
+//  pose le bouton « Expliquer » du relais vision (`profExplainImageScript`), qui
+//  publie l'image réduite en data-URL (`duello-prof-explain-image`).
 //
 //  Cible : iOS 16. Aucune dépendance externe.
 //
@@ -29,6 +31,7 @@ import Foundation
 /// `ProfBridgeEvent` : message lu du pont WebView.
 enum ProfBridgeEvent: Equatable {
     case explain(text: String, page: Int?)
+    case explainImage(image: String, page: Int?)
     case copyBlocked
     case noText(page: Int?)
 }
@@ -61,6 +64,37 @@ func profSelectionBridgeScript() -> String {
     profSelectionBridgeJavascript
 }
 
+/// `profExplainImageScript` : bouton « Expliquer » des contenus sans texte
+/// sélectionnable — photo de cours entière, ou page PDF scannée (appelée par le
+/// calque quand la page ne porte aucun mot).
+func profExplainImageScript() -> String {
+    profExplainImageJavascript
+}
+
+/// `PROF_IMAGE_DATA_URL` : data-URLs acceptées (les quatre mimes lus par la
+/// vision du relais).
+private let profImageDataUrlPattern = "^data:(image/(?:jpeg|png|gif|webp));base64,([A-Za-z0-9+/=\\s]+)$"
+
+/// `parseProfImageDataUrl` : valide l'image publiée par le pont — data-URL
+/// d'image, base64 non vide. Le relais retronque les tailles ; ici seul le
+/// format est exigé.
+func parseProfImageDataUrl(_ dataUrl: String) -> (mimeType: String, base64: String)? {
+    let trimmed = dataUrl.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard let regex = try? NSRegularExpression(pattern: profImageDataUrlPattern),
+          let match = regex.firstMatch(
+              in: trimmed,
+              range: NSRange(trimmed.startIndex..., in: trimmed)
+          ),
+          match.numberOfRanges == 3,
+          let mimeRange = Range(match.range(at: 1), in: trimmed),
+          let base64Range = Range(match.range(at: 2), in: trimmed)
+    else { return nil }
+    let base64 = String(trimmed[base64Range])
+        .filter { !$0.isWhitespace }
+    guard !base64.isEmpty else { return nil }
+    return (mimeType: String(trimmed[mimeRange]), base64: base64)
+}
+
 // MARK: - Lecture des messages
 
 /// `parseProfBridgeMessage` : lit un message du pont sans jamais lever ;
@@ -75,6 +109,10 @@ func parseProfBridgeMessage(_ raw: String) -> ProfBridgeEvent? {
     if type == "duello-prof-copy-blocked" { return .copyBlocked }
     let page = profBridgePage(dictionary["page"])
     if type == "duello-prof-no-text" { return .noText(page: page) }
+    if type == "duello-prof-explain-image" {
+        guard let image = dictionary["image"] as? String, !image.isEmpty else { return nil }
+        return .explainImage(image: image, page: page)
+    }
     guard type == "duello-prof-explain", let text = dictionary["text"] as? String else {
         return nil
     }
@@ -180,6 +218,84 @@ private let profSelectionBridgeJavascript = """
 })();
 """
 
+/// `profExplainImageScript` de `profSelectionBridge.ts`, repris mot pour mot.
+private let profExplainImageJavascript = """
+(function(){
+  if (window.__duelloProfImage) return;
+  var api = {};
+  window.__duelloProfImage = api;
+  function notify(payload) {
+    if (window.ReactNativeWebView) {
+      window.ReactNativeWebView.postMessage(JSON.stringify(payload));
+    }
+  }
+  function styleButton(btn) {
+    btn.style.cssText = 'display:flex;align-items:center;z-index:50;'
+      + 'background:#0A0D0C;color:#fff;border:none;font:700 13px system-ui,sans-serif;'
+      + 'padding:9px 15px;border-radius:999px;box-shadow:0 8px 22px rgba(10,13,12,.35);'
+      + 'cursor:pointer;white-space:nowrap;';
+  }
+  function labelButton(btn, label) {
+    btn.innerHTML = '<span style="display:inline-block;width:7px;height:7px;'
+      + 'border-radius:999px;background:#22C55E;margin-right:7px;"></span>' + label;
+  }
+  api.downscaleToDataUrl = function (source, maxDim) {
+    try {
+      var w = source.naturalWidth || source.width;
+      var h = source.naturalHeight || source.height;
+      if (!w || !h) return null;
+      var scale = Math.min(1, (maxDim || 2048) / Math.max(w, h));
+      var canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(w * scale));
+      canvas.height = Math.max(1, Math.round(h * scale));
+      var ctx = canvas.getContext('2d');
+      if (!ctx) return null;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(source, 0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL('image/jpeg', 0.85);
+    } catch (e) {
+      return null;
+    }
+  };
+  api.photoButton = function (img) {
+    if (!img || document.getElementById('duello-prof-photo-btn')) return;
+    var btn = document.createElement('button');
+    labelButton(btn, 'Expliquer cette photo');
+    styleButton(btn);
+    btn.id = 'duello-prof-photo-btn';
+    btn.style.position = 'fixed';
+    btn.style.left = '50%';
+    btn.style.bottom = '18px';
+    btn.style.transform = 'translateX(-50%)';
+    btn.addEventListener('click', function () {
+      var dataUrl = api.downscaleToDataUrl(img, 2048);
+      if (!dataUrl) return;
+      notify({ type: 'duello-prof-explain-image', image: dataUrl });
+    });
+    document.body.appendChild(btn);
+  };
+  api.pageButton = function (holder, pageNumber) {
+    if (!holder || holder.querySelector('.duello-prof-page-btn')) return;
+    var btn = document.createElement('button');
+    labelButton(btn, 'Expliquer');
+    styleButton(btn);
+    btn.className = 'duello-prof-page-btn';
+    btn.style.position = 'absolute';
+    btn.style.top = '10px';
+    btn.style.right = '10px';
+    btn.addEventListener('click', function () {
+      var canvas = holder.querySelector('canvas');
+      if (!canvas) return;
+      var dataUrl = api.downscaleToDataUrl(canvas, 2048);
+      if (!dataUrl) return;
+      notify({ type: 'duello-prof-explain-image', image: dataUrl, page: pageNumber });
+    });
+    holder.appendChild(btn);
+  };
+})();
+"""
+
 /// `profTextLayerScript` de `profTextLayer.ts`, repris mot pour mot.
 private let profTextLayerJavascript = """
 (function(){
@@ -199,6 +315,11 @@ private let profTextLayerJavascript = """
             type: 'duello-prof-no-text',
             page: pageAttr ? Number(pageAttr) : undefined,
           }));
+        }
+        if (window.__duelloProfImage && layer.parentElement) {
+          var holderEl = layer.parentElement;
+          var holderPage = holderEl.getAttribute('data-prof-page');
+          window.__duelloProfImage.pageButton(holderEl, holderPage ? Number(holderPage) : undefined);
         }
         return;
       }

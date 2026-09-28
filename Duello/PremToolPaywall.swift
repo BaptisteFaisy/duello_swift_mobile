@@ -80,18 +80,64 @@ struct PremToolPaywallHost: ViewModifier {
     var token: String?
 
     func body(content: Content) -> some View {
-        content.sheet(item: $center.tool) { tool in
-            ScrollView {
-                PremPaywallSheet(notice: tool.notice, token: token) {
-                    center.close()
+        content
+            .overlay {
+                if let tool = center.tool {
+                    PremToolPaywallDialog(notice: tool.notice, token: token) {
+                        center.close()
+                    }
+                    // La fenêtre reçoit la disponibilité d'achat de l'hôte
+                    // (couture `PremCodePurchases`), pour qu'elle ne la
+                    // recalcule pas : `PremOffersSection` lit cette valeur
+                    // (`\.premPurchaseAvailable`).
+                    .environment(\.premPurchaseAvailable, center.isPurchaseAvailable)
+                    .transition(.opacity)
                 }
-                .padding(20)
             }
+            // `PaywallModal.tsx:58` : `animationType="fade"` — la fenêtre
+            // apparaît et disparaît en fondu, jamais par glissement.
+            .animation(.easeInOut(duration: 0.25), value: center.tool)
+    }
+}
+
+/// Enveloppe de `PaywallModal.tsx` : fond assombri tapable, dialogue centré.
+///
+/// `Modal transparent animationType="fade"` : le fond `rgba(10, 13, 12, 0.48)`
+/// couvre l'écran et ferme au toucher ; le dialogue (480 points au plus, coins
+/// 24, ombre de carte) est centré, sous les barres système.
+private struct PremToolPaywallDialog: View {
+    /// Explication affichée lorsque l'ouverture vient d'un outil Premium.
+    var notice: String?
+    /// Jeton de session, transmis à la carte « code promo » de la fenêtre.
+    var token: String?
+    /// Fermeture demandée par le fond ou par la croix.
+    var onClose: () -> Void
+
+    /// `DIALOG_MARGIN` de la source : l'air laissé entre le dialogue et les
+    /// bords de l'écran.
+    private let dialogMargin: CGFloat = 28
+
+    var body: some View {
+        ZStack {
+            // `styles.backdrop` : `rgba(10, 13, 12, 0.48)`.
+            Color(hex: 0x0A0D0C).opacity(0.48)
+                .ignoresSafeArea()
+                .contentShape(Rectangle())
+                .onTapGesture(perform: onClose)
+                .accessibilityLabel("Fermer")
+                .accessibilityAddTraits(.isButton)
+
+            ScrollView {
+                PremPaywallSheet(notice: notice, token: token, onClose: onClose)
+            }
+            .padding(20)
+            .frame(maxWidth: 480, maxHeight: .infinity)
             .background(Theme.surface)
-            // La fenêtre présentée reçoit la disponibilité d'achat de l'hôte
-            // (couture `PremCodePurchases`), pour qu'elle ne la recalcule pas :
-            // `PremOffersSection` lit cette valeur (`\.premPurchaseAvailable`).
-            .environment(\.premPurchaseAvailable, center.isPurchaseAvailable)
+            .clipShape(RoundedRectangle(cornerRadius: 24))
+            // `cardShadow` : encre 0.04, rayon 8, décalage y 2.
+            .shadow(color: Theme.ink.opacity(0.04), radius: 8, x: 0, y: 2)
+            .padding(.horizontal, 18)
+            .padding(.vertical, dialogMargin)
         }
     }
 }

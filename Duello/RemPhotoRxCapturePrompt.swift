@@ -57,9 +57,7 @@ struct RemPhotoRxPromptCopy: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Image(systemName: profilePhoto ? "person.crop.circle" : "camera")
-                .font(.system(size: 26))
-                .foregroundStyle(Theme.primary)
+            IonIcon(name: profilePhoto ? "person-circle-outline" : "camera-outline", size: 26, color: Theme.primary)
                 .frame(width: RemPhotoRxStyles.promptIconSize, height: RemPhotoRxStyles.promptIconSize)
                 .background(RemPhotoRxStyles.promptIconBackground)
                 .clipShape(RoundedRectangle(cornerRadius: RemPhotoRxStyles.promptIconRadius))
@@ -92,7 +90,7 @@ struct RemPhotoRxPromptAction: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 8) {
-                Image(systemName: icon).font(.system(size: 19, weight: .semibold))
+                IonIcon(name: icon, size: 19, color: primary ? Theme.surface : Theme.ink)
                 Text(label).font(.system(size: 13, weight: .heavy))
             }
             .frame(maxWidth: .infinity)
@@ -134,7 +132,7 @@ struct RemPhotoRxPromptActions: View {
             HStack(spacing: RemPhotoRxStyles.promptActionsGap) {
                 ForEach(Array(sources.enumerated()), id: \.element.id) { index, source in
                     RemPhotoRxPromptAction(
-                        icon: source == .camera ? "camera" : "photo.on.rectangle",
+                        icon: source == .camera ? "camera" : "images",
                         label: busySource == source ? "Envoi…" : label(source),
                         primary: index == 0,
                         disabled: busy,
@@ -192,9 +190,14 @@ struct RemPhotoRxCaptureHost: View {
     }
 
     @ViewBuilder private func picker(for source: RemPhotoRxPickerSource) -> some View {
+        // `useRemotePhotoCapturePrompt.ts:110-116` : qualité 0.82 ; recadrage carré
+        // 1:1 (`allowsEditing` / `aspect [1,1]`) pour une photo de profil.
+        let profilePhoto = coordinator.request?.purpose == .profilePhoto
         switch source {
         case .camera:
             RemPhotoCameraPicker(
+                allowsEditing: profilePhoto,
+                quality: 0.82,
                 onPick: { assets in
                     guard let asset = assets.first else { coordinator.cancelPick(); return }
                     Task { await coordinator.submit(asset: asset, source: .camera) }
@@ -204,6 +207,8 @@ struct RemPhotoRxCaptureHost: View {
         case .library:
             RemPhotoLibraryPicker(
                 selectionLimit: 1,
+                cropSquare: profilePhoto,
+                quality: 0.82,
                 onPick: { assets in
                     guard let asset = assets.first else { coordinator.cancelPick(); return }
                     Task { await coordinator.submit(asset: asset, source: .library) }

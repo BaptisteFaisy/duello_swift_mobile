@@ -11,8 +11,8 @@
 //  participant garde le moyen de revenir aux champs écrits ou dictés.
 //
 //  Fichier source Expo porté : `src/components/event/EventPhotoSheet.tsx`.
-//  Substitutions SF Symbols : images-outline → photo.on.rectangle.angled ;
-//  add → plus.
+//  Icônes Ionicons : images-outline (20) et add (14), comme la source — plus
+//  de substitution SF Symbol.
 //
 //  Cible : iOS 16.
 //
@@ -52,9 +52,7 @@ struct EvEventPhotoSheet: View {
     private var pickButton: some View {
         Button { picking = true } label: {
             HStack(spacing: 8) {
-                Image(systemName: "photo.on.rectangle.angled")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(Theme.inkSoft)
+                IonIcon(name: "images-outline", size: 20, color: Theme.inkSoft)
                 Text("Soumettre des photos pour tout le sujet")
                     .font(.system(size: 13, weight: .bold))
                     .foregroundStyle(Theme.inkSoft)
@@ -93,8 +91,7 @@ struct EvEventPhotoSheet: View {
     private var replaceButton: some View {
         Button { picking = true } label: {
             HStack(spacing: 4) {
-                Image(systemName: "plus")
-                    .font(.system(size: 12, weight: .bold))
+                IonIcon(name: "add", size: 14, color: Theme.inkSoft)
                 Text("Ajouter / remplacer")
                     .font(.system(size: 12, weight: .bold))
             }

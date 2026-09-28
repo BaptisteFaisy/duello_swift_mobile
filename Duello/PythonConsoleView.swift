@@ -55,6 +55,14 @@ struct PyConRunResult {
     /// Vrai quand la sortie a été coupée parce qu'elle devenait interminable.
     let truncated: Bool
 
+    /// `pythonRunBlocksCorrection` (`utils/pythonConsole.ts:130-132`) : une
+    /// correction ne part pas sur un programme qui ne tourne pas. Une console
+    /// indisponible ne bloque rien, en revanche — la panne vient de
+    /// l'application, pas de la copie.
+    var blocksCorrection: Bool {
+        status == .error || status == .timeout
+    }
+
     /// Découpe le résultat en trois parties (`pythonConsoleReport`) : sortie
     /// débarrassée de ses espaces finaux, erreur ajustée, note contextuelle.
     var report: PyConReport {
@@ -115,12 +123,6 @@ enum PyConLimits {
     static let unsupportedMessage = "La console native n’embarque pas d’interpréteur Python : seuls les print(…) littéraux sont simulés. Cette instruction ne peut pas être exécutée ici."
     static let notRespondingMessage = "La console Python ne répond plus. Réessaie dans un instant."
     static let closedMessage = "Console Python fermée avant la fin."
-    static let historyTitle = "Historique des exécutions"
-    static let clearHistoryLabel = "Vider l’historique"
-    static let historyOkLabel = "Sans erreur"
-    static let historyErrorLabel = "Erreur"
-    /// Nombre d'exécutions conservées dans l'historique.
-    static let historyLimit = 8
     static let truncatedNote = "Sortie coupée : ton programme affiche trop de lignes."
     static let noOutputNote = "Programme exécuté sans erreur. Il n’affiche rien : ajoute un print(…) pour voir ton résultat."
 
@@ -234,16 +236,6 @@ enum PyConRunner {
     }
 }
 
-// MARK: - Historique des exécutions
-
-/// Une exécution passée, conservée par la console. **Ajout du portage** : la
-/// source Expo ne garde aucune trace des programmes exécutés.
-struct PyConHistoryEntry: Identifiable {
-    let id = UUID()
-    let source: String
-    let result: PyConRunResult
-}
-
 // MARK: - Modèle de la console
 
 /// État de la console et point d'entrée des exécutions. Reprend le handle
@@ -253,9 +245,6 @@ final class PyConConsoleModel: ObservableObject {
     @Published private(set) var result: PyConRunResult?
     @Published private(set) var phase: PyConPhase = .idle
     @Published private(set) var hasStarted = false
-    /// Historique des exécutions, de la plus récente à la plus ancienne
-    /// (**ajout du portage**).
-    @Published private(set) var history: [PyConHistoryEntry] = []
 
     /// Jeton de l'exécution en cours : incrémenté à chaque lancement et à
     /// chaque annulation, ce qui rend caduc tout garde-fou déjà programmé.
@@ -283,11 +272,19 @@ final class PyConConsoleModel: ObservableObject {
         }
         result = value
         phase = .idle
-        history.insert(PyConHistoryEntry(source: source, result: value), at: 0)
-        if history.count > PyConLimits.historyLimit {
-            history.removeLast(history.count - PyConLimits.historyLimit)
-        }
         return value
+    }
+
+    /// `checkPythonBeforeCorrection` (`AnnaleViewer.tsx:3261-3275`) : exécute les
+    /// programmes concernés avant d'engager une correction et rend l'identifiant
+    /// de la première question qui échoue, `nil` si tout tourne. Les programmes
+    /// vides sont ignorés ; une console indisponible ne bloque rien.
+    func firstBlockingQuestion(_ sources: [(id: String, source: String)]) async -> String? {
+        for entry in sources {
+            guard !entry.source.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { continue }
+            if runSynchronously(entry.source).blocksCorrection { return entry.id }
+        }
+        return nil
     }
 
     /// Annule l'exécution en cours : la console est fermée avant la fin.
@@ -306,11 +303,6 @@ final class PyConConsoleModel: ObservableObject {
             self.result = PyConRunResult(status: .unavailable, output: "", error: PyConLimits.notRespondingMessage, truncated: false)
             self.phase = .idle
         }
-    }
-
-    /// Vide l'historique des exécutions (**ajout du portage**).
-    func clearHistory() {
-        history = []
     }
 }
 
@@ -374,7 +366,6 @@ struct PythonConsoleView: View {
                 .padding(.bottom, 9)
             }
             simulationNotice
-            if !model.history.isEmpty { historySection }
         }
         .background(Theme.surface)
         .overlay(alignment: .top) {
@@ -393,8 +384,7 @@ struct PythonConsoleView: View {
                     if isBusy {
                         ProgressView().tint(Theme.surface)
                     } else {
-                        Image(systemName: "play.fill")
-                            .font(.system(size: 12, weight: .bold))
+                        IonIcon(name: "play", size: 14, color: Theme.surface)
                     }
                     Text(runLabel)
                         .font(.system(size: 13, weight: .semibold))
@@ -443,40 +433,6 @@ struct PythonConsoleView: View {
         case .running: return PyConLimits.runningLabel
         case .idle: return PyConLimits.runButtonLabel
         }
-    }
-
-    /// Historique des exécutions — **ajout du portage** : la source Expo ne
-    /// garde aucune trace des programmes exécutés. Chaque entrée rappelle le
-    /// programme et le verdict rendu.
-    private var historySection: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(PyConLimits.historyTitle)
-                    .font(.system(size: 11, weight: .heavy))
-                    .textCase(.uppercase)
-                    .foregroundStyle(Theme.inkFaint)
-                Spacer(minLength: 8)
-                Button(PyConLimits.clearHistoryLabel) { model.clearHistory() }
-                    .buttonStyle(.plain)
-                    .font(.system(size: 11, weight: .heavy))
-                    .foregroundStyle(Theme.inkSoft)
-            }
-            ForEach(model.history) { entry in
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(entry.source.trimmingCharacters(in: .whitespacesAndNewlines))
-                        .font(.system(size: 11, design: .monospaced))
-                        .foregroundStyle(Theme.ink)
-                        .lineLimit(2)
-                    Text(entry.result.report.error.isEmpty ? PyConLimits.historyOkLabel : PyConLimits.historyErrorLabel)
-                        .font(.system(size: 10, weight: .heavy))
-                        .foregroundStyle(entry.result.report.error.isEmpty ? Theme.progress : Theme.like)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 9)
-        .padding(.bottom, 9)
     }
 
     /// Texte monospace du panneau de sortie (source : `Menlo` 12).

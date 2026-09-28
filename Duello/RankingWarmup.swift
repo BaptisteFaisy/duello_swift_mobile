@@ -16,15 +16,12 @@
 //    Swift natif, `LeaderboardScreen` est déjà compilé et instancié par la
 //    navigation : il n'y a pas de module paresseux à évaluer, seule la partie
 //    réseau est portée.
-//  - La cohorte Elo (`eloLeaderboardCohortForProfile`, subjectLeaderboard.ts)
-//    n'existe pas encore en Swift et `DuelloAPI.subjectLeaderboard` n'accepte
-//    aucun paramètre `cohort` : la couture `RankingsEloCohortResolving` reste
-//    explicite et son implémentation par défaut ne devine rien (`nil` =
-//    classement non filtré). À raccorder quand le portage de
-//    `subjectLeaderboard.ts` arrive.
-//  - `socialApi.ts` (caches mémoire + persistance au fil des réponses) n'est
-//    pas porté : l'implémentation par défaut persiste directement la réponse
-//    via `saveRankingsSnapshot`, faute de couche de cache à alimenter.
+//  - La cohorte Elo est désormais portée (`RankingEloCohort.swift`,
+//    `eloLeaderboardCohortForProfile`) : `DuelloAPI.subjectLeaderboard` accepte
+//    un paramètre `cohort` et le préchauffage le transmet, comme `subjectLeaderboard.ts`.
+//  - `socialApi.ts` (caches mémoire + persistance au fil des réponses) est
+//    porté par `RankingSnapshotCache` : la réponse validée alimente la mémoire
+//    puis le disque (`save`), les écrans relisant avant le réseau.
 //
 //  Cible : iOS 16.
 //
@@ -57,18 +54,23 @@ struct RankingWarmupProfile {
 // MARK: - Coutures
 
 /// Cohorte Elo d'un profil (`eloLeaderboardCohortForProfile`).
-///
-/// Non portée en Swift à ce stade : aucune notion de cohorte n'existe côté
-/// natif. La couture est explicite ; l'implémentation par défaut ne devine
-/// rien et renvoie `nil` (classement non filtré, comportement du serveur
-/// actuel). À remplacer par le portage de `src/utils/subjectLeaderboard.ts`.
 protocol RankingsEloCohortResolving {
     func cohort(for profile: RankingWarmupProfile) -> String?
 }
 
-/// Implémentation par défaut : aucune cohorte (couture non raccordée).
-struct UnavailableRankingsEloCohortResolver: RankingsEloCohortResolving {
-    func cohort(for profile: RankingWarmupProfile) -> String? { nil }
+/// Implémentation par défaut : la cohorte du profil, portée de
+/// `src/utils/subjectLeaderboard.ts` (`eloLeaderboardCohortForProfile`).
+struct RankingEloCohortResolver: RankingsEloCohortResolving {
+    func cohort(for profile: RankingWarmupProfile) -> String? {
+        eloLeaderboardCohortForProfile(
+            EloLeaderboardAcademicProfile(
+                track: profile.track,
+                year: profile.year,
+                specialty: profile.specialty,
+                currentTrack: profile.currentTrack
+            )
+        )
+    }
 }
 
 /// Service de classements du préchauffage (couture vers `socialApi.ts`).
@@ -88,17 +90,22 @@ protocol RankingsWarmupServing {
 /// comme le fait `socialApi.ts` côté RN (`saveRankingsSnapshot`).
 struct DuelloAPIRankingsWarmupService: RankingsWarmupServing {
     var token: String?
-    var cohortResolver: RankingsEloCohortResolving = UnavailableRankingsEloCohortResolver()
+    var cohortResolver: RankingsEloCohortResolving = RankingEloCohortResolver()
     var cache: RankingsSnapshotCache = .shared
 
     func prefetchSubjectLeaderboard(
         subject: String,
         profile: RankingWarmupProfile
     ) async throws -> [LeaderboardEntry] {
-        let entries = try await DuelloAPI.subjectLeaderboard(subject: subject, token: token)
+        let cohort = cohortResolver.cohort(for: profile)
+        let entries = try await DuelloAPI.subjectLeaderboard(
+            subject: subject,
+            cohort: cohort,
+            token: token
+        )
         let key = rankingsSubjectLeaderboardCacheKey(
             subject: subject,
-            cohort: cohortResolver.cohort(for: profile)
+            cohort: cohort
         )
         cache.save(.subjectLeaderboard, key: key, entries: entries)
         return entries

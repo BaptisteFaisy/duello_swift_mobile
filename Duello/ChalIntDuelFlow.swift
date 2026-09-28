@@ -26,6 +26,7 @@ import Foundation
 /// Déroulé d'un défi apparié : chargement, révélation, manches, bilan.
 struct ChalIntDuelFlow: View {
     @EnvironmentObject private var session: SessionStore
+    @EnvironmentObject private var progress: ProgressStore
 
     let match: MatchView
     var onFinish: () -> Void
@@ -41,6 +42,8 @@ struct ChalIntDuelFlow: View {
     @State private var round: ChalRunRoundState = ChalIntDuelFlow.emptyRound
     /// Titre de l'exercice servi, transmis au signalement de l'énoncé.
     @State private var exerciseTitle = ""
+    /// Célébration de promotion de ligue refermée par le joueur.
+    @State private var promotionDismissed = false
 
     private static let emptyExercise = DuelExercise(
         id: "", subject: "", context: nil, questions: [], solution: nil
@@ -71,8 +74,7 @@ struct ChalIntDuelFlow: View {
                         exerciseTitle: exerciseTitle,
                         state: $round,
                         onVerdict: { handleVerdict($0) },
-                        onAbandon: { abandon() },
-                        onStopWaiting: onFinish
+                        onAbandon: { abandon() }
                     )
                 }
             case .result(let result):
@@ -113,15 +115,24 @@ struct ChalIntDuelFlow: View {
 
     @ViewBuilder
     private func resultView(_ result: ChalRunResult) -> some View {
-        if result.opponentAbandoned {
-            ChalRunAbandonVictoryView(result: result, onBack: onFinish, onContinueTraining: nil)
-        } else {
-            ChalRunResultView(
-                result: result,
-                myInitial: myInitial,
-                onBack: onFinish,
-                onContinueTraining: nil
-            )
+        ZStack {
+            if result.opponentAbandoned {
+                ChalRunAbandonVictoryView(result: result, onBack: onFinish, onContinueTraining: nil)
+            } else {
+                ChalRunResultView(
+                    result: result,
+                    myInitial: myInitial,
+                    onBack: onFinish,
+                    onContinueTraining: nil
+                )
+            }
+            // Célébration de promotion de ligue, superposée au bilan
+            // (`result.leaguePromotion`, `renderScreen` de la source).
+            if let promotion = result.leaguePromotion, !promotionDismissed {
+                LeaguePromotionCelebration(promotion: promotion) {
+                    promotionDismissed = true
+                }
+            }
         }
     }
 
@@ -201,12 +212,14 @@ struct ChalIntDuelFlow: View {
     // MARK: Issues
 
     private func handleVerdict(_ verdict: DuelVerdict) {
+        promotionDismissed = false
         phase = .result(ChalIntDuelResult.build(
             verdict: verdict,
             match: match,
             exercise: round.exercise,
             state: round,
-            profile: session.profile
+            profile: session.profile,
+            subjectElos: progress.subjectElos
         ))
     }
 

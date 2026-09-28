@@ -10,6 +10,9 @@
 //  composeur système (`SMS.sendSMSAsync` côté Expo) ; WhatsApp et Instagram
 //  s'ouvrent par leur URL.
 //
+//  Icônes Ionicons : chatbubble-outline, logo-whatsapp, logo-instagram (22),
+//  comme la source — plus de substitution SF Symbol.
+//
 //  Différence assumée : la source garde la feuille ouverte pendant l'ouverture
 //  du canal ; sur iOS le composeur système ne peut pas se poser par-dessus, donc
 //  la feuille se referme avant l'ouverture et la note d'action s'affiche dans la
@@ -66,9 +69,7 @@ struct EvEventShareSheet: View {
     private func channelRow(_ channel: EvShareChannel) -> some View {
         Button { onOpen(channel) } label: {
             HStack(spacing: 12) {
-                Image(systemName: channel.symbol)
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(Theme.ink)
+                IonIcon(name: channel.ionName, size: 22, color: Theme.ink)
                     .frame(width: 24)
                 Text(channel.label)
                     .font(.system(size: 15, weight: .heavy))

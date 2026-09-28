@@ -69,9 +69,8 @@ struct OnbUiChoiceChip: View {
                 if wide { Spacer(minLength: 0) }
 
                 if isSelected {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(dark ? Color.black : Color.white)
+                    // `checkmark-circle`, 18 : glyphe Ionicons du RN.
+                    IonIcon(name: "checkmark-circle", size: 18, color: dark ? Color.black : Color.white)
                 }
             }
             .padding(.vertical, 11)

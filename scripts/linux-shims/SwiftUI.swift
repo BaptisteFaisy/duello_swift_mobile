@@ -1110,3 +1110,17 @@ public struct UIViewRepresentableContext<Representable: UIViewRepresentable> {
     public var environment: EnvironmentValues { EnvironmentValues() }
     public var transaction: Transaction { Transaction() }
 }
+
+// MARK: - Forme effacée (`AnyShape`, iOS 16+)
+//
+// Utilisée par `MathKbControls` pour choisir entre capsule et rectangle arrondi.
+
+public struct AnyShape: Shape {
+    private let _path: (CGRect) -> Path
+
+    public init<S: Shape>(_ shape: S) {
+        _path = { rect in shape.path(in: rect) }
+    }
+
+    public func path(in rect: CGRect) -> Path { _path(rect) }
+}

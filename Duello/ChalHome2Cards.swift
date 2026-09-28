@@ -32,11 +32,11 @@ enum ChalHome2NoticeTone {
     case info
     case error
 
-    /// Icône par défaut du ton (surchargeable, cf. `ChalHome2NoticeCard`).
+    /// Glyphe Ionicons du ton (surchargeable, cf. `ChalHome2NoticeCard`).
     var icon: String {
         switch self {
-        case .info: return "info.circle"
-        case .error: return "exclamationmark.circle"
+        case .info: return "information-circle-outline"
+        case .error: return "alert-circle-outline"
         }
     }
 
@@ -60,10 +60,7 @@ struct ChalHome2NoticeCard: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 9) {
-            Image(systemName: icon ?? tone.icon)
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(tone.color)
-                .frame(width: 22)
+            IonIcon(name: icon ?? tone.icon, size: 20, color: tone.color)
             Text(text)
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(Theme.inkSoft)
@@ -111,9 +108,9 @@ struct ChalHome2InviteOutcomeCard: View {
     /// refusé, point d'exclamation sinon (expiré ou envoi impossible).
     private var icon: String {
         switch outcome {
-        case .unavailable: return "bell"
-        case .declined: return "xmark.circle"
-        case .expired, .error: return "exclamationmark.circle"
+        case .unavailable: return "notifications-outline"
+        case .declined: return "close-circle-outline"
+        case .expired, .error: return "alert-circle-outline"
         }
     }
 

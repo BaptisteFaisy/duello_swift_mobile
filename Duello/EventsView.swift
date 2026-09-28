@@ -12,9 +12,9 @@
 //  (`fullScreenCover`) ; `onOpenEvent` est notifié au passage, comme
 //  `ChallengesScreen.tsx` marque l'événement vu avant de l'ouvrir.
 //
-//  Substitutions SF Symbols (Ionicons → SF Symbols) : calendar-outline →
-//  calendar ; time-outline → clock ; location-outline → mappin.and.ellipse ;
-//  open-outline → arrow.up.right.square ; chevron-forward → chevron.right.
+//  Icônes Ionicons : calendar-outline (38, état vide), time-outline (15),
+//  location-outline (15), open-outline (14), chevron-forward (18), comme la
+//  source — plus de substitution SF Symbol.
 //
 //  Cible : iOS 16.
 //
@@ -29,6 +29,9 @@ struct EventsView: View {
     /// Identifiants déjà vus, pour la pastille « nouveau » de chaque carte ;
     /// `nil` tant que la liste n'est pas chargée (aucune pastille).
     var seenEventIds: [String]? = nil
+    /// Ouvre le profil d'un participant depuis l'espace événement ; `nil` laisse
+    /// les lignes inactives.
+    var onOpenProfile: ((String) -> Void)? = nil
 
     @State private var openEvent: EvEvent?
 
@@ -45,21 +48,44 @@ struct EventsView: View {
                     event: event,
                     email: session.profile.email,
                     token: session.token,
-                    onBack: { openEvent = nil }
+                    onBack: { openEvent = nil },
+                    onOpenProfile: onOpenProfile
                 )
             }
     }
 
     @ViewBuilder private var content: some View {
+        let now = Date()
         if events.isEmpty {
-            DuelloEmptyState(icon: "calendar", title: "Aucun événement à venir")
+            emptyState
         } else {
+            // Instant commun des pastilles de statut : relu à chaque rendu.
             VStack(spacing: 12) {
                 ForEach(events) { event in
-                    EvEventCard(event: event, isNew: isNew(event)) { open(event) }
+                    EvEventCard(event: event, now: now, isNew: isNew(event)) { open(event) }
                 }
             }
         }
+    }
+
+    /// État vide : cadre de 76×76, icône `calendar-outline` (38, encre) et titre.
+    private var emptyState: some View {
+        VStack(spacing: 10) {
+            ZStack {
+                RoundedRectangle(cornerRadius: Theme.radiusLarge)
+                    .fill(Theme.surface)
+                    .frame(width: 76, height: 76)
+                IonIcon(name: "calendar-outline", size: 38, color: Theme.ink)
+            }
+            .padding(.bottom, 6)
+            Text("Aucun événement à venir")
+                .font(.system(size: 16, weight: .heavy))
+                .foregroundStyle(Theme.ink)
+                .multilineTextAlignment(.center)
+        }
+        .padding(.vertical, 48)
+        .padding(.horizontal, 32)
+        .frame(maxWidth: .infinity)
     }
 
     /// Pastille « nouveau » : l'événement est visible mais jamais ouvert
@@ -83,6 +109,8 @@ struct EventsView: View {
 /// horaire, lieu et lien d'information (`EventCard`).
 private struct EvEventCard: View {
     let event: EvEvent
+    /// Instant commun des pastilles de statut.
+    let now: Date
     /// Événement jamais ouvert : allume la pastille « nouveau » en coin.
     let isNew: Bool
     let onOpen: () -> Void
@@ -91,42 +119,34 @@ private struct EvEventCard: View {
         Button(action: onOpen) {
             HStack(alignment: .top, spacing: 14) {
                 dateBadge
-                VStack(alignment: .leading, spacing: 0) {
-                    Text(event.title)
-                        .font(.system(size: 15, weight: .heavy))
-                        .foregroundStyle(Theme.ink)
-                        .fixedSize(horizontal: false, vertical: true)
-                    if let description = event.description, !description.isEmpty {
-                        Text(description)
-                            .font(.system(size: 13))
-                            .foregroundStyle(Theme.inkSoft)
-                            .padding(.top, 5)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    metaRow
-                    linkRow
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(Theme.inkFaint)
-                    .padding(.top, 2)
+                cardBody
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                // Réserve la largeur du chevron : la colonne reste centrée
+                // verticalement sur la carte, comme `chevronColumn` de la source.
+                Color.clear.frame(width: 18)
             }
             .padding(16)
             .contentShape(Rectangle())
             .overlay(alignment: .topTrailing) { newDot }
+            .overlay(alignment: .trailing) {
+                IonIcon(name: "chevron-forward", size: 18, color: Theme.inkFaint)
+                    .padding(.trailing, 16)
+            }
         }
         .buttonStyle(EvEventCardStyle())
-        .accessibilityLabel("\(event.title) — ouvrir l'événement")
+        .accessibilityLabel(
+            isNew
+                ? "\(event.title) — nouvel événement — ouvrir l'événement"
+                : "\(event.title) — ouvrir l'événement"
+        )
     }
 
-    /// Pastille « nouveau » en coin, tant que l'événement n'a pas été ouvert
-    /// (`styles.newDot` de la source).
+    /// Pastille « nouveau » en coin (`styles.newDot` : 8×8, r4, top/right 10).
     @ViewBuilder private var newDot: some View {
         if isNew {
             Circle()
                 .fill(Theme.ink)
-                .frame(width: 9, height: 9)
+                .frame(width: 8, height: 8)
                 .padding(10)
                 .accessibilityLabel("Nouvel événement")
         }
@@ -153,15 +173,36 @@ private struct EvEventCard: View {
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
     }
 
+    /// Corps de la carte : pastille de statut, titre, description, méta et lien.
+    private var cardBody: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if let status = EvEventSchedule.statusBadge(event, now: now) {
+                EvEventStatusBadge(status: status)
+                    .padding(.bottom, 6)
+            }
+            Text(event.title)
+                .font(.system(size: 15, weight: .heavy))
+                .foregroundStyle(Theme.ink)
+                .fixedSize(horizontal: false, vertical: true)
+            if let description = event.description, !description.isEmpty {
+                Text(description)
+                    .font(.system(size: 13))
+                    .foregroundStyle(Theme.inkSoft)
+                    .padding(.top, 5)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            metaRow
+            linkRow
+        }
+    }
+
     /// Horaire et lieu de l'événement, affichés seulement s'ils existent.
     @ViewBuilder private var metaRow: some View {
         if EvEventDateFormatting.timeRange(event) != nil || event.location != nil {
             HStack(spacing: 12) {
                 if let range = EvEventDateFormatting.timeRange(event) {
                     HStack(spacing: 5) {
-                        Image(systemName: "clock")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(Theme.inkFaint)
+                        IonIcon(name: "time-outline", size: 15, color: Theme.inkFaint)
                         Text(range)
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(Theme.inkSoft)
@@ -169,9 +210,7 @@ private struct EvEventCard: View {
                 }
                 if let location = event.location {
                     HStack(spacing: 5) {
-                        Image(systemName: "mappin.and.ellipse")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(Theme.inkFaint)
+                        IonIcon(name: "location-outline", size: 15, color: Theme.inkFaint)
                         Text(location)
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(Theme.inkSoft)
@@ -191,11 +230,10 @@ private struct EvEventCard: View {
                         .font(.system(size: 13, weight: .heavy))
                         .underline()
                         .foregroundStyle(Theme.ink)
-                    Image(systemName: "arrow.up.right.square")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(Theme.inkSoft)
+                    IonIcon(name: "open-outline", size: 14, color: Theme.inkSoft)
                 }
                 .padding(.top, 10)
+                .padding(.vertical, 2)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)

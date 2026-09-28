@@ -67,22 +67,24 @@ struct TrainingCatalogView: View {
     /// Descripteur de banque servie, par identifiant de chapitre.
     @State var descriptors: [String: DuelloAPI.ContentChapterDescriptor] = [:]
 
-    /// Chapitres dépliés.
-    @State var expanded: Set<String> = []
+    /// Chapitre ouvert en plein écran (`openChapter` de la source) : la page du
+    /// chapitre remplace le programme de la matière, `nil` affiche le catalogue.
+    @State var openChapter: TrackChapter? = nil
     /// État de chargement des exercices, par identifiant de chapitre.
     @State var chapterStates: [String: LoadState] = [:]
     @State var chapterErrors: [String: String] = [:]
     /// Exercices chargés, par identifiant de chapitre.
     @State var loadedExercises: [String: [TrainExercise]] = [:]
-    /// Filtre de difficulté, par identifiant de chapitre ; absence = « Tout ».
-    @State var difficultyFilters: [String: Int] = [:]
+    /// Filtre de difficulté, par identifiant de chapitre : multi-choix des
+    /// paliers (`badgeFilters` de la source) ; ensemble vide = « Tout ».
+    @State var difficultyFilters: [String: Set<Int>] = [:]
+    /// Filtre de prérequis, par identifiant de chapitre (multi-choix) ;
+    /// ensemble vide = « Tout ».
+    @State var prerequisiteFilters: [String: Set<SubjPrerequisiteFilterValue>] = [:]
 
     /// Mode d'entraînement choisi par l'élève ; `nil` tant qu'il n'a pas touché
     /// aux onglets, le mode par défaut de la matière s'appliquant alors.
     @State var modeOverride: SubjTrainingMode? = nil
-    /// Filtre « Classique » du chapitre ouvert. Interface seule : la banque
-    /// servie ne porte pas la marque « Classique ».
-    @State var classicFilter: SubjClassicFilterValue = .all
     /// Visibilité de la légende du statut de cours — encart explicatif **et**
     /// rappel statique — persistée par compte, comme
     /// `useCourseLegendVisibility` de la source.
@@ -90,15 +92,11 @@ struct TrainingCatalogView: View {
     /// Sujet de reprise masqué à la main, par identifiant d'item
     /// (`dismissedResumableExerciseId`).
     @State var dismissedResumableExerciseId: String? = nil
-    /// Feuille « Cartes » (flashcards) du sujet.
-    @State var flashcardsOpen = false
     /// Classement XP ouvert depuis la barre de métriques (maths).
     @State var rankingOpen = false
     /// Décompte du catalogue par chapitre : exercices servis, colles et annales
     /// réunis (voir `TrainContent.catalogCounts`), dénominateur de l'en-tête.
     @State var catalogTotals: [String: Int] = [:]
-    /// Page « Mon cours » ouverte (`openChapter` de la source, mode cours).
-    @State var coursePage: TrackChapter? = nil
     /// Énoncé ouvert en plein écran (`openAnnale` de la source).
     @State var readerEntry: AnnEntry? = nil
     /// Repère de cours par chapitre (`coursePositionsByKey`) : alimente la barre
@@ -110,7 +108,29 @@ struct TrainingCatalogView: View {
     /// Repli de la page d'une matière vers la liste des matières.
     @Environment(\.dismiss) private var dismiss
 
+    /// Visibilité du chrome repliable (barre de métriques des maths) pendant le
+    /// défilement (`useScrollChromeVisibility`), et ancre de la session en cours.
+    @State private var chromeVisible = true
+    @State private var chromeSession: TrainChromeSession?
+
     var body: some View {
+        Group {
+            if let openChapter {
+                chapterDetailPage(openChapter)
+            } else {
+                cataloguePage
+            }
+        }
+        .background(Theme.background)
+        .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $rankingOpen) { LeaderboardModalView(initialTab: .weeklyXp, xpOnly: true) }
+        .fullScreenCover(item: $readerEntry) { entry in readerCover(entry) }
+        .task { await loadManifest() }
+    }
+
+    /// Programme de la matière : le catalogue de chapitres, coiffé du chrome
+    /// collant (barre de métriques en maths, barre de retour ailleurs).
+    private var cataloguePage: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
                 resumableExerciseCard
@@ -125,37 +145,57 @@ struct TrainingCatalogView: View {
             .padding(.horizontal, 20)
             .padding(.top, 16)
             .padding(.bottom, 40)
+            .background(chromeOffsetReader)
         }
-        .background(Theme.background)
+        .coordinateSpace(name: Self.scrollSpace)
+        .onPreferenceChange(TrainChromeOffsetKey.self) { offset in
+            handleChromeScroll(offset)
+        }
         // L'en-tête de la source ne défile pas : la barre de métriques (maths)
         // et la barre de retour (autres matières) vivent dans le chrome collant,
         // hors du `ScrollView` (`SubjectsScreen.tsx:9611-9655`). En maths, les
         // onglets de modes y prennent place sous la barre, `paddingTop: 4`
         // (`mathsModeTabsRow`, `SubjectsScreen.tsx:9779-9785`).
-        .safeAreaInset(edge: .top, spacing: 0) { pinnedHeader }
+        //
+        // U06#A1 : en maths, le chrome se replie au défilement vers le bas et
+        // revient au défilement vers le haut (ressort `friction 26 / tension 60`,
+        // translation `-24`, opacité ; `9648-9823`).
+        .safeAreaInset(edge: .top, spacing: 0) {
+            pinnedHeader
+                .opacity(chromeVisible ? 1 : 0)
+                .offset(y: chromeVisible ? 0 : -24)
+                .animation(.interpolatingSpring(stiffness: 60, damping: 26), value: chromeVisible)
+                .accessibilityHidden(!chromeVisible)
+        }
         // La source n'a pas de titre de navigation : la page d'une matière est
         // coiffée par son propre en-tête (barre de métriques en maths, barre de
         // retour ailleurs).
-        .navigationBarTitleDisplayMode(.inline)
-        // Écart assumé (U06 P1#12, V2) : la source ouvre les cartes d'un cours
-        // **depuis le cours lui-même** (`coursePage === 'flashcards'`,
-        // `SubjectsScreen.tsx:8064`) ; la barre de navigation reste la seule
-        // entrée — la retirer laisserait la surface « Cartes » injoignable.
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button {
-                    flashcardsOpen = true
-                } label: {
-                    Image(systemName: "rectangle.on.rectangle.angled")
-                }
-                .accessibilityLabel("Ouvrir les cartes du cours")
-            }
+    }
+
+    /// Espace de coordonnées du défilement, pour mesurer l'offset du contenu.
+    static let scrollSpace = "training-catalogue-scroll"
+
+    /// Sonde d'offset du défilement (fond transparent en tête de contenu).
+    private var chromeOffsetReader: some View {
+        GeometryReader { geometry in
+            Color.clear.preference(
+                key: TrainChromeOffsetKey.self,
+                value: -geometry.frame(in: .named(Self.scrollSpace)).minY
+            )
         }
-        .sheet(isPresented: $flashcardsOpen) { flashcardsSheet }
-        .sheet(isPresented: $rankingOpen) { LeaderboardModalView() }
-        .sheet(item: $coursePage) { chapter in coursePageSheet(chapter) }
-        .fullScreenCover(item: $readerEntry) { entry in readerCover(entry) }
-        .task { await loadManifest() }
+    }
+
+    /// Suit la direction du défilement et décide de la visibilité du chrome
+    /// (`scrollChromeVisibilitySessionAfterScroll`). Seules les maths replient
+    /// leur chrome (`hasCollapsibleTrainingChrome`).
+    private func handleChromeScroll(_ offset: CGFloat) {
+        guard subject.id == SubjSubjectRules.mathsSubjectId else { return }
+        let session = chromeSession ?? TrainChromeVisibility.beginSession(
+            visible: chromeVisible, offset: offset
+        )
+        let next = TrainChromeVisibility.sessionAfterScroll(session, next: offset)
+        chromeSession = next
+        if next.visible != chromeVisible { chromeVisible = next.visible }
     }
 
     /// En-tête épinglé, hors du défilement : la barre de métriques des maths
@@ -199,50 +239,17 @@ struct TrainingCatalogView: View {
         }
     }
 
-    /// Feuille des cartes du cours, présentée depuis la barre de navigation.
-    /// Le chapitre rattaché est le premier du programme ; la surface porte les
-    /// onglets Générer / Créer / Réviser (`TrainFlashcardsPanel`).
-    private var flashcardsSheet: some View {
-        NavigationStack {
-            ScrollView {
-                TrainFlashcardsPanel(
-                    subject: subject.name,
-                    chapterId: subject.chapters.first?.id ?? subject.id,
-                    chapterName: subject.chapters.first?.name ?? subject.name,
-                    hasCourseDocument: courseDocuments[subject.chapters.first?.id ?? subject.id] ?? false,
-                    coursePosition: coursePositions[subject.chapters.first?.id ?? subject.id] ?? 0
-                )
-            }
-            .background(Theme.background)
-            .navigationTitle("Cartes")
-            .navigationBarTitleDisplayMode(.inline)
+    /// Relit le repère et la présence du document de **tous** les chapitres du
+    /// programme (`coursePositionsByKey` / `courseDocumentsByKey`), comme la
+    /// source au chargement (`SubjectsScreen.tsx:4826-4883`).
+    func loadCourseMarkers() {
+        for chapter in subject.chapters {
+            refreshCourseMarkers(for: chapter.id)
         }
-    }
-
-    /// Feuille « Mon cours » d'un chapitre (`TrainCoursePage`), ouverte depuis
-    /// la ligne Cours. À la fermeture : relit le repère et la présence du
-    /// document pour la barre de la ligne.
-    private func coursePageSheet(_ chapter: TrackChapter) -> some View {
-        NavigationStack {
-            ScrollView {
-                TrainCoursePage(
-                    subjectName: subject.name,
-                    chapter: chapter,
-                    programYear: programYear ?? 1,
-                    onCourseStatus: { courseStatus.set(chapter.id, status: $0) },
-                    onClose: { refreshCourseMarkers(for: chapter.id) }
-                )
-                .padding(20)
-            }
-            .background(Theme.background)
-            .navigationTitle(chapter.name)
-            .navigationBarTitleDisplayMode(.inline)
-        }
-        .onDisappear { refreshCourseMarkers(for: chapter.id) }
     }
 
     /// Relit le repère et la présence du document d'un chapitre (barre Cours).
-    private func refreshCourseMarkers(for chapterId: String) {
+    func refreshCourseMarkers(for chapterId: String) {
         let stored = TrainCourseDocument.load(year: programYear ?? 1, chapterId: chapterId)
         coursePositions[chapterId] = stored?.classProgress?.position
         courseDocuments[chapterId] = stored == nil ? nil : true
@@ -371,22 +378,23 @@ struct TrainingCatalogView: View {
         }
     }
 
-    /// Reprend un sujet : ouvre son mode et déplie son chapitre, puis ouvre
-    /// l'énoncé du sujet repris quand il est déjà chargé (`openAnnaleItem`).
+    /// Reprend un sujet : ouvre son mode et son chapitre, puis ouvre l'énoncé
+    /// du sujet repris quand il est chargé (`openAnnaleItem`).
     private func resume(_ resumable: TrainResumableExercise) {
         modeOverride = resumable.mode
         guard let chapterId = resumable.chapterId,
               let chapter = subject.chapters.first(where: { $0.id == chapterId })
         else { return }
-        if !expanded.contains(chapterId) {
-            toggle(chapter)
-        }
-        if let exercise = (loadedExercises[chapterId] ?? []).first(where: { $0.id == resumable.itemId }) {
-            readerEntry = TrainReaderLink.entry(
-                exercise,
-                mode: resumable.mode,
-                chapterName: chapter.name
-            )
+        openChapter = chapter
+        Task {
+            await loadExercisesIfNeeded(for: chapter)
+            if let exercise = (loadedExercises[chapterId] ?? []).first(where: { $0.id == resumable.itemId }) {
+                readerEntry = TrainReaderLink.entry(
+                    exercise,
+                    mode: resumable.mode,
+                    chapterName: chapter.name
+                )
+            }
         }
     }
 
@@ -416,5 +424,62 @@ struct TrainingCatalogView: View {
             return progress.items[itemId]?.bestOutcome == .success
         }.count
         return (succeeded, total)
+    }
+}
+
+// MARK: - Chrome repliable
+
+/// Clé de préférence qui publie l'offset du défilement du catalogue.
+struct TrainChromeOffsetKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
+/// Session de défilement du chrome repliable : dernière visibilité demandée et
+/// position d'ancrage (`ScrollChromeVisibilitySession`).
+struct TrainChromeSession {
+    var visible: Bool
+    var anchor: CGFloat
+}
+
+/// Décision de visibilité du chrome pendant un geste vertical
+/// (`utils/trainingChromeVisibility.ts`, seuils et repli au sommet).
+enum TrainChromeVisibility {
+    /// `TRAINING_CHROME_SWIPE_THRESHOLD` : distance vers le bas qui masque.
+    static let swipeThreshold: CGFloat = 24
+    /// `TRAINING_CHROME_REVEAL_THRESHOLD` : distance vers le haut qui révèle.
+    static let revealThreshold: CGFloat = 12
+    /// `TRAINING_CHROME_TOP_EPSILON` : le sommet reste toujours visible.
+    static let topEpsilon: CGFloat = 1
+
+    /// `scrollChromeVisibilityAfterScroll`.
+    static func afterScroll(visible: Bool, from start: CGFloat, to next: CGFloat) -> Bool {
+        let clampedStart = max(0, start)
+        let clampedNext = max(0, next)
+        let distance = clampedNext - clampedStart
+        if !visible && clampedNext <= topEpsilon { return true }
+        if distance >= swipeThreshold { return false }
+        if distance <= -revealThreshold { return true }
+        return visible
+    }
+
+    /// `beginScrollChromeVisibilitySession`.
+    static func beginSession(visible: Bool, offset: CGFloat) -> TrainChromeSession {
+        TrainChromeSession(
+            visible: offset <= topEpsilon ? true : visible,
+            anchor: offset
+        )
+    }
+
+    /// `scrollChromeVisibilitySessionAfterScroll`.
+    static func sessionAfterScroll(_ session: TrainChromeSession, next: CGFloat) -> TrainChromeSession {
+        if (session.visible && next < session.anchor) || (!session.visible && next > session.anchor) {
+            return TrainChromeSession(visible: session.visible, anchor: next)
+        }
+        let visible = afterScroll(visible: session.visible, from: session.anchor, to: next)
+        if visible == session.visible { return session }
+        return TrainChromeSession(visible: visible, anchor: next)
     }
 }

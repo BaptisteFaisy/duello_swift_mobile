@@ -18,6 +18,21 @@
 //
 import SwiftUI
 
+/// Glyphe Ionicons exact de chaque raison (`REPORT_REASONS` de
+/// `UserReportModal.tsx`). `ReportReason.icon` porte un substitut SF Symbol
+/// (fichier partagé) : on ne l'emploie donc pas ici.
+private extension ReportReason {
+    var ioniconName: String {
+        switch self {
+        case .harassment: return "warning-outline"
+        case .spam: return "megaphone-outline"
+        case .impersonation: return "people-outline"
+        case .inappropriateContent: return "eye-off-outline"
+        case .other: return "ellipsis-horizontal"
+        }
+    }
+}
+
 /// Fenêtre de signalement d'un membre (`UserReportModal.tsx`).
 struct ReportUserSheet: View {
     /// Nom du membre signalé, inséré dans le titre (« Signaler <nom> »).
@@ -86,9 +101,7 @@ struct ReportUserSheet: View {
             .frame(maxWidth: .infinity, alignment: .leading)
 
             Button(action: onClose) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(Theme.ink)
+                IonIcon(name: "close", size: 21, color: Theme.ink)
                     .frame(width: 40, height: 40)
                     .background(Theme.surfaceMuted)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
@@ -125,16 +138,16 @@ struct ReportUserSheet: View {
             errorMessage = ""
         } label: {
             HStack(spacing: 10) {
-                Image(systemName: option.icon)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(Theme.ink)
+                IonIcon(name: option.ioniconName, size: 19, color: Theme.ink)
                 Text(option.label)
                     .font(.system(size: 13, weight: .heavy))
                     .foregroundStyle(Theme.ink)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                Image(systemName: selected ? "largecircle.fill.circle" : "circle")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(selected ? Theme.ink : Theme.inkFaint)
+                IonIcon(
+                    name: selected ? "radio-button-on" : "radio-button-off",
+                    size: 19,
+                    color: selected ? Theme.ink : Theme.inkFaint
+                )
             }
             .padding(.horizontal, 13)
             .frame(minHeight: 44)
@@ -158,8 +171,8 @@ struct ReportUserSheet: View {
             .foregroundStyle(Theme.ink)
             .frame(minHeight: 82)
             .scrollContentBackground(.hidden)
-            .padding(.horizontal, 9)
-            .padding(.vertical, 7)
+            .padding(.horizontal, 13)
+            .padding(.vertical, 11)
             .background(Theme.surface)
             .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
             .overlay(
@@ -209,15 +222,13 @@ struct ReportUserSheet: View {
         Button(action: submit) {
             HStack(spacing: 8) {
                 if submitting {
-                    ProgressView().progressViewStyle(.circular).tint(Theme.surface)
+                    ProgressView().progressViewStyle(.circular).tint(Theme.white)
                 } else {
-                    Image(systemName: "flag")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(Theme.surface)
+                    IonIcon(name: "flag", size: 18, color: Theme.white)
                 }
                 Text(submitting ? "Envoi…" : "Envoyer le signalement")
                     .font(.system(size: 14, weight: .black))
-                    .foregroundStyle(Theme.surface)
+                    .foregroundStyle(Theme.white)
             }
             .frame(maxWidth: .infinity, minHeight: 48)
             .background(Theme.ink)

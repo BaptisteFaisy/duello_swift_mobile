@@ -15,12 +15,18 @@
 //    - pas de délai dédié de 10 s (`REQUEST_TIMEOUT`) : le relais partagé
 //      applique son propre délai (20 s), et son dépassement est traduit par le
 //      message exact du source (`Le serveur admin met trop de temps à répondre.`) ;
-//    - les erreurs HTTP viennent du relais partagé : le texte est
-//      « Service indisponible (statut). » là où `adminApi.ts` écrit
-//      « Serveur indisponible (statut) », et « Le serveur Duello est
-//      injoignable. » remplace l'erreur réseau brute ;
+//    - le relais partagé pose `Content-Type: application/json` dès qu'un corps
+//      est envoyé, là où `adminApi.ts` ne pose que `Accept` + `Authorization`
+//      (en-tête bénin, accepté par le serveur) ;
+//    - l'adresse de base est celle du relais de développement
+//      (`…workers.dev/api`), la source visant l'adresse Tailscale (`…:8445/api`) ;
 //    - une clé vide n'ajoute aucun en-tête `Authorization`, comme côté Expo où
 //      le serveur décide seul d'exiger `DUELLO_ADMIN_TOKEN`.
+//
+//  Le libellé du repli HTTP est, lui, **aligné** sur le source : `adminApi.ts`
+//  écrit « Serveur indisponible (statut) » et laisse ce défaut quand le corps ne
+//  porte pas d'`error` exploitable (`adminUnavailableLabel` ci-dessous), là où
+//  le relais partagé écrit « Service indisponible (statut). ».
 //
 //  Cible : iOS 16. Aucune dépendance externe.
 //
@@ -62,6 +68,11 @@ enum AdmAPI {
             )
         } catch let error as URLError where error.code == .timedOut {
             throw AdmAPIError.timeout
+        } catch let error as DirectoryError {
+            throw DirectoryError(
+                message: adminUnavailableLabel(error.message, status: error.status),
+                status: error.status
+            )
         }
     }
 
@@ -75,5 +86,19 @@ enum AdmAPI {
     ) async throws -> T {
         let data = try await request(path, token: token, method: method, body: body)
         return try DuelloAPI.decoder.decode(T.self, from: data)
+    }
+
+    /// `adminApi.ts` (175-183) : sur une réponse non-OK, le repli s'écrit
+    /// « Serveur indisponible (statut) » et un `error` vide (ou seulement
+    /// espacé) laisse ce défaut. Le relais partagé écrit, lui, « Service
+    /// indisponible (statut). » ; on rétablit ici le libellé admin, sans toucher
+    /// aux messages réellement fournis par le serveur.
+    private static func adminUnavailableLabel(_ message: String, status: Int?) -> String {
+        guard let status else { return message }
+        let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty || message == "Service indisponible (\(status))." {
+            return "Serveur indisponible (\(status))"
+        }
+        return message
     }
 }

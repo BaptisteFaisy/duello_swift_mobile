@@ -6,19 +6,22 @@ import SwiftUI
 /// Classement d'une matière par cotes Elo, groupé par ligue.
 ///
 /// Reprend `RankingsScreen.tsx` : chargement depuis
-/// `DuelloAPI.subjectLeaderboard`, états chargement/erreur/vide, astuce de seuil
-/// Elo (démonstration animée), **toutes** les ligues — y compris vides, avec le
-/// seuil révélé au tap sur le blason —, lignes (rang, avatar, nom, année, cote)
-/// et dock collant du joueur connecté quand sa ligne quitte l'écran.
+/// `DuelloAPI.subjectLeaderboard` **avec la cohorte du profil**, états
+/// chargement/erreur/vide, astuce de seuil Elo (démonstration animée),
+/// **toutes** les ligues — y compris vides, avec le seuil révélé au tap sur le
+/// blason —, lignes en **cartes espacées** (rang, avatar, nom, année, cote),
+/// joueur connecté fusionné (compte privé masqué) et dock collant quand sa
+/// ligne quitte l'écran.
 ///
 /// Extrait de l'ancien `RankingsView.swift`. Dépend de `RankingLoadStateViews`
 /// (`RankingLoadPhase`, `RankingStatusCard`), `RankingRowViews`
-/// (`RankedLeaderboardRow`, `LeaderboardRowView`, `LeaderboardRowDivider`),
-/// `RankingEloLeagues` (`EloLeague`, `eloLeagues(forTrack:)`,
-/// `eloLeague(for:track:)`), `RankingRowBuilder` (`rankedSubjectRows`,
-/// `prepLeaderboardRows`, `leaderboardEntriesForScope`, `groupedNumber`),
-/// `LeagueBadges` (`LeagueBadgeImage`) et le suivi de visibilité partagé
-/// (`SwipeScreenFrameReader`, `swipeCurrentRowVisibility`).
+/// (`RankedLeaderboardRow`, `LeaderboardRowView`), `RankingEloLeagues`
+/// (`EloLeague`, `eloLeagues(forTrack:)`, `eloLeague(for:track:)`),
+/// `RankingRowBuilder` (`rankedSubjectRows`, `prepLeaderboardRows`,
+/// `leaderboardEntriesForScope`, `groupedNumber`), `RankingEloCohort`
+/// (`eloLeaderboardCohortForProfile`), `LeagueBadges` (`LeagueBadgeImage`) et
+/// l'astuce de seuil (`RankingEloThresholdHint.swift`,
+/// `EloLeagueThresholdHint`).
 struct SubjectLeaderboardView: View {
     @EnvironmentObject private var session: SessionStore
     @EnvironmentObject private var progress: ProgressStore
@@ -28,6 +31,9 @@ struct SubjectLeaderboardView: View {
     /// Portée du classement : « Moi » par défaut, la barre de portée restant
     /// masquée comme dans `LeaderboardScreen.tsx`.
     var scope: LeaderboardScope = .me
+    /// Ouvre la fiche d'un joueur (`onOpenProfile`) ; `nil` laisse les lignes
+    /// inertes, faute d'écran cible fourni par l'appelant.
+    var onOpenProfile: ((String) -> Void)? = nil
 
     @State private var entries: [LeaderboardEntry] = []
     @State private var phase: RankingLoadPhase = .loading
@@ -48,8 +54,8 @@ struct SubjectLeaderboardView: View {
                         hintCard
                         stateContent
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 6)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 8)
                     .padding(.bottom, 100)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -57,8 +63,8 @@ struct SubjectLeaderboardView: View {
 
                 if let current = dockEntry {
                     currentUserDock(current)
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 10)
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 14)
                 }
             }
         }
@@ -82,6 +88,31 @@ struct SubjectLeaderboardView: View {
         eloLeagues(forTrack: session.profile.followedTrack).last
     }
 
+    // MARK: Cohorte (subjectLeaderboard.ts)
+
+    /// Option académique lisible du compte (`accountAcademicOptionLabel`),
+    /// transmise à la cohorte comme `currentSpecialty` de la source.
+    private var currentSpecialty: String {
+        LoginScrProviderReuse.accountAcademicOptionLabel(
+            track: session.profile.track,
+            currentOption: session.profile.specialty,
+            legacySpecialty: ""
+        )
+    }
+
+    /// Cohorte Elo du profil (`eloLeaderboardCohortForProfile`) : filtre du
+    /// serveur **et** rejeu côté client.
+    private var eloCohort: String? {
+        eloLeaderboardCohortForProfile(
+            EloLeaderboardAcademicProfile(
+                track: session.profile.track,
+                year: session.profile.year,
+                specialty: currentSpecialty,
+                currentTrack: session.profile.academicPath?.currentTrack
+            )
+        )
+    }
+
     // MARK: États (C10, C11, C12)
 
     /// Contenu selon l'état de chargement : attente, panne ou classement. Pas
@@ -98,7 +129,7 @@ struct SubjectLeaderboardView: View {
             )
         case .error:
             RankingStatusCard(
-                icon: "cloud.offline",
+                icon: "cloud-offline-outline",
                 title: "Classement indisponible",
                 message: errorMessage.isEmpty
                     ? "Le classement est momentanément indisponible."
@@ -112,7 +143,7 @@ struct SubjectLeaderboardView: View {
     }
 
     /// Cote locale de la matière (`getSubjectElo`), affichée quand le classement
-    /// distant est indisponible.
+    /// distant est indisponible et utilisée comme cote fraîche du joueur.
     private var localElo: Int {
         progress.subjectElo(for: subject)
     }
@@ -124,7 +155,7 @@ struct SubjectLeaderboardView: View {
     private var leagueSections: some View {
         let leagues = eloLeagues(forTrack: session.profile.followedTrack)
         let currentRows = rows
-        return VStack(alignment: .leading, spacing: 14) {
+        return VStack(alignment: .leading, spacing: 12) {
             ForEach(leagues.reversed()) { league in
                 let leagueRows = currentRows.filter {
                     eloLeague(for: $0.score, track: session.profile.followedTrack).id == league.id
@@ -137,29 +168,22 @@ struct SubjectLeaderboardView: View {
         }
     }
 
-    /// Une ligue : blason dépliable (seuil Elo) puis lignes, ou message de ligue
-    /// vide (« Aucun joueur dans cette ligue[ pour le moment]. »).
+    /// Une ligue : blason dépliable (seuil Elo) puis lignes en cartes, ou
+    /// message de ligue vide (« Aucun joueur dans cette ligue[ pour le moment]. »).
     @ViewBuilder
     private func leagueSection(_ league: EloLeague, rows leagueRows: [RankedLeaderboardRow]) -> some View {
-        let content = VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             leagueHeader(league)
             leagueRowsContent(league, leagueRows)
         }
-
-        if leagueRows.isEmpty {
-            content
-        } else {
-            content.duelloCard()
-        }
     }
 
-    /// En-tête d'une ligue : blason dépliable (tap) et seuil Elo révélé.
+    /// En-tête d'une ligue : blason dépliable (tap) et seuil Elo révélé. La
+    /// révélation est **instantanée**, comme la source (`RankingsScreen.tsx:548-573`).
     private func leagueHeader(_ league: EloLeague) -> some View {
         VStack(spacing: 5) {
             Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    expandedLeagueId = expandedLeagueId == league.id ? nil : league.id
-                }
+                expandedLeagueId = expandedLeagueId == league.id ? nil : league.id
             } label: {
                 LeagueBadgeImage(leagueId: league.id, size: 88)
             }
@@ -178,9 +202,11 @@ struct SubjectLeaderboardView: View {
             }
         }
         .frame(maxWidth: .infinity)
+        .frame(minHeight: 110)
     }
 
-    /// Corps d'une ligue : message de ligue vide, ou lignes classées.
+    /// Corps d'une ligue : message de ligue vide, ou lignes en cartes espacées
+    /// (`leaderboardList`, `LEADERBOARD_ROW_GAP`).
     @ViewBuilder
     private func leagueRowsContent(_ league: EloLeague, _ leagueRows: [RankedLeaderboardRow]) -> some View {
         if leagueRows.isEmpty {
@@ -194,16 +220,13 @@ struct SubjectLeaderboardView: View {
                 .padding(.vertical, 16)
                 .padding(.horizontal, 14)
         } else {
-            VStack(spacing: 0) {
-                ForEach(leagueRows.indices, id: \.self) { index in
-                    if leagueRows[index].isCurrentUser {
-                        LeaderboardRowView(row: leagueRows[index])
+            VStack(spacing: 8) {
+                ForEach(leagueRows) { row in
+                    if row.isCurrentUser {
+                        LeaderboardRowView(row: row, kind: .elo, onOpenProfile: onOpenProfile)
                             .swipeCurrentRowVisibility($currentRowVisible)
                     } else {
-                        LeaderboardRowView(row: leagueRows[index])
-                    }
-                    if index < leagueRows.count - 1 {
-                        LeaderboardRowDivider()
+                        LeaderboardRowView(row: row, kind: .elo, onOpenProfile: onOpenProfile)
                     }
                 }
             }
@@ -214,11 +237,9 @@ struct SubjectLeaderboardView: View {
     /// établissement classé).
     private var prepsOpeningCard: some View {
         HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "sparkles")
-                .font(.system(size: 19, weight: .semibold))
-                .foregroundStyle(Theme.ink)
+            IonIcon(name: "sparkles-outline", size: 19, color: Theme.ink)
             Text("Ta prépa ouvre ce classement. Les prochains établissements apparaîtront avec leurs élèves classés.")
-                .font(.system(size: 12, weight: .semibold))
+                .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(Theme.inkSoft)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -230,16 +251,33 @@ struct SubjectLeaderboardView: View {
 
     // MARK: Lignes et dock (C6, C8)
 
-    /// Lignes classées : rang, avatar, cote et surlignage du joueur connecté.
+    /// Joueur connecté fusionné au classement (`currentUser`).
+    private var currentUser: RankingCurrentUser {
+        let name = session.profile.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return RankingCurrentUser(
+            id: DuelloAPI.publicProfileId(email: session.profile.email),
+            displayName: name.isEmpty ? "Moi" : name,
+            prepName: session.profile.prepName.trimmingCharacters(in: .whitespacesAndNewlines),
+            track: session.profile.track,
+            currentTrack: session.profile.academicPath?.currentTrack,
+            specialty: currentSpecialty,
+            year: session.profile.year,
+            score: localElo,
+            photoUri: session.profile.photoUri
+        )
+    }
+
+    /// Lignes classées : rang, avatar, cote et fusion du joueur connecté. Un
+    /// compte privé (`!isPublic`) n'est jamais relié à sa ligne anonyme.
     private var rows: [RankedLeaderboardRow] {
-        let currentId = DuelloAPI.publicProfileId(email: session.profile.email)
         switch scope {
         case .preps:
             return prepLeaderboardRows(
                 entries,
                 currentPrepName: session.profile.prepName,
                 scoreFor: { max(0, $0.elo ?? 0) },
-                aggregation: .average
+                aggregation: .average,
+                currentUser: currentUser
             )
         case .me, .classScope:
             let scoped = leaderboardEntriesForScope(
@@ -249,7 +287,13 @@ struct SubjectLeaderboardView: View {
                 year: session.profile.year,
                 scope: scope
             )
-            var built = rankedSubjectRows(scoped, currentId: currentId)
+            var built = rankedSubjectRows(
+                scoped,
+                currentUser: currentUser,
+                hideCurrentUserIdentity: !session.profile.isPublic,
+                ensureAnonymousCurrentUser: scope == .classScope,
+                currentUserScoreLoaded: true
+            )
             if let index = built.firstIndex(where: { $0.isCurrentUser }) {
                 built[index].photoUri = session.profile.photoUri
             }
@@ -278,7 +322,8 @@ struct SubjectLeaderboardView: View {
         return currentEntry
     }
 
-    /// Barre collante « Moi · rang », ancrée en bas de l'écran.
+    /// Barre collante « Moi · rang », ancrée en bas de l'écran
+    /// (`currentUserDock` : bord primaire, fond primaire clair).
     private func currentUserDock(_ current: RankedLeaderboardRow) -> some View {
         HStack(spacing: 10) {
             if !current.isAnonymous {
@@ -287,38 +332,41 @@ struct SubjectLeaderboardView: View {
                         initial: current.initial,
                         photoUri: current.photoUri,
                         size: 32,
-                        background: Theme.ink,
+                        background: Theme.primary,
                         foreground: Theme.surface
                     )
                 }
             }
             VStack(alignment: .leading, spacing: 3) {
                 Text("Moi · \(leaderboardRankLabel(current.rank))")
-                    .font(.system(size: 11, weight: .heavy))
-                    .foregroundStyle(Theme.ink)
+                    .font(.system(size: 10, weight: .heavy))
+                    .foregroundStyle(Theme.primary)
                 Text(current.displayName)
-                    .font(.system(size: 12, weight: .bold))
+                    .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(Theme.ink)
                     .lineLimit(1)
             }
+            .padding(.horizontal, 10)
             Spacer(minLength: 8)
-            VStack(alignment: .trailing, spacing: 1) {
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text(groupedNumber(current.score))
-                    .font(.system(size: 13, weight: .heavy).monospacedDigit())
+                    .font(.system(size: 11, weight: .heavy).monospacedDigit())
                     .foregroundStyle(Theme.inkSoft)
                 Text(current.valueLabel)
-                    .font(.system(size: 9, weight: .heavy))
+                    .font(.system(size: 7, weight: .heavy))
+                    .tracking(0.8)
                     .textCase(.uppercase)
                     .foregroundStyle(Theme.inkFaint)
             }
         }
         .padding(.horizontal, 13)
         .padding(.vertical, 10)
+        .frame(minHeight: 64)
         .background(Theme.primaryLight)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
         .overlay(
             RoundedRectangle(cornerRadius: Theme.radiusLarge)
-                .stroke(Theme.ink, lineWidth: 1)
+                .stroke(Theme.primary, lineWidth: 1)
         )
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Moi, \(leaderboardRankLabel(current.rank)), \(current.displayName), \(groupedNumber(current.score)) \(current.valueLabel)")
@@ -326,23 +374,35 @@ struct SubjectLeaderboardView: View {
 
     // MARK: Chargement
 
-    /// Charge le classement de la matière pour la session ouverte.
+    /// Charge le classement de la matière pour la session ouverte, cohorte du
+    /// profil comprise. La copie en cache (mémoire puis disque) rend la liste
+    /// immédiatement ; la réponse réseau la remplace et l'instantané est
+    /// réécrit (`saveRankingsSnapshot`).
     private func load() {
-        guard let token = session.token else {
-            errorMessage = "Ta session a expiré, reconnecte-toi."
-            phase = .error
-            return
-        }
         phase = .loading
         errorMessage = ""
         let subject = self.subject
+        let cohort = eloCohort
+        let token = session.token
         Task {
-            // Rendu immédiat depuis l'instantané persisté, avant le réseau.
-            if let snapshot = await subjectLeaderboardSnapshotEntries(subject: subject) {
+            // Rendu immédiat : mémoire d'abord, puis disque, avant le réseau.
+            if let cached = cachedSubjectLeaderboardSnapshotEntries(subject: subject, cohort: cohort) {
+                await MainActor.run { entries = cached; phase = .ready }
+            } else if let snapshot = await subjectLeaderboardSnapshotEntries(subject: subject, cohort: cohort) {
                 await MainActor.run { entries = snapshot; phase = .ready }
             }
             do {
-                let result = try await DuelloAPI.subjectLeaderboard(subject: subject, token: token)
+                let result = try await DuelloAPI.subjectLeaderboard(
+                    subject: subject,
+                    cohort: cohort,
+                    token: token
+                )
+                // Le démarrage suivant affichera cette réponse sans le réseau.
+                saveRankingsSnapshot(
+                    .subjectLeaderboard,
+                    key: rankingsSubjectLeaderboardCacheKey(subject: subject, cohort: cohort),
+                    entries: result
+                )
                 await MainActor.run {
                     entries = result
                     phase = .ready
@@ -355,144 +415,5 @@ struct SubjectLeaderboardView: View {
                 }
             }
         }
-    }
-}
-
-// MARK: - Astuce de seuil Elo (EloLeagueThresholdHint)
-
-/// Segment d'animation : plage `[start, start + duration)` et courbe.
-private struct EloHintSegment {
-    let start: Double
-    let duration: Double
-    let from: Double
-    let to: Double
-    let ease: (Double) -> Double
-}
-
-/// `Easing.out(Easing.quad)`.
-private func eloHintQuadOut(_ t: Double) -> Double {
-    let x = LeagueAnimation.clamp01(t)
-    return 1 - (1 - x) * (1 - x)
-}
-
-/// Durée d'un tour de boucle, en secondes (`Animated.loop` de la source).
-private let eloHintLoopDuration: Double = 4.76
-
-/// `demoHandPosition` : approche de la main vers le blason, puis retrait.
-private let eloHintHandPositionSegments: [EloHintSegment] = [
-    EloHintSegment(start: 0.45, duration: 0.52, from: 0, to: 1, ease: LeagueAnimation.cubicOut),
-    EloHintSegment(start: 1.77, duration: 0.36, from: 1, to: 0, ease: LeagueAnimation.cubicInOut),
-    EloHintSegment(start: 2.78, duration: 0.52, from: 0, to: 1, ease: LeagueAnimation.cubicOut),
-    EloHintSegment(start: 3.95, duration: 0.36, from: 1, to: 0, ease: LeagueAnimation.cubicInOut),
-]
-
-/// `demoHandPress` : appui de la main (échelle).
-private let eloHintHandPressSegments: [EloHintSegment] = [
-    EloHintSegment(start: 0.97, duration: 0.13, from: 0, to: 1, ease: LeagueAnimation.quadIn),
-    EloHintSegment(start: 1.10, duration: 0.22, from: 1, to: 0, ease: LeagueAnimation.quadIn),
-    EloHintSegment(start: 3.30, duration: 0.13, from: 0, to: 1, ease: LeagueAnimation.quadIn),
-    EloHintSegment(start: 3.43, duration: 0.22, from: 1, to: 0, ease: LeagueAnimation.quadIn),
-]
-
-/// `demoThresholdOpacity` : apparition puis disparition du seuil affiché.
-private let eloHintThresholdSegments: [EloHintSegment] = [
-    EloHintSegment(start: 1.10, duration: 0.18, from: 0, to: 1, ease: eloHintQuadOut),
-    EloHintSegment(start: 3.43, duration: 0.18, from: 1, to: 0, ease: eloHintQuadOut),
-]
-
-/// Échantillonne une suite de segments à l'instant `time`, en boucle.
-private func eloHintSample(_ time: Double, _ segments: [EloHintSegment]) -> Double {
-    guard let first = segments.first else { return 0 }
-    let looped = max(0, time).truncatingRemainder(dividingBy: eloHintLoopDuration)
-    var value = first.from
-    for segment in segments {
-        if looped < segment.start { return value }
-        if looped < segment.start + segment.duration {
-            let local = (looped - segment.start) / segment.duration
-            return segment.from + (segment.to - segment.from) * segment.ease(local)
-        }
-        value = segment.to
-    }
-    return value
-}
-
-/// Astuce de seuil Elo (`EloLeagueThresholdHint`) : une main approche du
-/// blason, l'appuie, et le seuil Elo apparaît puis disparaît, en boucle.
-///
-/// La boucle `Animated.loop` de la source est transposée par
-/// `TimelineView(.animation)` : la position de la main, l'appui et l'opacité du
-/// seuil sont échantillonnés à chaque image depuis une table de segments
-/// (durées identiques à la séquence de `RankingsScreen.tsx:82-158`).
-struct EloLeagueThresholdHint: View {
-    /// Ligue dont on montre le seuil (`highestEloLeague`).
-    let league: EloLeague
-    /// Fermeture persistée de l'astuce.
-    let onDismiss: () -> Void
-
-    var body: some View {
-        ZStack(alignment: .topTrailing) {
-            TimelineView(.animation) { context in
-                let time = context.date.timeIntervalSinceReferenceDate
-                VStack(spacing: 0) {
-                    demo(time: time)
-                    thresholdValue(time: time)
-                }
-            }
-            closeButton
-        }
-        .padding(.top, 10)
-        .padding(.bottom, 8)
-        .background(Theme.surface)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
-        .overlay(
-            RoundedRectangle(cornerRadius: Theme.radiusMedium)
-                .stroke(Theme.border, lineWidth: 1)
-        )
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Appuie sur un blason pour afficher ou masquer l’Elo minimum de sa ligue. Exemple : \(league.label), \(groupedNumber(league.minimumElo)) Elo.")
-    }
-
-    /// Blason et main animée (`eloThresholdHintInteraction`).
-    private func demo(time: Double) -> some View {
-        let position = eloHintSample(time, eloHintHandPositionSegments)
-        let press = eloHintSample(time, eloHintHandPressSegments)
-        return ZStack {
-            LeagueBadgeImage(leagueId: league.id, size: 68)
-            Image(systemName: "hand.point.left.fill")
-                .font(.system(size: 23, weight: .regular))
-                .foregroundStyle(Theme.inkSoft)
-                .opacity(LeagueAnimation.interpolate(position, [0, 0.18, 1], [0.35, 1, 1], clamped: true))
-                .scaleEffect(1 - 0.14 * press)
-                .offset(x: -67 + 39 * position, y: 2)
-        }
-        .frame(width: 68, height: 68)
-        .frame(maxWidth: .infinity)
-        .frame(minHeight: 90)
-    }
-
-    /// Seuil Elo révélé (`eloThresholdHintValue`).
-    private func thresholdValue(time: Double) -> some View {
-        let opacity = eloHintSample(time, eloHintThresholdSegments)
-        return Text("\(groupedNumber(league.minimumElo)) Elo")
-            .font(.system(size: 11, weight: .heavy).monospacedDigit())
-            .foregroundStyle(Theme.ink)
-            .opacity(opacity)
-            .offset(y: LeagueAnimation.interpolate(opacity, [0, 1], [-3, 0], clamped: true))
-            .frame(maxWidth: .infinity)
-            .frame(minHeight: 18)
-    }
-
-    /// Fermeture définitive (`eloThresholdHintClose`).
-    private var closeButton: some View {
-        Button(action: onDismiss) {
-            Image(systemName: "xmark")
-                .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(Theme.inkSoft)
-                .frame(width: 32, height: 32)
-        }
-        .buttonStyle(.plain)
-        .padding(.top, 5)
-        .padding(.trailing, 6)
-        .accessibilityLabel("Masquer définitivement l’explication des seuils Elo")
     }
 }

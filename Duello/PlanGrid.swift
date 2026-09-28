@@ -23,10 +23,16 @@ enum PlanMetrics {
     static let timelineBottomPadding: CGFloat = 10
     /// Plancher de hauteur de grille (ligne 386).
     static let minimumTimelineHeight: CGFloat = 240
-    /// Hauteur du carrousel de jours. L'écran Expo mesurait la hauteur restante
-    /// (`onLayout`) ; dans un `ScrollView` SwiftUI, une valeur fixe garde la
-    /// grille lisible et le défilement vertical prévisible.
+    /// Hauteur du carrousel de jours **avant mesure**. L'écran Expo mesurait la
+    /// hauteur restante (`onLayout`, ligne 258) ; ici `PlanScreen` la mesure
+    /// aussi (`planMeasureHeight` + `PlanViewportHeightKey`) et n'utilise cette
+    /// constante que tant que la mesure n'est pas disponible.
     static let dayAreaHeight: CGFloat = 560
+    /// Plancher de la zone-jour mesurée (la grille garde au moins son minimum).
+    static let minimumDayAreaHeight: CGFloat = dayHeaderHeight + minimumTimelineHeight + timelineBottomPadding
+    /// Réserve basse de la zone-jour (`marginBottom: 66`, ligne 640) : laisse la
+    /// place au micro flottant (54) et à sa marge basse (12).
+    static let dayAreaReserve: CGFloat = 66
     /// Effacement automatique du bandeau d'ajout (ligne 95).
     static let bannerDismissDelay: TimeInterval = 3.5
     /// Seuils de contenu des blocs (lignes 431-432).
@@ -36,6 +42,52 @@ enum PlanMetrics {
     static let minimumBlockHeight: CGFloat = 14
     /// Décalage entre deux blocs d'un même jour (lignes 555 et 579).
     static let blockGapMinutes = 15
+}
+
+// MARK: - Retour au toucher
+
+/// Estompe un bouton pendant l'appui, comme `pressed && styles.…Pressed` de la
+/// source : `opacity 0.7` pour les blocs de séance et le bouton « Aujourd'hui »
+/// (`EnhancedPlanScreen.tsx:645,633`), `0.75` pour le micro
+/// (`TaskCaptureCard.tsx:271`).
+struct PlanPressStyle: ButtonStyle {
+    var pressedOpacity: Double = 0.7
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(configuration.isPressed ? pressedOpacity : 1)
+    }
+}
+
+// MARK: - Mesure de la hauteur disponible
+
+/// Hauteur de la fenêtre, relevée sur le `ScrollView` qui porte l'écran.
+struct PlanViewportHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
+/// Hauteur de chaque section au-dessus de la zone-jour, indexée par identifiant.
+struct PlanSectionHeightKey: PreferenceKey {
+    static let defaultValue: [String: CGFloat] = [:]
+    static func reduce(value: inout [String: CGFloat], nextValue: () -> [String: CGFloat]) {
+        value.merge(nextValue(), uniquingKeysWith: { _, new in new })
+    }
+}
+
+extension View {
+    /// Relève la hauteur d'une section sans modifier sa mise en page (mesure en
+    /// arrière-plan), pour que la zone-jour occupe l'espace restant exactement
+    /// comme le `onLayout` de la source (ligne 258).
+    func planMeasureHeight(_ id: String) -> some View {
+        background(
+            GeometryReader { proxy in
+                Color.clear.preference(key: PlanSectionHeightKey.self, value: [id: proxy.size.height])
+            }
+        )
+    }
 }
 
 // MARK: - Grille horaire
@@ -112,7 +164,7 @@ struct PlanTimelineBlock: View {
             .clipped()
             .opacity(session.isDone ? 0.5 : 1)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PlanPressStyle())
         .padding(.leading, 42)
         .offset(y: top)
         .accessibilityLabel("\(session.startTime) \(session.title) — \(session.subtitle), \(PlanDateEngine.formatDuration(session.durationMinutes))")
@@ -175,9 +227,7 @@ struct PlanDayPage: View {
 
                 if sessions.isEmpty {
                     HStack(spacing: 7) {
-                        Image(systemName: "leaf")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(Theme.inkFaint)
+                        IonIcon(name: "leaf-outline", size: 15, color: Theme.inkFaint)
                         Text("Journée libre")
                             .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(Theme.inkFaint)

@@ -90,9 +90,7 @@ struct ChalBadgeVisual: View {
                     Color.clear
                 }
             } else {
-                Image(systemName: "shield")
-                    .font(.system(size: size * 0.7))
-                    .foregroundStyle(Theme.ink)
+                IonIcon(name: "shield-outline", size: size * 0.7, color: Theme.ink)
             }
         }
         .frame(width: size, height: size)

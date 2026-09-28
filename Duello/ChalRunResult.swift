@@ -64,8 +64,7 @@ struct ChalRunResultView: View {
             onBack()
         } label: {
             HStack(spacing: 5) {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 15, weight: .bold))
+                IonIcon(name: "chevron-back", size: 19, color: Theme.ink)
                 Text("Retour aux défis")
                     .font(.system(size: 13, weight: .heavy))
             }
@@ -95,13 +94,13 @@ struct ChalRunResultView: View {
     private var notices: some View {
         if result.scorePenalty > 0 {
             ChalRunNotice(
-                icon: "minus.circle",
+                icon: "remove-circle-outline",
                 text: "Une pénalité de \(result.scorePenalty) points a été appliquée à ta note, car tu avais déjà commencé cet exercice avant le défi."
             )
         }
         if result.scoreBonus > 0 {
             ChalRunNotice(
-                icon: "plus.circle",
+                icon: "add-circle-outline",
                 text: "Un bonus de \(result.scoreBonus) points a été appliqué à ta note, plafonnée à 100, car ton adversaire avait déjà commencé cet exercice avant le défi."
             )
         }
@@ -115,9 +114,7 @@ struct ChalRunResultView: View {
                 HStack {
                     ChalRunSectionLabel(text: "ÉNONCÉ")
                     Spacer(minLength: 8)
-                    Image(systemName: promptExpanded ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(Theme.ink)
+                    IonIcon(name: promptExpanded ? "chevron-up" : "chevron-down", size: 18, color: Theme.ink)
                         .frame(width: 32, height: 32)
                         .background(Theme.primaryLight)
                         .clipShape(Capsule())
@@ -214,13 +211,23 @@ struct ChalRunResultView: View {
             VStack(alignment: .leading, spacing: 10) {
                 ChalRunSectionLabel(text: "LE CORRIGÉ")
                 VStack(alignment: .leading, spacing: 8) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "graduationcap")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(Theme.ink)
+                    HStack(spacing: 10) {
+                        IonIcon(name: "school-outline", size: 16, color: Theme.ink)
                         Text("Corrigé de référence")
                             .font(.system(size: 14, weight: .heavy))
                             .foregroundStyle(Theme.ink)
+                        Spacer(minLength: 8)
+                        // Le corrigé de référence est signalable comme l'énoncé
+                        // (`target="correction"`, `ChallengesScreen.tsx:2661`).
+                        ReportExerciseButton.make(
+                            profile: session.profile,
+                            target: .correction,
+                            source: .challenge,
+                            exerciseId: result.trainingTarget.itemId,
+                            exerciseTitle: result.trainingTarget.itemTitle,
+                            subject: result.subject,
+                            compact: true
+                        )
                     }
                     Text(LatexToUnicode.toUnicodeMath(solution))
                         .font(Theme.readingFont)
@@ -242,8 +249,7 @@ struct ChalRunResultView: View {
                     onContinueTraining(result.trainingTarget)
                 } label: {
                     HStack(spacing: 8) {
-                        Image(systemName: "graduationcap")
-                            .font(.system(size: 18, weight: .semibold))
+                        IonIcon(name: "school-outline", size: 18, color: Theme.white)
                         Text("Reprendre l’exercice")
                     }
                     .frame(maxWidth: .infinity, minHeight: 48)
@@ -254,8 +260,7 @@ struct ChalRunResultView: View {
                 onBack()
             } label: {
                 HStack(spacing: 8) {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 19, weight: .semibold))
+                    IonIcon(name: "refresh", size: 19, color: Theme.white)
                     Text("Faire un autre défi")
                 }
                 .frame(maxWidth: .infinity, minHeight: 48)
@@ -271,9 +276,7 @@ struct ChalRunResultHeader: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Image(systemName: iconName)
-                .font(.system(size: 26, weight: .black))
-                .foregroundStyle(Theme.ink)
+            IonIcon(name: iconName, size: 28, color: Theme.ink)
                 .frame(width: 58, height: 58)
                 .background(Theme.primaryLight)
                 .clipShape(RoundedRectangle(cornerRadius: 21, style: .continuous))
@@ -294,11 +297,11 @@ struct ChalRunResultHeader: View {
 
     /// L'icône dit d'abord si le défi a été arbitré, puis qui l'emporte.
     private var iconName: String {
-        guard result.verdict.ranked else { return "questionmark.circle" }
+        guard result.verdict.ranked else { return "help-outline" }
         switch result.verdict.outcome {
-        case .me: return "trophy.fill"
-        case .draw: return "minus.circle"
-        case .opponent: return "flag"
+        case .me: return "trophy"
+        case .draw: return "remove-outline"
+        case .opponent: return "flag-outline"
         }
     }
 }
@@ -328,9 +331,7 @@ struct ChalRunAbandonVictoryView: View {
 
     private var header: some View {
         VStack(spacing: 0) {
-            Image(systemName: "trophy.fill")
-                .font(.system(size: 26, weight: .black))
-                .foregroundStyle(Theme.ink)
+            IonIcon(name: "trophy", size: 28, color: Theme.ink)
                 .frame(width: 58, height: 58)
                 .background(Theme.primaryLight)
                 .clipShape(RoundedRectangle(cornerRadius: 21, style: .continuous))
@@ -351,9 +352,7 @@ struct ChalRunAbandonVictoryView: View {
 
     private var verdictCard: some View {
         HStack(alignment: .top, spacing: 11) {
-            Image(systemName: "flag")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(Theme.ink)
+            IonIcon(name: "flag-outline", size: 16, color: Theme.ink)
                 .frame(width: 30, height: 30)
                 .background(Theme.surface)
                 .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
@@ -376,8 +375,7 @@ struct ChalRunAbandonVictoryView: View {
                     onContinueTraining(result.trainingTarget)
                 } label: {
                     HStack(spacing: 8) {
-                        Image(systemName: "graduationcap")
-                            .font(.system(size: 18, weight: .semibold))
+                        IonIcon(name: "school-outline", size: 18, color: Theme.white)
                         Text("Continuer l’exercice")
                     }
                     .frame(maxWidth: .infinity, minHeight: 48)
@@ -388,8 +386,7 @@ struct ChalRunAbandonVictoryView: View {
                 onBack()
             } label: {
                 HStack(spacing: 8) {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 19, weight: .semibold))
+                    IonIcon(name: "refresh", size: 19, color: Theme.white)
                     Text("Faire un autre défi")
                 }
                 .frame(maxWidth: .infinity, minHeight: 48)

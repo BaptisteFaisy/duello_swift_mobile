@@ -10,8 +10,8 @@
 //  téléchargement vient de la configuration (`DUELLO_DOWNLOAD_URL`), dérivé de
 //  l'origine de l'API comme `config/runtime-endpoints.cjs`.
 //
-//  Substitutions SF Symbols (Ionicons → SF Symbols) : chatbubble-outline →
-//  message ; logo-whatsapp → phone.bubble.left ; logo-instagram → camera.
+//  Icônes Ionicons : chatbubble-outline, logo-whatsapp, logo-instagram (22),
+//  comme la source — plus de substitution SF Symbol.
 //
 //  Cible : iOS 16.
 //
@@ -32,12 +32,12 @@ enum EvShareChannel: String, CaseIterable, Identifiable {
         }
     }
 
-    /// Symbole SF du canal, substitut du logo Ionicons.
-    var symbol: String {
+    /// Nom Ionicons du canal, repris mot pour mot de la source.
+    var ionName: String {
         switch self {
-        case .sms: return "message"
-        case .whatsapp: return "phone.bubble.left"
-        case .instagram: return "camera"
+        case .sms: return "chatbubble-outline"
+        case .whatsapp: return "logo-whatsapp"
+        case .instagram: return "logo-instagram"
         }
     }
 

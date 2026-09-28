@@ -60,15 +60,22 @@ struct AdmReportsScreen: View {
             title: "Signalements",
             subtitle: "\(userReports.count) compte\(AdmFormat.plural(userReports.count)) · \(contentReports.count) contenu\(AdmFormat.plural(contentReports.count))",
             refreshLabel: "Actualiser les signalements",
-            onRefresh: { reloadKey += 1 }
+            onRefresh: { reloadKey += 1 },
+            eyebrowColor: Theme.like
         )
     }
 
+    /// `kindTabs` : conteneur `surfaceMuted` (`padding:4`, rayon 14), onglets
+    /// `minHeight:40`, rayon 11, icône 17, texte 10/900.
     private var kindTabs: some View {
         HStack(spacing: 8) {
-            kindTab(.users, icon: "person.2", title: "Utilisateurs (\(userReports.count))")
-            kindTab(.content, icon: "doc.text", title: "Contenus (\(contentReports.count))")
+            kindTab(.users, icon: "people-outline", title: "Utilisateurs (\(userReports.count))")
+            kindTab(.content, icon: "document-text-outline", title: "Contenus (\(contentReports.count))")
         }
+        .padding(4)
+        .background(Theme.surfaceMuted)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
+        .padding(.bottom, 12)
     }
 
     /// Onglet de nature de signalement ; changer d'onglet efface la recherche.
@@ -78,18 +85,17 @@ struct AdmReportsScreen: View {
             kind = target
             query = ""
         } label: {
-            HStack(spacing: 7) {
-                Image(systemName: icon)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(selected ? Theme.surface : Theme.inkSoft)
+            HStack(spacing: 6) {
+                IonIcon(name: icon, size: 17, color: selected ? Theme.surface : Theme.inkSoft)
                 Text(title)
-                    .font(.system(size: 13, weight: .heavy))
+                    .font(.system(size: 10, weight: .black))
                     .foregroundStyle(selected ? Theme.surface : Theme.inkSoft)
                     .lineLimit(1)
             }
-            .frame(maxWidth: .infinity, minHeight: 42)
-            .background(selected ? Theme.primary : Theme.surfaceMuted)
-            .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
+            .padding(.horizontal, 8)
+            .frame(maxWidth: .infinity, minHeight: 40)
+            .background(selected ? Theme.ink : Color.clear)
+            .clipShape(RoundedRectangle(cornerRadius: 11))
         }
         .buttonStyle(.plain)
         .accessibilityLabel(title)
@@ -154,19 +160,23 @@ struct AdmReportsScreen: View {
     @ViewBuilder
     private var content: some View {
         if isLoading {
-            AdmStateCard(icon: "hourglass", message: "Chargement des signalements…", isLoading: true)
+            AdmStateCard(icon: "alert-circle-outline", message: "Chargement des signalements…", isLoading: true)
         } else if !errorMessage.isEmpty {
-            AdmStateCard(icon: "exclamationmark.circle", message: errorMessage, tint: Theme.like)
+            AdmStateCard(icon: "alert-circle-outline", message: errorMessage, tint: Theme.like)
         } else if hasNoVisibleReports {
-            AdmStateCard(icon: kind == .users ? "person.2" : "ladybug", message: emptyMessage)
+            AdmStateCard(
+                icon: kind == .users ? "people-outline" : "bug-outline",
+                message: emptyMessage,
+                iconSize: 25
+            )
         } else if kind == .users {
-            VStack(spacing: 10) {
+            VStack(spacing: 12) {
                 ForEach(visibleUserReports) { report in
                     AdmUserReportCard(report: report)
                 }
             }
         } else {
-            VStack(spacing: 10) {
+            VStack(spacing: 12) {
                 ForEach(visibleContentReports) { report in
                     AdmContentReportCard(report: report)
                 }

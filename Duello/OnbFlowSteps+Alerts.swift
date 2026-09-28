@@ -37,9 +37,9 @@ extension OnbFlowSteps {
             if !AcctSecUsernameAvailability.isValid(state.displayName) {
                 return OnbFlowAlert(
                     title: "Pseudo invalide",
-                    message: "Choisis un pseudo unique de 3 à 24 caractères, sans espace. "
-                        + "Tu peux utiliser des lettres, des chiffres, des points, des tirets "
-                        + "et des tirets bas.",
+                    message: "Choisis un pseudo unique de 1 à 24 caractères, sans espace, "
+                        + "avec au moins une lettre ou un chiffre. Ponctuation autorisée : "
+                        + ". _ - ! ( ) + , ; = ~ ^ $ et apostrophe.",
                     actions: [OnbFlowAlertAction(title: "Compris")]
                 )
             }

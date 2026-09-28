@@ -28,7 +28,7 @@ extension MathKeyboardView {
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
         .overlay(
             RoundedRectangle(cornerRadius: Theme.radiusSmall)
-                .stroke(Theme.border, lineWidth: 1)
+                .stroke(Theme.primary, lineWidth: 1)
         )
     }
 
@@ -50,10 +50,10 @@ extension MathKeyboardView {
                     .foregroundStyle(Theme.ink)
                 Text(definition.hint)
                     .font(.system(size: 8, weight: .semibold))
-                    .foregroundStyle(Theme.inkFaint)
+                    .foregroundStyle(Theme.inkSoft)
                 Text("Champs obligatoires · touche une valeur pour la corriger.")
                     .font(.system(size: 8, weight: .black))
-                    .foregroundStyle(Theme.inkSoft)
+                    .foregroundStyle(Theme.ink)
             }
             Spacer(minLength: 4)
         }
@@ -80,11 +80,11 @@ extension MathKeyboardView {
             Text("Champ \(draft.active + 1)/\(definition.fields.count)")
                 .font(.system(size: 8, weight: .heavy))
                 .foregroundStyle(Theme.inkSoft)
-            MathKbMiniButton(systemImage: "chevron.backward", enabled: draft.active > 0) {
+            MathKbMiniButton(ionIcon: "chevron-back", enabled: draft.active > 0) {
                 focusOperatorField(draft.active - 1)
             }
             MathKbMiniButton(
-                systemImage: "chevron.forward",
+                ionIcon: "chevron-forward",
                 enabled: draft.active < definition.fields.count - 1
             ) {
                 focusOperatorField(draft.active + 1)
@@ -105,6 +105,7 @@ extension MathKeyboardView {
         draft: MathKbOperatorDraft
     ) -> some View {
         let selected = index == draft.active
+        let value = index < draft.values.count ? draft.values[index] : ""
         return VStack(alignment: .leading, spacing: 3) {
             Text("\(field.label) *")
                 .font(.system(size: 8, weight: .heavy))
@@ -117,17 +118,19 @@ extension MathKeyboardView {
                 .focused($operatorFocus, equals: index)
                 .frame(height: 34)
                 .padding(.horizontal, 4)
-                .background(selected ? Theme.primaryLight : Theme.surface)
+                .background(selected ? Theme.primaryLight : Theme.surfaceMuted)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 .overlay(
                     RoundedRectangle(cornerRadius: 8)
-                        .stroke(selected ? Theme.ink : Theme.border, lineWidth: 1)
+                        .stroke(selected ? Theme.primary : Theme.border, lineWidth: 1)
                 )
                 .onTapGesture {
                     operatorDraft?.active = index
                     operatorFocus = index
                 }
-                .accessibilityLabel(field.label)
+                .accessibilityLabel(
+                    "\(field.label), \(value.isEmpty ? "vide, exemple \(field.placeholder)" : value)"
+                )
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

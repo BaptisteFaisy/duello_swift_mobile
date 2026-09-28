@@ -57,6 +57,10 @@ struct ChalIntChallengesTab: View {
     var onIncomingMatchHandled: (() -> Void)? = nil
     /// Signale à la racine que l'écran est occupé (`onBusyChange`).
     var onBusyChange: ((Bool) -> Void)? = nil
+    /// Retour par balayage vers l'onglet Entraînement (`onBackToTraining` de la
+    /// source, `OrderedTabPager.yieldBackSwipeToTabPager`) : à fournir par la
+    /// racine (`MainTabView`), qui seule pilote le pager d'onglets.
+    var onBackToTraining: (() -> Void)? = nil
 
     @StateObject private var queue = ChalQueueController()
     /// Événements déjà vus du compte : allume la pastille « nouveau » de l'onglet
@@ -84,7 +88,7 @@ struct ChalIntChallengesTab: View {
                 // (`ChallengesScreen.tsx`, `ChallengeHomeOverview`). Un titre
                 // « Défis » centré serait un ajout.
         }
-        .sheet(isPresented: $leaderboardOpen) { LeaderboardModalView() }
+        .sheet(isPresented: $leaderboardOpen) { LeaderboardModalView(eloOnly: true) }
         .sheet(isPresented: inviteOpen) { inviteSheet }
         .onAppear {
             syncSeenEvents(active: true)
@@ -114,6 +118,7 @@ struct ChalIntChallengesTab: View {
                 section: $section,
                 hasUnseenEvents: seenEvents.hasUnseenEvents,
                 onOpenLeaderboard: { leaderboardOpen = true },
+                onBack: onBackToTraining,
                 challenges: { homePage },
                 events: { eventsPage }
             )
@@ -146,10 +151,10 @@ struct ChalIntChallengesTab: View {
             losses: max(0, progress.challengesCompleted - progress.challengesWon),
             playable: playableNotice,
             launchError: launchError,
-            disabled: !canLaunch || queue.status != .idle,
+            disabled: !canInvite || queue.status != .idle,
             onOpenExercise: { inviteKind = .exercise },
             onOpenCourse: { inviteKind = .course },
-            onEnter: { enterQueue() }
+            onEnter: { Task { await enterQueue() } }
         )
     }
 
@@ -159,9 +164,10 @@ struct ChalIntChallengesTab: View {
                 onOpenEvent: { seenEvents.markEventSeen($0.id) },
                 seenEventIds: seenEvents.seenIds
             )
-            .padding(.horizontal, 16)
-            .padding(.top, 12)
-            .padding(.bottom, 24)
+            // `eventsContent` : 20 / 2 / 48, sans centrage vertical dans la page.
+            .padding(.horizontal, 20)
+            .padding(.top, 2)
+            .padding(.bottom, 48)
         }
     }
 
@@ -265,7 +271,7 @@ struct ChalIntChallengesTab: View {
                 chapters: keys,
                 pools: invitedExercisePools,
                 startedExerciseIds: startedExerciseIds,
-                elo: eloValue
+                elo: subjectElo
             ),
             targets: ChalHome2Launch.targets(
                 members: members,
@@ -299,7 +305,7 @@ struct ChalIntChallengesTab: View {
     /// Les boutons Défi-Exercice / Défi-Cours, eux, ouvrent le volet
     /// d'invitation d'un ami (`inviteKind`, cf. `inviteSheet`) : `enterQueue`
     /// ne sert plus qu'au panneau de file (`ChalHome2QueuePanel`).
-    private func enterQueue() {
+    private func enterQueue() async {
         launchError = nil
         guard let token = session.token else {
             launchError = "Ta session a expiré, reconnecte-toi."
@@ -314,13 +320,26 @@ struct ChalIntChallengesTab: View {
             launchError = "Aucun exercice disponible pour ce parcours pour l'instant."
             return
         }
+        // Quota vérifié **avant** d'ouvrir un défi, comme le volet d'invitation
+        // (`correctionQuotaAllows`).
+        let userId = DuelloAPI.publicProfileId(email: session.profile.email)
+        do {
+            let allowed = try await ChalAPI.correctionQuotaAllows(userId: userId, token: token)
+            guard allowed else {
+                launchError = "Ton quota de défis est épuisé. Ouvre l’onglet Défis pour voir la prochaine recharge ou l’offre Premium."
+                return
+            }
+        } catch {
+            launchError = error.localizedDescription
+            return
+        }
         queue.token = token
         queue.enter(ChalHome2Launch.request(
             profile: session.profile,
             chapters: pools.keys.sorted(),
             pools: pools,
             startedExerciseIds: startedExerciseIds,
-            elo: eloValue
+            elo: subjectElo
         ))
     }
 
@@ -349,9 +368,20 @@ struct ChalIntChallengesTab: View {
 
     private var isBusy: Bool { duelMatch != nil || queue.status != .idle }
     private var canLaunch: Bool { ChalHome2Launch.canLaunch(profile: session.profile) }
-    private var eloValue: Int { AcctIntData.overallElo(progress) }
-    private var eloText: String { ChalRunFormat.elo(eloValue) }
-    private var league: EloLeague { eloLeague(for: eloValue, track: session.profile.track) }
+    /// Cote globale affichée en tête (`overallElo`, moyenne des matières).
+    private var overallElo: Int { AcctIntData.overallElo(progress) }
+    /// Cote de la matière du défi, annoncée au serveur
+    /// (`getSubjectElo(subjectElos, subject)`, `ChallengesScreen.tsx:1847`).
+    private var subjectElo: Int {
+        EvEventRewards.getSubjectElo(
+            progress.subjectElos,
+            subject: ChalHome2Launch.challengeSubjectName
+        )
+    }
+    private var eloText: String { ChalRunFormat.elo(overallElo) }
+    /// Ligue et blason sur la filière **normalisée** (`eloLeagueTrack` =
+    /// `currentTrackForProfile`), jamais la filière brute.
+    private var league: EloLeague { eloLeague(for: overallElo, track: session.profile.followedTrack) }
     private var leagueLabel: String { league.label }
     private var badgeURL: URL? { LeagueBadges.badgeURL(forLeague: league.id) }
 
@@ -360,6 +390,12 @@ struct ChalIntChallengesTab: View {
     }
 
     private var playableNotice: ChalHome2PlayableNotice {
-        DuelloExerciseCatalog.queuePools(for: session.profile).isEmpty ? .noPlayableExercises : .none
+        let pools = DuelloExerciseCatalog.queuePools(for: session.profile)
+        guard !pools.isEmpty else { return .noPlayableExercises }
+        let started = Set(startedExerciseIds)
+        let remaining = pools.values.contains { ids in
+            ids.contains { !started.contains($0) }
+        }
+        return remaining ? .none : .allStarted
     }
 }

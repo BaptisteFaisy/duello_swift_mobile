@@ -18,7 +18,7 @@ struct EvEventCountdown: View {
     let now: Date
 
     var body: some View {
-        HStack(alignment: .bottom, spacing: 26) {
+        HStack(alignment: .bottom, spacing: 14) {
             ForEach(EvEventSchedule.countdownSegments(targetAt: targetAt, now: now)) { segment in
                 EvEventCountdownCell(segment: segment)
             }
@@ -33,14 +33,14 @@ private struct EvEventCountdownCell: View {
     var body: some View {
         VStack(spacing: 2) {
             Text(String(format: "%02d", segment.value))
-                .font(.system(size: 34, weight: .black))
+                .font(.system(size: 22, weight: .regular))
                 .monospacedDigit()
                 .foregroundStyle(Theme.ink)
             Text(segment.unit)
-                .font(.system(size: 11, weight: .heavy))
+                .font(.system(size: 9, weight: .heavy))
                 .textCase(.uppercase)
                 .tracking(0.4)
-                .foregroundStyle(Theme.inkSoft)
+                .foregroundStyle(Theme.ink)
         }
     }
 }

@@ -15,9 +15,10 @@ struct DetailHeader: View {
     let onBack: () -> Void
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 0) {
             DetailBackButton(action: onBack)
             avatarView
+                .padding(.leading, 9)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(title)
@@ -29,6 +30,7 @@ struct DetailHeader: View {
                     .foregroundStyle(Theme.inkSoft)
                     .lineLimit(1)
             }
+            .padding(.leading, 10)
 
             Spacer(minLength: 0)
         }
@@ -59,9 +61,7 @@ struct DetailHeader: View {
                 RoundedRectangle(cornerRadius: 14)
                     .fill(background)
                     .frame(width: 39, height: 39)
-                Image(systemName: name)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(Theme.ink)
+                IonIcon(name: name, size: 19, color: Theme.ink)
             }
         }
     }
@@ -73,9 +73,7 @@ struct DetailBackButton: View {
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: "chevron.left")
-                .font(.system(size: 16, weight: .bold))
-                .foregroundStyle(Theme.ink)
+            IonIcon(name: "chevron-back", size: 20, color: Theme.ink)
                 .frame(width: 38, height: 38)
                 .background(Theme.surface)
                 .clipShape(RoundedRectangle(cornerRadius: 14))

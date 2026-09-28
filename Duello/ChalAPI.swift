@@ -197,6 +197,58 @@ enum ChalAPI {
         return allowed
     }
 
+    /// Réservation d'une correction (`reserveRemoteCorrection` →
+    /// `POST /correction-quota` avec `{ userId, operationKey }`). Répéter la
+    /// même clé ne recompte rien.
+    enum QuotaReservation: Equatable {
+        /// Correction retenue (`allowed === true`).
+        case allowed(reason: String?)
+        /// Quota épuisé : l'offre Premium doit être proposée (`paywall`).
+        case paywall
+    }
+
+    private struct ReserveEnvelope: Decodable {
+        struct Reservation: Decodable {
+            var allowed: Bool?
+            var reason: String?
+        }
+        var reservation: Reservation?
+    }
+
+    private struct ReserveBody: Encodable {
+        var userId: String
+        var operationKey: String
+    }
+
+    /// Retient une correction pour ce défi (`reserveRemoteCorrection`). Une
+    /// réservation illisible lève, jamais ne devine.
+    static func reserveCorrectionQuota(
+        userId: String,
+        operationKey: String,
+        token: String?
+    ) async throws -> QuotaReservation {
+        let body = try DuelloAPI.encodeBody(
+            ReserveBody(userId: userId, operationKey: operationKey)
+        )
+        let data = try await DuelloAPI.request(
+            "correction-quota",
+            method: "POST",
+            token: token,
+            body: body
+        )
+        guard let reservation = (try? DuelloAPI.decoder.decode(ReserveEnvelope.self, from: data))?.reservation
+        else {
+            throw DirectoryError(message: "Réservation de défi illisible")
+        }
+        if reservation.allowed == true {
+            return .allowed(reason: reservation.reason)
+        }
+        if reservation.allowed == false, reservation.reason == "paywall" {
+            return .paywall
+        }
+        throw DirectoryError(message: "Réservation de défi illisible")
+    }
+
     // MARK: Lecture tolérante
 
     /// Met en forme une invitation brute, ou `nil` si elle est illisible

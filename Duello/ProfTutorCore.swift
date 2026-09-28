@@ -63,12 +63,30 @@ struct ProfTutorMessage: Codable, Equatable {
 struct ProfTutorRequest: Equatable, Identifiable {
     let id: UUID
     var quote: String
+    /// Photo de cours expliquée (base64 sans préfixe) : `quote` est vide alors.
+    var image: String?
+    /// Type MIME de `image` (`image/jpeg`, `image/png`, `image/gif`, `image/webp`).
+    var mimeType: String?
     var context: ProfTutorContext
 
-    init(id: UUID = UUID(), quote: String, context: ProfTutorContext) {
+    init(
+        id: UUID = UUID(),
+        quote: String,
+        image: String? = nil,
+        mimeType: String? = nil,
+        context: ProfTutorContext
+    ) {
         self.id = id
         self.quote = quote
+        self.image = image
+        self.mimeType = mimeType
         self.context = context
+    }
+
+    /// `data:<mime>;base64,<…>` de la vignette (`ProfTutorPanel.imageUri`).
+    var imageUri: String? {
+        guard let image, let mimeType else { return nil }
+        return "data:\(mimeType);base64,\(image)"
     }
 }
 
@@ -195,6 +213,16 @@ struct ProfChatBody: Encodable {
     var context: ProfTutorContext
 }
 
+/// Corps `prof-explain` en variante photo : le relais vision lit l'image elle-même.
+struct ProfExplainImageBody: Encodable {
+    var action = "prof-explain"
+    var contractVersion = PROF_RELAY_CONTRACT_VERSION
+    var stream = true
+    var image: String
+    var mimeType: String
+    var context: ProfTutorContext
+}
+
 /// `buildProfExplainBody` : JSON de la demande d'explication, passage rogné.
 func buildProfExplainBody(quote: String, context: ProfTutorContext) throws -> String {
     let body = ProfExplainBody(quote: clampProfQuote(quote), context: context)
@@ -204,6 +232,17 @@ func buildProfExplainBody(quote: String, context: ProfTutorContext) throws -> St
 /// `buildProfChatBody` : JSON de la question, historique plafonné.
 func buildProfChatBody(messages: [ProfTutorMessage], context: ProfTutorContext) throws -> String {
     let body = ProfChatBody(messages: clampProfHistory(messages), context: context)
+    return try profEncode(body)
+}
+
+/// `buildProfExplainImageBody` : JSON de l'explication d'une photo ou d'une page
+/// scannée (le relais vision lit l'image, aucun passage n'est rogné).
+func buildProfExplainImageBody(
+    image: String,
+    mimeType: String,
+    context: ProfTutorContext
+) throws -> String {
+    let body = ProfExplainImageBody(image: image, mimeType: mimeType, context: context)
     return try profEncode(body)
 }
 

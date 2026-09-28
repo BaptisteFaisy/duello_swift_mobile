@@ -32,12 +32,12 @@ struct HecJourneyStageView: View {
                 onActiveIndexChange: onActiveIndexChange
             )
             HecJourneyTitleRow(block: model.activeBlock(at: activeIndex))
-                .padding(.top, 7)
             if showsTopYearSwitch {
+                // `nextYearButtonTop` : `top: 54`.
                 HecJourneyYearSwitchButton(isSecondYear: false) { onSelectYear(2) }
                     .padding(.top, 54)
             }
-            bottomStack
+            bottomLayers
             sheetLayer
         }
     }
@@ -54,21 +54,25 @@ struct HecJourneyStageView: View {
         programYear == 2 && flow.panel == nil && activeIndex == 0
     }
 
-    private var bottomStack: some View {
-        VStack(spacing: 8) {
-            Spacer(minLength: 0)
-            if showsBottomYearSwitch {
-                HecJourneyYearSwitchButton(isSecondYear: true) { onSelectYear(1) }
-            }
-            if flow.panel == nil {
-                HecJourneyBottomControls(
-                    shortcut: shortcut,
-                    onAdd: onAddBlock,
-                    onShortcut: onShortcut
-                )
-            }
+    /// Les commandes du bas (`bottom: 17`) et la bascule de 1re année
+    /// (`nextYearButtonBottom` : `bottom: 55`) restent deux couches distinctes,
+    /// comme la source.
+    @ViewBuilder
+    private var bottomLayers: some View {
+        if showsBottomYearSwitch {
+            HecJourneyYearSwitchButton(isSecondYear: true) { onSelectYear(1) }
+                .padding(.bottom, 55)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
         }
-        .padding(.bottom, 14)
+        if flow.panel == nil {
+            HecJourneyBottomControls(
+                shortcut: shortcut,
+                onAdd: onAddBlock,
+                onShortcut: onShortcut
+            )
+            .padding(.bottom, 17)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+        }
     }
 
     // MARK: Feuille d'ajout
@@ -77,7 +81,8 @@ struct HecJourneyStageView: View {
     private var sheetLayer: some View {
         if flow.panel != nil {
             ZStack(alignment: .bottom) {
-                Color.black.opacity(0.18)
+                // `panelBackdrop` : `rgba(0,0,0,0.08)`.
+                Color.black.opacity(0.08)
                     .ignoresSafeArea()
                     .contentShape(Rectangle())
                     .onTapGesture { flow.close() }
@@ -87,11 +92,10 @@ struct HecJourneyStageView: View {
                     chapters: chapters,
                     registeredAt: registeredAt
                 )
-                .frame(maxWidth: 420)
-                .padding(.horizontal, 16)
-                .padding(.bottom, 20)
+                // `addPanel` : `left: 30`, `right: 30`, `bottom: 18`.
+                .padding(.horizontal, 30)
+                .padding(.bottom, 18)
             }
-            .transition(.opacity)
         }
     }
 }

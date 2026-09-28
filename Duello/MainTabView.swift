@@ -1,13 +1,15 @@
 import SwiftUI
 
 /// Barre d'onglets principale : Profil / Entraînement / Défis, port de
-/// `src/components/BottomNavigation.tsx`.
+/// `src/components/BottomNavigation.tsx` et de
+/// `src/components/BottomTabPager.native.tsx`.
 ///
-/// Le contenu reste un `TabView` en pages — le balayage latéral de
-/// `BottomTabPager.native.tsx` — mais la barre est désormais **dessinée** par
-/// `DuelloBottomBar` : la barre native d'iOS ne rend ni la pastille de l'onglet
-/// actif, ni l'avatar du profil, ni le libellé `Profil` de la source (elle
-/// affichait « Mon compte » avec une icône personne).
+/// Le contenu est un **ruban maison** (`DuelloBottomTabPager`) — le balayage
+/// latéral de la source, avec sa résistance de bord `0.16`, son ressort
+/// `SPRING_CONFIG` et sa progression continue — et la barre est **dessinée**
+/// par `DuelloBottomBar` : la barre native d'iOS ne rend ni la pastille de
+/// l'onglet actif, ni l'avatar du profil, ni le libellé `Profil` de la source
+/// (elle affichait « Mon compte » avec une icône personne).
 ///
 /// R7 (2026-09-27) — montage racine des services que `main` portait sans les
 /// câbler :
@@ -47,15 +49,48 @@ struct MainTabView: View {
     /// Défis).
     private static let challengesTabIndex = 2
 
+    /// Nombre de non-lues, source de la pastille de la barre
+    /// (`NotificationBadgeSync` → `unreadNotificationCount > 0`, `App.tsx:2602`).
+    @ObservedObject private var notifications = AcctNotificationsStore.shared
+
+    /// Progression continue du ruban, lue par la barre pour interpoler l'onglet
+    /// actif (`navigationPage`, `App.tsx:689`).
+    @StateObject private var tabPager = DuelloTabPagerModel(
+        progress: CGFloat(ScreenshotTour.tabSelection ?? 1)
+    )
+
     /// Onglet initial : `ScreenshotTour` le fige pour la capture d'écran
-    /// (`profile`/`training`/`challenges`) ; hors mode capture, 0 comme avant.
-    @State private var selection: Int = ScreenshotTour.tabSelection ?? 0
+    /// (`profile`/`training`/`challenges`) ; hors mode capture, `training`
+    /// (`DEFAULT_SCREEN`, `App.tsx:374`).
+    @State private var selection: Int = ScreenshotTour.tabSelection ?? 1
+
+    /// Verrou du geste d'onglet (`tabSwipeLocked`, `App.tsx:1655`) : les
+    /// producteurs (clavier maths, onglet non posé) sont hors de cette unité.
+    @State private var tabSwipeLocked = false
+
+    /// Barre basse masquée au défilement (`bottomNavigationHidden`,
+    /// `App.tsx:647`) : les producteurs (défilement des écrans) sont hors de
+    /// cette unité.
+    @State private var bottomBarHidden = false
+
+    /// Inset bas de la fenêtre, pour `max(insets.bottom, 5)` (`:69`).
+    @State private var bottomSafeAreaInset: CGFloat = 0
 
     var body: some View {
         VStack(spacing: 0) {
             tabs
-            DuelloBottomBar(selection: $selection, avatarInitial: profileInitial)
+            DuelloAnimatedBottomBar(visible: !bottomBarHidden) {
+                DuelloBottomBar(
+                    selection: $selection,
+                    pager: tabPager,
+                    avatarInitial: profileInitial,
+                    photoUri: session.profile.photoUri,
+                    hasUnreadNotifications: notifications.unreadCount > 0,
+                    bottomSafeAreaInset: bottomSafeAreaInset
+                )
+            }
         }
+        .ignoresSafeArea(.container, edges: .bottom)
         .overlay(invitationOverlay)
         .onAppear(perform: startRootServices)
         .onDisappear { publisher.stop() }
@@ -65,28 +100,34 @@ struct MainTabView: View {
         .task { await warmRankings() }
     }
 
-    /// Les trois onglets, en pages (`BottomTabPager.native.tsx`).
+    /// Les trois onglets, en pages (`BottomTabPager.native.tsx`) : ruban maison
+    /// (résistance de bord, ressort de relâchement, verrou de geste) au lieu du
+    /// `TabView(.page)` natif, qui ne rend pas la progression continue.
     private var tabs: some View {
-        TabView(selection: $selection) {
-            AccountView()
-                .tag(0)
-            TrainingView()
-                .tag(1)
-            ChallengesView(
-                invites: challengeInvites,
-                incomingMatch: incomingChallengeMatch,
-                onIncomingMatchHandled: { incomingChallengeMatch = nil },
-                onBusyChange: { busy in challengeBusy = busy }
-            )
-                .tag(Self.challengesTabIndex)
-        }
-        .tabViewStyle(.page(indexDisplayMode: .never))
+        DuelloBottomTabPager(
+            model: tabPager,
+            page: $selection,
+            initialPage: selection,
+            scrollEnabled: !tabSwipeLocked,
+            onPageSelected: { selection = $0 },
+            page0: { AccountView() },
+            page1: { TrainingView() },
+            page2: {
+                ChallengesView(
+                    invites: challengeInvites,
+                    incomingMatch: incomingChallengeMatch,
+                    onIncomingMatchHandled: { incomingChallengeMatch = nil },
+                    onBusyChange: { busy in challengeBusy = busy }
+                )
+            }
+        )
     }
 
     // MARK: Services racine
 
     /// Monte le publieur de profil et la relève des invitations (une fois).
     private func startRootServices() {
+        bottomSafeAreaInset = DuelloWindowInsets.bottomSafeArea
         let sessionStore = session
         publisher.setTokenProvider { sessionStore.token }
         publisher.start(

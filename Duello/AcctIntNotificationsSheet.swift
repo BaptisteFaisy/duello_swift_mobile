@@ -6,24 +6,26 @@
 //  l'onglet « Mon compte » (préfixe `AcctInt`).
 //
 //  Fichier source Expo porté : `src/screens/AccountScreen.tsx`, branche
-//  `page === 'notifications'` (l. 2047-2277) :
+//  `page === 'notifications'` (l. 2141-2385) :
 //    - en-tête : retour 38 × 38 + onglets soulignés `Notifications` / `Amis` ;
 //    - page `notifications` : la carte de réglages (`NotificationSettingsCard`)
 //      puis la liste des notifications, ou son état vide ;
-//    - page `amis` : segmented control `Followers` / `Followings` et état vide ;
-//    - balayage horizontal entre les trois pages
-//      (`InstalledNotificationsPager` + `NOTIFICATIONS_SWIPE_PAGES`).
-//
-//  Repli documenté : les listes Followers / Followings ne sont pas exposées
-//  localement (aucun store de graphe social côté iOS) ; l’onglet `Amis`
-//  affiche donc l’état vide.
+//    - page `amis` : segmented control `Followers` / `Followings` puis la liste
+//      d'amis (`renderFriendList`) ou son message d'état vide ;
+//    - balayage horizontal entre les trois pages, sans animation
+//      (`InstalledNotificationsPager` + `OrderedTabPager`, `animated={false}`).
 //
 //  V1 (26/09/2026, écart 20#2) : la vraie liste des notifications
-//  (`AcctNotificationsStore`) est rendue avant l’état vide
-//  (`AccountScreen.tsx:2258-2360`) : carte non-lue, icône selon `kind`,
-//  pastille de présence, texte par type, `formatTimeAgo`, chevron ; le tap
-//  ouvre le profil du membre puis referme la feuille (`openMember` +
-//  `leaveNotifications`, qui marque tout lu).
+//  (`AcctNotificationsStore`) est rendue avant l'état vide ; le tap ouvre le
+//  profil du membre puis referme la feuille (`leaveNotifications`).
+//
+//  V2 (28/09/2026, écarts 20 #3/#5/#6/#7 + A1/A2) : listes Followers /
+//  Followings portées (`AcctNotificationsFriendList`), phrase « les visites de
+//  ton profil » rétablie dans l'état vide, `isGuest` transmis à la carte de
+//  réglages, pager enveloppé par `InstalledNotificationsPager`, retour et
+//  balayage-arrière marquant tout lu (`leaveNotifications`), balayage sans
+//  animation (comme `animated={false}`), retour d'appui `pressed` sur les
+//  onglets, icônes `IonIcon`.
 //
 //  Cible : iOS 16, aucune API iOS 17.
 //
@@ -42,27 +44,48 @@ struct AcctIntNotificationsSheet: View {
     @ObservedObject private var notifications = AcctNotificationsStore.shared
     @ObservedObject private var presence = SocPresenceStore.shared
     @State private var page: SwipeNotificationsPage = .notifications
+    /// Sous-section mémorisée de l'onglet « Amis » (`friendsSection`,
+    /// `AccountScreen.tsx:725`) : revenir sur « Amis » rouvre la dernière
+    /// section consultée au lieu de forcer Followers (écart #49).
+    @State private var friendsSection: SwipeNotificationsPage = .followers
     /// `openMember` : ouvre la fiche du membre touché. La feuille se referme
     /// elle-même (`leaveNotifications`), puis le compte marque tout lu.
     var onOpenMember: (String) -> Void = { _ in }
+    /// Graphe social publié par le lot « Social » : profils connus, identifiants
+    /// des abonnés et des abonnements (`knownProfiles`, `followerIds`,
+    /// `followedIds` de `AccountScreen.tsx`). Vides tant que ce lot ne les
+    /// alimente pas : la page Amis affiche alors son message d'état vide.
+    var knownProfiles: [AcctSearchMember] = []
+    var followerIds: [String] = []
+    var followedIds: [String] = []
+    /// `toggleFollow` : bascule le suivi d'un membre depuis la liste d'amis.
+    var onToggleFollow: (String) -> Void = { _ in }
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    header
-                    content
-                }
-                .padding(.horizontal, 24)
-                .padding(.top, 8)
-                .padding(.bottom, 36)
+            InstalledNotificationsPager {
+                pager
             }
-            .simultaneousGesture(swipeGesture)
-            .background(Theme.background)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(.hidden, for: .navigationBar)
         }
         .task { await refreshNotifications() }
+    }
+
+    /// Le pager des trois pages (équivalent du `OrderedTabPager` de la source,
+    /// posé sans animation — `animated={false}`).
+    private var pager: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                header
+                content
+            }
+            .padding(.horizontal, 24)
+            .padding(.top, 8)
+            .padding(.bottom, 36)
+        }
+        .simultaneousGesture(swipeGesture)
+        .background(Theme.background)
     }
 
     // MARK: En-tête
@@ -77,7 +100,7 @@ struct AcctIntNotificationsSheet: View {
                     page = .notifications
                 }
                 headerTab("Amis", selected: page != .notifications) {
-                    page = .followers
+                    page = friendsSection
                 }
             }
             .padding(.leading, 10)
@@ -85,18 +108,17 @@ struct AcctIntNotificationsSheet: View {
         .padding(.bottom, 12)
     }
 
-    /// Retour : chevron 21 pt dans une boîte 38 × 38 blanche, sans bord
-    /// (`BackButton` + `styles.settingsBackButton`).
+    /// Retour : chevron `chevron-back` 21 pt dans une boîte 38 × 38 blanche,
+    /// sans bord (`BackButton` + `styles.settingsBackButton`) ; il quitte la
+    /// feuille **et** marque tout lu (`leaveNotifications`).
     private var backButton: some View {
-        Button { dismiss() } label: {
-            Image(systemName: "chevron.left")
-                .font(.system(size: 21, weight: .semibold))
-                .foregroundStyle(Theme.ink)
+        Button { leaveNotifications() } label: {
+            IonIcon(name: "chevron-back", size: 21, color: Theme.ink)
                 .frame(width: 38, height: 38)
                 .background(Theme.white)
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(AcctPressButtonStyle())
         .accessibilityLabel("Retour au profil")
     }
 
@@ -120,7 +142,7 @@ struct AcctIntNotificationsSheet: View {
                     alignment: .bottom
                 )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(AcctPressButtonStyle())
         .accessibilityAddTraits(selected ? [.isSelected] : [])
     }
 
@@ -131,7 +153,7 @@ struct AcctIntNotificationsSheet: View {
     private var content: some View {
         switch page {
         case .notifications:
-            NotificationSettingsCard(store: notificationStore)
+            NotificationSettingsCard(store: notificationStore, isGuest: !session.isSignedIn)
             if notifications.notifications.isEmpty {
                 notificationsEmpty
             } else {
@@ -142,7 +164,8 @@ struct AcctIntNotificationsSheet: View {
         }
     }
 
-    /// `leaveNotifications` : referme la feuille et marque tout lu.
+    /// `leaveNotifications` : referme la feuille et marque tout lu
+    /// (`AccountScreen.tsx:729-732`).
     private func leaveNotifications() {
         notifications.markAllRead()
         dismiss()
@@ -173,7 +196,7 @@ struct AcctIntNotificationsSheet: View {
         .padding(.top, 12)
     }
 
-    /// Page `Amis` : segmented control Followers / Followings puis état vide
+    /// Page `Amis` : segmented control Followers / Followings puis la liste
     /// (`friendsTabs` / `renderFriendList` de la source).
     private var friendsBlock: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -185,30 +208,48 @@ struct AcctIntNotificationsSheet: View {
             .background(Theme.surfaceMuted)
             .clipShape(RoundedRectangle(cornerRadius: 12))
 
-            Text(page == .followings ? "Tu ne suis encore personne." : "Aucun follower pour le moment.")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(Theme.inkSoft)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.vertical, 18)
-                .padding(.horizontal, 4)
+            AcctNotificationsFriendList(
+                members: page == .followings ? followings : followers,
+                emptyMessage: page == .followings
+                    ? "Tu ne suis encore personne."
+                    : "Aucun follower pour le moment.",
+                followedIds: followedIds,
+                onOpenMember: onOpenMember,
+                onToggleFollow: onToggleFollow
+            )
         }
     }
 
+    /// Abonnés : profils dont l'identifiant est dans `followerIds`
+    /// (`myFollowers` = `followerProfiles(knownProfiles, followerIds)`).
+    private var followers: [AcctSearchMember] {
+        AcctNotificationsFriends.profiles(knownProfiles, ids: followerIds)
+    }
+
+    /// Abonnements : même filtre sur `followedIds` (`myFollowings`).
+    private var followings: [AcctSearchMember] {
+        AcctNotificationsFriends.profiles(knownProfiles, ids: followedIds)
+    }
+
     /// Un onglet Amis (`friendTab` / `selectedFriendTab`) : flex 1, 30 pt de
-    /// haut, rayon 10, fond d'encre quand il est choisi.
+    /// haut, rayon 10, fond d'encre quand il est choisi. Mémorise la
+    /// sous-section (`setFriendsSection` + `setNotificationsTab('friends')`).
     private func friendTab(_ target: SwipeNotificationsPage, label: String) -> some View {
         let selected = page == target
-        return Button { page = target } label: {
+        return Button {
+            friendsSection = target
+            page = target
+        } label: {
             Text(label)
                 .font(.system(size: 12, weight: .heavy))
-                .foregroundStyle(selected ? Theme.surface : Theme.mutedSurfaceText)
+                .foregroundStyle(selected ? Theme.white : Theme.mutedSurfaceText)
                 .frame(maxWidth: .infinity, minHeight: 30)
                 .padding(.horizontal, 4)
-                .background(selected ? Theme.ink : Color.clear)
+                .background(selected ? Theme.primary : Color.clear)
                 .clipShape(RoundedRectangle(cornerRadius: 10))
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(AcctPressButtonStyle())
         .accessibilityAddTraits(selected ? [.isSelected] : [])
     }
 
@@ -216,17 +257,15 @@ struct AcctIntNotificationsSheet: View {
     /// titre et message selon la visibilité du profil.
     private var notificationsEmpty: some View {
         VStack(spacing: 0) {
-            Image(systemName: "heart")
-                .font(.system(size: 26, weight: .semibold))
-                .foregroundStyle(Theme.inkFaint)
+            IonIcon(name: "heart-outline", size: 26, color: Theme.inkFaint)
             Text("Aucune notification")
                 .font(.system(size: 15, weight: .black))
                 .foregroundStyle(Theme.ink)
                 .padding(.top, 12)
             Text(
                 session.profile.isPublic
-                    ? "Tu seras prévenu ici pour tes nouveaux abonnés, tes likes et les défis reçus pendant que tu joues."
-                    : "Tu seras prévenu ici pour tes nouveaux abonnés et les défis reçus pendant que tu joues."
+                    ? "Tu seras prévenu ici pour tes nouveaux abonnés, les visites de ton profil, tes likes et les défis reçus pendant que tu joues."
+                    : "Tu seras prévenu ici pour tes nouveaux abonnés, les visites de ton profil et les défis reçus pendant que tu joues."
             )
             .font(.system(size: 12, weight: .medium))
             .foregroundStyle(Theme.inkSoft)
@@ -247,7 +286,8 @@ struct AcctIntNotificationsSheet: View {
     /// Navigation par balayage horizontal entre les trois pages, dans l'ordre
     /// `notifications`, `followers`, `followings` (`resolveNotificationsTabSwipe`) :
     /// glisser vers la gauche avance, vers la droite recule et ferme depuis la
-    /// première page.
+    /// première page. La transition est **instantanée** (`animated={false}` de
+    /// `AccountScreen.tsx:2146`) ; le retour marque tout lu.
     private var swipeGesture: some Gesture {
         DragGesture(minimumDistance: 12)
             .onEnded { value in
@@ -258,9 +298,10 @@ struct AcctIntNotificationsSheet: View {
                 ) else { return }
                 switch target {
                 case .page(let next):
-                    withAnimation(.easeInOut(duration: 0.2)) { page = next }
+                    if next != .notifications { friendsSection = next }
+                    page = next
                 case .back:
-                    dismiss()
+                    leaveNotifications()
                 }
             }
     }

@@ -12,6 +12,12 @@
 //  rendre la liste réelle (carte non-lue, icône selon `kind`, pastille de
 //  présence, texte par type, horodatage, chevron, tap → profil).
 //
+//  V2 (28/09/2026, écarts 20 A2/B1 + typographie) : retour d'appui
+//  (`pressed`, opacité 0,75), chevron Ionicons `chevron-forward` 17 (au lieu
+//  d'un SF Symbol 15), icônes de type rendues par `IonIcon` (noms exacts du
+//  RN), et titre `notificationTitle` 12/600 (l'acteur en 900) au lieu du rendu
+//  par défaut 17.
+//
 //  Cible : iOS 16, aucune API iOS 17.
 //
 import SwiftUI
@@ -31,9 +37,7 @@ struct AcctNotificationCard: View {
                 copy
                     .padding(.leading, 11)
                     .padding(.trailing, 8)
-                Image(systemName: "chevron.forward")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Theme.inkFaint)
+                IonIcon(name: "chevron-forward", size: 17, color: Theme.inkFaint)
             }
             .padding(13)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -46,7 +50,7 @@ struct AcctNotificationCard: View {
             .duelloShadow()
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(AcctPressButtonStyle())
         .accessibilityLabel(accessibilityLabel)
     }
 
@@ -61,9 +65,7 @@ struct AcctNotificationCard: View {
 
     /// `notificationIcon` : pastille 38 × 38 blanche, icône selon `kind`.
     private var icon: some View {
-        Image(systemName: iconName)
-            .font(.system(size: 17, weight: .semibold))
-            .foregroundStyle(iconColor)
+        IonIcon(name: iconName, size: 17, color: iconColor)
             .frame(width: 38, height: 38)
             .background(Theme.white)
             .clipShape(RoundedRectangle(cornerRadius: 13))
@@ -91,15 +93,17 @@ struct AcctNotificationCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// `notificationTitle` : 12/600 encre, l’acteur en 900.
+    /// `notificationTitle` : 12/600 encre, l’acteur en 900
+    /// (`notificationActor`).
     private var title: Text {
+        let base = Font.system(size: 12, weight: .semibold)
         if notification.kind == .annaleCorrectionReady {
-            return Text("Ta correction de ")
-                + Text(notification.title).fontWeight(.black)
-                + Text(" est prête · \(String(format: "%.1f", notification.score))/20")
+            return Text("Ta correction de ").font(base)
+                + Text(notification.title).font(.system(size: 12, weight: .black))
+                + Text(" est prête · \(String(format: "%.1f", notification.score))/20").font(base)
         }
-        return Text(notification.actorName).fontWeight(.black)
-            + Text(suffix)
+        return Text(notification.actorName).font(.system(size: 12, weight: .black))
+            + Text(suffix).font(base)
     }
 
     /// Fin de phrase selon `kind` (mot pour mot).
@@ -125,14 +129,14 @@ struct AcctNotificationCard: View {
             : "Voir le profil de \(notification.actorName)"
     }
 
-    /// Icône Ionicons → SF Symbol selon `kind`.
+    /// Nom Ionicons du type (`AccountScreen.tsx:2282-2305`), rendu par `IonIcon`.
     private var iconName: String {
         switch notification.kind {
-        case .newFollower: return "person.badge.plus"
-        case .annaleCorrectionReady: return "checkmark.circle.fill"
-        case .challengeUnavailable: return "bolt.fill"
+        case .newFollower: return "person-add"
+        case .annaleCorrectionReady: return "checkmark-circle"
+        case .challengeUnavailable: return "flash"
         case .profileView: return "eye"
-        case .performanceLike: return "heart.fill"
+        case .performanceLike: return "heart"
         }
     }
 

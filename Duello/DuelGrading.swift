@@ -206,6 +206,20 @@ func judgeDuel(
     token: String,
     onWaitingForOpponent: ((Double) -> Void)? = nil
 ) async throws -> DuelVerdict {
+    // Réserve la correction de ce défi **avant** toute notation
+    // (`quota.reserve('duel:<matchId>')` → `POST /correction-quota`). Un quota
+    // épuisé est un refus produit : la copie reste rédigée, l'offre Premium est
+    // à proposer.
+    if case .paywall = try await ChalAPI.reserveCorrectionQuota(
+        userId: userId,
+        operationKey: "duel:\(match.id)",
+        token: token
+    ) {
+        throw DuelQuotaError(
+            message: "Ton quota de défis est épuisé. Ouvre l’onglet Défis pour voir la prochaine recharge ou l’offre Premium.",
+            nextFreeAt: nil
+        )
+    }
     // Les deux copies d'un même défi partagent la même clé de quota.
     let mine = try await gradeCopy(
         subject: subject,

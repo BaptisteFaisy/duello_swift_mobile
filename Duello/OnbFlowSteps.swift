@@ -54,6 +54,8 @@ struct OnbFlowGateState {
     var isCheckingRegistrationDetails = false
     var isCheckingUsername = false
     var trackChoicePending = false
+    /// L'étape « option » attend un choix de niveau de maths (`mathOptionChoicePending`).
+    var mathOptionChoicePending = false
     var premiumGiftOpenPending = false
     var preflightReady = true
     var isCheckingPreflight = false
@@ -109,17 +111,19 @@ enum OnbFlowSteps {
         if step >= total - 1 { return "Accéder à Duello" }
         if gate.premiumGiftOpenPending { return "Ouvre le cadeau" }
         if gate.trackChoicePending { return "Choisis ta filière" }
+        if gate.mathOptionChoicePending { return "Choisis ton option" }
         return "Continuer"
     }
 
     /// `stepAdvanceBlocked` : l'avance est verrouillée tant qu'une vérification
-    /// ou la création de compte est en cours, qu'une filière n'est pas choisie,
-    /// ou que le cadeau n'est pas ouvert.
+    /// ou la création de compte est en cours, qu'une filière ou une option
+    /// n'est pas choisie, ou que le cadeau n'est pas ouvert.
     static func advanceBlocked(_ state: OnbFlowGateState) -> Bool {
         state.isCompleting
             || state.isCheckingRegistrationDetails
             || state.isCheckingUsername
             || state.trackChoicePending
+            || state.mathOptionChoicePending
             || state.premiumGiftOpenPending
             || !state.preflightReady
     }

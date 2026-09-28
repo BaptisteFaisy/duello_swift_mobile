@@ -150,9 +150,9 @@ struct ChalRunOpponentCard: View {
                 }
             }
             HStack(spacing: 8) {
-                summaryItem(icon: "book", text: match.subject)
-                summaryItem(icon: "timer", text: "\(match.durationMinutes) minutes")
-                summaryItem(icon: "person.2", text: "\(ChalRunReveal.playersPerChallenge) joueurs")
+                summaryItem(icon: "book-outline", text: match.subject)
+                summaryItem(icon: "timer-outline", text: "\(match.durationMinutes) minutes")
+                summaryItem(icon: "people-outline", text: "\(ChalRunReveal.playersPerChallenge) joueurs")
             }
             HStack(spacing: 9) {
                 ProgressView()
@@ -171,8 +171,7 @@ struct ChalRunOpponentCard: View {
 
     private var badge: some View {
         HStack(spacing: 5) {
-            Image(systemName: isTraining ? "dumbbell" : "checkmark")
-                .font(.system(size: 14, weight: .bold))
+            IonIcon(name: isTraining ? "barbell-outline" : "checkmark", size: 14, color: Theme.ink)
             Text(isTraining ? "ADVERSAIRE D’ENTRAÎNEMENT" : "ADVERSAIRE TROUVÉ")
                 .font(.system(size: 8, weight: .heavy))
                 .tracking(0.8)
@@ -214,9 +213,7 @@ struct ChalRunOpponentCard: View {
 
     private func summaryItem(icon: String, text: String) -> some View {
         HStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(Theme.ink)
+            IonIcon(name: icon, size: 17, color: Theme.ink)
             Text(text)
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Theme.ink)

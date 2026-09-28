@@ -75,8 +75,6 @@ struct AcctShowLeagueCard: View {
     let pathLines: [String]
     /// Vrai si le profil consulté est abonné (`isViewedPremium`).
     var isPremium: Bool = false
-    /// Bascule l'encart « membre Premium » au tap sur la coche.
-    var onPremiumTap: (() -> Void)? = nil
     /// Ligue consultée ; `nil` masque le blason (`viewedLeagueBadge` absent).
     var league: EloLeague? = nil
     /// Photo publiée du verso du blason (`viewedPhotoUri`).
@@ -86,28 +84,38 @@ struct AcctShowLeagueCard: View {
     /// Compte privé : la vitrine masque alors le blason (`isMemberLocked`).
     var isLocked: Bool = false
 
-    var body: some View {
-        HStack(alignment: .center, spacing: 16) {
-            VStack(alignment: .leading, spacing: 0) {
-                nameRow
-                path
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+    /// `premiumStatusVisible` : l'encart « membre Premium » apparaît au tap sur
+    /// la coche, et se referme au tap suivant.
+    @State private var premiumStatusVisible = false
 
-            if !isLocked, let league {
-                AcctShowLeagueBadge(
-                    league: league,
-                    name: name,
-                    photoUri: photoUri,
-                    online: online
-                )
-                .padding(.top, 8)
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .center, spacing: 16) {
+                VStack(alignment: .leading, spacing: 0) {
+                    nameRow
+                    path
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                if !isLocked, let league {
+                    AcctShowLeagueBadge(
+                        league: league,
+                        name: name,
+                        photoUri: photoUri,
+                        online: online
+                    )
+                    .padding(.top, 8)
+                }
+            }
+
+            if premiumStatusVisible && isPremium {
+                AcctShowLeaguePremiumNotice(name: name)
             }
         }
     }
 
-    /// Nom et coche Premium (`showcaseNameRow`) : la coche est un bouton dès
-    /// qu'un geste est fourni.
+    /// Nom et coche Premium (`showcaseNameRow`) : la coche bascule l'encart
+    /// « membre Premium » (`handlePremiumBadgePress`).
     private var nameRow: some View {
         HStack(spacing: 7) {
             Text(name)
@@ -116,15 +124,13 @@ struct AcctShowLeagueCard: View {
                 .lineLimit(1)
 
             if isPremium {
-                if let onPremiumTap {
-                    Button(action: onPremiumTap) {
-                        PremPremiumBadge(size: AcctShowLeagueMetrics.premiumBadgeSize)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Afficher le statut Premium de \(name)")
-                } else {
+                Button {
+                    premiumStatusVisible.toggle()
+                } label: {
                     PremPremiumBadge(size: AcctShowLeagueMetrics.premiumBadgeSize)
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Afficher le statut Premium de \(name)")
             }
         }
     }

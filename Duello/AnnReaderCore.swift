@@ -12,14 +12,17 @@ import SwiftUI
 
 // MARK: - Lecteur d'annale
 
-/// Lecteur d'annale : onglets de document, navigation entre les questions et
+/// Lecteur d'annale : onglets de document, navigation entre les questions,
+/// atelier de réponse (champ de réponse, tableau blanc, console Python) et
 /// panneau de correction de copie des épreuves écrites.
 ///
-/// Portage de la partie lecture d'`AnnaleViewer.tsx` : les onglets Énoncé /
-/// Barème / Commentaires / Corrigé, les messages de verrouillage du corrigé, le
-/// panneau « Annale en cours » et l'ouverture de la fenêtre de correction de
-/// copie. L'atelier de réponse (champ de réponse, dictée, tableau blanc,
-/// clavier mathématique, console Python) n'est pas porté ici.
+/// Portage d'`AnnaleViewer.tsx` : les onglets Énoncé / Barème / Commentaires /
+/// Corrigé, les messages de verrouillage du corrigé, le séparateur déplaçable
+/// entre l'énoncé et l'atelier, le panneau « Annale en cours » et l'ouverture de
+/// la fenêtre de correction de copie. L'atelier monte le tableau blanc
+/// (`WhiteboardView`) et la console Python (`PythonConsoleView`) portés par
+/// l'unité 18 ; la dictée, la photo et le clavier mathématique relèvent d'autres
+/// unités (voir rapport).
 struct AnnReaderView: View {
     /// Annale affichée. L'état est modifiable pour passer d'un sujet à l'autre
     /// depuis la même fenêtre de lecture.
@@ -43,6 +46,12 @@ struct AnnReaderView: View {
     var classicQuestionIds: Set<String> = []
     /// Questions conseillées pour plus tard : consultables, pastillées rouge.
     var unavailableQuestionIds: Set<String> = []
+    /// Questions en cours de correction (`gradingQuestionIds`) : leur puce
+    /// affiche un indicateur d'activité.
+    var gradingQuestionIds: Set<String> = []
+    /// Erreurs de correction par question (`gradingErrors`) : leur puce passe
+    /// au `refresh-circle` « à relancer ».
+    var gradingErrors: [String: String] = [:]
 
     @EnvironmentObject private var session: SessionStore
 
@@ -51,6 +60,19 @@ struct AnnReaderView: View {
     @State var copySheetOpen = false
     @State var copyJob: AnnCopyJob?
     @State var dsUnlocked = false
+    /// Brouillon de la réponse en cours (champ de réponse de l'atelier).
+    @State var draft = ""
+    /// Outil d'écriture affiché dans l'atelier.
+    @State var answerMode: AnnAnswerMode = .text
+    /// Brouillon du tableau blanc de la question ouverte.
+    @State var whiteboardStrokes: [WbStroke] = []
+    /// Hauteur relative de l'énoncé au-dessus de l'atelier (`useAnnaleSplit`).
+    @State var splitRatio: Double = AnnaleSplit.DEFAULT_ANNALE_SPLIT
+    /// Demande du prof IA ouverte par « ✦ Expliquer » sur un corrigé.
+    @State var profRequest: ProfTutorRequest?
+    /// Suit la vitesse du balayage horizontal sur l'énoncé (SwiftUI ne la
+    /// fournit pas) sans provoquer de rendu à chaque point.
+    @State var swipeTracker = AnnSwipeTracker()
 
     init(
         entry: AnnEntry,
@@ -63,7 +85,9 @@ struct AnnReaderView: View {
         attemptComplete: Bool = false,
         verdicts: [String: AnnVerdict] = [:],
         classicQuestionIds: Set<String> = [],
-        unavailableQuestionIds: Set<String> = []
+        unavailableQuestionIds: Set<String> = [],
+        gradingQuestionIds: Set<String> = [],
+        gradingErrors: [String: String] = [:]
     ) {
         _entry = State(initialValue: entry)
         self.subject = subject
@@ -76,6 +100,8 @@ struct AnnReaderView: View {
         self.verdicts = verdicts
         self.classicQuestionIds = classicQuestionIds
         self.unavailableQuestionIds = unavailableQuestionIds
+        self.gradingQuestionIds = gradingQuestionIds
+        self.gradingErrors = gradingErrors
     }
 
     var body: some View {
@@ -83,12 +109,13 @@ struct AnnReaderView: View {
             header
             tabs
             Divider().overlay(Theme.border)
-            content
+            splitArea
             footer
         }
         .background(Theme.background)
         .onAppear {
             activeQuestionId = entry.questions.first?.id
+            splitRatio = AnnaleSplit.loadAnnaleSplit(itemId: entry.id)
             reloadCopyJob()
         }
         .onChange(of: entry.id) { _ in
@@ -96,6 +123,10 @@ struct AnnReaderView: View {
             activeQuestionId = entry.questions.first?.id
             dsUnlocked = false
             copySheetOpen = false
+            draft = ""
+            answerMode = .text
+            whiteboardStrokes = []
+            splitRatio = AnnaleSplit.loadAnnaleSplit(itemId: entry.id)
             reloadCopyJob()
         }
         .fullScreenCover(isPresented: $copySheetOpen) {
@@ -120,5 +151,24 @@ struct AnnReaderView: View {
             )
             .environmentObject(session)
         }
+        .sheet(item: $profRequest) { request in
+            ProfTutorSheet(request: request, token: session.token) { profRequest = nil }
+        }
+    }
+}
+
+extension AnnReaderView {
+    /// Ouvre le prof IA sur le corrigé d'une question (`openProfForCorrection`,
+    /// `AnnaleViewer.tsx:3558-3569`) : le passage expliqué est le corrigé affiché.
+    func explainCorrection(_ text: String, question: String) {
+        profRequest = ProfTutorRequest(
+            quote: text,
+            context: ProfTutorContext(
+                source: .corrige,
+                subject: subject,
+                exercise: entry.title,
+                question: "Question \(question)"
+            )
+        )
     }
 }

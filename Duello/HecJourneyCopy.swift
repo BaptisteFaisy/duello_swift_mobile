@@ -35,8 +35,17 @@ enum HecJourneyCopy {
         "5. Tu avances jusqu’aux concours.",
     ]
 
-    /// `PROGRAM_YEAR_LABELS` de `data/tracks.ts`.
+    /// `PROGRAM_YEAR_LABELS` de `data/tracks.ts` — libellé long, porté par
+    /// `accessibilityLabel` (« Programme de 1re année »).
     static let yearLabels: [Int: String] = [1: "1re année", 2: "2e année"]
+
+    /// Texte visible des onglets d'année (`ProgramYearTabs.tsx:104`) : « 1re »
+    /// / « 2e », jamais le libellé long.
+    static let yearTabTitles: [Int: String] = [1: "1re", 2: "2e"]
+
+    /// `accessibilityHint` de l'onglet de l'année du profil
+    /// (`ProgramYearTabs.tsx:92`).
+    static let yearCurrentHint = "Votre année actuelle"
 
     // MARK: Raccourcis de navigation
 
@@ -156,6 +165,10 @@ enum HecJourneyAdmissionCopy {
     static let schoolNameLabel = "NOM DE L’ÉCOLE"
     static let rankLabel = "TON RANG D’ADMISSION"
     static let rankA11y = "Rang d’admission"
+    /// `placeholder` du champ « NOM DE L’ÉCOLE » (`AdmissionScreen.tsx:216`).
+    static let schoolNamePlaceholder = "Ex. ICN Business School"
+    /// `placeholder` du champ « TON RANG D’ADMISSION » (`AdmissionScreen.tsx:232`).
+    static let rankPlaceholder = "Ex. 42"
     static let save = "ENREGISTRER MON ADMISSION"
     static let saveA11y = "Enregistrer mon admission"
     static let reset = "RÉINITIALISER"

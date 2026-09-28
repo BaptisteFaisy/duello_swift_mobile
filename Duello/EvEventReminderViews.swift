@@ -17,7 +17,7 @@
 //  `useEventReminders`, qui réaligne les rappels à chaque changement de liste.
 //
 //  Notes datées (24/09/2026) :
-//    - Ionicons `notifications-outline` → SF Symbol `bell` ;
+//    - Ionicons `notifications-outline` (17, blanc) rendu par `IonIcon` ;
 //    - `openNotificationSettings` → `ConsentPushActions.openSettings()` (page de
 //      réglages iOS de l'app) ;
 //    - `AppState.addEventListener('change')` → `@Environment(\.scenePhase)` ;
@@ -92,8 +92,7 @@ struct EvEventReminderOptIn: View {
     private var enableButton: some View {
         Button { Task { await enable() } } label: {
             HStack(spacing: 8) {
-                Image(systemName: "bell")
-                    .font(.system(size: 17, weight: .bold))
+                IonIcon(name: "notifications-outline", size: 17, color: Color.white)
                 Text("Me prévenir 10 minutes avant")
                     .font(.system(size: 14, weight: .black))
             }

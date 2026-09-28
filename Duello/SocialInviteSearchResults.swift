@@ -33,9 +33,11 @@ struct SocInviteSearchBar: View {
             searchField
             if showsInviteNewUser {
                 Button { channelsOpen.toggle() } label: {
-                    Image(systemName: channelsOpen ? "chevron.up" : "person.badge.plus")
-                        .font(.system(size: 17, weight: .bold))
-                        .foregroundStyle(Theme.surface)
+                    IonIcon(
+                        name: channelsOpen ? "chevron-up" : "person-add-outline",
+                        size: 20,
+                        color: Theme.white
+                    )
                         .frame(width: 48, height: 48)
                         .background(Theme.ink)
                         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
@@ -52,9 +54,7 @@ struct SocInviteSearchBar: View {
     /// Le champ et sa croix d'effacement.
     private var searchField: some View {
         HStack(spacing: 10) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(Theme.inkSoft)
+            IonIcon(name: "search", size: 19, color: Theme.inkSoft)
             TextField("Invite un ou plusieurs amis…", text: $query)
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(Theme.ink)
@@ -63,9 +63,7 @@ struct SocInviteSearchBar: View {
                 .submitLabel(.search)
             if !query.isEmpty {
                 Button { query = "" } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 15))
-                        .foregroundStyle(Theme.inkFaint)
+                    IonIcon(name: "close-circle", size: 19, color: Theme.inkFaint)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Effacer la recherche")
@@ -97,7 +95,7 @@ struct SocInviteResultsMenu: View {
             if searching {
                 SocInviteMessage(icon: nil, text: "Recherche en cours…", showsSpinner: true, retry: nil)
             } else if let errorMessage {
-                SocInviteMessage(icon: "icloud.slash", text: errorMessage, showsSpinner: false, retry: onRetry)
+                SocInviteMessage(icon: "cloud-offline-outline", text: errorMessage, showsSpinner: false, retry: onRetry)
             } else if profiles.isEmpty {
                 SocInviteMessage(
                     icon: nil,
@@ -162,9 +160,7 @@ struct SocInviteMessage: View {
             if showsSpinner {
                 ProgressView().tint(Theme.ink)
             } else if let icon {
-                Image(systemName: icon)
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(Theme.inkSoft)
+                IonIcon(name: icon, size: 19, color: Theme.inkSoft)
             }
             Text(text)
                 .font(.system(size: 11, weight: .semibold))
@@ -215,9 +211,7 @@ struct SocInviteCandidateRow: View {
                 copy
                 Spacer(minLength: 0)
                 if invited {
-                    Image(systemName: "checkmark.circle")
-                        .font(.system(size: 17))
-                        .foregroundStyle(Theme.ink)
+                    IonIcon(name: "checkmark-circle", size: 19, color: Theme.ink)
                         .accessibilityLabel("Invitation déjà envoyée")
                 }
             }
@@ -245,9 +239,7 @@ struct SocInviteCandidateRow: View {
                     SocInvitePremiumBadge()
                 }
                 if !member.isPublic {
-                    Image(systemName: "lock.fill")
-                        .font(.system(size: 10))
-                        .foregroundStyle(Theme.inkFaint)
+                    IonIcon(name: "lock-closed", size: 11, color: Theme.inkFaint)
                         .accessibilityLabel("Profil privé")
                 }
             }

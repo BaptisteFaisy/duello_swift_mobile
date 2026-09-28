@@ -105,7 +105,14 @@ struct LoginScrScreen: View {
                 footer
             }
         }
+        // `SafeAreaView accessibilityLabel="Écran de connexion"` (`LoginScreen.tsx:401`).
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Écran de connexion")
+        // Fenêtre du code de secours : `Modal animationType="fade"`
+        // (`RecoveryCodeModal.tsx:42`) — fondu à l'apparition et à la
+        // disparition (durée par défaut de la plateforme, 0,3 s).
         .overlay { recoveryOverlay }
+        .animation(.easeInOut(duration: 0.3), value: issued != nil)
         .alert("Biométrie indisponible", isPresented: biometricAlertPresented) {
             Button("OK", role: .cancel) { biometricAlert = nil }
         } message: {
@@ -230,14 +237,16 @@ private extension LoginScrScreen {
             Button {
                 goBack()
             } label: {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 21, weight: .semibold))
-                    .foregroundStyle(LoginScrPalette.onDark)
-                    .frame(width: 40, height: 40)
+                // `BackButton` de la source : zone 44×44 (`LoginScreen.tsx:721-727`),
+                // chevron `chevron-back` 21 blanc, décalé de `translateX -4`
+                // (`BackButton.tsx:93`) pour aligner la pointe sur le bord du
+                // contenu (marge horizontale 22).
+                IonIcon(name: "chevron-back", size: 21, color: LoginScrPalette.onDark)
+                    .frame(width: 44, height: 44)
                     .contentShape(Rectangle())
             }
             .buttonStyle(LoginScrPressStyle(pressedOpacity: 0.6, pressedScale: 1))
-            .offset(x: -12)
+            .offset(x: -4)
             .accessibilityLabel("Revenir en arrière")
 
             Spacer(minLength: 0)
@@ -341,7 +350,7 @@ private extension LoginScrScreen {
             props: LoginScrFieldProps(
                 label: LoginScrCopy.emailLabel,
                 placeholder: LoginScrCopy.emailPlaceholder,
-                icon: "envelope",
+                icon: "mail-outline",
                 keyboard: .emailAddress,
                 whiteBorder: true
             ),
@@ -355,7 +364,7 @@ private extension LoginScrScreen {
             props: LoginScrFieldProps(
                 label: LoginScrCopy.recoveryCodeLabel,
                 placeholder: AcctSecRecoveryCodePolicy.placeholder,
-                icon: "key",
+                icon: "key-outline",
                 autocapitalization: .characters
             ),
             text: $recoveryCode,
@@ -368,7 +377,7 @@ private extension LoginScrScreen {
             props: LoginScrFieldProps(
                 label: passwordLabel,
                 placeholder: passwordPlaceholder,
-                icon: "key",
+                icon: "key-outline",
                 isSecure: !showPassword,
                 whiteBorder: true,
                 trailing: AnyView(LoginScrRevealToggle(isRevealed: $showPassword))
@@ -383,7 +392,7 @@ private extension LoginScrScreen {
             props: LoginScrFieldProps(
                 label: LoginScrCopy.confirmLabel,
                 placeholder: LoginScrCopy.confirmPlaceholder,
-                icon: "checkmark.shield",
+                icon: "shield-checkmark-outline",
                 isSecure: !showPassword
             ),
             text: $passwordConfirmation,
@@ -442,6 +451,7 @@ private extension LoginScrScreen {
                     }
                 }
             }
+            .transition(.opacity)
         }
     }
 }

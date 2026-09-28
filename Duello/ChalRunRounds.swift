@@ -100,15 +100,15 @@ struct ChalRunRounds: View {
     var onVerdict: (DuelVerdict) -> Void
     /// Appelé pour abandonner le défi sans gagner d'XP.
     var onAbandon: () -> Void
-    /// Appelé pour ne pas attendre l'adversaire (défi non arbitré).
-    var onStopWaiting: () -> Void
 
     @State private var now: Double = Date().timeIntervalSince1970 * 1000
     @State private var isSubmitting = false
-    @State private var didAutoSubmit = false
     @State private var notice: String?
     @State private var waitingDeadline: Double?
     @State private var gradeTask: Task<Void, Never>?
+    /// Fenêtre Premium ouverte quand le quota de corrections est épuisé
+    /// (`paywallVisible` de la source).
+    @State private var paywallVisible = false
 
     // `let` et non `var` : une propriété stockée `private var` dotée d'une valeur
     // initiale entre dans l'initialiseur membre-à-membre, ce qui rend celui-ci
@@ -144,13 +144,13 @@ struct ChalRunRounds: View {
                     .frame(maxWidth: .infinity, alignment: .center)
                 if startedPenalty > 0 {
                     ChalRunNotice(
-                        icon: "exclamationmark.circle",
+                        icon: "alert-circle-outline",
                         text: "Tu avais déjà commencé cet exercice : ta note finale aura une pénalité de \(startedPenalty) points."
                     )
                 }
                 if opponentStartedBonus > 0 {
                     ChalRunNotice(
-                        icon: "plus.circle",
+                        icon: "add-circle-outline",
                         text: "Ton adversaire avait déjà commencé cet exercice : ta note finale recevra un bonus de \(opponentStartedBonus) points."
                     )
                 }
@@ -167,6 +167,11 @@ struct ChalRunRounds: View {
         .background(Theme.background)
         .onReceive(timer) { _ in tick() }
         .onDisappear { gradeTask?.cancel() }
+        // Quota épuisé : la fenêtre Premium s'ouvre par-dessus la copie
+        // (`PaywallModal`, `paywallVisible` de la source).
+        .sheet(isPresented: $paywallVisible) {
+            PremPaywallSheet(token: session.token, onClose: { paywallVisible = false })
+        }
     }
 
     // MARK: Énoncé et réponse
@@ -270,8 +275,7 @@ struct ChalRunRounds: View {
                 if isSubmitting {
                     ProgressView().tint(Theme.surface)
                 } else {
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 18, weight: .semibold))
+                    IonIcon(name: "sparkles-outline", size: 18, color: Theme.white)
                 }
                 Text(isSubmitting ? submitProgressTitle : state.submitTitle(timeIsUp: timeIsUp))
             }
@@ -296,7 +300,7 @@ struct ChalRunRounds: View {
 
     private var cancelButton: some View {
         Button {
-            waitingDeadline == nil ? onAbandon() : onStopWaiting()
+            waitingDeadline == nil ? onAbandon() : stopWaiting()
         } label: {
             Text(waitingDeadline == nil ? "Abandonner sans gagner d’XP" : "Ne pas attendre — défi non arbitré")
                 .font(.system(size: 11, weight: .bold))
@@ -311,13 +315,16 @@ struct ChalRunRounds: View {
 
     private func tick() {
         now = Date().timeIntervalSince1970 * 1000
-        guard state.submittedAt == nil, !isSubmitting else { return }
-        if timeIsUp && !didAutoSubmit {
-            // La fin du temps explique qu'une copie reste inachevée : elle part
-            // quand même, le barème note l'avancement réel.
-            didAutoSubmit = true
-            submit()
-        }
+        // La fin du temps n'envoie **rien** toute seule : `handleTimeUp` de la
+        // source ne fait que `setTimeIsUp(true)`. C'est le joueur qui appuie,
+        // le libellé du bouton devenant « Temps écoulé — faire noter ».
+    }
+
+    /// « Ne pas attendre — défi non arbitré » : interrompt l'attente de la copie
+    /// adverse (`opponentWait.current?.abort()`). Le verdict se résout alors
+    /// localement, en défi non arbitré, et le bilan s'affiche.
+    private func stopWaiting() {
+        gradeTask?.cancel()
     }
 
     private func submit() {
@@ -350,11 +357,13 @@ struct ChalRunRounds: View {
                 )
                 await MainActor.run { onVerdict(verdict) }
             } catch let quota as DuelQuotaError {
-                // Le quota est un refus produit : la copie reste rédigée, le
-                // joueur peut réessayer au prochain créneau.
+                // Le quota est un refus produit : la copie reste rédigée, la
+                // fenêtre Premium s'ouvre (le joueur peut réessayer au prochain
+                // créneau ou s'abonner).
                 let message = quota.message
                 await MainActor.run {
                     notice = message
+                    paywallVisible = true
                     state.submittedAt = nil
                     isSubmitting = false
                 }
@@ -444,9 +453,7 @@ struct ChalRunNotice: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(Theme.ink)
+            IonIcon(name: icon, size: 20, color: Theme.ink)
             Text(text)
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(Theme.inkSoft)

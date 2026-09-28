@@ -71,9 +71,7 @@ struct SocInviteSelectedChip: View {
                 .foregroundStyle(Theme.ink)
                 .lineLimit(1)
             Button(action: onRemove) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(Theme.inkSoft)
+                IonIcon(name: "close", size: 14, color: Theme.inkSoft)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -100,17 +98,13 @@ struct SocInviteChapterTrigger: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 10) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Theme.inkSoft)
+                IonIcon(name: "search", size: 17, color: Theme.inkSoft)
                 Text(summary)
                     .font(.system(size: 14, weight: hasSelection ? .heavy : .semibold))
                     .foregroundStyle(hasSelection ? Theme.ink : Theme.inkFaint)
                     .lineLimit(1)
                 Spacer(minLength: 0)
-                Image(systemName: isOpen ? "chevron.up" : "chevron.down")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(Theme.inkSoft)
+                IonIcon(name: isOpen ? "chevron-up" : "chevron-down", size: 19, color: Theme.inkSoft)
             }
             .padding(.horizontal, 13)
             .frame(minHeight: 48)
@@ -246,9 +240,7 @@ struct SocInviteChaptersMenu: View {
         let checked = selectedKeys.contains(chapter.key)
         return Button { onToggle(chapter) } label: {
             HStack(spacing: 9) {
-                Image(systemName: checked ? "checkmark.square.fill" : "square")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(checked ? Theme.ink : Theme.inkFaint)
+                IonIcon(name: checked ? "checkbox" : "square-outline", size: 19, color: checked ? Theme.ink : Theme.inkFaint)
                 Text(chapterLabel(chapter))
                     .font(.system(size: 10, weight: checked ? .heavy : .semibold))
                     .foregroundStyle(checked ? Theme.ink : Theme.inkSoft)

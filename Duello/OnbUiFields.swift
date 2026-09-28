@@ -140,9 +140,13 @@ struct OnbUiField<Trailing: View>: View {
 
             HStack(alignment: props.multiline ? .top : .center, spacing: 10) {
                 if let icon = props.icon {
-                    Image(systemName: icon)
-                        .font(.system(size: 17, weight: .medium))
-                        .foregroundStyle(props.dark ? Color(white: 0.72) : Theme.inkSoft)
+                    // `Ionicons name={icon} size={20}` (source, `Field`) : le
+                    // glyphe est rendu tel quel, pas un substitut SF Symbol.
+                    IonIcon(
+                        name: icon,
+                        size: 20,
+                        color: props.dark ? Color(white: 0.72) : Theme.inkSoft
+                    )
                 }
                 inputField
                 trailing()
@@ -162,10 +166,12 @@ struct OnbUiField<Trailing: View>: View {
         }
     }
 
-    /// Couleur de bordure : bord clair, bord blanc forcé, ou bord invité.
+    /// Couleur de bordure : bord blanc forcé, sinon bord invité, sinon bord
+    /// clair. La source applique `whiteFieldBorder` **après** `guestFieldShell`
+    /// (`OnboardingScreen.tsx:1730-1734`) : le blanc l'emporte sur le sombre.
     private var borderColor: Color {
-        if props.dark { return Color(red: 0x3A / 255, green: 0x3A / 255, blue: 0x3A / 255) }
         if props.whiteBorder { return .white }
+        if props.dark { return Color(red: 0x3A / 255, green: 0x3A / 255, blue: 0x3A / 255) }
         return Theme.border
     }
 
@@ -219,9 +225,8 @@ struct OnbUiProviderAccountSummary: View {
         HStack(spacing: 12) {
             ZStack {
                 Circle().fill(dark ? Color.white : Theme.progress)
-                Image(systemName: "checkmark")
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundStyle(dark ? Color.black : Color.white)
+                // `checkmark`, 21 (source, `ProviderAccountSummary`).
+                IonIcon(name: "checkmark", size: 21, color: dark ? Color.black : Color.white)
             }
             .frame(width: 36, height: 36)
 

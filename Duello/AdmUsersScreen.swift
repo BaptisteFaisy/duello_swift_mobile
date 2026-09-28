@@ -64,12 +64,17 @@ struct AdmUsersScreen: View {
     @ViewBuilder
     private var content: some View {
         if isLoading {
-            AdmStateCard(icon: "hourglass", message: "Chargement des comptes…", isLoading: true)
+            AdmStateCard(
+                icon: "hourglass-outline",
+                message: "Chargement des comptes…",
+                isLoading: true,
+                showsIconWhenLoading: true
+            )
         } else if !errorMessage.isEmpty {
-            AdmStateCard(icon: "exclamationmark.circle", message: errorMessage)
+            AdmStateCard(icon: "alert-circle-outline", message: errorMessage)
         } else if visibleUsers.isEmpty {
             AdmStateCard(
-                icon: "person.2",
+                icon: "people-outline",
                 message: query.isEmpty
                     ? "Aucun utilisateur inscrit."
                     : "Aucun utilisateur ne correspond."
@@ -110,19 +115,19 @@ struct AdmUsersScreen: View {
                         .foregroundStyle(Theme.ink)
                         .lineLimit(1)
                     Text(AdmUserText.path(for: user))
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.system(size: 11, weight: .regular))
                         .foregroundStyle(Theme.inkSoft)
                         .lineLimit(1)
                     Text(metaText(user))
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(.system(size: 9, weight: .regular))
                         .foregroundStyle(Theme.inkFaint)
                         .lineLimit(1)
+                        .padding(.top, 2)
                 }
                 Spacer(minLength: 8)
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(Theme.inkFaint)
+                IonIcon(name: "chevron-forward", size: 20, color: Theme.inkFaint)
             }
+            .frame(minHeight: 84)
             .padding(14)
             .background(Theme.surface)
             .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
@@ -130,10 +135,10 @@ struct AdmUsersScreen: View {
                 RoundedRectangle(cornerRadius: Theme.radiusLarge)
                     .stroke(Theme.border, lineWidth: 1)
             )
+            .admCardShadow()
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(user.displayName.isEmpty ? "Utilisateur sans nom" : user.displayName)
     }
 
     /// « 2 h 05 · dernière activité 12 sept. 2026 à 14:30 ».

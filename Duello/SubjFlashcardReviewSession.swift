@@ -193,10 +193,21 @@ struct SubjFlashcardReviewModal: View {
             onBackspace: {
                 response = SubjFlashcardMathEditing.deleteLast(response)
             },
-            onClose: { mathKeyboardOpen = false }
+            onClose: { mathKeyboardOpen = false },
+            suggestions: mathSuggestions
         )
         .padding(.top, SubjFlashcardReviewMetrics.mathKeyboardTop)
         .padding(.horizontal, -SubjFlashcardReviewMetrics.horizontalPadding)
+    }
+
+    /// Touches proposées pour la carte ouverte (`suggestMathKeys`) : les
+    /// symboles de son énoncé et de son verso, puis l'alphabet de son chapitre.
+    private var mathSuggestions: [MathKbKey] {
+        KbSupSuggestions.suggest(KbSupInput(
+            statement: card.question,
+            expectedAnswer: card.answer,
+            chapterId: chapterId
+        ))
     }
 
     // MARK: Bilan

@@ -14,16 +14,23 @@ struct ComposerBar: View {
 
     var body: some View {
         HStack(alignment: .bottom, spacing: 9) {
-            TextField(placeholder, text: $text, axis: .vertical)
+            TextField("", text: $text, axis: .vertical)
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(Theme.ink)
                 .lineLimit(1...5)
                 .padding(.vertical, 9)
+                .frame(minHeight: 38, alignment: .leading)
+                .overlay(alignment: .leading) {
+                    if text.isEmpty {
+                        Text(placeholder)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(Theme.inkFaint)
+                            .allowsHitTesting(false)
+                    }
+                }
 
             Button(action: onSend) {
-                Image(systemName: "arrow.up")
-                    .font(.system(size: 17, weight: .bold))
-                    .foregroundStyle(Theme.surface)
+                IonIcon(name: "arrow-up", size: 19, color: Theme.surface)
                     .frame(width: 40, height: 40)
                     .background(Theme.ink)
                     .clipShape(RoundedRectangle(cornerRadius: 15))

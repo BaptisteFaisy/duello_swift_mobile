@@ -18,6 +18,58 @@
 //
 import SwiftUI
 
+/// Disposition enroulée (`chartFilters`, `flexWrap: 'wrap'`, `gap: 7`) : les
+/// puces de matière passent à la ligne suivante quand la largeur manque, au
+/// lieu de déborder du cadre.
+struct AcctShowWrapLayout: Layout {
+    /// Espacement horizontal et vertical entre les puces.
+    var spacing: CGFloat = 7
+
+    func sizeThatFits(
+        proposal: ProposedViewSize,
+        subviews: Subviews,
+        cache: inout ()
+    ) -> CGSize {
+        let maxWidth = proposal.width ?? .infinity
+        var x: CGFloat = 0
+        var y: CGFloat = 0
+        var rowHeight: CGFloat = 0
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if x > 0, x + size.width > maxWidth {
+                x = 0
+                y += rowHeight + spacing
+                rowHeight = 0
+            }
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
+        }
+        return CGSize(width: maxWidth.isFinite ? maxWidth : max(0, x - spacing), height: y + rowHeight)
+    }
+
+    func placeSubviews(
+        in bounds: CGRect,
+        proposal: ProposedViewSize,
+        subviews: Subviews,
+        cache: inout ()
+    ) {
+        var x = bounds.minX
+        var y = bounds.minY
+        var rowHeight: CGFloat = 0
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if x > bounds.minX, x + size.width > bounds.maxX {
+                x = bounds.minX
+                y += rowHeight + spacing
+                rowHeight = 0
+            }
+            subview.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
+        }
+    }
+}
+
 /// Section « Évolution de l’XP » de la vitrine (`AccountScreen.tsx`,
 /// l. 2918-3025).
 struct AcctShowXpSeriesSection: View {
@@ -38,11 +90,12 @@ struct AcctShowXpSeriesSection: View {
 
     var body: some View {
         AcctShowSectionCard(
-            icon: "sparkles",
+            icon: "sparkles-outline",
             iconColor: ChartGoogleGColors.blue,
             title: "Évolution de l’XP",
             subtitle: subtitle,
-            trailing: pill
+            trailing: pill,
+            topPadding: 12
         ) {
             content
         }
@@ -77,7 +130,7 @@ struct AcctShowXpSeriesSection: View {
                 ChartXpChart(points: points, granularity: granularity)
             }
         } else {
-            AcctShowChartEmpty(icon: "sparkles", message: emptyMessage)
+            AcctShowChartEmpty(icon: "sparkles-outline", message: emptyMessage)
         }
     }
 
@@ -111,7 +164,7 @@ struct AcctShowEloSeriesSection: View {
 
     var body: some View {
         AcctShowSectionCard(
-            icon: "trophy",
+            icon: "trophy-outline",
             iconColor: ChartGoogleGColors.green,
             title: "Évolution de l’Elo",
             subtitle: subtitle,
@@ -154,7 +207,7 @@ struct AcctShowEloSeriesSection: View {
                     ChartEloChart(points: points, granularity: granularity)
                 } else {
                     AcctShowChartEmpty(
-                        icon: "chart.line.uptrend.xyaxis",
+                        icon: "trending-up-outline",
                         message: emptyMessage
                     )
                 }
@@ -163,9 +216,9 @@ struct AcctShowEloSeriesSection: View {
     }
 
     /// Filtres de matière (`chartFilters`) : « Toutes » puis une puce par
-    /// matière publiée.
+    /// matière publiée ; retour à la ligne quand la largeur manque.
     private var subjectFilters: some View {
-        HStack(spacing: 7) {
+        AcctShowWrapLayout(spacing: 7) {
             chip(nil)
             ForEach(subjects, id: \.self) { subject in
                 chip(subject)
@@ -207,7 +260,7 @@ struct AcctShowGradeSeriesSection: View {
 
     var body: some View {
         AcctShowSectionCard(
-            icon: "chart.bar.xaxis",
+            icon: "analytics-outline",
             iconColor: ChartGoogleGColors.yellow,
             title: "Évolution des notes",
             subtitle: nil,
@@ -228,13 +281,13 @@ struct AcctShowGradeSeriesSection: View {
 
     @ViewBuilder
     private var content: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            AcctShowGranularityTabs(value: granularity) { granularity = $0 }
-            if !points.isEmpty {
+        if !points.isEmpty {
+            VStack(alignment: .leading, spacing: 0) {
+                AcctShowGranularityTabs(value: granularity) { granularity = $0 }
                 ChartCorrectionGradeChart(points: points, granularity: granularity)
-            } else {
-                AcctShowChartEmpty(icon: "chart.bar.xaxis", message: emptyMessage)
             }
+        } else {
+            AcctShowChartEmpty(icon: "analytics-outline", message: emptyMessage)
         }
     }
 
@@ -253,12 +306,15 @@ struct AcctShowTimeSeriesSection: View {
     let buckets: [ChartTimeBucket]
     /// Période affichée, liée à l'état de l'écran.
     @Binding var granularity: ChartTimeGranularity
+    /// Vrai quand le profil a du temps d'entraînement (`hasTrainingTime`,
+    /// `viewedActivity.exerciseMinutes > 0`) : pilote l'affichage de la courbe.
+    var hasTrainingTime: Bool = false
     /// Vrai lorsque la vitrine affiche le profil d'un autre membre.
     var isMember: Bool = false
 
     var body: some View {
         AcctShowSectionCard(
-            icon: "timer",
+            icon: "timer-outline",
             iconColor: ChartGoogleGColors.red,
             title: "Évolution du temps",
             subtitle: nil,
@@ -270,20 +326,20 @@ struct AcctShowTimeSeriesSection: View {
 
     @ViewBuilder
     private var content: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            AcctShowGranularityTabs(value: granularity) { granularity = $0 }
-            if !buckets.isEmpty {
+        if hasTrainingTime {
+            VStack(alignment: .leading, spacing: 0) {
+                AcctShowGranularityTabs(value: granularity) { granularity = $0 }
                 ChartSubjectTimeTrendChart(buckets: buckets, granularity: granularity)
-            } else {
-                AcctShowChartEmpty(icon: "timer", message: emptyMessage)
             }
+        } else {
+            AcctShowChartEmpty(icon: "timer-outline", message: emptyMessage)
         }
     }
 
     /// Explique ce qui déclenchera la courbe (`chartEmptyText`).
     private var emptyMessage: String {
         isMember
-            ? "Sa courbe démarrera dès son premier exercice, défi ou flashcard."
+            ? "Aucun temps d’entraînement publié pour le moment."
             : "Ta courbe démarrera dès ton premier exercice, défi ou flashcard."
     }
 }

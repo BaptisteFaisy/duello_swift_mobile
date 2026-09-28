@@ -32,19 +32,24 @@ enum DictAccess: String {
 enum DictPolicy {
     /// Résout l'accès à la dictée selon la plateforme et les demandes de permission.
     ///
-    /// La source rattrape toute exception et rend `denied` : l'appelant passe des
-    /// demandes non lancantes et traduit un échec en `false`.
+    /// La source rattrape toute exception et rend `denied`
+    /// (`try { … } catch { return 'denied' }`) : une demande qui échoue est donc
+    /// refusée, jamais propagée.
     static func resolveAccess(
         isWeb: Bool,
         recognitionAvailable: () -> Bool,
-        requestWebMicrophonePermission: () async -> Bool,
-        requestNativeSpeechPermission: () async -> Bool
+        requestWebMicrophonePermission: () async throws -> Bool,
+        requestNativeSpeechPermission: () async throws -> Bool
     ) async -> DictAccess {
-        if isWeb && !recognitionAvailable() { return .unavailable }
-        let granted = isWeb
-            ? await requestWebMicrophonePermission()
-            : await requestNativeSpeechPermission()
-        return granted ? .granted : .denied
+        do {
+            if isWeb && !recognitionAvailable() { return .unavailable }
+            let granted = isWeb
+                ? try await requestWebMicrophonePermission()
+                : try await requestNativeSpeechPermission()
+            return granted ? .granted : .denied
+        } catch {
+            return .denied
+        }
     }
 
     /// Bloque les hallucinations dans un alphabet étranger au produit.

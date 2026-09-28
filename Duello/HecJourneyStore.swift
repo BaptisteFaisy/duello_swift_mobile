@@ -28,9 +28,11 @@ final class HecJourneyStore: ObservableObject {
 
     private let defaults: UserDefaults
 
-    private static let timelinePrefix = "com.duello.ios.hec-journey.timeline."
-    private static let admissionKey = "com.duello.ios.hec-journey.admission"
-    private static let registrationKey = "com.duello.ios.hec-journey.registration-date"
+    private static let timelinePrefix = "prepapp-hec-journey-timeline:v2:"
+    private static let admissionKey = "prepapp-hec-journey-admission:v1"
+    /// Clé propre à Swift : l'origine de la frise n'est pas encore le
+    /// `createdAt` du compte (voir #2), elle est mémorisée à part.
+    private static let registrationKey = "prepapp-hec-journey-registration-date:v1"
 
     init(programYear: Int = 1, registeredAt: Date? = nil, defaults: UserDefaults = .standard) {
         self.defaults = defaults

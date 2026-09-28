@@ -7,7 +7,7 @@
 //
 //  Fichier source Expo porté : src/admin/AdminAnalyticsScreen.tsx (panneaux
 //  `Temps actif quotidien`, `Temps passé par page`, `Utilisateurs les plus
-//  engagés`). Les libellés sont repris mot pour mot.
+//  engagés`). Les libellés et les mesures sont repris mot pour mot.
 //
 //  Cible : iOS 16. Aucune dépendance externe.
 //
@@ -21,36 +21,41 @@ struct AdmDailyActivityPanel: View {
     let range: AdmAnalyticsRange
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .top, spacing: 8) {
-                VStack(alignment: .leading, spacing: 3) {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text("Temps actif quotidien")
-                        .font(.system(size: 15, weight: .black))
+                        .font(.system(size: 17, weight: .black))
                         .foregroundStyle(Theme.ink)
                     Text("Cumul de tous les utilisateurs · 14 derniers jours maximum")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(Theme.inkFaint)
+                        .font(.system(size: 10, weight: .regular))
+                        .foregroundStyle(Theme.inkSoft)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                Spacer(minLength: 8)
+                Spacer(minLength: 0)
                 Text(AdmFormat.durationMinutes(totalSeconds))
-                    .font(.system(size: 14, weight: .black))
+                    .font(.system(size: 15, weight: .black))
                     .foregroundStyle(Theme.ink)
             }
             chart
+                .padding(.top, 18)
             Text("Le nombre au-dessus de chaque barre indique les utilisateurs actifs.")
-                .font(.system(size: 10, weight: .semibold))
+                .font(.system(size: 9, weight: .regular))
                 .foregroundStyle(Theme.inkFaint)
+                .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity)
+                .padding(.top, 10)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(17)
+        .padding(18)
         .background(Theme.surface)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
         .overlay(
             RoundedRectangle(cornerRadius: Theme.radiusLarge)
                 .stroke(Theme.border, lineWidth: 1)
         )
+        .admCardShadow()
     }
 
     /// `summary.days.slice(-Math.min(14, range))`.
@@ -64,7 +69,7 @@ struct AdmDailyActivityPanel: View {
     }
 
     private var chart: some View {
-        HStack(alignment: .bottom, spacing: 6) {
+        HStack(alignment: .bottom, spacing: 4) {
             ForEach(visibleDays) { day in
                 column(day)
             }
@@ -72,35 +77,43 @@ struct AdmDailyActivityPanel: View {
     }
 
     private func column(_ day: AdmAnalyticsDay) -> some View {
-        VStack(spacing: 6) {
-            // Le source écrit `day.activeUsers || ''` ; une espace garde ici la
-            // hauteur de la colonne sans chiffre, la barre restant alignée.
-            Text(day.activeUsers > 0 ? "\(day.activeUsers)" : " ")
-                .font(.system(size: 9, weight: .heavy))
-                .foregroundStyle(Theme.inkSoft)
-            ZStack(alignment: .bottom) {
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(Theme.surfaceMuted)
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(Theme.primary)
-                    .frame(height: barHeight(day))
+        VStack(spacing: 0) {
+            // `day.activeUsers || ''` : une colonne sans chiffre garde la même
+            // hauteur de bandeau (`height: 18` de la source).
+            Text(day.activeUsers > 0 ? "\(day.activeUsers)" : "")
+                .font(.system(size: 8, weight: .heavy))
+                .foregroundStyle(Theme.inkFaint)
+                .frame(height: 18)
+            GeometryReader { geo in
+                ZStack(alignment: .bottom) {
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(Theme.surfaceMuted)
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(Theme.ink)
+                        .frame(height: barHeight(day, trackHeight: geo.size.height))
+                }
+                // `chartTrack width: '72%'` : la barre n'occupe que 72 % de la
+                // colonne, centrée.
+                .frame(width: geo.size.width * 0.72)
+                .frame(maxWidth: .infinity)
             }
-            .frame(height: 120)
+            .frame(height: 136)
             Text(AdmFormat.shortDate(day.date))
-                .font(.system(size: 8, weight: .semibold))
+                .font(.system(size: 7, weight: .regular))
                 .foregroundStyle(Theme.inkFaint)
                 .lineLimit(1)
-                .minimumScaleFactor(0.7)
+                .frame(maxWidth: .infinity)
+                .padding(.top, 7)
         }
         .frame(maxWidth: .infinity)
     }
 
-    /// Hauteur de la barre, avec un minimum visible de 6 points dès qu'il y a
-    /// de l'activité (le source garantit 5 % de la hauteur de piste).
-    private func barHeight(_ day: AdmAnalyticsDay) -> CGFloat {
-        let fraction = maxSeconds > 0 ? day.activeSeconds / maxSeconds : 0
-        let proportional = CGFloat(fraction) * 120
-        return max(day.activeSeconds > 0 ? 6 : 0, proportional)
+    /// `Math.max(activeSeconds > 0 ? 5 : 0, round(activeSeconds / max * 100))` %.
+    private func barHeight(_ day: AdmAnalyticsDay, trackHeight: CGFloat) -> CGFloat {
+        guard day.activeSeconds > 0, maxSeconds > 0 else { return 0 }
+        let fraction = day.activeSeconds / maxSeconds
+        let percent = max(0.05, (fraction * 100).rounded() / 100)
+        return CGFloat(min(1, percent)) * trackHeight
     }
 }
 
@@ -110,28 +123,31 @@ struct AdmPageTimePanel: View {
     let pageVisits: [AdmUsagePage: Int]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 0) {
             Text("Temps passé par page")
-                .font(.system(size: 15, weight: .black))
+                .font(.system(size: 17, weight: .black))
                 .foregroundStyle(Theme.ink)
             Text("Durée au premier plan, hors application inactive.")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(Theme.inkFaint)
+                .font(.system(size: 10, weight: .regular))
+                .foregroundStyle(Theme.inkSoft)
                 .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 4)
             VStack(spacing: 17) {
                 ForEach(AdmUsagePage.allCases) { page in
                     row(page)
                 }
             }
+            .padding(.top, 18)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(17)
+        .padding(18)
         .background(Theme.surface)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
         .overlay(
             RoundedRectangle(cornerRadius: Theme.radiusLarge)
                 .stroke(Theme.border, lineWidth: 1)
         )
+        .admCardShadow()
     }
 
     private var totalSeconds: Double {
@@ -143,16 +159,16 @@ struct AdmPageTimePanel: View {
         let visits = pageVisits[page] ?? 0
         let share = totalSeconds > 0 ? seconds / totalSeconds : 0
         return VStack(spacing: 8) {
-            HStack(spacing: 8) {
+            HStack(spacing: 10) {
                 Text(page.label)
                     .font(.system(size: 12, weight: .heavy))
                     .foregroundStyle(Theme.ink)
-                Spacer(minLength: 8)
+                Spacer(minLength: 0)
                 Text("\(AdmFormat.durationMinutes(seconds)) · \(visits) visites")
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(.system(size: 10, weight: .regular))
                     .foregroundStyle(Theme.inkSoft)
             }
-            DuelloProgressTrack(fraction: share, tint: Theme.primary, height: 7)
+            AdmProgressTrack(fraction: share, tint: Theme.ink, height: 8)
         }
     }
 }
@@ -162,57 +178,67 @@ struct AdmTopUsersPanel: View {
     let users: [AdmTopUser]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 0) {
             Text("Utilisateurs les plus engagés")
-                .font(.system(size: 15, weight: .black))
+                .font(.system(size: 17, weight: .black))
                 .foregroundStyle(Theme.ink)
             Text("Classement sur la période sélectionnée.")
-                .font(.system(size: 11, weight: .semibold))
+                .font(.system(size: 10, weight: .regular))
                 .foregroundStyle(Theme.inkFaint)
+                .padding(.top, 4)
             if users.isEmpty {
                 Text("Pas encore d’activité sur cette période.")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.system(size: 12, weight: .regular))
                     .foregroundStyle(Theme.inkSoft)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.vertical, 10)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 18)
             } else {
                 VStack(spacing: 0) {
                     ForEach(users.indices, id: \.self) { index in
                         row(users[index], rank: index + 1)
                     }
                 }
+                .padding(.top, 12)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(17)
+        .padding(18)
         .background(Theme.surface)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
         .overlay(
             RoundedRectangle(cornerRadius: Theme.radiusLarge)
                 .stroke(Theme.border, lineWidth: 1)
         )
+        .admCardShadow()
     }
 
+    /// `userRow` : trait sous **chaque** compte (`borderBottomWidth: 1`).
     private func row(_ user: AdmTopUser, rank: Int) -> some View {
         HStack(spacing: 12) {
             Text("\(rank)")
-                .font(.system(size: 13, weight: .black))
+                .font(.system(size: 11, weight: .black))
                 .foregroundStyle(Theme.inkFaint)
-                .frame(width: 20, alignment: .leading)
-            VStack(alignment: .leading, spacing: 2) {
+                .frame(width: 22, alignment: .leading)
+            VStack(alignment: .leading, spacing: 3) {
                 Text(user.displayName)
-                    .font(.system(size: 13, weight: .heavy))
+                    .font(.system(size: 12, weight: .black))
                     .foregroundStyle(Theme.ink)
                     .lineLimit(1)
                 Text("\(user.exercises) exercices terminés")
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(.system(size: 9, weight: .regular))
                     .foregroundStyle(Theme.inkFaint)
             }
-            Spacer(minLength: 8)
+            Spacer(minLength: 0)
             Text(AdmFormat.durationMinutes(user.activeSeconds))
-                .font(.system(size: 12, weight: .black))
+                .font(.system(size: 11, weight: .black))
                 .foregroundStyle(Theme.ink)
         }
-        .frame(minHeight: 52)
+        .frame(minHeight: 54)
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(Theme.border)
+                .frame(height: 1)
+        }
     }
 }

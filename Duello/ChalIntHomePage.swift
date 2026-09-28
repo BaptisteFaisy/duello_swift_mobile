@@ -48,33 +48,39 @@ struct ChalIntHomePage: View {
     var onEnter: () -> Void
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                ChalHome2HomeNotices(
-                    playable: playable,
-                    launchError: launchError
-                )
-                .padding(.horizontal, 20)
+        GeometryReader { geo in
+            ScrollView {
+                VStack(spacing: 0) {
+                    ChalHome2HomeNotices(
+                        playable: playable,
+                        launchError: launchError
+                    )
 
-                ChalHomeActions(
-                    badgeURL: badgeURL,
-                    leagueLabel: leagueLabel,
-                    wins: wins,
-                    losses: losses,
-                    disabled: disabled,
-                    showKindActions: true,
-                    onOpenExercise: onOpenExercise,
-                    onOpenCourse: onOpenCourse
-                )
+                    ChalHomeActions(
+                        badgeURL: badgeURL,
+                        leagueLabel: leagueLabel,
+                        wins: wins,
+                        losses: losses,
+                        disabled: disabled,
+                        showKindActions: true,
+                        onOpenExercise: onOpenExercise,
+                        onOpenCourse: onOpenCourse
+                    )
 
-                // Le retour d'invitation vient **après** la carte d'accueil,
-                // comme la source (`queue.inviteOutcome`).
-                if let inviteOutcome = queue.inviteOutcome {
-                    ChalHome2InviteOutcomeCard(outcome: inviteOutcome)
-                        .padding(.horizontal, 20)
+                    // Le retour d'invitation vient **après** la carte d'accueil,
+                    // comme la source (`queue.inviteOutcome`).
+                    if let inviteOutcome = queue.inviteOutcome {
+                        ChalHome2InviteOutcomeCard(outcome: inviteOutcome)
+                    }
                 }
+                // `scrollContent` (20 / 8 / 34) et `challengeHomeContent`
+                // (`flexGrow: 1`) : le contenu remplit la fenêtre pour que la
+                // zone de défi (`challengeHomeAction`, `flex: 1`) s'y étende.
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+                .padding(.bottom, 34)
+                .frame(minHeight: geo.size.height, alignment: .top)
             }
-            .padding(.bottom, 24)
         }
     }
 }

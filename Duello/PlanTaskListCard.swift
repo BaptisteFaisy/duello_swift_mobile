@@ -44,13 +44,18 @@ struct PlanTaskRow: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel(task.isDone ? "Marquer comme à faire" : "Marquer comme faite")
 
-                DuelloListRow(
-                    title: task.title,
-                    subtitle: deadlineText,
-                    icon: PlanSubjects.visual(for: task.subject).icon,
-                    trailing: durationText,
-                    showsChevron: false
-                )
+                HStack(spacing: 12) {
+                    // Icône de matière exacte du RN, rendue avec la police
+                    // Ionicons (`IonIcon`) : le nom vient de `PlanSubjects`.
+                    IonIcon(name: PlanSubjects.visual(for: task.subject).icon, size: 15, color: Theme.inkSoft)
+                        .frame(width: 28)
+                    DuelloListRow(
+                        title: task.title,
+                        subtitle: deadlineText,
+                        trailing: durationText,
+                        showsChevron: false
+                    )
+                }
 
                 if task.isDone {
                     DuelloPill(text: "Fait", tone: .success, icon: "checkmark")

@@ -26,15 +26,15 @@ enum SubjTrainingMode: String, CaseIterable, Identifiable {
         }
     }
 
-    /// Icône de l'onglet : les Ionicons d'origine sont transposés en SF Symbols
-    /// (`TRAINING_MODES[].icon`).
-    var systemImage: String {
+    /// Icône de l'onglet : les Ionicons de la source (`TRAINING_MODES[].icon`),
+    /// rendus par `IonIcon` (glyphes identiques au RN).
+    var ionName: String {
         switch self {
-        case .cours: return "book"
-        case .exercices: return "dumbbell"
-        case .colles: return "bubble.left.and.bubble.right"
-        case .annales: return "books.vertical"
-        case .dissertations: return "square.and.pencil"
+        case .cours: return "book-outline"
+        case .exercices: return "barbell-outline"
+        case .colles: return "chatbubble-ellipses-outline"
+        case .annales: return "library-outline"
+        case .dissertations: return "create-outline"
         }
     }
 
@@ -84,7 +84,7 @@ struct SubjTrainingModeOption: Identifiable, Hashable {
 
     var id: String { mode.rawValue }
     var label: String { mode.label }
-    var systemImage: String { mode.systemImage }
+    var ionName: String { mode.ionName }
 }
 
 /// `TRAINING_MODES` : toutes les options, dans l'ordre de l'app Expo, et le
@@ -208,17 +208,19 @@ struct SubjTrainingModeTabs: View {
             displayedMode = option.mode
             onSelect(option.mode)
         } label: {
-            HStack(spacing: 5) {
-                Image(systemName: option.systemImage)
-                    .font(.system(size: compact ? 13 : 15, weight: .semibold))
-                    .frame(width: 18)
+            HStack(spacing: compact ? 2 : 6) {
+                IonIcon(
+                    name: option.ionName,
+                    size: compact ? 14 : 16,
+                    color: selected ? Color.white : Theme.inkSoft
+                )
                 Text(option.label)
                     .font(.system(size: compact ? 11 : 13, weight: .heavy))
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
+                    .foregroundStyle(selected ? Color.white : Theme.inkSoft)
             }
-            .foregroundStyle(selected ? Color.white : Theme.inkSoft)
-            .padding(.horizontal, 4)
+            .padding(.horizontal, compact ? 1 : 4)
             .frame(width: width, height: compact ? 36 : 44)
             .background(selected ? Theme.primary : Color.clear)
             .clipShape(RoundedRectangle(cornerRadius: 12))

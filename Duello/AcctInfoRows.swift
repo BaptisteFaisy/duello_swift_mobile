@@ -69,9 +69,7 @@ struct AcctInfoCategoryRow: View {
                     .font(.system(size: 13, weight: .heavy))
                     .foregroundStyle(Theme.ink)
                 Spacer(minLength: 8)
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 20))
-                    .foregroundStyle(Theme.inkFaint)
+                IonIcon(name: "chevron-forward", size: 20, color: Theme.inkFaint)
             }
             .frame(minHeight: 60)
             .padding(.horizontal, 8)
@@ -88,9 +86,8 @@ struct AcctInfoCategoryRow: View {
             if let assetIcon, UIImage(named: assetIcon) != nil {
                 Image(assetIcon).resizable().scaledToFit()
             } else if let icon {
-                Image(systemName: icon)
-                    .font(.system(size: iconSize, weight: .semibold))
-                    .foregroundStyle(Theme.ink)
+                // RN `SettingsCategoryRow` : `<Ionicons name={icon} … color={colors.ink} />`.
+                IonIcon(name: icon, size: iconSize, color: Theme.ink)
             } else {
                 Color.clear
             }
@@ -115,9 +112,8 @@ struct AcctInfoActionRow: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: metrics.gap) {
-                Image(systemName: icon)
-                    .font(.system(size: iconSize, weight: .semibold))
-                    .foregroundStyle(tint)
+                // RN `passwordToggleIcon` / `compactSettingsIcon` : IonIcon teinté.
+                IonIcon(name: icon, size: iconSize, color: tint)
                     .frame(width: AcctInfoRowMetrics.iconPill, height: AcctInfoRowMetrics.iconPill)
                     .background(Theme.surface)
                 Text(title)
@@ -126,9 +122,7 @@ struct AcctInfoActionRow: View {
                     .multilineTextAlignment(.leading)
                 Spacer(minLength: 8)
                 if showsChevron {
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 20))
-                        .foregroundStyle(Theme.inkFaint)
+                    IonIcon(name: "chevron-forward", size: 20, color: Theme.inkFaint)
                 }
             }
             .frame(minHeight: metrics.minHeight)
@@ -156,9 +150,8 @@ struct AcctInfoToggleRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            Image(systemName: icon)
-                .font(.system(size: iconSize, weight: .semibold))
-                .foregroundStyle(tint)
+            // RN `visibilityIcon` : IonIcon teinté.
+            IonIcon(name: icon, size: iconSize, color: tint)
                 .frame(width: AcctInfoRowMetrics.iconPill, height: AcctInfoRowMetrics.iconPill)
                 .background(Theme.surface)
             VStack(alignment: .leading, spacing: 3) {
@@ -192,16 +185,29 @@ struct AcctInfoLogoutRow: View {
     var description: String = "Ton profil et ta progression resteront associés à ce compte."
     var iconSize: CGFloat = AcctInfoRowMetrics.iconSize
     var isBusy: Bool = false
-    let onLogout: () -> Void
+    /// Déconnexion réelle ; lève une erreur si la session ne peut pas être
+    /// fermée (RN `LogoutControl` : `onLogout: () => Promise<void>`).
+    let onLogout: () async throws -> Void
 
     @State private var isConfirming = false
+    @State private var logoutFailed = false
 
     var body: some View {
+        button
+            // RN `LogoutControl.logout` : alerte « Déconnexion impossible » quand
+            // la fermeture de session échoue.
+            .alert("Déconnexion impossible", isPresented: $logoutFailed) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("La session n’a pas pu être fermée sur cet appareil. Réessaie.")
+            }
+    }
+
+    private var button: some View {
         Button { isConfirming = true } label: {
             HStack(spacing: 13) {
-                Image(systemName: "rectangle.portrait.and.arrow.right")
-                    .font(.system(size: iconSize, weight: .semibold))
-                    .foregroundStyle(Theme.ink)
+                // RN `LogoutControl` : `<Ionicons name="log-out-outline" … color={colors.ink} />`.
+                IonIcon(name: "log-out-outline", size: iconSize, color: Theme.ink)
                     .frame(width: AcctInfoRowMetrics.iconPill, height: AcctInfoRowMetrics.iconPill)
                     .background(Theme.surface)
                 Text(actionLabel)
@@ -219,9 +225,19 @@ struct AcctInfoLogoutRow: View {
         .accessibilityLabel(actionLabel)
         .alert("\(actionLabel) ?", isPresented: $isConfirming) {
             Button("Annuler", role: .cancel) {}
-            Button(actionLabel, role: .destructive) { onLogout() }
+            Button(actionLabel, role: .destructive) { Task { await performLogout() } }
         } message: {
             Text(description)
+        }
+    }
+
+    /// `LogoutControl.logout` : tente la déconnexion, signale l'échec.
+    @MainActor
+    private func performLogout() async {
+        do {
+            try await onLogout()
+        } catch {
+            logoutFailed = true
         }
     }
 }
@@ -263,17 +279,18 @@ struct AcctInfoDeleteRow: View {
             HStack(spacing: 13) {
                 if isBusy {
                     ProgressView()
+                        .tint(Theme.danger)
                         .frame(width: AcctInfoRowMetrics.iconPill, height: AcctInfoRowMetrics.iconPill)
                 } else {
-                    Image(systemName: "trash")
-                        .font(.system(size: iconSize, weight: .semibold))
-                        .foregroundStyle(Theme.ink)
+                    // RN : `<Ionicons name="trash-outline" … color={colors.danger} />`.
+                    IonIcon(name: "trash-outline", size: iconSize, color: Theme.danger)
                         .frame(width: AcctInfoRowMetrics.iconPill, height: AcctInfoRowMetrics.iconPill)
                         .background(Theme.surface)
                 }
                 Text(isBusy ? "Suppression en cours…" : "Supprimer mon compte")
                     .font(.system(size: 13, weight: .heavy))
-                    .foregroundStyle(Theme.ink)
+                    // RN `deleteAccountText` : `color: colors.danger`.
+                    .foregroundStyle(Theme.danger)
                 Spacer(minLength: 8)
             }
             .frame(minHeight: 52)

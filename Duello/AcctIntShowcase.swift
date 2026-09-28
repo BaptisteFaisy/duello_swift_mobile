@@ -16,9 +16,10 @@
 //
 //  Repli documenté (voir `AcctIntData`) : les succès par matière dépendent du
 //  catalogue d'exercices, non relié ici. La section correspondante n'est plus
-//  rendue (la source la masque : `AccountScreen.tsx`, l. 3418-3456).
-//  L'abonnement Premium n'ayant pas de drapeau local, la coche reste masquée
-//  (`isPremium: false`). La présence en ligne est lue sur
+//  rendue (la source la masque : `AccountScreen.tsx`, l. 3418-3456). Les
+//  courbes des notes et du temps restent vides, faute de store horodaté local.
+//  L'abonnement Premium se lit sur le drapeau local (`ConsentPremiumGate`, la
+//  même entrée que `PremCodeSync` écrit). La présence en ligne est lue sur
 //  `SocPresenceStore` (PR #426).
 //
 //  Cible : iOS 16, aucune API iOS 17.
@@ -54,8 +55,8 @@ struct AcctIntShowcase: View {
             AcctShowXpSeriesSection(
                 points: xpSeriesPoints,
                 granularity: $granularity,
-                evolutionPercentage: 0,
-                evolutionAbsolute: 0,
+                evolutionPercentage: xpEvolution.percentage,
+                evolutionAbsolute: xpEvolution.absolute,
                 name: name
             )
             AcctShowEloSeriesSection(
@@ -63,8 +64,8 @@ struct AcctIntShowcase: View {
                 granularity: $granularity,
                 subjects: AcctIntData.eloSubjects(progress),
                 subject: $eloSubject,
-                evolutionPercentage: 0,
-                evolutionAbsolute: 0
+                evolutionPercentage: eloEvolution.percentage,
+                evolutionAbsolute: eloEvolution.absolute
             )
             AcctShowGradeSeriesSection(
                 points: [],
@@ -72,11 +73,21 @@ struct AcctIntShowcase: View {
             )
             AcctShowTimeSeriesSection(
                 buckets: [],
-                granularity: $granularity
+                granularity: $granularity,
+                // `hasTrainingTime` = `viewedActivity.exerciseMinutes > 0`
+                // (`AccountScreen.tsx:1902`) : gate de la courbe « temps ».
+                hasTrainingTime: progress.exerciseMinutes > 0
             )
         }
         .padding(.horizontal, 4)
         .padding(.top, 14)
+        // `AccountScreen.tsx:1865-1869` : perdre la matière suivie (changement
+        // de personne ou de filière) remet la courbe sur la synthèse générale.
+        .onChange(of: AcctIntData.eloSubjects(progress)) { subjects in
+            if let current = eloSubject, !subjects.contains(current) {
+                eloSubject = nil
+            }
+        }
     }
 
     /// Carte d'identité et blason de ligue (`showcaseIdentityRow`).
@@ -84,6 +95,7 @@ struct AcctIntShowcase: View {
         AcctShowLeagueCard(
             name: name,
             pathLines: AcctIntData.pathLines(session.profile),
+            isPremium: isPremium,
             league: league,
             photoUri: session.profile.photoUri,
             online: SocPresenceStore.shared.isOnline(
@@ -107,11 +119,12 @@ struct AcctIntShowcase: View {
         }
     }
 
-    /// Nom affiché, replié sur « Élève » quand le profil est vide.
+    /// Nom affiché, replié sur « Préparationnaire » quand le profil est vide
+    /// (`resolveViewedProfile` : `own.displayName || 'Préparationnaire'`).
     private var name: String {
         let display = session.profile.displayName
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        return display.isEmpty ? "Élève" : display
+        return display.isEmpty ? "Préparationnaire" : display
     }
 
     /// Elo global reconstruit, puis ligue atteinte pour la filière du profil.
@@ -119,6 +132,15 @@ struct AcctIntShowcase: View {
 
     /// Ligue de la vitrine (`viewedLeague` = `eloLeagueFor(elo, track)`).
     private var league: EloLeague { eloLeague(for: elo, track: session.profile.track) }
+
+    /// Abonnement Premium du compte connecté (`isViewedPremium`) : la même
+    /// entrée locale que `PremCodeSync` écrit, lue sans la modifier.
+    private var isPremium: Bool {
+        ConsentPremiumGate.isSubscribed(
+            accountId: ConsentPremiumGate.accountId(email: session.profile.email),
+            now: ConsentPremiumGate.currentMilliseconds()
+        )
+    }
 
     /// Résumé de niveau d'XP (`viewedXpSummary`).
     private var xpSummary: ChartXpSummary {
@@ -135,17 +157,34 @@ struct AcctIntShowcase: View {
     }
 
     /// Courbe d'Elo par période, matière choisie (`eloSeries` de la source) :
-    /// la valeur de clôture de chaque période est retenue.
+    /// un point par défi joué, puis une valeur de clôture par période.
     private var eloSeriesPoints: [ChartEloSeriesPoint] {
-        let history = progress.eloHistory
-            .filter { eloSubject == nil || $0.subject == eloSubject }
-            .sorted { $0.at < $1.at }
+        AcctIntData.eloSeries(progress.eloHistory, subject: eloSubject, granularity: granularity)
+    }
 
-        var closingByPeriod: [Double: ChartEloSeriesPoint] = [:]
-        for entry in history where entry.at > 0 {
-            let start = ChartTimeSeries.bucketStart(entry.at, granularity)
-            closingByPeriod[start] = ChartEloSeriesPoint(elo: Double(entry.elo), at: start)
+    /// Pastille d'évolution de l'XP (`xpEvolutionPercentage`/`Absolute`).
+    private var xpEvolution: (percentage: Double, absolute: Double) {
+        latestEvolution(xpSeriesPoints.map(\.xp))
+    }
+
+    /// Pastille d'évolution de l'Elo (`eloEvolutionPercentage`/`Absolute`).
+    private var eloEvolution: (percentage: Double, absolute: Double) {
+        latestEvolution(eloSeriesPoints.map(\.elo))
+    }
+
+    /// `latestRelativeEvolutionPercentage` + `latestAbsoluteEvolution`
+    /// (`utils/accountMetricEvolution.ts`) : variation entre les deux derniers
+    /// points affichés, repliée sur 0 en deçà de deux points.
+    private func latestEvolution(_ values: [Double]) -> (percentage: Double, absolute: Double) {
+        guard values.count >= 2 else { return (0, 0) }
+        let current = values[values.count - 1]
+        let previous = values[values.count - 2]
+        let percentage: Double
+        if previous == 0 {
+            percentage = current == 0 ? 0 : 100
+        } else {
+            percentage = ((current - previous) / previous * 100).rounded()
         }
-        return closingByPeriod.values.sorted { $0.at < $1.at }
+        return (percentage, current - previous)
     }
 }

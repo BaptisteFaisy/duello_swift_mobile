@@ -11,16 +11,17 @@
 //  pendant une création explicite (`signup`), l'utilisateur croit créer son
 //  nouveau programme puis retrouve son ancien profil : demander confirmation.
 //
-//  Réductions assumées (iOS), notées le 24/09/2026 :
+//  Réductions assumées (iOS), notées le 28/09/2026 :
 //    - `providerAccountSummary` appelle, dans la source,
 //      `academicProgramSelection(profile, toProgramYear(profile.year))` puis
 //      `accountAcademicOptionLabel(profile.track, selection.specialty,
-//      profile.specialty)`. Le `UserProfile` Swift ne porte PAS le champ
-//      `academicPath` (seuls `track` / `year` / `specialty` existent) : la
-//      sélection se réduit donc au champ historique `specialty`, transmis à la
-//      fois comme option courante et comme spécialité héritée. Le repli ECG de
-//      `accountAcademicOptionLabel` (« Maths appliquées » / « Maths
-//      approfondies ») reste porté à l'identique.
+//      profile.specialty)`. Le port lit l'option de l'année affichée dans le
+//      champ `academicPath` du profil (`firstYearOption` en 1re année,
+//      `currentOption` sinon) et retombe sur `specialty` quand ce parcours
+//      détaillé manque (comptes anciens) : `normalizeAcademicPath` de la source,
+//      qui le reconstruit, n'est pas porté ici (module académique partagé,
+//      `OnbFlowAcademic`). Le repli ECG de `accountAcademicOptionLabel`
+//      (« Maths appliquées » / « Maths approfondies ») reste porté à l'identique.
 //    - `toLocaleLowerCase('fr-FR')` de la source est rendu par `lowercased()` :
 //      les fragments testés (« appliqu », « approfond ») sont ASCII, le
 //      résultat est identique.
@@ -80,12 +81,23 @@ enum LoginScrProviderReuse {
         let name = trimmed.isEmpty ? "Sans pseudo" : trimmed
         let option = accountAcademicOptionLabel(
             track: profile.track,
-            currentOption: profile.specialty,
+            currentOption: selectedOption(profile),
             legacySpecialty: profile.specialty
         )
         return option.isEmpty
             ? "« \(name) » (\(profile.year))"
             : "« \(name) » (\(profile.year) • \(option))"
+    }
+
+    /// `academicProgramSelection(profile, toProgramYear(profile.year)).specialty`
+    /// (`utils/academicPath.ts:309-330`) : option de l'année affichée — celle de
+    /// 1re année pour un élève de 1re année (`toProgramYear` renvoie 1), l'option
+    /// courante sinon. La source lit le parcours **normalisé** ; le port lit
+    /// `academicPath` en priorité et retombe sur `specialty` (comptes anciens
+    /// sans parcours détaillé).
+    private static func selectedOption(_ profile: UserProfile) -> String {
+        guard let path = profile.academicPath else { return profile.specialty }
+        return profile.year == "1re année" ? path.firstYearOption : path.currentOption
     }
 
     /// `providerReuseDialogCopy` : titre et message du dialogue de confirmation.

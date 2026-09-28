@@ -61,8 +61,16 @@ struct OnbFlowStepContent: View {
     /// `level` : le monde scolaire (`ONBOARDING_LEVELS`), qui précède l'année.
     /// La puce reste sélectionnée tant que l'année appartient au monde choisi
     /// (`(level === 'Lycée') === isLyceeFlow` et année connue de ce monde).
+    /// Pastilles compactes côte à côte (pas pleine largeur) : la source ne
+    /// passe pas `wide` (`OnboardingScreen.tsx:1196-1210`).
     private var levelStep: some View {
-        OnbUiChoiceSection(dark: true) {
+        // `choiceGrid` de la source : `flexDirection: 'row', flexWrap: 'wrap',
+        // gap: 9` — comme les années, les mondes s'affichent côte à côte.
+        LazyVGrid(
+            columns: [GridItem(.adaptive(minimum: 110))],
+            alignment: .leading,
+            spacing: 9
+        ) {
             ForEach(OnbUiConstants.onboardingLevels, id: \.self) { level in
                 OnbUiChoiceChip(
                     label: level,
@@ -71,7 +79,6 @@ struct OnbFlowStepContent: View {
                             || OnbUiConstants.years.contains(coordinator.profile.year)
                             || OnbFlowAcademic.lyceeYears.contains(coordinator.profile.year)),
                     action: { coordinator.chooseOnboardingLevel(level) },
-                    wide: true,
                     dark: true
                 )
             }
@@ -100,21 +107,30 @@ struct OnbFlowStepContent: View {
         }
     }
 
-    /// `current-track` : la filière actuelle (`onboardingCurrentTrackChoices`).
+    /// `current-track` : la filière actuelle (`onboardingCurrentTrackRows`).
+    /// Les puces sont regroupées en lignes explicites (`ONBOARDING_CURRENT_TRACK_
+    /// ROW_LAYOUT`), côte à côte comme les années — plus d'empilement pleine
+    /// largeur.
     private var currentTrackStep: some View {
         OnbUiChoiceSection(dark: true) {
             // Filières indexées par position (robuste à tout doublon) ; la
             // source n'en renvoie plus depuis le retrait du doublon « PT »
             // (`V1`, écart 05#5). Seule la filière réellement choisie est
             // active : le repli du profil ne vaut pas un choix.
-            ForEach(Array(coordinator.currentTrackChoices.enumerated()), id: \.offset) { _, track in
-                OnbUiChoiceChip(
-                    label: track,
-                    isSelected: coordinator.selectedOnboardingTrack == track,
-                    action: { coordinator.chooseCurrentTrack(track) },
-                    wide: true,
-                    dark: true
-                )
+            VStack(alignment: .leading, spacing: 9) {
+                ForEach(Array(coordinator.currentTrackRows.enumerated()), id: \.offset) { _, row in
+                    HStack(spacing: 9) {
+                        ForEach(Array(row.enumerated()), id: \.offset) { _, track in
+                            OnbUiChoiceChip(
+                                label: track,
+                                isSelected: coordinator.selectedOnboardingTrack == track,
+                                action: { coordinator.chooseCurrentTrack(track) },
+                                dark: true
+                            )
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
         }
     }
@@ -156,16 +172,23 @@ struct OnbFlowStepContent: View {
     }
 
     /// `options` : le niveau de mathématiques (`onboardingMathOptionChoices`).
+    /// Pastilles compactes côte à côte : la source ne passe pas `wide` à cette
+    /// étape (`OnboardingScreen.tsx:1279-1300`).
     private var optionsStep: some View {
         OnbUiChoiceSection(dark: true) {
-            ForEach(coordinator.mathOptions) { option in
-                OnbUiChoiceChip(
-                    label: option.label,
-                    isSelected: coordinator.path.currentOption.hasPrefix(option.label),
-                    action: { coordinator.chooseOption(option) },
-                    wide: true,
-                    dark: true
-                )
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: 110))],
+                alignment: .leading,
+                spacing: 9
+            ) {
+                ForEach(coordinator.mathOptions) { option in
+                    OnbUiChoiceChip(
+                        label: option.label,
+                        isSelected: coordinator.path.currentOption.hasPrefix(option.label),
+                        action: { coordinator.chooseOption(option) },
+                        dark: true
+                    )
+                }
             }
         }
     }
@@ -191,7 +214,7 @@ struct OnbFlowStepContent: View {
                         !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 },
                 placeholder: "Ex. HEC Paris, CentraleSupélec…",
-                icon: "school",
+                icon: "school-outline",
                 onFocus: { coordinator.schoolSearchFocused = true },
                 onBlur: { coordinator.schoolSearchFocused = false },
                 dark: false
@@ -248,10 +271,11 @@ struct OnbFlowStepContent: View {
                     value: coordinator.profile.email,
                     onChangeText: { coordinator.profile.email = $0 },
                     placeholder: "camille@email.fr",
-                    icon: "mail",
+                    icon: "mail-outline",
                     keyboardType: .emailAddress,
                     autoCapitalize: .none,
-                    dark: true
+                    dark: true,
+                    whiteBorder: true
                 ))
             }
             OnbFlowProviderButtons(
@@ -282,21 +306,23 @@ struct OnbFlowStepContent: View {
                             if !value.isEmpty { coordinator.biometricVerified = false }
                         },
                         placeholder: "",
-                        icon: "key",
+                        icon: "key-outline",
                         isSecure: !coordinator.showPassword,
                         dark: true,
-                        whiteBorder: false
+                        whiteBorder: true
                     )
                 ) {
                     Button {
                         coordinator.showPassword.toggle()
                     } label: {
-                        Image(systemName: coordinator.showPassword ? "eye.slash" : "eye")
-                            .font(.system(size: 21))
-                            .foregroundStyle(Color.white)
-                            .frame(width: 36, height: 36)
-                            .background(Color(hex: 0x262626))
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                        IonIcon(
+                            name: coordinator.showPassword ? "eye-off-outline" : "eye-outline",
+                            size: 21,
+                            color: .white
+                        )
+                        .frame(width: 36, height: 36)
+                        .background(Color(hex: 0x262626))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(

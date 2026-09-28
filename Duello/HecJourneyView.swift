@@ -72,8 +72,13 @@ struct HecJourneyView: View {
     }
 
     /// Parcours déduit du profil : filière, année, chapitres de mathématiques.
+    ///
+    /// `registeredAt` reste l'origine de la frise. La source la reçoit du
+    /// compte (`createdAt` serveur) ; tant que la racine ne la fournit pas, le
+    /// magasin retombe sur la première ouverture du parcours.
     init(
         profile: UserProfile,
+        registeredAt: Date? = nil,
         onBack: (() -> Void)? = nil,
         onOpenRanking: @escaping () -> Void = {},
         onOpenChapter: @escaping (String, String?) -> Void = { _, _ in }
@@ -84,6 +89,7 @@ struct HecJourneyView: View {
             admissionTrack: profile.track,
             programYear: year,
             startingProgramYear: year,
+            registeredAt: registeredAt,
             onBack: onBack,
             onOpenRanking: onOpenRanking,
             onOpenChapter: onOpenChapter
@@ -120,7 +126,7 @@ struct HecJourneyView: View {
 
     @ViewBuilder
     private func content(model: HecJourneySceneModel) -> some View {
-        if admissionOpen || model.activeBlock(at: activeIndex)?.type == .admission {
+        if admissionOpen || openedBlock(model: model)?.type == .admission {
             HecJourneyAdmissionView(
                 admission: store.admission,
                 admissionTrack: admissionTrack,
@@ -140,6 +146,7 @@ struct HecJourneyView: View {
                 HecJourneyHeaderBar(
                     showsBackButton: onBack != nil,
                     programYear: programYear,
+                    profileYear: startingProgramYear,
                     onBack: { onBack?() },
                     onSelectYear: selectYear,
                     onOpenRanking: onOpenRanking
@@ -178,10 +185,19 @@ struct HecJourneyView: View {
         shortcut = shortcut.next
     }
 
+    /// `openedBlock` de la source (`HecJourney.tsx:340-343`) : le bloc dont
+    /// l'identifiant est ouvert, s'il existe. Le blason final n'y figure jamais
+    /// — `handleSelectNode` ouvre l'écran d'admission par `admissionOpen`, pas
+    /// par `openedBlockId`. L'écran ne s'auto-ouvre donc plus sur le cadrage.
+    private func openedBlock(model: HecJourneySceneModel) -> HecJourneySceneBlock? {
+        guard let openedBlockId else { return nil }
+        return model.blocks.first { $0.id == openedBlockId }
+    }
+
     /// `openedBlockOverlay` : le détail d'un bloc reste superposé à la frise.
     @ViewBuilder
     private func openedBlockOverlay(model: HecJourneySceneModel) -> some View {
-        if let block = model.blocks.first(where: { $0.id == openedBlockId }),
+        if let block = openedBlock(model: model),
            block.type != .admission {
             HecJourneyBlockDetailView(
                 block: block,
@@ -216,7 +232,8 @@ struct HecJourneyView: View {
         }
         let target = CGFloat(bounded) * HecJourneyGesture.nodeGap
         if animated {
-            withAnimation(.spring(response: 0.42, dampingFraction: 0.82)) {
+            // `withSpring(damping 25, stiffness 145, mass 0,76)` de la source.
+            withAnimation(.interpolatingSpring(mass: 0.76, stiffness: 145, damping: 25)) {
                 scrollOffset = target
             }
         } else {

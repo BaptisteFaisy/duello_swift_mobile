@@ -49,6 +49,14 @@ enum AnnaleSplit {
     /// `WORKSPACE_MIN_HEIGHT` : amorce de réponse laissée visible.
     static let WORKSPACE_MIN_HEIGHT = 32.0
 
+    /// `SPLIT_STEP` : pas d'un ajustement au clavier/lecteur d'écran
+    /// (`AnnaleViewer.tsx:626`).
+    static let SPLIT_STEP = 0.05
+
+    /// `EXPANDED_WHITEBOARD_STATEMENT_SPLIT` : hauteur d'énoncé retenue quand le
+    /// tableau blanc occupe l'atelier (`AnnaleViewer.tsx:631`).
+    static let EXPANDED_WHITEBOARD_STATEMENT_SPLIT = 0.28
+
     /// `ACCOUNT_STORAGE_KEYS.annaleSplits` : clé logique conservée à l'identique
     /// dans les préférences.
     static let STORAGE_KEY = "prepapp-annale-splits:v1"

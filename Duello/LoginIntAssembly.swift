@@ -76,7 +76,7 @@ struct LoginIntAssembly: View {
     /// `LoginScrProps` câblés sur l'application.
     private var props: LoginScrProps {
         LoginScrProps(
-            account: nil,
+            account: preferredAccount,
             accounts: localAccounts,
             onLogin: { account, password in
                 try await signInKnownAccount(account, password: password)
@@ -138,6 +138,25 @@ struct LoginIntAssembly: View {
         }
     }
 
+    /// `account` : compte rouvert de la source (`App.tsx:2514`). La source
+    /// retient `preferredUserLoginAccount(availableAccounts)` (`App.tsx:992`),
+    /// soit le **premier élève non invité** du registre (`loginAccountSelection.ts`),
+    /// porté par `AcctSecAccountSelection` — sur l'écran de connexion, aucune
+    /// session active ne prime. Il pré-remplit l'adresse (`LoginScreen.tsx:79`).
+    private var preferredAccount: LoginScrAccount? {
+        let preferredId = AcctSecAccountSelection.preferredLoginAccount(
+            from: localAccounts.map {
+                AcctSecAccountSelection.StoredAccount(
+                    id: $0.id,
+                    email: $0.email,
+                    role: $0.role == .admin ? .admin : .user,
+                    isGuest: $0.isGuest
+                )
+            }
+        )?.id
+        return localAccounts.first { $0.id == preferredId }
+    }
+
     /// `onLogin` : compte déjà résolu par le registre local. Sans mot de passe
     /// (biométrie), aucune entrée serveur ne peut ouvrir la session : erreur
     /// explicite.
@@ -183,7 +202,7 @@ struct LoginIntAssembly: View {
         provider: LoginScrProviderReuse.Provider,
         subject: String,
         email: String,
-        subjectKeyPath: KeyPath<AcctStoredAccount, String?>,
+        subjectKeyPath: WritableKeyPath<AcctStoredAccount, String?>,
         proceed: @escaping @MainActor () throws -> Void
     ) {
         let open: @MainActor () -> Void = {
@@ -262,6 +281,10 @@ struct LoginIntProviderReuseAlert {
 /// `providerReuseDialogCopy(provider:summary:)`. Renvoie `nil` quand il faut
 /// poursuivre : `proceed` est alors déjà appelé.
 ///
+/// Une résolution `login` lie en outre le `sub` fournisseur au compte du
+/// registre (`saveAccount(resolution.account)` de la source, `App.tsx:2088` /
+/// `:2128`), avant l'ouverture de la session.
+///
 /// - `consumingConfirmation` : `true` au moment d'installer la session, pour
 ///   consommer une confirmation déjà obtenue plus tôt dans le parcours.
 @MainActor
@@ -269,7 +292,7 @@ func loginIntProviderReuseAlert(
     provider: LoginScrProviderReuse.Provider,
     subject: String,
     email: String,
-    subjectKeyPath: KeyPath<AcctStoredAccount, String?>,
+    subjectKeyPath: WritableKeyPath<AcctStoredAccount, String?>,
     authStage: String,
     upgradingGuest: Bool,
     hasActiveSession: Bool,
@@ -277,16 +300,15 @@ func loginIntProviderReuseAlert(
     proceed: @escaping @MainActor () -> Void
 ) -> LoginIntProviderReuseAlert? {
     if consumingConfirmation, loginIntConfirmedProviderSubjects.remove(subject) != nil {
+        loginIntLinkProviderSubject(subject, keyPath: subjectKeyPath, email: email)
         proceed()
         return nil
     }
-    let accounts = AcctLocalRegistry.loadAccounts()
-    let matched = accounts.first { $0.isUser && $0[keyPath: subjectKeyPath] == subject }
-        ?? accounts.first {
-            $0.isUser
-                && AcctLocalRegistry.normalizeEmail($0.email)
-                    == AcctLocalRegistry.normalizeEmail(email)
-        }
+    let matched = loginIntResolveProviderAccount(
+        subject: subject,
+        email: email,
+        subjectKeyPath: subjectKeyPath
+    )
     let context = LoginScrProviderReuse.ProviderLoginContext(
         hasActiveSession: hasActiveSession,
         authStage: authStage,
@@ -294,6 +316,12 @@ func loginIntProviderReuseAlert(
         resolutionKind: matched == nil ? "signup" : "login"
     )
     guard let matched, LoginScrProviderReuse.shouldConfirmProviderLogin(context) else {
+        // `resolution.kind === 'login'` : la source enregistre le compte rouvert
+        // (`saveAccount(resolution.account)`, `App.tsx:2088` / `:2128`), ce qui
+        // lie le `sub` fournisseur au compte du registre local.
+        if matched != nil {
+            loginIntLinkProviderSubject(subject, keyPath: subjectKeyPath, email: email)
+        }
         proceed()
         return nil
     }
@@ -303,6 +331,46 @@ func loginIntProviderReuseAlert(
     )
     return LoginIntProviderReuseAlert(title: copy.title, message: copy.message) {
         loginIntConfirmedProviderSubjects.insert(subject)
+        loginIntLinkProviderSubject(subject, keyPath: subjectKeyPath, email: email)
         proceed()
     }
+}
+
+/// `resolveGoogleAccount` / `resolveAppleAccount` de la source : retrouve le
+/// compte du registre local par `sub` fournisseur d'abord, puis par e-mail
+/// normalisé. `nil` correspond à `resolution.kind === 'signup'`.
+@MainActor
+private func loginIntResolveProviderAccount(
+    subject: String,
+    email: String,
+    subjectKeyPath: KeyPath<AcctStoredAccount, String?>
+) -> AcctStoredAccount? {
+    let accounts = AcctLocalRegistry.loadAccounts()
+    return accounts.first { $0.isUser && $0[keyPath: subjectKeyPath] == subject }
+        ?? accounts.first {
+            $0.isUser
+                && AcctLocalRegistry.normalizeEmail($0.email)
+                    == AcctLocalRegistry.normalizeEmail(email)
+        }
+}
+
+/// `saveAccount(resolution.account)` (`App.tsx:2088`, `:2128`) : une connexion
+/// fournisseur qui rouvre un compte du registre local y **lie le `sub`** de
+/// l'identité (Google ou Apple). Sans cette écriture, `googleSubject` /
+/// `appleSubject` reste vide : la reconnaissance ultérieure retombe sur
+/// l'e-mail, alors que la source retrouve le compte par `sub` en premier.
+@MainActor
+private func loginIntLinkProviderSubject(
+    _ subject: String,
+    keyPath: WritableKeyPath<AcctStoredAccount, String?>,
+    email: String
+) {
+    guard let matched = loginIntResolveProviderAccount(
+        subject: subject,
+        email: email,
+        subjectKeyPath: keyPath
+    ), matched[keyPath: keyPath] != subject else { return }
+    var linked = matched
+    linked[keyPath: keyPath] = subject
+    AcctLocalRegistry.saveAccount(linked)
 }

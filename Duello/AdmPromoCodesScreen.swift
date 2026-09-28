@@ -6,7 +6,7 @@
 //
 //  Fichier source Expo porté : src/admin/AdminPromoCodesScreen.tsx
 //  (`AdminPromoCodesScreen`, `createCode`, `toggleCode`, `generate`,
-//  `formatDate`). Les libellés sont repris mot pour mot.
+//  `formatDate`). Les libellés et les mesures sont repris mot pour mot.
 //
 //  Le presse-papiers est le seul service système utilisé (`Clipboard` du
 //  source) : la copie reste silencieuse si elle échoue, comme côté Expo.
@@ -39,22 +39,22 @@ struct AdmPromoCodesScreen: View {
                 header
                 createCard
                 if !successMessage.isEmpty {
-                    HStack(spacing: 7) {
-                        Image(systemName: "checkmark.circle")
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundStyle(Theme.premium)
+                    HStack(spacing: 6) {
+                        IonIcon(name: "checkmark-circle", size: 15, color: Theme.premium)
                         Text(successMessage)
                             .font(.system(size: 12, weight: .bold))
                             .foregroundStyle(Theme.premium)
                             .textSelection(.enabled)
                             .fixedSize(horizontal: false, vertical: true)
                     }
+                    .padding(.bottom, 10)
                 }
                 if !errorMessage.isEmpty {
                     Text(errorMessage)
                         .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(Theme.ink)
+                        .foregroundStyle(Theme.like)
                         .fixedSize(horizontal: false, vertical: true)
+                        .padding(.bottom, 10)
                 }
                 content
             }
@@ -82,27 +82,28 @@ struct AdmPromoCodesScreen: View {
 
     /// `Générer un code promo` : code, remise, libellé, limite, expiration.
     private var createCard: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 10) {
             Text("Générer un code promo")
-                .font(.system(size: 17, weight: .black))
+                .font(.system(size: 14, weight: .black))
                 .foregroundStyle(Theme.ink)
             HStack(alignment: .bottom, spacing: 10) {
-                VStack(alignment: .leading, spacing: 7) {
+                VStack(alignment: .leading, spacing: 4) {
                     AdmFieldLabel(title: "Code")
                     HStack(spacing: 8) {
                         promoField(
                             placeholder: "RENTREE2026",
                             text: $code,
-                            autocapitalization: .characters
+                            autocapitalization: .characters,
+                            autocorrect: false,
+                            weight: .heavy,
+                            tracking: 1
                         )
                         Button {
                             code = AdmPromoForm.generateCode()
                             successMessage = ""
                             errorMessage = ""
                         } label: {
-                            Image(systemName: "die.face.5")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundStyle(Theme.ink)
+                            IonIcon(name: "dice-outline", size: 19, color: Theme.ink)
                                 .frame(width: 44, height: 44)
                                 .background(Theme.surfaceMuted)
                                 .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
@@ -111,23 +112,24 @@ struct AdmPromoCodesScreen: View {
                         .accessibilityLabel("Générer un code aléatoire")
                     }
                 }
-                VStack(alignment: .leading, spacing: 7) {
+                VStack(alignment: .leading, spacing: 4) {
                     AdmFieldLabel(title: "Remise %")
                     promoField(
                         placeholder: "10",
                         text: $percent,
-                        width: 74,
+                        width: 96,
                         keyboard: .numberPad,
-                        autocapitalization: .never
+                        autocapitalization: .never,
+                        maxLength: 2
                     )
                 }
             }
-            VStack(alignment: .leading, spacing: 7) {
+            VStack(alignment: .leading, spacing: 4) {
                 AdmFieldLabel(title: "Texte affiché (libellé)")
                 promoField(placeholder: "Offre rentrée — moins 10 %", text: $label)
             }
             HStack(alignment: .bottom, spacing: 10) {
-                VStack(alignment: .leading, spacing: 7) {
+                VStack(alignment: .leading, spacing: 4) {
                     AdmFieldLabel(title: "Limite d'utilisations (optionnel)")
                     promoField(
                         placeholder: "Illimité (500 par défaut)",
@@ -136,7 +138,7 @@ struct AdmPromoCodesScreen: View {
                         autocapitalization: .never
                     )
                 }
-                VStack(alignment: .leading, spacing: 7) {
+                VStack(alignment: .leading, spacing: 4) {
                     AdmFieldLabel(title: "Expire dans (jours, optionnel)")
                     promoField(
                         placeholder: "Sans expiration",
@@ -155,11 +157,11 @@ struct AdmPromoCodesScreen: View {
                             .tint(Theme.surface)
                     } else {
                         Text("Générer le code")
-                            .font(.system(size: 14, weight: .black))
+                            .font(.system(size: 13, weight: .black))
                             .foregroundStyle(Theme.surface)
                     }
                 }
-                .frame(maxWidth: .infinity, minHeight: 48)
+                .frame(maxWidth: .infinity, minHeight: 46)
                 .background(Theme.primary)
                 .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
             }
@@ -168,32 +170,44 @@ struct AdmPromoCodesScreen: View {
             .accessibilityLabel("Générer le code promo")
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(18)
+        .padding(16)
         .background(Theme.surface)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
         .overlay(
             RoundedRectangle(cornerRadius: Theme.radiusLarge)
                 .stroke(Theme.border, lineWidth: 1)
         )
+        .admCardShadow()
     }
 
-    /// Champ du formulaire : clavier et capitalisation alignés sur le source
-    /// (`autoCapitalize="characters"` pour le code, clavier numérique pour les
-    /// nombres, capitalisation par défaut ailleurs).
+    /// Champ du formulaire : clavier, capitalisation, correction et limite de
+    /// saisie alignés sur le source (`autoCorrect={false}` et `fontWeight: 800`
+    /// pour le code, clavier numérique pour les nombres, `maxLength={2}` pour la
+    /// remise).
     private func promoField(
         placeholder: String,
         text: Binding<String>,
         width: CGFloat? = nil,
         keyboard: UIKeyboardType = .default,
-        autocapitalization: TextInputAutocapitalization = .sentences
+        autocapitalization: TextInputAutocapitalization = .sentences,
+        autocorrect: Bool = true,
+        weight: Font.Weight = .regular,
+        tracking: CGFloat = 0,
+        maxLength: Int? = nil
     ) -> some View {
         TextField(placeholder, text: text)
-            .font(.system(size: 14, weight: .semibold))
+            .font(.system(size: 14, weight: weight))
+            .tracking(tracking)
             .foregroundStyle(Theme.ink)
-            .autocorrectionDisabled()
+            .autocorrectionDisabled(!autocorrect)
             .keyboardType(keyboard)
             .textInputAutocapitalization(autocapitalization)
-            .padding(.horizontal, 14)
+            .onChange(of: text.wrappedValue) { newValue in
+                if let maxLength, newValue.count > maxLength {
+                    text.wrappedValue = String(newValue.prefix(maxLength))
+                }
+            }
+            .padding(.horizontal, 12)
             .frame(maxWidth: width ?? .infinity, minHeight: 44)
             .background(Theme.background)
             .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
@@ -206,9 +220,14 @@ struct AdmPromoCodesScreen: View {
     @ViewBuilder
     private var content: some View {
         if isLoading {
-            AdmStateCard(icon: "tag", message: "Chargement des codes promo…", isLoading: true)
+            AdmStateCard(
+                icon: "pricetag-outline",
+                message: "Chargement des codes promo…",
+                isLoading: true,
+                showsIconWhenLoading: true
+            )
         } else if codes.isEmpty {
-            AdmStateCard(icon: "tag", message: "Aucun code promo pour le moment.")
+            AdmStateCard(icon: "pricetag-outline", message: "Aucun code promo pour le moment.")
         } else {
             VStack(spacing: 10) {
                 ForEach(codes) { entry in
@@ -220,41 +239,48 @@ struct AdmPromoCodesScreen: View {
 
     private func row(_ entry: AdmPromoCodeStat) -> some View {
         HStack(spacing: 12) {
-            Image(systemName: entry.disabled ? "xmark.circle" : "tag")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(Theme.ink)
-                .frame(width: 40, height: 40)
-                .background(Theme.primaryLight)
-                .clipShape(RoundedRectangle(cornerRadius: 14))
+            IonIcon(
+                name: entry.disabled ? "close-circle-outline" : "pricetag-outline",
+                size: 18,
+                color: Theme.ink
+            )
+            .frame(width: 40, height: 40)
+            .background(Theme.primaryLight)
+            .clipShape(RoundedRectangle(cornerRadius: 14))
             VStack(alignment: .leading, spacing: 3) {
                 Text(entry.codeHint)
-                    .font(.system(size: 13, weight: .heavy))
+                    .font(.system(size: 14, weight: .black))
                     .foregroundStyle(Theme.ink)
                     .textSelection(.enabled)
                     .lineLimit(1)
                 Text("−\(entry.percentOff) % · \(entry.label.isEmpty ? "Campagne" : entry.label)\(entry.disabled ? " · désactivé" : "")")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.system(size: 12, weight: .regular))
                     .foregroundStyle(Theme.inkSoft)
                     .lineLimit(1)
                 Text(metaText(entry))
-                    .font(.system(size: 9, weight: .semibold))
+                    .font(.system(size: 10, weight: .regular))
                     .foregroundStyle(Theme.inkFaint)
                     .lineLimit(2)
+                    .padding(.top, 2)
             }
             Spacer(minLength: 8)
             Button {
                 Task { await toggle(entry) }
             } label: {
-                Image(systemName: entry.disabled ? "play" : "pause")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Theme.inkSoft)
-                    .frame(width: 40, height: 40)
+                IonIcon(
+                    name: entry.disabled ? "play-outline" : "pause-outline",
+                    size: 18,
+                    color: Theme.inkSoft
+                )
+                .frame(width: 40, height: 40)
+                .background(Theme.surfaceMuted)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
             }
             .buttonStyle(.plain)
             .disabled(isBusy)
             .accessibilityLabel(entry.disabled ? "Réactiver ce code promo" : "Désactiver ce code promo")
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, minHeight: 76, alignment: .leading)
         .padding(14)
         .background(Theme.surface)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
@@ -262,9 +288,10 @@ struct AdmPromoCodesScreen: View {
             RoundedRectangle(cornerRadius: Theme.radiusLarge)
                 .stroke(Theme.border, lineWidth: 1)
         )
+        .admCardShadow()
     }
 
-    /// « 3 personnes · 12/500 · créé 12 sept., 14:30 · expire … ».
+    /// « 3 personnes · 12/500 · créé 12 sept. 14:30 · expire … ».
     private func metaText(_ entry: AdmPromoCodeStat) -> String {
         let people = "\(entry.peopleCount) personne\(AdmFormat.plural(entry.peopleCount))"
         let limit = entry.maxRedemptions.map { "\($0)" } ?? "∞"
@@ -346,10 +373,12 @@ struct AdmPromoCodesScreen: View {
         isLoading = false
     }
 
+    /// `Intl.DateTimeFormat('fr-FR', { day, month:'short', hour, minute })` :
+    /// séparateur espace entre la date et l'heure.
     private static let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "fr_FR")
-        formatter.dateFormat = "d MMM, HH:mm"
+        formatter.dateFormat = "d MMM HH:mm"
         return formatter
     }()
 }

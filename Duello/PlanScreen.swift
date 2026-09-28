@@ -15,10 +15,6 @@
 //   • premium_extract/01_EnhancedPlanScreen.md      — spécification de portage
 //
 //  Limites assumées, documentées au fil du fichier :
-//   • la dictée vocale de `TaskCaptureCard` (hook `useDictation` + garde premium)
-//     n'est pas portée : saisie au clavier uniquement ;
-//   • `UserProfile` Swift ne porte pas encore dîner / douche / coucher : les
-//     valeurs par défaut de `expo_ref/src/data.ts` sont reprises (`PlanRoutine`) ;
 //   • le repli IA locale (`ollamaClient`) est porté mais dormant : réglages
 //     désactivés par défaut et URL `http://` sur le réseau local (ATS peut la
 //     refuser) — l'analyseur local prend toujours le relais ;
@@ -61,9 +57,17 @@ struct PlanView: View {
     @State var dateError: String?
     @State var isEditingDate = false
     @State var composerText = ""
+    /// Hauteur de la fenêtre et des sections au-dessus de la grille, mesurées
+    /// pour que la zone-jour occupe l'espace restant (source `onLayout`, l. 258).
+    @State private var viewportHeight: CGFloat = 0
+    @State private var measuredSections: [String: CGFloat] = [:]
     @FocusState private var dateFieldFocused: Bool
 
-    private let routine = PlanRoutine()
+    /// Rythme quotidien du profil (`profile.dinnerTime/showerTime/bedtime`,
+    /// EnhancedPlanScreen lignes 574-576), et non plus des constantes.
+    private var routine: PlanRoutine {
+        PlanRoutine.from(session.profile)
+    }
 
     // MARK: Clés et dérivés
 
@@ -108,15 +112,22 @@ struct PlanView: View {
         return labels
     }
 
+    /// Hauteur réellement disponible pour la journée : mesurée (fenêtre moins
+    /// sections du haut moins la réserve basse), comme la source (lignes 61-63,
+    /// 256-258, 386). La constante ne sert que tant que la mesure n'est pas là.
+    private var dayAreaHeight: CGFloat {
+        guard viewportHeight > 0 else { return PlanMetrics.dayAreaHeight }
+        let above = measuredSections["above"] ?? 0
+        let available = viewportHeight - 8 - above - 12 - PlanMetrics.dayAreaReserve
+        return max(PlanMetrics.minimumDayAreaHeight, available)
+    }
+
     // MARK: Corps
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                banners
-                dateJumpBar
-                if schedule.isEmpty { scheduleHint }
-                weekStrip
+                aboveContent.planMeasureHeight("above")
                 dayPager
                 PlanObjectivesCard(
                     day: selectedDay,
@@ -124,9 +135,6 @@ struct PlanView: View {
                     onSelect: { selectedSession = $0 }
                 )
                 .padding(.horizontal, 20)
-                PlanTaskComposerCard(text: $composerText, isAnalyzing: isAnalyzing) {
-                    addTasks(from: composerText)
-                }
                 PlanTaskListCard(
                     tasks: tasks,
                     plannedLabels: plannedLabels,
@@ -136,10 +144,30 @@ struct PlanView: View {
                 )
             }
             .padding(.top, 8)
-            .padding(.bottom, 24)
+            // La carte de saisie flotte (source `floatingContainer`) : la réserve
+            // basse reprend son `marginBottom: 66` (ligne 640).
+            .padding(.bottom, PlanMetrics.dayAreaReserve)
         }
         .background(Theme.background)
+        .background(
+            GeometryReader { proxy in
+                Color.clear.preference(key: PlanViewportHeightKey.self, value: proxy.size.height)
+            }
+        )
+        .onPreferenceChange(PlanViewportHeightKey.self) { viewportHeight = $0 }
+        .onPreferenceChange(PlanSectionHeightKey.self) { measuredSections = $0 }
         .scrollDismissesKeyboard(.interactively)
+        .overlay(alignment: .bottom) {
+            PlanTaskComposerCard(text: $composerText) { addTasks(from: composerText) }
+        }
+        .overlay {
+            if let session = selectedSession {
+                PlanSessionDetailOverlay(session: session) { selectedSession = nil }
+                    .transition(.opacity)
+            }
+        }
+        // `Modal animationType="fade"` (ligne 301) : fondu à l'ouverture/fermeture.
+        .animation(.easeInOut(duration: 0.3), value: selectedSession?.id)
         .toolbar {
             // Le clavier numérique n'a pas de touche de retour : ce bouton
             // déclenche la validation de la date (comportement `onBlur` de la
@@ -170,8 +198,16 @@ struct PlanView: View {
         .onChange(of: dateInput) { value in
             handleDateInput(value)
         }
-        .sheet(item: $selectedSession) { session in
-            PlanSessionSheet(session: session)
+    }
+
+    // MARK: Sections au-dessus de la grille (mesurées ensemble)
+
+    private var aboveContent: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            banners
+            dateJumpBar
+            if schedule.isEmpty { scheduleHint }
+            weekStrip
         }
     }
 
@@ -190,14 +226,16 @@ struct PlanView: View {
         if !isAnalyzing && ollamaFallbackNotice {
             PlanBanner(
                 tone: .warning,
-                icon: "exclamationmark.triangle",
+                icon: "warning-outline",
+                iconSize: 18,
                 text: "Assistant IA local injoignable, tâches ajoutées avec l’analyseur standard."
             )
         }
         if !isAnalyzing && lastAddedCount > 0 {
             PlanBanner(
                 tone: .success,
-                icon: "checkmark.circle.fill",
+                icon: "checkmark-circle",
+                iconSize: 19,
                 text: "\(lastAddedCount) \(lastAddedCount > 1 ? "tâches ajoutées et planifiées" : "tâche ajoutée et planifiée")."
             )
         }
@@ -208,15 +246,14 @@ struct PlanView: View {
     private var dateJumpBar: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 9) {
-                Image(systemName: "calendar")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(Theme.inkSoft)
+                IonIcon(name: "calendar-outline", size: 18, color: Theme.inkSoft)
 
                 TextField("JJ/MM/AAAA", text: $dateInput)
                     .keyboardType(.numberPad)
                     .submitLabel(.go)
                     .focused($dateFieldFocused)
                     .font(.system(size: 14, weight: .heavy))
+                    .kerning(0.5)
                     .foregroundStyle(Theme.ink)
                     .accessibilityLabel("Aller à une date")
 
@@ -232,7 +269,7 @@ struct PlanView: View {
                             .background(Theme.surfaceMuted)
                             .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(PlanPressStyle())
                     .accessibilityLabel("Revenir à aujourd’hui")
                 }
             }
@@ -259,9 +296,7 @@ struct PlanView: View {
 
     private var scheduleHint: some View {
         HStack(spacing: 9) {
-            Image(systemName: "clock")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(Theme.ink)
+            IonIcon(name: "time-outline", size: 18, color: Theme.ink)
             Text("Ajoute tes horaires de cours dans ton profil pour éviter automatiquement ces créneaux.")
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(Theme.inkSoft)
@@ -303,14 +338,14 @@ struct PlanView: View {
                 PlanDayPage(
                     day: entry,
                     sessions: sessions(for: entry),
-                    areaHeight: PlanMetrics.dayAreaHeight,
+                    areaHeight: dayAreaHeight,
                     onSelect: { selectedSession = $0 }
                 )
                 .tag(entry.dayOffset)
             }
         }
         .tabViewStyle(.page(indexDisplayMode: .never))
-        .frame(height: PlanMetrics.dayAreaHeight)
+        .frame(height: dayAreaHeight)
     }
 
     // MARK: Chargement et écriture
@@ -353,7 +388,9 @@ struct PlanBanner: View {
     }
 
     let tone: Tone
+    /// Nom Ionicons exact de la source (`warning-outline`, `checkmark-circle`).
     let icon: String?
+    var iconSize: CGFloat = 18
     let text: String
     var showsSpinner: Bool = false
 
@@ -363,9 +400,7 @@ struct PlanBanner: View {
                 ProgressView()
                     .scaleEffect(0.8)
             } else if let icon {
-                Image(systemName: icon)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Theme.ink)
+                IonIcon(name: icon, size: iconSize, color: Theme.ink)
             }
             Text(text)
                 .font(.system(size: 11, weight: .heavy))

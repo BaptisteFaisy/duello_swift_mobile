@@ -11,8 +11,8 @@
 //  volet du sujet, séparateur, volet des réponses, barre d'actions, alerte
 //  `AppAlert` de soumission).
 //
-//  Substitutions SF Symbols : images-outline → photo.on.rectangle.angled ;
-//  list → list.bullet.
+//  Icônes Ionicons : images-outline / list (18) pour la bascule photos/réponse,
+//  comme la source — plus de substitution SF Symbol.
 //
 //  Cible : iOS 16.
 //
@@ -97,8 +97,7 @@ struct EvEventLiveView: View {
         HStack(spacing: 10) {
             Button { photosVisible.toggle() } label: {
                 HStack(spacing: 6) {
-                    Image(systemName: photosVisible ? "list.bullet" : "photo.on.rectangle.angled")
-                        .font(.system(size: 15, weight: .semibold))
+                    IonIcon(name: photosVisible ? "list" : "images-outline", size: 18, color: Theme.inkSoft)
                     Text(photosVisible ? "Champs de réponse" : "Photos du sujet")
                         .font(.system(size: 12, weight: .heavy))
                 }

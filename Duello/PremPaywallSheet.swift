@@ -46,9 +46,8 @@ struct PremPaywallSheet: View {
             Spacer(minLength: 8)
             if let onClose {
                 Button(action: onClose) {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 21, weight: .semibold))
-                        .foregroundStyle(Theme.ink)
+                    // `Ionicons name="close"` (PaywallContent.tsx:49).
+                    IonIcon(name: "close", size: 21, color: Theme.ink)
                         .frame(width: 34, height: 34)
                         .contentShape(Rectangle())
                 }
@@ -63,23 +62,22 @@ struct PremPaywallSheet: View {
     @ViewBuilder
     private var statusCard: some View {
         if let notice {
-            PremNoticeCard(icon: "lock", message: notice)
+            PremNoticeCard(icon: "lock-closed-outline", message: notice)
         } else if let quota, !quota.subscribed {
-            PremNoticeCard(icon: "bolt", message: quota.remainingLabel)
+            PremNoticeCard(icon: "flash-outline", message: quota.remainingLabel)
         }
     }
 }
 
 /// Carte d'état de la feuille : icône Premium et texte, encadré sur fond gris.
 struct PremNoticeCard: View {
+    /// Nom de glyphe Ionicons, repris tel quel de la source.
     let icon: String
     let message: String
 
     var body: some View {
         HStack(alignment: .center, spacing: 9) {
-            Image(systemName: icon)
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(Theme.premium)
+            IonIcon(name: icon, size: 18, color: Theme.premium)
             Text(message)
                 .font(.system(size: 13, weight: .bold))
                 .foregroundStyle(Theme.ink)

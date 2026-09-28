@@ -67,11 +67,11 @@ struct NotificationSettingsCard: View {
         }
     }
 
-    /// Boîte 34 × 34, fond blanc, cloche 22 pt à l'encre (`styles.icon`).
+    /// Boîte 34 × 34, fond blanc, `notifications-outline` 22 pt à l'encre
+    /// (`NotificationSettingsCard.tsx` : `<Ionicons name="notifications-outline"
+    /// size={iconSize} color={colors.primary} />`, `styles.icon`).
     private var icon: some View {
-        Image(systemName: "bell")
-            .font(.system(size: 22, weight: .semibold))
-            .foregroundStyle(Theme.ink)
+        IonIcon(name: "notifications-outline", size: 22, color: Theme.primary)
             .frame(width: 34, height: 34)
             .background(Theme.white)
     }

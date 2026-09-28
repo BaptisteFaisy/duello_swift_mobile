@@ -30,7 +30,7 @@ struct AdmAccessKeyCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            AdmCardHeading(icon: "server.rack", title: "Accès aux données admin")
+            AdmCardHeading(icon: "server-outline", title: "Accès aux données admin")
             AdmFieldLabel(title: "Clé d’accès serveur (facultative)")
             HStack(spacing: 0) {
                 field
@@ -79,10 +79,12 @@ struct AdmAccessKeyCard: View {
         Button {
             isRevealed.toggle()
         } label: {
-            Image(systemName: isRevealed ? "eye.slash" : "eye")
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(Theme.inkSoft)
-                .frame(width: 46, height: 46)
+            IonIcon(
+                name: isRevealed ? "eye-off-outline" : "eye-outline",
+                size: 21,
+                color: Theme.inkSoft
+            )
+            .frame(width: 46, height: 46)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(isRevealed ? "Masquer la clé" : "Afficher la clé")
@@ -101,7 +103,7 @@ struct AdmPasswordCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            AdmCardHeading(icon: "key", title: "Sécurité du compte")
+            AdmCardHeading(icon: "key-outline", title: "Sécurité du compte")
             passwordField
             AdmFieldLabel(title: "Confirmer le mot de passe")
             confirmationField
@@ -143,10 +145,12 @@ struct AdmPasswordCard: View {
                 Button {
                     isRevealed.toggle()
                 } label: {
-                    Image(systemName: isRevealed ? "eye.slash" : "eye")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(Theme.inkSoft)
-                        .frame(width: 46, height: 46)
+                    IonIcon(
+                        name: isRevealed ? "eye-off-outline" : "eye-outline",
+                        size: 21,
+                        color: Theme.inkSoft
+                    )
+                    .frame(width: 46, height: 46)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(isRevealed ? "Masquer le mot de passe" : "Afficher le mot de passe")
@@ -189,8 +193,7 @@ struct AdmPasswordCard: View {
             Task { await submit() }
         } label: {
             HStack(spacing: 8) {
-                Image(systemName: "key")
-                    .font(.system(size: 15, weight: .bold))
+                IonIcon(name: "key-outline", size: 18, color: Theme.surface)
                 Text(phase == .saving ? "Modification…" : "Modifier le mot de passe")
                     .font(.system(size: 14, weight: .black))
             }
@@ -255,9 +258,7 @@ struct AdmLogoutCard: View {
             isConfirming = true
         } label: {
             HStack(spacing: 9) {
-                Image(systemName: "rectangle.portrait.and.arrow.right")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(Theme.ink)
+                IonIcon(name: "log-out-outline", size: 19, color: Theme.ink)
                 Text("Se déconnecter")
                     .font(.system(size: 12, weight: .heavy))
                     .foregroundStyle(Theme.ink)

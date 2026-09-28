@@ -15,6 +15,9 @@
 //
 
 import Foundation
+#if canImport(UIKit)
+import UIKit
+#endif
 
 /// Boîte mutable partagée entre la demande et son réveil — évite de capturer
 /// une variable locale mutée depuis une continuation.
@@ -23,12 +26,23 @@ private final class DictAppStateGateBox {
 }
 
 /// Portail premier plan/arrière-plan de la dictée — `useDictationAppState`.
+@MainActor
 final class DictAppStateGate {
     /// Appelé quand l'application passe en arrière-plan sans demande en attente.
-    var onCancel: (() -> Void)?
+    var onCancel: (@MainActor () -> Void)?
 
     private var enAttente: [UUID: () -> Void] = [:]
-    private let estActif: () -> Bool
+    private let estActif: @MainActor () -> Bool
+
+    /// `AppState.currentState === 'active'` : état d'activité de l'application.
+    /// Hors UIKit (machine de portage), l'application est considérée active.
+    static var applicationIsActive: Bool {
+        #if canImport(UIKit)
+        return UIApplication.shared.applicationState == .active
+        #else
+        return true
+        #endif
+    }
 
     init(estActif: @escaping () -> Bool) {
         self.estActif = estActif
@@ -73,14 +87,16 @@ final class DictAppStateGate {
             forName: Notification.Name("UIApplicationDidBecomeActiveNotification"),
             object: nil, queue: .main
         ) { [weak self] _ in
-            self?.resume()
+            Task { @MainActor in self?.resume() }
         }
         let inactif = centre.addObserver(
             forName: Notification.Name("UIApplicationWillResignActiveNotification"),
             object: nil, queue: .main
         ) { [weak self] _ in
-            guard let self else { return }
-            if self.enAttente.isEmpty { self.onCancel?() }
+            Task { @MainActor in
+                guard let self, self.enAttente.isEmpty else { return }
+                self.onCancel?()
+            }
         }
         return [actif, inactif]
     }

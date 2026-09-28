@@ -20,7 +20,7 @@ extension MathKeyboardView {
                 intervalBoundField(index: 0)
                 Text(",")
                     .font(.system(size: 13, weight: .black))
-                    .foregroundStyle(Theme.ink)
+                    .foregroundStyle(Theme.inkSoft)
                     .padding(.bottom, 9)
                 intervalBoundField(index: 1)
                 intervalBracketButton(index: 1)
@@ -35,7 +35,7 @@ extension MathKeyboardView {
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
         .overlay(
             RoundedRectangle(cornerRadius: Theme.radiusSmall)
-                .stroke(Theme.border, lineWidth: 1)
+                .stroke(Theme.primary, lineWidth: 1)
         )
     }
 
@@ -54,7 +54,7 @@ extension MathKeyboardView {
                     .foregroundStyle(Theme.ink)
                 Text("Touche un crochet pour inclure ou exclure sa borne.")
                     .font(.system(size: 8, weight: .semibold))
-                    .foregroundStyle(Theme.inkFaint)
+                    .foregroundStyle(Theme.inkSoft)
                 HStack(spacing: 4) {
                     ForEach(MathKbIntervalKind.allCases, id: \.self) { kind in
                         intervalKindButton(kind, selected: kind == draft.kind)
@@ -71,10 +71,10 @@ extension MathKeyboardView {
             Text(MathKbIntervalDraft.boundLabels[min(max(draft.active, 0), 1)])
                 .font(.system(size: 8, weight: .heavy))
                 .foregroundStyle(Theme.inkSoft)
-            MathKbMiniButton(systemImage: "chevron.backward", enabled: draft.active > 0) {
+            MathKbMiniButton(ionIcon: "chevron-back", enabled: draft.active > 0) {
                 moveIntervalBound(-1)
             }
-            MathKbMiniButton(systemImage: "chevron.forward", enabled: draft.active < 1) {
+            MathKbMiniButton(ionIcon: "chevron-forward", enabled: draft.active < 1) {
                 moveIntervalBound(1)
             }
             Spacer(minLength: 4)
@@ -96,13 +96,12 @@ extension MathKeyboardView {
                 .foregroundStyle(selected ? Theme.surface : Theme.inkSoft)
                 .padding(.vertical, 3)
                 .padding(.horizontal, 9)
-                .background(selected ? Theme.ink : Theme.surface)
-                .clipShape(Capsule())
-                .overlay(
-                    Capsule().stroke(selected ? Theme.ink : Theme.border, lineWidth: 1)
-                )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(MathKbPressStyle(
+            background: selected ? Theme.primary : Theme.surfaceMuted,
+            border: selected ? Theme.primary : Theme.border,
+            capsule: true
+        ))
         .accessibilityLabel("Intervalle de \(kind.label.lowercased())")
     }
 
@@ -129,14 +128,12 @@ extension MathKeyboardView {
                 .font(.system(size: 17, weight: .black))
                 .foregroundStyle(Theme.ink)
                 .frame(width: 30, height: 34)
-                .background(Theme.surface)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(closed && !infinite ? Theme.ink : Theme.border, lineWidth: 1)
-                )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(MathKbPressStyle(
+            cornerRadius: 8,
+            background: Theme.primaryLight,
+            border: Theme.primary
+        ))
         .disabled(infinite)
         .opacity(infinite ? 0.48 : 1)
         .accessibilityLabel(accessibility)
@@ -146,6 +143,7 @@ extension MathKeyboardView {
         let label = MathKbIntervalDraft.boundLabels[min(max(index, 0), 1)]
         let placeholder = index == 0 ? "0" : "1"
         let selected = (intervalDraft?.active ?? 0) == index
+        let value = intervalDraft.map { index == 0 ? $0.lower : $0.upper } ?? ""
         return VStack(alignment: .leading, spacing: 3) {
             Text("\(label) *")
                 .font(.system(size: 8, weight: .heavy))
@@ -158,17 +156,19 @@ extension MathKeyboardView {
                 .focused($intervalFocus, equals: index)
                 .frame(height: 34)
                 .padding(.horizontal, 4)
-                .background(selected ? Theme.primaryLight : Theme.surface)
+                .background(selected ? Theme.primaryLight : Theme.surfaceMuted)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 .overlay(
                     RoundedRectangle(cornerRadius: 8)
-                        .stroke(selected ? Theme.ink : Theme.border, lineWidth: 1)
+                        .stroke(selected ? Theme.primary : Theme.border, lineWidth: 1)
                 )
                 .onTapGesture {
                     intervalDraft?.active = index
                     intervalFocus = index
                 }
-                .accessibilityLabel(label)
+                .accessibilityLabel(
+                    "\(label), \(value.isEmpty ? "vide, exemple \(placeholder)" : value)"
+                )
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

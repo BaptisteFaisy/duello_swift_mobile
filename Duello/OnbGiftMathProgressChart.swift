@@ -176,9 +176,8 @@ private struct OnbGiftChartCard: View {
     /// `styles.metric` : flèche montante et « Note en maths (/20) ».
     private var metric: some View {
         HStack(spacing: 4) {
-            Image(systemName: "arrow.up")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Color(hex: 0x929292))
+            // `arrow-up`, 13, `#929292` (source, `ChartCard`).
+            IonIcon(name: "arrow-up", size: 13, color: Color(hex: 0x929292))
             Text("Note en maths (/20)")
                 .font(.system(size: 9, weight: .heavy))
                 .textCase(.uppercase)
@@ -188,10 +187,12 @@ private struct OnbGiftChartCard: View {
 }
 
 /// `ChartLegend` : les deux trajectoires, celle avec Duello en blanc.
+/// `justifyContent: 'space-between'` : les deux entrées sont aux extrémités.
 private struct OnbGiftChartLegend: View {
     var body: some View {
         HStack(spacing: 10) {
-            ForEach(OnbGiftChartData.legendSeries) { series in
+            ForEach(Array(OnbGiftChartData.legendSeries.enumerated()), id: \.element.id) { index, series in
+                if index > 0 { Spacer(minLength: 0) }
                 HStack(spacing: 7) {
                     RoundedRectangle(cornerRadius: 2)
                         .fill(series.color)
@@ -201,7 +202,6 @@ private struct OnbGiftChartLegend: View {
                         .foregroundStyle(series.emphasized ? Color.white : Color(hex: 0x929292))
                 }
             }
-            Spacer(minLength: 0)
         }
     }
 }
@@ -247,9 +247,8 @@ private struct OnbGiftChartXAxis: View {
 private struct OnbGiftPatienceNote: View {
     var body: some View {
         HStack(spacing: 10) {
-            Image(systemName: "clock")
-                .font(.system(size: 18, weight: .regular))
-                .foregroundStyle(Color.white)
+            // `time-outline`, 18, blanc (source, `OnboardingMathProgressChart`).
+            IonIcon(name: "time-outline", size: 18, color: .white)
             Text("La régularité compte plus qu’un résultat immédiat.")
                 .font(.system(size: 12, weight: .heavy))
                 .foregroundStyle(Color.white)

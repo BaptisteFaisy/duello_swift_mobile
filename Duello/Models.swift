@@ -23,6 +23,15 @@ struct UserProfile: Codable, Equatable {
     var academicPath: AcademicPath? = nil
     var targetSchool: String = ""
     var personalGoal: String = ""
+    /// Rythme quotidien (`src/types.ts:80-84`, défauts de `src/data.ts:28-32`) :
+    /// évité automatiquement par la répartition du plan
+    /// (`EnhancedPlanScreen.tsx:574-576`). Absents des comptes historiques : les
+    /// valeurs par défaut de la source s'appliquent alors.
+    var dinnerDurationMinutes: Int = 30
+    var showerDurationMinutes: Int = 15
+    var dinnerTime: String = "19:30"
+    var showerTime: String = "21:30"
+    var bedtime: String = "23:00"
     var isPublic: Bool = false
     var photoUri: String? = nil
 
@@ -32,6 +41,8 @@ struct UserProfile: Codable, Equatable {
         case className = "class"
         case track, year, specialty, academicPath, targetSchool
         case personalGoal, isPublic, photoUri
+        case dinnerDurationMinutes, showerDurationMinutes
+        case dinnerTime, showerTime, bedtime
     }
 
     init() {}
@@ -53,6 +64,13 @@ struct UserProfile: Codable, Equatable {
         academicPath = try? c.decodeIfPresent(AcademicPath.self, forKey: .academicPath)
         targetSchool = Self.string(c, .targetSchool)
         personalGoal = Self.string(c, .personalGoal)
+        // Comptes historiques : la clé peut manquer ou valoir vide, on garde le
+        // défaut de la source plutôt que de repartir d'une valeur nulle.
+        if let value = try? c.decode(String.self, forKey: .dinnerTime), !value.isEmpty { dinnerTime = value }
+        if let value = try? c.decode(Int.self, forKey: .dinnerDurationMinutes) { dinnerDurationMinutes = value }
+        if let value = try? c.decode(String.self, forKey: .showerTime), !value.isEmpty { showerTime = value }
+        if let value = try? c.decode(Int.self, forKey: .showerDurationMinutes) { showerDurationMinutes = value }
+        if let value = try? c.decode(String.self, forKey: .bedtime), !value.isEmpty { bedtime = value }
         isPublic = (try? c.decodeIfPresent(Bool.self, forKey: .isPublic)) ?? false
         photoUri = try? c.decodeIfPresent(String.self, forKey: .photoUri)
     }
@@ -74,6 +92,11 @@ struct UserProfile: Codable, Equatable {
         try c.encodeIfPresent(academicPath, forKey: .academicPath)
         try c.encode(targetSchool, forKey: .targetSchool)
         try c.encode(personalGoal, forKey: .personalGoal)
+        try c.encode(dinnerDurationMinutes, forKey: .dinnerDurationMinutes)
+        try c.encode(showerDurationMinutes, forKey: .showerDurationMinutes)
+        try c.encode(dinnerTime, forKey: .dinnerTime)
+        try c.encode(showerTime, forKey: .showerTime)
+        try c.encode(bedtime, forKey: .bedtime)
         try c.encode(isPublic, forKey: .isPublic)
         try c.encodeIfPresent(photoUri, forKey: .photoUri)
     }
@@ -165,6 +188,10 @@ struct LeaderboardEntry: Codable, Identifiable, Equatable {
     let displayName: String
     let prepName: String
     var track: String?
+    /// Filière réellement suivie renvoyée par le serveur (`currentTrack` de
+    /// `SubjectLeaderboardEntry` / `WeeklyXpEntry`) : rejoue le filtre de
+    /// cohorte côté client et l'étiquette académique des lignes XP.
+    var currentTrack: String?
     var specialty: String?
     var year: String?
     var elo: Int?
@@ -172,17 +199,19 @@ struct LeaderboardEntry: Codable, Identifiable, Equatable {
     var isAnonymous: Bool?
 
     enum CodingKeys: String, CodingKey {
-        case id, displayName, prepName, track, specialty, year, elo, xp
+        case id, displayName, prepName, track, currentTrack, specialty, year, elo, xp
         case isAnonymous = "isAnonymous"
     }
 
     init(id: String, displayName: String, prepName: String,
-         track: String? = nil, specialty: String? = nil, year: String? = nil,
+         track: String? = nil, currentTrack: String? = nil,
+         specialty: String? = nil, year: String? = nil,
          elo: Int? = nil, xp: Double? = nil, isAnonymous: Bool? = nil) {
         self.id = id
         self.displayName = displayName
         self.prepName = prepName
         self.track = track
+        self.currentTrack = currentTrack
         self.specialty = specialty
         self.year = year
         self.elo = elo
@@ -196,6 +225,7 @@ struct LeaderboardEntry: Codable, Identifiable, Equatable {
         displayName = (try? c.decode(String.self, forKey: .displayName)) ?? ""
         prepName = (try? c.decode(String.self, forKey: .prepName)) ?? ""
         track = try? c.decodeIfPresent(String.self, forKey: .track)
+        currentTrack = try? c.decodeIfPresent(String.self, forKey: .currentTrack)
         specialty = try? c.decodeIfPresent(String.self, forKey: .specialty)
         year = try? c.decodeIfPresent(String.self, forKey: .year)
         elo = (try? c.decodeIfPresent(Int.self, forKey: .elo)) ?? nil

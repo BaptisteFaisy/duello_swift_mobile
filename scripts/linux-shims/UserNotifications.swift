@@ -89,3 +89,80 @@ open class UNUserNotificationCenter: NSObject {
 
     public func removeAllDeliveredNotifications() {}
 }
+
+// MARK: - Réception et présentation des notifications (`PushNotifAppDelegate`)
+
+public struct UNNotificationPresentationOptions: OptionSet, Sendable {
+    public let rawValue: UInt
+    public init(rawValue: UInt) { self.rawValue = rawValue }
+
+    public static let badge = UNNotificationPresentationOptions(rawValue: 1 << 0)
+    public static let sound = UNNotificationPresentationOptions(rawValue: 1 << 1)
+    public static let alert = UNNotificationPresentationOptions(rawValue: 1 << 2)
+    public static let list = UNNotificationPresentationOptions(rawValue: 1 << 3)
+    public static let banner = UNNotificationPresentationOptions(rawValue: 1 << 4)
+}
+
+open class UNNotification: NSObject {
+    public let date: Date
+    public let request: UNNotificationRequest
+
+    public init(date: Date = Date(), request: UNNotificationRequest = UNNotificationRequest(
+        identifier: "", content: UNNotificationContent(), trigger: nil
+    )) {
+        self.date = date
+        self.request = request
+        super.init()
+    }
+}
+
+public let UNNotificationDefaultActionIdentifier = "com.apple.UNNotificationDefaultActionIdentifier"
+public let UNNotificationDismissActionIdentifier = "com.apple.UNNotificationDismissActionIdentifier"
+
+open class UNNotificationResponse: NSObject {
+    public let notification: UNNotification
+    public let actionIdentifier: String
+
+    public init(notification: UNNotification = UNNotification(),
+                actionIdentifier: String = UNNotificationDefaultActionIdentifier) {
+        self.notification = notification
+        self.actionIdentifier = actionIdentifier
+        super.init()
+    }
+}
+
+public protocol UNUserNotificationCenterDelegate: NSObjectProtocol {
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    )
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    )
+}
+
+// Le SDK Apple déclare ces deux méthodes `@objc optional` : on fournit donc
+// des implémentations par défaut pour que la conformité n'exige rien.
+public extension UNUserNotificationCenterDelegate {
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {}
+
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {}
+}
+
+extension UNUserNotificationCenter {
+    public var delegate: (any UNUserNotificationCenterDelegate)? {
+        get { nil }
+        set {}
+    }
+}

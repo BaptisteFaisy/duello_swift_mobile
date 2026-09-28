@@ -82,6 +82,18 @@ final class AcctNotificationsStore: ObservableObject {
         AcctNotifications.save(notifications, accountId: accountId)
     }
 
+    /// `withCorrectionReadyNotification` + `saveNotifications` : ajoute la
+    /// notification « correction prête » (une seule fois par `jobId`) et la
+    /// publie. Identique à `AnnaleCorrectionMonitor.tsx:85-94`.
+    func addCorrectionReady(jobId: String, itemId: String, title: String, score: Double) {
+        let current = AcctNotifications.load(accountId: accountId)
+        let updated = AcctNotifications.withCorrectionReadyNotification(
+            current, jobId: jobId, itemId: itemId, title: title, score: score)
+        guard updated != current else { return }
+        AcctNotifications.save(updated, accountId: accountId)
+        notifications = updated
+    }
+
     /// `syncRemote` : relit le serveur, fusionne, écrit si changé.
     func syncRemote(email: String, token: String?) async {
         guard let remote = try? await AcctNotificationsAPI.fetch(email: email, token: token)

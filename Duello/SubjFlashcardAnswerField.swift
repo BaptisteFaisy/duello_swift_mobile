@@ -33,8 +33,10 @@
 //    - l'aperçu passe par `LatexToUnicode.toUnicodeMath` : le texte reste exact,
 //      la mise en forme « console » des blocs de code n'est pas reproduite.
 //
-//  Substitutions SF Symbols : mic-outline → mic, stop → stop.fill,
-//  camera-outline → camera, calculator-outline → function.
+//  Icônes Ionicons du RN rendues par `IonIcon` (glyphes identiques à
+//  `@expo/vector-icons`) : mic-outline, stop, sparkles, camera-outline,
+//  calculator-outline — taille 13, `Theme.primary` au repos et `Theme.surface`
+//  quand le bouton est actif.
 //
 //  Cible : iOS 16, aucune dépendance externe.
 //
@@ -222,7 +224,7 @@ struct SubjFlashcardAnswerField: View {
     private var toolRow: some View {
         HStack(spacing: 3) {
             SubjFlashcardToolButton(
-                systemImage: dictationIcon,
+                ionIcon: dictationIcon,
                 label: dictationLabel,
                 accessibility: dictation.isListening
                     ? "Arrêter la transcription de la réponse"
@@ -234,14 +236,14 @@ struct SubjFlashcardAnswerField: View {
             Spacer(minLength: 0)
             HStack(spacing: 3) {
                 SubjFlashcardToolButton(
-                    systemImage: "camera",
+                    ionIcon: "camera-outline",
                     label: "Photo",
                     accessibility: "Transcrire une photo dans la réponse",
                     disabled: disabled || dictation.isFormatting,
                     action: openPhotoTranscription
                 )
                 SubjFlashcardToolButton(
-                    systemImage: "function",
+                    ionIcon: "calculator-outline",
                     label: "Clavier maths",
                     accessibility: "Clavier maths pour la réponse",
                     active: mathKeyboardOpen,
@@ -254,7 +256,7 @@ struct SubjFlashcardAnswerField: View {
 
     private var dictationIcon: String {
         if dictation.isFormatting { return "sparkles" }
-        return dictation.isListening ? "stop.fill" : "mic"
+        return dictation.isListening ? "stop" : "mic-outline"
     }
 
     private var dictationLabel: String {

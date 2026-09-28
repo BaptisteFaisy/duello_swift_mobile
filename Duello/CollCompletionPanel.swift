@@ -14,9 +14,9 @@
 //  `CollCompletionViews.swift` ; l'état persistant, dans `CollCompletionStore.swift`.
 //
 //  Limite documentée : la source suit la position de lecture de l'énoncé via le
-//  moteur PDF.js (`positioning` / `onPositionChange`). Ce suivi n'est pas
-//  portable ; le lecteur PDF natif `CtdDocumentViewer` est réutilisé et la
-//  position est réglée par un curseur borné `[0, 1]`.
+//  moteur PDF.js (`positioning` / `onPositionChange`). Le lecteur PDF natif
+//  `CtdDocumentViewer` reprend ce contrat : le repère rouge suit le défilement
+//  et publie la position atteinte.
 //  Cible : iOS 16, aucune dépendance externe.
 //
 import SwiftUI
@@ -83,13 +83,11 @@ struct CollCompletionPanel: View {
     private var finishButton: some View {
         Button { open.toggle() } label: {
             HStack(spacing: 9) {
-                Image(systemName: "flag")
-                    .font(.system(size: 17, weight: .semibold))
+                IonIcon(name: "flag-outline", size: 20, color: Theme.surface)
                 Text("Ma colle")
                     .font(.system(size: 15, weight: .heavy))
                 Spacer(minLength: 8)
-                Image(systemName: open ? "chevron.up" : "chevron.down")
-                    .font(.system(size: 14, weight: .bold))
+                IonIcon(name: open ? "chevron-up" : "chevron-down", size: 18, color: Theme.surface)
             }
             .foregroundStyle(Theme.surface)
             .padding(.horizontal, 16)
@@ -140,19 +138,20 @@ struct CollCompletionPanel: View {
         }
     }
 
-    /// Lecteur de l'énoncé et curseur de position (voir limite en en-tête).
+    /// Lecteur de l'énoncé avec le repère rouge de position
+    /// (`CourseDocumentViewer` `positioning`, `ColleCompletionPanel.tsx:315-321`) :
+    /// faire défiler l'énoncé place le repère, et la position atteinte remonte
+    /// par `onPositionChange`.
     private func statementViewer(_ statement: CollStatementDocument) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            CtdDocumentViewer(
-                uri: statement.uri,
-                mimeType: .pdf,
-                revision: statement.importedAt,
-                height: 390
-            )
-            Slider(value: $positionDraft, in: 0...1)
-                .tint(Theme.like)
-                .accessibilityLabel("Position atteinte dans l’énoncé")
-        }
+        CtdDocumentViewer(
+            uri: statement.uri,
+            mimeType: .pdf,
+            revision: statement.importedAt,
+            height: 390,
+            positioning: true,
+            initialPosition: statement.reachedPosition,
+            onPositionChange: { positionDraft = $0 }
+        )
     }
 
     private var importButton: some View {
@@ -161,8 +160,7 @@ struct CollCompletionPanel: View {
                 if importing {
                     ProgressView().progressViewStyle(.circular).tint(Theme.surface)
                 } else {
-                    Image(systemName: "square.and.arrow.up")
-                        .font(.system(size: 17, weight: .semibold))
+                    IonIcon(name: "cloud-upload-outline", size: 20, color: Theme.surface)
                 }
                 Text("Importer l’énoncé en PDF")
                     .font(.system(size: 14, weight: .heavy))
@@ -198,7 +196,7 @@ struct CollCompletionPanel: View {
             store.update { $0.questions.append(CollCompletionPanel.emptyQuestion()) }
         } label: {
             HStack(spacing: 7) {
-                Image(systemName: "plus").font(.system(size: 16, weight: .bold))
+                IonIcon(name: "add", size: 20, color: Theme.ink)
                 Text("Ajouter une question restante")
                     .font(.system(size: 13, weight: .heavy))
             }

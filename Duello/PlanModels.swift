@@ -170,16 +170,29 @@ struct PlanScheduleSlot: Codable, Identifiable, Equatable {
 
 /// Rythme quotidien évité par la répartition (dîner, douche, nuit).
 ///
-/// `UserProfile` (Models.swift) ne porte pas encore ces champs : les valeurs par
-/// défaut sont celles de `expo_ref/src/data.ts` (19:30 / 30 min, 21:30 / 15 min,
-/// coucher 23:00). Le jour où le profil les portera, ce type deviendra un
-/// simple adaptateur — le reste du fichier n'aura pas à bouger.
+/// `UserProfile` porte désormais ces champs (`Models.swift`, `src/types.ts:80-84`) :
+/// `from(_:)` est l'adaptateur de `profile.dinnerTime/showerTime/bedtime` et de
+/// leurs durées, exactement comme `nextAvailableMinute`
+/// (`EnhancedPlanScreen.tsx:574-576`). Les valeurs par défaut restent celles de
+/// `expo_ref/src/data.ts` (19:30 / 30 min, 21:30 / 15 min, coucher 23:00).
 struct PlanRoutine: Equatable {
     var dinnerTime: String = "19:30"
     var dinnerDurationMinutes: Int = 30
     var showerTime: String = "21:30"
     var showerDurationMinutes: Int = 15
     var bedtime: String = "23:00"
+
+    /// `profile.dinnerTime`, `profile.showerTime`, `profile.bedtime` (lignes
+    /// 574-576) : le profil prime sur les valeurs par défaut de la source.
+    static func from(_ profile: UserProfile) -> PlanRoutine {
+        PlanRoutine(
+            dinnerTime: profile.dinnerTime,
+            dinnerDurationMinutes: profile.dinnerDurationMinutes,
+            showerTime: profile.showerTime,
+            showerDurationMinutes: profile.showerDurationMinutes,
+            bedtime: profile.bedtime
+        )
+    }
 }
 
 /// Réglages de l'IA locale (`OllamaSettings` de `ollamaClient.ts`).
@@ -213,21 +226,21 @@ enum PlanSubjects {
         "Général",
     ]
 
-    /// Icônes SF Symbols les plus proches des `Ionicons` de la source : certains
-    /// glyphes n'ont pas d'équivalent exact (« calculator-outline » → `function`,
-    /// « language-outline » → `globe`), la teinte du bloc reste identique.
-    static let general = PlanSubjectVisual(colorHex: Theme.primaryLightHex, icon: "briefcase")
+    /// Icônes **Ionicons** de la source, rendues par `IonIcon` (police
+    /// embarquée) : mêmes glyphes que `<Ionicons name={session.icon} …/>`
+    /// (`EnhancedPlanScreen.tsx:33-41`). La teinte du bloc est inchangée.
+    static let general = PlanSubjectVisual(colorHex: Theme.primaryLightHex, icon: "briefcase-outline")
 
     static let visuals: [String: PlanSubjectVisual] = [
-        "Mathématiques": PlanSubjectVisual(colorHex: Theme.primaryLightHex, icon: "function"),
-        "Physique": PlanSubjectVisual(colorHex: Theme.surfaceMutedHex, icon: "flask"),
-        "Chimie": PlanSubjectVisual(colorHex: Theme.surfaceMutedHex, icon: "flask"),
-        "Informatique": PlanSubjectVisual(colorHex: Theme.primaryLightHex, icon: "laptopcomputer"),
-        "Anglais": PlanSubjectVisual(colorHex: Theme.surfaceMutedHex, icon: "globe"),
-        "Français-philo": PlanSubjectVisual(colorHex: Theme.primaryLightHex, icon: "book"),
-        "Histoire-géographie": PlanSubjectVisual(colorHex: Theme.surfaceMutedHex, icon: "book"),
-        "Biologie": PlanSubjectVisual(colorHex: Theme.primaryLightHex, icon: "flask"),
-        "Général": PlanSubjectVisual(colorHex: Theme.primaryLightHex, icon: "briefcase"),
+        "Mathématiques": PlanSubjectVisual(colorHex: Theme.primaryLightHex, icon: "calculator-outline"),
+        "Physique": PlanSubjectVisual(colorHex: Theme.surfaceMutedHex, icon: "flask-outline"),
+        "Chimie": PlanSubjectVisual(colorHex: Theme.surfaceMutedHex, icon: "flask-outline"),
+        "Informatique": PlanSubjectVisual(colorHex: Theme.primaryLightHex, icon: "laptop-outline"),
+        "Anglais": PlanSubjectVisual(colorHex: Theme.surfaceMutedHex, icon: "language-outline"),
+        "Français-philo": PlanSubjectVisual(colorHex: Theme.primaryLightHex, icon: "book-outline"),
+        "Histoire-géographie": PlanSubjectVisual(colorHex: Theme.surfaceMutedHex, icon: "book-outline"),
+        "Biologie": PlanSubjectVisual(colorHex: Theme.primaryLightHex, icon: "flask-outline"),
+        "Général": PlanSubjectVisual(colorHex: Theme.primaryLightHex, icon: "briefcase-outline"),
     ]
 
     /// Repli `subjectVisuals[task.subject] ?? subjectVisuals.Général` (ligne 540).

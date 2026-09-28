@@ -29,10 +29,16 @@ struct PremOffersSection: View {
     @StateObject private var promo = PremPromoCodeController()
     @State private var availableWidth: CGFloat = 0
     @State private var openedOnDefaultOffer = false
+    /// Alignement différé en cours (`snapToInterval` de la source) : annulé et
+    /// replanifié à chaque mouvement du carrousel.
+    @State private var snapTask: Task<Void, Never>?
 
     private let offerGap: CGFloat = 18
     private let nextOfferPreview: CGFloat = 18
     private let offerMaxWidth: CGFloat = 340
+    /// Repère nommé du carrousel, pour mesurer son défilement (`onScroll` de la
+    /// source, reconstruit par mesure de préférence).
+    private let scrollSpace = "prem.offers.scroll"
 
     /// Le seul réglage exposé est le jeton de session : l'état local du
     /// carrousel et du formulaire reste `private`, ce que l'initialiseur
@@ -48,7 +54,11 @@ struct PremOffersSection: View {
                 Task { await promo.submit(token: token) }
             }
             reassurance
-            PremSubscriptionLegalFooter()
+            // `PremiumOffers.tsx:143` : le pied de conformité est **masqué** dans
+            // les builds development (mêmes masques que le nom de formule).
+            if !PremDevelopmentBuild.isActive {
+                PremSubscriptionLegalFooter()
+            }
         }
     }
 
@@ -65,13 +75,22 @@ struct PremOffersSection: View {
                     }
                 }
                 .padding(.bottom, 8)
+                .background(offsetReader)
+                .onPreferenceChange(PremOffersOffsetKey.self) { offset in
+                    snap(offset: offset, proxy: proxy)
+                }
                 .onAppear {
                     guard !openedOnDefaultOffer else { return }
                     openedOnDefaultOffer = true
-                    proxy.scrollTo(PremOfferCatalog.defaultOfferId, anchor: .leading)
+                    // `scrollTo({animated:false})` de la source : l'ouverture sur
+                    // l'offre annuelle ne s'anime pas.
+                    withAnimation(nil) {
+                        proxy.scrollTo(PremOfferCatalog.defaultOfferId, anchor: .leading)
+                    }
                 }
             }
         }
+        .coordinateSpace(name: scrollSpace)
         .accessibilityLabel("Les trois offres Duello")
         .background(widthReader)
         .onPreferenceChange(PremOffersWidthKey.self) { width in
@@ -85,6 +104,39 @@ struct PremOffersSection: View {
         let available = availableWidth > 0 ? availableWidth : offerMaxWidth
         let offerWidth = available - offerGap - nextOfferPreview
         return max(1, min(offerMaxWidth, offerWidth))
+    }
+
+    /// Alignement carte par carte : `snapToInterval = cardWidth + OFFER_GAP`,
+    /// `snapToAlignment="start"`. iOS 16 n'a pas d'alignement natif
+    /// (`scrollTargetBehavior` est iOS 17) : le défilement mesuré est ramené au
+    /// multiple de l'intervalle le plus proche, après un court répit sans
+    /// mouvement — approximation du `decelerationRate="fast"` de la source.
+    private func snap(offset: CGFloat, proxy: ScrollViewProxy) {
+        let interval = cardWidth + offerGap
+        guard interval > 0 else { return }
+        let count = PremOfferCatalog.offers.count
+        let index = min(max(Int((offset / interval).rounded()), 0), count - 1)
+        let target = CGFloat(index) * interval
+        guard abs(offset - target) > 0.5 else { return }
+        let id = PremOfferCatalog.offers[index].id
+        snapTask?.cancel()
+        snapTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 120_000_000)
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: 0.2)) {
+                proxy.scrollTo(id, anchor: .leading)
+            }
+        }
+    }
+
+    /// Mesure le défilement horizontal du carrousel (`onScroll` de la source).
+    private var offsetReader: some View {
+        GeometryReader { geo in
+            Color.clear.preference(
+                key: PremOffersOffsetKey.self,
+                value: -geo.frame(in: .named(scrollSpace)).minX
+            )
+        }
     }
 
     /// Les garanties, sous la carte promo : la source les aligne sur 300 points
@@ -116,7 +168,7 @@ struct PremOffersSection: View {
         Button {
             Task { try? await PremPurchasesModules.nativePurchasesUIModule()?.presentCustomerCenter() }
         } label: {
-            PremReassuranceRow(label: "Gérer mon abonnement", icon: "gearshape")
+            PremReassuranceRow(label: "Gérer mon abonnement", icon: "settings-outline")
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Gérer mon abonnement")
@@ -134,19 +186,32 @@ struct PremOffersSection: View {
 /// `Reassurance` de la source : une icône et une ligne de garantie.
 struct PremReassuranceRow: View {
     let label: String
-    var icon: String = "checkmark.shield"
+    var icon: String = "shield-checkmark-outline"
 
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(Theme.inkSoft)
+            IonIcon(name: icon, size: 16, color: Theme.inkSoft)
             Text(label)
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(Theme.inkSoft)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
         }
+    }
+}
+
+/// `isDevelopmentBuild()` de la source (`utils/developmentBuild.ts`) : vrai dans
+/// les builds development — Metro local (`__DEV__`) ou canal EAS `development`.
+/// Le binaire iOS n'a ni `__DEV__` ni canal OTA ; le repli natif est le build
+/// Debug (`#if DEBUG`), faux en Release — parité build *development* RN d'un
+/// côté, prod RN (preview/production/stores) de l'autre.
+enum PremDevelopmentBuild {
+    static var isActive: Bool {
+        #if DEBUG
+        return true
+        #else
+        return false
+        #endif
     }
 }
 
@@ -220,5 +285,14 @@ private struct PremOffersWidthKey: PreferenceKey {
 
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = max(value, nextValue())
+    }
+}
+
+/// Défilement horizontal mesuré du carrousel, remonté par préférence.
+private struct PremOffersOffsetKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
     }
 }

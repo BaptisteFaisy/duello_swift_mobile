@@ -55,9 +55,7 @@ struct SocInviteChannelsMenu: View {
                 if openingChannel == channel {
                     ProgressView().tint(Theme.ink)
                 } else {
-                    Image(systemName: channel.icon)
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(Theme.ink)
+                    IonIcon(name: iconName(channel), size: 20, color: Theme.ink)
                 }
                 Text(channel.label)
                     .font(.system(size: 13, weight: .heavy))
@@ -71,6 +69,16 @@ struct SocInviteChannelsMenu: View {
         .buttonStyle(.plain)
         .disabled(openingChannel != nil)
         .accessibilityLabel("Inviter un ami par \(channel.label)")
+    }
+
+    /// Glyphe Ionicons du canal (`chatbox-outline` / `logo-whatsapp` /
+    /// `logo-instagram`), mot pour mot de la source (`ChallengeInviteModal.tsx:814`).
+    private func iconName(_ channel: SocShareChannel) -> String {
+        switch channel {
+        case .sms: return "chatbox-outline"
+        case .whatsapp: return "logo-whatsapp"
+        case .instagram: return "logo-instagram"
+        }
     }
 }
 
@@ -89,8 +97,7 @@ struct SocInviteSendButton: View {
                 if sending {
                     ProgressView().tint(Theme.surface)
                 } else {
-                    Image(systemName: "bolt.fill")
-                        .font(.system(size: 16, weight: .bold))
+                    IonIcon(name: "flash", size: 19, color: Theme.white)
                     Text("Envoyer le défi")
                         .font(.system(size: 12, weight: .black))
                 }

@@ -68,6 +68,25 @@ enum ProfTutorApi {
         )
     }
 
+    /// `streamProfExplainImage` : explique une photo ou une page scannée, jeton
+    /// par jeton (relais vision).
+    static func streamExplainImage(
+        token: String,
+        image: String,
+        mimeType: String,
+        context: ProfTutorContext,
+        onToken: @escaping ProfTokenHandler
+    ) async throws -> String {
+        try requireConsent()
+        let body = try buildProfExplainImageBody(image: image, mimeType: mimeType, context: context)
+        return try await ProfTutorStream.post(
+            endpoint: relayEndpoint(),
+            token: token,
+            body: Data(body.utf8),
+            onToken: onToken
+        )
+    }
+
     /// `requireAiDataSharingConsent` : refuse sans accord explicite de l'élève.
     static func requireConsent() throws {
         guard CtdAiConsent.isGranted else { throw ProfTutorError.consentRequired }

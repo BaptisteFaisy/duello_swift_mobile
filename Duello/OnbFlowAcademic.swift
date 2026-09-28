@@ -112,6 +112,44 @@ enum OnbFlowAcademic {
         return year == "1re année" ? firstYearTracks : secondYearTracks
     }
 
+    /// `ONBOARDING_CURRENT_TRACK_ROW_LAYOUT` : disposition compacte des
+    /// pastilles de la page « TA FILIÈRE ACTUELLE », même plan que les boutons
+    /// 1re/2e année (JP 2026-09-23).
+    static let currentTrackRowLayout: [String: [[String]]] = [
+        "1re année": [
+            ["MPSI", "MP2I"],
+            ["PCSI", "PTSI"],
+            ["BCPST", "B/L", "ECG"],
+        ],
+        "2e année": [
+            ["MP", "MPI", "PC", "PT"],
+            ["PSI", "BCPST", "B/L", "ECG"],
+        ],
+    ]
+
+    /// `onboardingCurrentTrackRows(year)` : les filières de
+    /// `currentTrackChoices(year)` regroupées en lignes d'affichage. Toute
+    /// filière hors plan rejoint une dernière ligne.
+    static func currentTrackRows(year: String) -> [[String]] {
+        let choices = currentTrackChoices(year: year)
+        let layout = currentTrackRowLayout[year] ?? [choices]
+        var seen = Set<String>()
+        var rows: [[String]] = []
+        for row in layout {
+            var line: [String] = []
+            for track in row {
+                if choices.contains(track) && !seen.contains(track) {
+                    seen.insert(track)
+                    line.append(track)
+                }
+            }
+            if !line.isEmpty { rows.append(line) }
+        }
+        let leftovers = choices.filter { !seen.contains($0) }
+        if !leftovers.isEmpty { rows.append(leftovers) }
+        return rows
+    }
+
     /// `originChoices` : filières de 1re année compatibles avec la filière
     /// courante (une filière de 1re année se répond elle-même).
     static func originChoices(currentTrack: String) -> [String] {

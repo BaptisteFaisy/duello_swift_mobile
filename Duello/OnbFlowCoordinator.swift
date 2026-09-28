@@ -160,6 +160,14 @@ final class OnbFlowCoordinator: ObservableObject {
         OnbFlowAcademic.currentTrackChoices(year: profile.year)
     }
 
+    /// `onboardingCurrentTrackRows(profile.year)` : les mêmes filières, mais
+    /// regroupées en lignes d'affichage (`ONBOARDING_CURRENT_TRACK_ROW_LAYOUT`)
+    /// — la page « TA FILIÈRE ACTUELLE » les présente côte à côte comme les
+    /// années, pas empilées pleine largeur.
+    var currentTrackRows: [[String]] {
+        OnbFlowAcademic.currentTrackRows(year: profile.year)
+    }
+
     /// `selectedOnboardingTrack` (`chosenOnboardingTrack` de
     /// `utils/academicPath.ts`) : la filière retenue pour l'affichage et le
     /// blocage de l'étape. `nil` tant que le choix explicite ne correspond pas
@@ -174,6 +182,13 @@ final class OnbFlowCoordinator: ObservableObject {
     /// tant que l'élève n'a pas choisi une filière.
     var trackChoicePending: Bool {
         currentStep == .currentTrack && selectedOnboardingTrack == nil
+    }
+
+    /// `mathOptionChoicePending` : l'option de maths d'ECG fait partie du
+    /// compte — l'étape « option » reste bloquée tant qu'aucune option n'est
+    /// choisie (pas de « juste ECG »).
+    var mathOptionChoicePending: Bool {
+        currentStep == .options && path.currentOption.isEmpty
     }
 
     /// `originChoices` de la filière courante.
@@ -226,6 +241,7 @@ final class OnbFlowCoordinator: ObservableObject {
             isCheckingRegistrationDetails: isCheckingRegistrationDetails,
             isCheckingUsername: isCheckingUsername,
             trackChoicePending: trackChoicePending,
+            mathOptionChoicePending: mathOptionChoicePending,
             premiumGiftOpenPending: premiumGiftOpenPending,
             preflightReady: preflightState == .ready,
             isCheckingPreflight: preflightState == .checking
@@ -387,12 +403,14 @@ final class OnbFlowCoordinator: ObservableObject {
                 return
             }
         }
-        withAnimation(.easeInOut(duration: 0.2)) { stepIndex += 1 }
+        // La source change d'étape sans animation (`setStep` direct,
+        // `OnboardingScreen.tsx:913,958`) : aucune transition à ajouter.
+        stepIndex += 1
     }
 
     /// `goBack` : étape précédente, bloquée pendant la complétion.
     func goBack() {
         guard !isCompleting, stepIndex > 0 else { return }
-        withAnimation(.easeInOut(duration: 0.2)) { stepIndex -= 1 }
+        stepIndex -= 1
     }
 }

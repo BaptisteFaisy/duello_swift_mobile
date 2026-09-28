@@ -13,9 +13,7 @@ extension DuelloProgressView {
     /// Encart d'information sur fond clair (invitation de l'onglet Défis).
     func infoCard(_ text: String) -> some View {
         HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "info.circle")
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(Theme.primary)
+            IonIcon(name: "information-circle", size: 18, color: Theme.primary)
             Text(text)
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(Theme.ink)
@@ -37,9 +35,7 @@ extension DuelloProgressView {
     /// État vide d'un onglet de matière : aucune matière cochée dans le filtre.
     var noSubjectSelectedState: some View {
         VStack(spacing: 0) {
-            Image(systemName: "line.3.horizontal.decrease.circle")
-                .font(.system(size: 48, weight: .regular))
-                .foregroundStyle(Theme.inkFaint)
+            IonIcon(name: "funnel-outline", size: 48, color: Theme.inkFaint)
             Text("Aucune matière sélectionnée")
                 .font(.system(size: 16, weight: .heavy))
                 .foregroundStyle(Theme.ink)
@@ -64,12 +60,17 @@ extension DuelloProgressView {
 /// Carte de l'écran « Progression » : fond blanc, rayon moyen et ombre du thème
 /// (`cardShadow` d'`theme.ts`), comme les cartes d'Expo — pas de bordure.
 extension View {
-    func progressCard(padding: CGFloat = 14) -> some View {
+    /// `radius` reprend le rayon du style Expo : `radii.medium` (14) partout,
+    /// sauf la carte de synthèse « Heures » qui porte `radii.large` (18).
+    func progressCard(
+        padding: CGFloat = 14,
+        radius: CGFloat = Theme.radiusMedium
+    ) -> some View {
         self
             .padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Theme.surface)
-            .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
+            .clipShape(RoundedRectangle(cornerRadius: radius))
             .duelloShadow()
     }
 }

@@ -11,6 +11,30 @@
 
 import SwiftUI
 
+// MARK: - Appui des touches
+
+/// Appui d'une touche du clavier : fond `primaryLight` pendant l'appui
+/// (`styles.keyPressed` du RN), chrome `surface`/`border` au repos.
+struct MathKbPressStyle: ButtonStyle {
+    var cornerRadius: CGFloat = Theme.radiusSmall
+    var background: Color = Theme.surface
+    var border: Color = Theme.border
+    var pressedBackground: Color = Theme.primaryLight
+    /// Onglets : la forme est une capsule (`radii.pill` du RN).
+    var capsule: Bool = false
+
+    private var shape: AnyShape {
+        capsule ? AnyShape(Capsule()) : AnyShape(RoundedRectangle(cornerRadius: cornerRadius))
+    }
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(configuration.isPressed ? pressedBackground : background)
+            .clipShape(shape)
+            .overlay(shape.stroke(border, lineWidth: 1))
+    }
+}
+
 // MARK: - Boutons du clavier
 
 /// Touche de la rangée d'actions (espace, retour, effacer) et du mode indice.
@@ -18,32 +42,42 @@ struct MathKbActionKey: View {
     let accessibility: String
     var label: String? = nil
     var systemImage: String? = nil
+    /// Icône Ionicons (portage RN) : prioritaire sur `systemImage`.
+    var ionIcon: String? = nil
+    /// Taille de l'icône Ionicons (`size` du RN).
+    var iconSize: CGFloat = 17
     var highlighted: Bool = false
     var labelSize: CGFloat = 11
+    /// Couleur du libellé hors touche active (`actionText` du RN = inkSoft).
+    var labelColor: Color = Theme.inkSoft
+    /// Touche extensible : occupe la largeur restante (`spaceKey` `flex:1`).
+    var expandable: Bool = false
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             Group {
-                if let systemImage = systemImage {
+                if let ionIcon = ionIcon {
+                    IonIcon(name: ionIcon, size: iconSize, color: highlighted ? Theme.surface : Theme.ink)
+                } else if let systemImage = systemImage {
                     Image(systemName: systemImage)
                         .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(highlighted ? Theme.surface : Theme.ink)
                 } else if let label = label {
                     Text(label)
                         .font(.system(size: labelSize, weight: .heavy))
+                        .foregroundStyle(highlighted ? Theme.surface : labelColor)
                 }
             }
-            .foregroundStyle(highlighted ? Theme.surface : Theme.ink)
             .frame(minWidth: 42, minHeight: 30)
+            .frame(maxWidth: expandable ? .infinity : nil)
             .padding(.horizontal, 8)
-            .background(highlighted ? Theme.ink : Theme.surface)
-            .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
-            .overlay(
-                RoundedRectangle(cornerRadius: Theme.radiusSmall)
-                    .stroke(Theme.border, lineWidth: 1)
-            )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(MathKbPressStyle(
+            cornerRadius: Theme.radiusSmall,
+            background: highlighted ? Theme.primary : Theme.surface,
+            border: highlighted ? Theme.primary : Theme.border
+        ))
         .accessibilityLabel(accessibility)
     }
 }
@@ -51,6 +85,10 @@ struct MathKbActionKey: View {
 /// Petit bouton d'éditeur : navigation entre champs, secondaire, primaire.
 struct MathKbMiniButton: View {
     var systemImage: String? = nil
+    /// Icône Ionicons (portage RN) : prioritaire sur `systemImage`.
+    var ionIcon: String? = nil
+    /// Taille de l'icône Ionicons (`size` du RN).
+    var iconSize: CGFloat = 14
     var label: String? = nil
     var wide: Bool = false
     var prominent: Bool = false
@@ -60,27 +98,38 @@ struct MathKbMiniButton: View {
     var body: some View {
         Button(action: action) {
             Group {
-                if let systemImage = systemImage {
+                if let ionIcon = ionIcon {
+                    IonIcon(name: ionIcon, size: iconSize, color: Theme.ink)
+                } else if let systemImage = systemImage {
                     Image(systemName: systemImage)
                         .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(prominent ? Theme.surface : Theme.ink)
                 } else if let label = label {
                     Text(label)
                         .font(.system(size: 8, weight: prominent ? .black : .heavy))
+                        .foregroundStyle(prominent ? Theme.surface : Theme.inkSoft)
                 }
             }
-            .foregroundStyle(prominent ? Theme.surface : Theme.ink)
-            .frame(minWidth: systemImage != nil ? 27 : 0, minHeight: 26)
-            .padding(.horizontal, wide ? 9 : 6)
-            .background(prominent ? Theme.ink : Theme.surface)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(prominent ? Theme.ink : Theme.border, lineWidth: 1)
-            )
+            .frame(minWidth: (ionIcon != nil || systemImage != nil) ? 27 : 0, minHeight: 26)
+            .padding(.horizontal, wide ? 9 : 8)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(MathKbPressStyle(cornerRadius: 8, background: fillColor, border: strokeColor))
         .disabled(!enabled)
         .opacity(enabled ? 1 : 0.48)
+    }
+
+    /// Fond selon la variante RN : navigation `surfaceMuted`, insérer `primary`,
+    /// annuler `surface`.
+    private var fillColor: Color {
+        if ionIcon != nil { return Theme.surfaceMuted }
+        return prominent ? Theme.primary : Theme.surface
+    }
+
+    /// Bord selon la variante RN : navigation et annuler en `border`, insérer
+    /// en `primary`.
+    private var strokeColor: Color {
+        if ionIcon != nil { return Theme.border }
+        return prominent ? Theme.primary : Theme.border
     }
 }
 
@@ -114,14 +163,8 @@ struct MathKbStepper: View {
                 .font(.system(size: 13, weight: .heavy))
                 .foregroundStyle(Theme.ink)
                 .frame(width: 24, height: 22)
-                .background(Theme.surface)
-                .clipShape(RoundedRectangle(cornerRadius: 7))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 7)
-                        .stroke(Theme.border, lineWidth: 1)
-                )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(MathKbPressStyle(cornerRadius: 7, background: Theme.surfaceMuted))
         .disabled(!enabled)
         .opacity(enabled ? 1 : 0.48)
     }

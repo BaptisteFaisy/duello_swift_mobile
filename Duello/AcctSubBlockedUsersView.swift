@@ -49,19 +49,26 @@ struct AcctSubBlockedUsersView: View {
     private static let unblockConfirmationMessage = "Ce compte et le tien pourront à nouveau se trouver dans l’annuaire et interagir sur Duello."
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
-                backButton
-                header
-                explanationCard
-                stateContent
-                if !errorMessage.isEmpty && !profiles.isEmpty {
-                    inlineError
+        // En-tête **hors** du défilement (`BlockedUsersScreen.tsx:87-100`) : il
+        // reste figé, seul le contenu défile (`:102-105`).
+        VStack(alignment: .leading, spacing: 0) {
+            header
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    explanationCard
+                    stateContent
+                        .padding(.top, 16)
+                    if !errorMessage.isEmpty && !profiles.isEmpty {
+                        inlineError
+                            .padding(.top, 12)
+                    }
                 }
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+                .padding(.bottom, 36)
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
-            .padding(.bottom, 36)
+            .scrollIndicators(.hidden)
         }
         .background(Theme.background)
         .task(id: attempt) { await load() }
@@ -85,37 +92,48 @@ struct AcctSubBlockedUsersView: View {
         )
     }
 
-    /// Chevron de retour en tête de contenu : sans lui, l'écran présenté en
-    /// feuille n'est pas refermable (`BackButton` de la source).
+    /// `BackButton` en tête de l'en-tête figé (`BlockedUsersScreen.tsx:89-95`,
+    /// `BackButton.tsx:61-95`) : chevron `chevron-back` 20 encre, boîte 40 × 40,
+    /// décalage -4 pt, cible 56 pt. Sans lui, l'écran présenté en feuille n'est
+    /// pas refermable.
     private var backButton: some View {
         Button { dismiss() } label: {
-            Image(systemName: "chevron.left")
-                .font(.system(size: 20, weight: .bold))
-                .foregroundStyle(Theme.ink)
-                .frame(width: 40, height: 40, alignment: .leading)
+            IonIcon(name: "chevron-back", size: 20, color: Theme.ink)
+                .offset(x: -4)
+                .frame(width: 40, height: 40)
+                .contentShape(Rectangle())
+                .padding(8)
+                .contentShape(Rectangle())
+                .padding(-8)
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Retour aux paramètres")
     }
 
+    /// En-tête figé (`header` / `headerCopy`) : chevron puis chapeau + titre, écart 8.
     private var header: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text("SÉCURITÉ")
-                .font(.system(size: 10, weight: .black))
-                .tracking(1.1)
-                .foregroundStyle(Theme.inkSoft)
-            Text("Comptes bloqués")
-                .font(.system(size: 22, weight: .black))
-                .foregroundStyle(Theme.ink)
+        HStack(spacing: 8) {
+            backButton
+            VStack(alignment: .leading, spacing: 0) {
+                Text("SÉCURITÉ")
+                    .font(.system(size: 10, weight: .black))
+                    .tracking(1.1)
+                    .foregroundStyle(Theme.inkSoft)
+                Text("Comptes bloqués")
+                    .font(.system(size: 22, weight: .black))
+                    .foregroundStyle(Theme.ink)
+                    .padding(.top, 2)
+            }
+            Spacer(minLength: 0)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 20)
+        .padding(.top, 8)
+        .padding(.bottom, 8)
     }
 
     private var explanationCard: some View {
         HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "nosign")
-                .font(.system(size: 21, weight: .bold))
-                .foregroundStyle(Theme.ink)
+            IonIcon(name: "ban-outline", size: 21, color: Theme.ink)
             Text("Tu ne peux plus trouver ni suivre ces comptes, recevoir leurs notifications ou les inviter à un défi, et réciproquement. Ils sont aussi retirés de tes espaces sociaux.")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Theme.inkSoft)
@@ -155,9 +173,7 @@ struct AcctSubBlockedUsersView: View {
 
     private var errorCard: some View {
         VStack(spacing: 9) {
-            Image(systemName: "exclamationmark.circle")
-                .font(.system(size: 23, weight: .semibold))
-                .foregroundStyle(Theme.like)
+            IonIcon(name: "alert-circle-outline", size: 23, color: Theme.like)
             Text(errorMessage)
                 .font(.system(size: 13, weight: .bold))
                 .foregroundStyle(Theme.inkSoft)
@@ -180,9 +196,7 @@ struct AcctSubBlockedUsersView: View {
 
     private var emptyCard: some View {
         VStack(spacing: 9) {
-            Image(systemName: "checkmark.circle")
-                .font(.system(size: 24, weight: .semibold))
-                .foregroundStyle(Theme.ink)
+            IonIcon(name: "checkmark-circle-outline", size: 24, color: Theme.ink)
             Text("Aucun compte bloqué.")
                 .font(.system(size: 13, weight: .bold))
                 .foregroundStyle(Theme.inkSoft)
@@ -257,9 +271,11 @@ struct AcctSubBlockedUsersView: View {
 
             if presence.isOnline(member.id) {
                 Circle()
-                    .fill(Theme.progress)
-                    .frame(width: 11, height: 11)
-                    .overlay(Circle().stroke(Theme.surface, lineWidth: 2))
+                    .fill(SocPresencePalette.online)
+                    .frame(width: SocPresencePalette.dotSize, height: SocPresencePalette.dotSize)
+                    .overlay(
+                        Circle().stroke(Theme.surface, lineWidth: SocPresencePalette.dotBorder)
+                    )
             }
         }
         .accessibilityHidden(true)

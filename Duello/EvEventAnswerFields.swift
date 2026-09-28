@@ -14,7 +14,8 @@
 //  les remplace ici et l'Info.plist n'est pas modifiable dans ce lot. Le champ
 //  garde le texte exact qui partira à la correction.
 //
-//  Substitutions SF Symbols : camera-outline → camera.
+//  Icône Ionicons : camera-outline (16) pour le bouton photo, comme la source
+//  — plus de substitution SF Symbol.
 //
 //  Cible : iOS 16.
 //
@@ -123,8 +124,7 @@ private struct EvEventAnswerField: View {
                     if photoBusy {
                         ProgressView().controlSize(.small)
                     } else {
-                        Image(systemName: "camera")
-                            .font(.system(size: 13, weight: .semibold))
+                        IonIcon(name: "camera-outline", size: 16, color: Theme.inkSoft)
                     }
                     Text("Photo")
                         .font(.system(size: 11, weight: .heavy))

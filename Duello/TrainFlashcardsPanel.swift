@@ -1,51 +1,44 @@
 import SwiftUI
 
 // V1 2026-09-26 (U06#4) : fichier neuf. Surface « Cartes » d'un chapitre :
-// onglets « Générer / Créer / Réviser » (`coursePage === 'flashcards'`,
-// `SubjectsScreen.tsx:8506-8736`) — génération (`generateFlashcards` `5069`,
-// ici la génération locale déterministe `CollFlashcards.generate` via un
-// protocole injectable : seam honnête, le relais IA restant indisponible),
-// création avec persistance (`saveFlashcardEditor` `5562`) et panneau de
-// révision (`TrainFlashcardReviewPanel`).
+// génération, création avec persistance (`saveFlashcardEditor` `5562`) et
+// panneau de révision (`TrainFlashcardReviewPanel`).
 //
-// Onglets « Lire / Générer / Créer / Réviser » de la source (`8044/8075/8117/
-// 8158`) : « Lire » est la page « Mon cours » elle-même (`TrainCoursePage`),
-// les trois autres vivent ici.
+// V2 2026-09-28 (U06#4, #12) : la génération passe par le **relais IA**
+// (`generateCourseFlashcardsFromPdf`, `CollFlashcardsApi`), avec l'accord de
+// partage IA, l'avancement publié (`flashcardGenerationProgress`) et
+// l'annulation — au lieu du générateur local de cinq cartes génériques. Le
+// panneau ne porte plus sa propre barre d'onglets : les sections sont choisies
+// par les onglets de la page « Mon cours » (`TrainCoursePageTab`), comme la
+// source (`coursePage === 'flashcards'`).
 
-/// Génération de flashcards : la source appelle le relais IA
-/// (`generateCourseFlashcardsFromPdf`). Le port iOS n'a pas de relais : le
-/// protocole rend cette dépendance explicite, et l'implémentation par défaut
-/// produit la génération locale déterministe (`CollFlashcards.generate`), qui
-/// reste disponible hors connexion.
-protocol TrainFlashcardGenerator {
-    func generate(chapterName: String, sourceName: String) -> CollFlashcardsDocument
-}
-
-/// Génération locale déterministe, disponible hors connexion.
-struct TrainLocalFlashcardGenerator: TrainFlashcardGenerator {
-    func generate(chapterName: String, sourceName: String) -> CollFlashcardsDocument {
-        CollFlashcards.generate(chapterName: chapterName, sourceName: sourceName)
-    }
-}
-
-/// Surface « Cartes » d'un chapitre : onglets Générer / Créer / Réviser.
+/// Surface « Cartes » d'un chapitre : un seul panneau (Générer / Créer /
+/// Réviser), choisi par la page « Mon cours ».
 struct TrainFlashcardsPanel: View {
     let subject: String
     let chapterId: String
     let chapterName: String
+    /// Année du programme : le document de cours est rangé par année.
+    let programYear: Int
     /// Document de cours : la génération exige un cours importé.
     let hasCourseDocument: Bool
     /// Position du repère (`coursePosition`) : la révision s'arrête au repère.
     let coursePosition: Double
+    /// Panneau affiché (`flashcardPanel` de la source).
+    let panel: TrainFlashcardPanelTab
     /// Persistance d'un document de chapitre (`saveFlashcardChapterDocument`).
     var onSave: ((String, CollFlashcardsDocument) -> Void)? = nil
-    var generator: TrainFlashcardGenerator = TrainLocalFlashcardGenerator()
+
+    @EnvironmentObject private var session: SessionStore
 
     /// Cartes du chapitre (`courseFlashcards`), relues à l'ouverture.
     @State private var document: CollFlashcardsDocument?
     @State private var loaded = false
-    @State private var panel: TrainFlashcardPanelTab = .generate
     @State private var generating = false
+    @State private var generationProgress: CollFlashcardGenerationProgress?
+    @State private var generationTask: Task<Void, Never>?
+    @State private var consentVisible = false
+    @State private var pendingGeneration = false
 
     // Création (`saveFlashcardEditor`)
     @State private var createDeck = "definitions"
@@ -68,7 +61,6 @@ struct TrainFlashcardsPanel: View {
             if !loaded {
                 SubjDeferredInlineFallback(label: "Ouverture des cartes…")
             } else {
-                tabRow
                 switch panel {
                 case .generate: generatePanel
                 case .create: createPanel
@@ -86,6 +78,7 @@ struct TrainFlashcardsPanel: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .task(id: chapterId) { reload() }
+        .onDisappear { generationTask?.cancel() }
         .alert("Carte incomplète", isPresented: Binding(
             get: { alertMessage != nil },
             set: { if !$0 { alertMessage = nil } }
@@ -125,41 +118,9 @@ struct TrainFlashcardsPanel: View {
         )]
     }
 
-    // MARK: - Onglets
-
-    /// Onglets Générer / Créer / Réviser (`8075/8117/8158`).
-    private var tabRow: some View {
-        HStack(spacing: 8) {
-            ForEach(TrainFlashcardPanelTab.allCases) { tab in
-                Button {
-                    panel = tab
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: tab.systemImage)
-                            .font(.system(size: 16))
-                        Text(tab.label)
-                            .font(.system(size: 13, weight: .heavy))
-                    }
-                    .foregroundStyle(panel == tab ? Theme.surface : Theme.inkSoft)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 9)
-                    .background(panel == tab ? Theme.ink : Theme.surface)
-                    .clipShape(Capsule())
-                    .overlay(
-                        Capsule().stroke(Theme.border, lineWidth: panel == tab ? 0 : 1)
-                    )
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(tab.accessibilityLabel)
-            }
-            Spacer(minLength: 0)
-        }
-    }
-
     // MARK: - Générer
 
-    /// Panneau « Générer » (`flashcardPanel === 'generate'`, `8508-8560`) :
-    /// hint, bouton d'obtention/régénération, statut des cartes générées.
+    /// Panneau « Générer » (`flashcardPanel === 'generate'`, `8508-8560`).
     private var generatePanel: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(hasCourseDocument
@@ -168,33 +129,42 @@ struct TrainFlashcardsPanel: View {
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(Theme.inkSoft)
                 .fixedSize(horizontal: false, vertical: true)
-            Button {
-                generate()
-            } label: {
-                HStack(spacing: 8) {
-                    if generating {
-                        ProgressView()
-                            .progressViewStyle(.circular)
-                            .tint(Theme.surface)
-                    } else {
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 17))
+            if generating {
+                generationEstimate
+                Button {
+                    generationTask?.cancel()
+                } label: {
+                    HStack(spacing: 8) {
+                        IonIcon(name: "close-outline", size: 20, color: Theme.surface)
+                        Text("Annuler la génération")
+                            .font(.system(size: 15, weight: .heavy))
                     }
-                    Text(hasGenerated ? "Régénérer mes flashcards" : "Obtenir les flashcards de mon cours")
-                        .font(.system(size: 15, weight: .heavy))
+                    .frame(maxWidth: .infinity, minHeight: 52)
                 }
-                .frame(maxWidth: .infinity, minHeight: 52)
+                .buttonStyle(DuelloPrimaryButton())
+                .accessibilityLabel("Annuler la génération des flashcards")
+            } else {
+                Button {
+                    generate()
+                } label: {
+                    HStack(spacing: 8) {
+                        IonIcon(name: "sparkles-outline", size: 17, color: Theme.surface)
+                        Text(hasGenerated ? "Régénérer mes flashcards" : "Obtenir les flashcards de mon cours")
+                            .font(.system(size: 15, weight: .heavy))
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 52)
+                }
+                .buttonStyle(DuelloPrimaryButton())
+                .accessibilityLabel(hasGenerated ? "Régénérer mes flashcards" : "Obtenir les flashcards de mon cours")
             }
-            .buttonStyle(DuelloPrimaryButton())
-            .disabled(generating)
-            .accessibilityLabel(hasGenerated ? "Régénérer mes flashcards" : "Obtenir les flashcards de mon cours")
             if hasGenerated, let document {
                 let total = document.cards.filter { $0.origin != .user }.count
-                let revisable = CollFlashcardReview.seenSoFar(document.cards.filter { $0.origin != .user }, coursePosition: coursePosition).count
+                let revisable = CollFlashcardReview.seenSoFar(
+                    document.cards.filter { $0.origin != .user },
+                    coursePosition: coursePosition
+                ).count
                 HStack(spacing: 8) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 17))
-                        .foregroundStyle(Theme.progress)
+                    IonIcon(name: "checkmark-circle", size: 17, color: Theme.progress)
                     Text("\(total) flashcard\(total > 1 ? "s" : "") générée\(total > 1 ? "s" : ""). \(revisable) révisable\(revisable > 1 ? "s" : "") jusqu’au repère actuel.")
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(Theme.ink)
@@ -202,29 +172,101 @@ struct TrainFlashcardsPanel: View {
                 }
             }
         }
+        .alert(CtdAiConsent.title, isPresented: $consentVisible) {
+            Button(CtdAiConsent.denyLabel, role: .cancel) { pendingGeneration = false }
+            Button(CtdAiConsent.allowLabel) {
+                CtdAiConsent.grant()
+                if pendingGeneration { pendingGeneration = false; startGeneration() }
+            }
+        } message: {
+            Text(CtdAiConsent.message)
+        }
     }
 
-    /// `generateFlashcards` : exige un cours, produit les cartes et les fusionne
-    /// avec les cartes manuelles conservées, puis persiste.
+    /// Avancement de la génération (`flashcardGenerationEstimate`) : phase
+    /// courante et estimation de durée.
+    private var generationEstimate: some View {
+        HStack(alignment: .top, spacing: 10) {
+            ProgressView().controlSize(.small).tint(Theme.primary)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(generationPhaseLabel)
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(Theme.ink)
+                Text("Temps de génération estimé : 2 à 5 min selon la longueur du cours.")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Theme.inkSoft)
+            }
+        }
+    }
+
+    /// `flashcardGenerationProgress` : libellé de la phase en cours.
+    private var generationPhaseLabel: String {
+        switch generationProgress?.phase {
+        case .uploading:
+            let percent = Int(((generationProgress?.fraction ?? 0) * 100).rounded())
+            return "Téléversement du cours · \(percent) %"
+        case .queued: return "Génération en attente…"
+        case .analyzing: return "Création des flashcards…"
+        case .preparing, nil: return "Préparation du cours…"
+        }
+    }
+
+    /// `generateFlashcards` : exige un cours et l'accord IA, puis interroge le
+    /// relais. Les cartes manuelles sont conservées, le résultat persisté.
     private func generate() {
         guard !generating else { return }
-        guard hasCourseDocument else {
+        guard hasCourseDocument, TrainCourseDocument.load(year: programYear, chapterId: chapterId) != nil else {
             alertMessage = "Télécharge d’abord ton cours en PDF, JPEG ou PNG pour générer tes flashcards."
             return
         }
+        guard CtdAiConsent.isGranted else {
+            pendingGeneration = true
+            consentVisible = true
+            return
+        }
+        startGeneration()
+    }
+
+    /// Lance la génération par le relais (`generateCourseFlashcardsFromPdf`).
+    private func startGeneration() {
+        guard !generating else { return }
+        guard let course = TrainCourseDocument.load(year: programYear, chapterId: chapterId) else { return }
+        let accountId = session.session?.publicId ?? ""
+        let storage = CollUserDefaultsFlashcardJobStorage(accountId: accountId)
         generating = true
-        defer { generating = false }
-        let generated = generator.generate(chapterName: chapterName, sourceName: chapterName)
-        let keptUserCards = cards.filter { $0.origin == .user }
-        let next = CollFlashcardsDocument(
-            version: generated.version,
-            generatedAt: generated.generatedAt,
-            sourceName: generated.sourceName,
-            cards: generated.cards + keptUserCards,
-            decks: document?.decks ?? generated.decks
-        )
-        saveChapter(chapterId, next)
-        reviewDeck = nil
+        generationTask = Task {
+            defer { generating = false; generationProgress = nil; generationTask = nil }
+            do {
+                let generated = try await CollFlashcardsApi.generateCourseFlashcardsFromPdf(
+                    accountId: accountId,
+                    document: course,
+                    chapterName: chapterName,
+                    storage: storage,
+                    token: session.token,
+                    options: CollFlashcardGenerationOptions(
+                        jobStorageKey: TrainCourseKnowledge.jobStorageKey(
+                            year: programYear, chapterId: chapterId
+                        ),
+                        onProgress: { progress in
+                            Task { @MainActor in generationProgress = progress }
+                        }
+                    )
+                )
+                let keptUserCards = cards.filter { $0.origin == .user }
+                let next = CollFlashcardsDocument(
+                    version: generated.version,
+                    generatedAt: generated.generatedAt,
+                    sourceName: generated.sourceName,
+                    cards: generated.cards + keptUserCards,
+                    decks: document?.decks ?? generated.decks
+                )
+                saveChapter(chapterId, next)
+                reviewDeck = nil
+            } catch {
+                if error is CollFlashcardGenerationCancelledError { return }
+                alertMessage = CollFlashcardsApi.generationErrorMessage(error)
+            }
+        }
     }
 
     // MARK: - Créer
@@ -289,8 +331,11 @@ struct TrainFlashcardsPanel: View {
             saveEditor()
         } label: {
             HStack(spacing: 8) {
-                Image(systemName: editingCardId != nil ? "checkmark" : "plus")
-                    .font(.system(size: 17, weight: .bold))
+                IonIcon(
+                    name: editingCardId != nil ? "checkmark" : "add-outline",
+                    size: 17,
+                    color: Theme.surface
+                )
                 Text(editingCardId != nil ? "Enregistrer" : "Ajouter")
                     .font(.system(size: 15, weight: .heavy))
             }
@@ -417,11 +462,11 @@ enum TrainFlashcardPanelTab: String, CaseIterable, Identifiable {
         }
     }
 
-    var systemImage: String {
+    var ionName: String {
         switch self {
-        case .generate: return "sparkles"
-        case .create: return "plus"
-        case .review: return "play"
+        case .generate: return "sparkles-outline"
+        case .create: return "add-outline"
+        case .review: return "play-outline"
         }
     }
 

@@ -50,9 +50,7 @@ struct AdmHomeTab: View {
     /// En-tête : marque de l'espace, nom et adresse du compte admin.
     private var header: some View {
         HStack(spacing: 14) {
-            Image(systemName: "checkmark.shield")
-                .font(.system(size: 22, weight: .bold))
-                .foregroundStyle(Theme.surface)
+            IonIcon(name: "shield-checkmark", size: 24, color: Theme.surface)
                 .frame(width: 52, height: 52)
                 .background(Theme.primary)
                 .clipShape(RoundedRectangle(cornerRadius: 18))
@@ -75,9 +73,7 @@ struct AdmHomeTab: View {
     /// Rappel de l'invariant d'isolation de l'espace d'administration.
     private var isolationCard: some View {
         HStack(alignment: .top, spacing: 13) {
-            Image(systemName: "arrow.triangle.branch")
-                .font(.system(size: 19, weight: .semibold))
-                .foregroundStyle(Theme.primary)
+            IonIcon(name: "git-branch-outline", size: 22, color: Theme.primary)
                 .frame(width: 40, height: 40)
                 .background(Theme.surface)
                 .clipShape(RoundedRectangle(cornerRadius: 14))
@@ -104,7 +100,7 @@ struct AdmHomeTab: View {
     /// Exception d'inscription : adresse réseau courante et bascule.
     private var ipAccessCard: some View {
         VStack(alignment: .leading, spacing: 14) {
-            AdmCardHeading(icon: "iphone", title: "Comptes multiples sur un même appareil")
+            AdmCardHeading(icon: "phone-portrait-outline", title: "Comptes multiples sur un même appareil")
             Text("Autorise la création de plusieurs comptes depuis l’adresse réseau de cet appareil : pratique pour installer plusieurs comptes de test sur le même smartphone.")
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(Theme.inkSoft)
@@ -151,8 +147,11 @@ struct AdmHomeTab: View {
             Task { await toggleRegistrationAccess() }
         } label: {
             HStack(spacing: 8) {
-                Image(systemName: ipAccess?.unlimited == true ? "lock" : "checkmark.circle")
-                    .font(.system(size: 15, weight: .bold))
+                IonIcon(
+                    name: ipAccess?.unlimited == true ? "lock-closed-outline" : "checkmark-circle-outline",
+                    size: 18,
+                    color: Theme.surface
+                )
                 Text(ipAccessButtonTitle)
                     .font(.system(size: 14, weight: .black))
             }

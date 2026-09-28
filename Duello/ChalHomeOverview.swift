@@ -83,11 +83,12 @@ struct ChalHomeHeader: View {
                     .accessibilityLabel("\(elo) Elo")
                     Spacer(minLength: 8)
                     Button(action: onOpenLeaderboard) {
-                        Image(systemName: "trophy")
-                            .font(.system(size: 21, weight: .semibold))
-                            .foregroundStyle(Theme.ink)
+                        // `PerformanceMetricIcon` cerclé (`outlined`) : pastille
+                        // grise, pictogramme trophée, anneau d'encre 1,5 px.
+                        IonIcon(name: "trophy", size: 21, color: Theme.ink)
                             .frame(width: 40, height: 40)
                             .background(Theme.surfaceMuted, in: Circle())
+                            .overlay(Circle().stroke(Theme.ink, lineWidth: 1.5))
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("Ouvrir le classement Elo")
@@ -120,18 +121,12 @@ struct ChalHomeActions: View {
 
     @State private var hintVisible = true
 
-    /// Hauteur minimale de la zone de défi.
-    ///
-    /// `ChallengeHomeOverview.tsx` empile trois conteneurs flexibles
-    /// (`challengeHomeAction` : `flex: 1, minHeight: 330` → `actions` :
-    /// `flex: 1` → `actionsFull` : `flex: 1, justifyContent: 'center'`) : la
-    /// zone **remplit la fenêtre**, le blason et les boutons y sont centrés, et
-    /// l'encart — hors flux (`hintCard`, `position: 'absolute', top: 0`) — s'y
-    /// ancre en haut sans les recouvrir. `ScrollView` ne distribue pas de
-    /// hauteur résiduelle : on fige donc la hauteur minimale à celle qui laisse
-    /// le contenu centré **sous** l'encart (blason 176 + boutons 136 = 312 ;
-    /// encart 54 + 7 + 7 + 12 = 80 ⇒ 312 + 2 × 80 ≈ 472, arrondi à 480).
-    private static let zoneMinHeight: CGFloat = 480
+    /// Hauteur minimale de la zone de défi (`challengeHomeAction` :
+    /// `flex: 1, minHeight: 330`). La source laisse la zone **remplir la
+    /// fenêtre** : la page (`ChalIntHomePage`) donne au contenu la hauteur du
+    /// viewport (`challengeHomeContent: flexGrow: 1`), et cette zone prend la
+    /// hauteur résiduelle (`flex: 1`), son contenu centré.
+    private static let zoneMinHeight: CGFloat = 330
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -147,7 +142,7 @@ struct ChalHomeActions: View {
                 }
             }
             .frame(maxWidth: .infinity)
-            .frame(minHeight: Self.zoneMinHeight)
+            .frame(minHeight: Self.zoneMinHeight, maxHeight: .infinity, alignment: .center)
 
             if hintVisible {
                 LeagueBadgeFlipHint(
@@ -177,13 +172,13 @@ struct ChalHomeActions: View {
         VStack(spacing: 10) {
             ChalKindButton(
                 disabled: disabled,
-                icon: "pencil",
+                icon: "pencil-outline",
                 label: "Défi-Exercice",
                 action: onOpenExercise
             )
             ChalKindButton(
                 disabled: disabled,
-                icon: "book",
+                icon: "book-outline",
                 label: "Défi-Cours",
                 action: onOpenCourse
             )
@@ -203,8 +198,7 @@ struct ChalKindButton: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 7) {
-                Image(systemName: icon)
-                    .font(.system(size: 18, weight: .semibold))
+                IonIcon(name: icon, size: 18, color: Theme.ink)
                 Text(label)
                     .font(.system(size: 13, weight: .black))
                     .lineLimit(1)

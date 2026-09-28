@@ -18,12 +18,13 @@
 //  `ChalHomeActions` : le contenu de la page « Défis » lui est injecté ici, sans
 //  duplication.
 //
-//  Substitutions SF Symbols (Ionicons → SF Symbols) : flash-outline → bolt ;
-//  calendar-outline → calendar.
+//  Substitutions remplacées : les onglets rendent les glyphes Ionicons exacts
+//  (`flash-outline` / `calendar-outline`, `IonIcon`) au lieu de SF Symbols.
 //
-//  Limite assumée : le geste de retour du pager vers l'onglet Entraînement
-//  (`onBack` de `OrderedTabPager`) n'est pas repris — `TabView` en style page ne
-//  l'expose pas. Le basculement se fait par les onglets ou le balayage natif.
+//  Retour par balayage : le geste est repris par un pager maison (instantané,
+//  `animated={false}`) ; le balayage vers la droite depuis les Défis appelle
+//  `onBack`, à raccorder par la racine (`MainTabView`) au pager d'onglets
+//  (`yieldBackSwipeToTabPager` de `OrderedTabPager`).
 //
 //  Cible : iOS 16, aucune API iOS 17.
 //
@@ -42,11 +43,12 @@ enum ChalHome2Section: String, Equatable, CaseIterable {
         }
     }
 
-    /// Icône de l'onglet (Ionicons → SF Symbols).
+    /// Glyphe Ionicons de l'onglet, mot pour mot de la source
+    /// (`flash-outline` / `calendar-outline`, `ChallengesScreen.tsx:2750,2779`).
     var icon: String {
         switch self {
-        case .challenges: return "bolt"
-        case .events: return "calendar"
+        case .challenges: return "flash-outline"
+        case .events: return "calendar-outline"
         }
     }
 }
@@ -79,8 +81,7 @@ struct ChalHome2SectionTabs: View {
             section = item
         } label: {
             HStack(spacing: 4) {
-                Image(systemName: item.icon)
-                    .font(.system(size: 14, weight: .bold))
+                IonIcon(name: item.icon, size: 14, color: selected ? Theme.surface : Theme.inkSoft)
                 Text(item.title)
                     .font(.system(size: 12, weight: .heavy))
                 // Pastille « nouveau » : un événement ajouté au catalogue se
@@ -105,21 +106,54 @@ struct ChalHome2SectionTabs: View {
 
 /// Pager des deux sections (`OrderedTabPager`) : la page Défis à gauche, la
 /// page Événements à droite. Le balayage horizontal bascule de l'une à l'autre.
+///
+/// `animated={false}` de la source (`ChallengesScreen.tsx:2812`) : la bascule
+/// est **instantanée**, sans la transition animée que `TabView(.page)` imposait.
+/// Le balayage vers la droite depuis les Défis est rendu au pager d'onglets
+/// parent (`yieldBackSwipeToTabPager`) : `onBack` sert de repli quand aucun
+/// pager parent n'écoute le geste.
 struct ChalHome2SectionPager<ChallengesContent: View, EventsContent: View>: View {
     @Binding var section: ChalHome2Section
+    /// Retour par balayage vers Entraînement (`onBack` de `OrderedTabPager`).
+    var onBack: (() -> Void)? = nil
     @ViewBuilder var challenges: () -> ChallengesContent
     @ViewBuilder var events: () -> EventsContent
 
+    /// Distance minimale de balayage qui bascule de section.
+    private let switchThreshold: CGFloat = 60
+
     var body: some View {
-        TabView(selection: $section) {
-            challenges()
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                .tag(ChalHome2Section.challenges)
-            events()
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                .tag(ChalHome2Section.events)
+        GeometryReader { geo in
+            let width = geo.size.width
+            HStack(spacing: 0) {
+                challenges()
+                    .frame(width: width, alignment: .top)
+                events()
+                    .frame(width: width, alignment: .top)
+            }
+            .frame(width: width * 2, alignment: .leading)
+            // Aucune animation : la section change d'un coup, comme la source.
+            .offset(x: section == .events ? -width : 0)
+            .contentShape(Rectangle())
+            // `simultaneousGesture` : le balayage horizontal ne prend pas le pas
+            // sur le défilement vertical des pages.
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 12)
+                    .onEnded { value in
+                        let dx = value.translation.width
+                        if dx <= -switchThreshold, section == .challenges {
+                            section = .events
+                        } else if dx >= switchThreshold {
+                            if section == .events {
+                                section = .challenges
+                            } else {
+                                onBack?()
+                            }
+                        }
+                    }
+            )
         }
-        .tabViewStyle(.page(indexDisplayMode: .never))
+        .clipped()
     }
 }
 
@@ -136,6 +170,9 @@ struct ChalHome2HomeSurface<ChallengesContent: View, EventsContent: View>: View 
     /// Allume la pastille « nouvel événement » sur l'onglet Événements.
     var hasUnseenEvents: Bool = false
     var onOpenLeaderboard: () -> Void
+    /// Retour par balayage vers l'onglet Entraînement (`onBack` de
+    /// `OrderedTabPager`) : posé par la racine, absent ⇒ geste inerte.
+    var onBack: (() -> Void)? = nil
     @ViewBuilder var challenges: () -> ChallengesContent
     @ViewBuilder var events: () -> EventsContent
 
@@ -150,6 +187,7 @@ struct ChalHome2HomeSurface<ChallengesContent: View, EventsContent: View>: View 
             )
             ChalHome2SectionPager(
                 section: $section,
+                onBack: onBack,
                 challenges: challenges,
                 events: events
             )
