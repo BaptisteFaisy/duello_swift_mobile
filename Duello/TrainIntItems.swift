@@ -13,10 +13,10 @@
 //
 //  V1 2026-09-26 (U06#1) : la fiche ouvre l'énoncé (`isOpenable: true`,
 //  `onOpen` réel vers `openTrainingReader`, qui pose `readerEntry` et monte
-//  `AnnReaderView` en plein écran). Le titre reste affiché (`showsTitle` par
-//  défaut), comme la liste de chapitres de la source. La disposition grille de
-//  la source n'est pas reprise ici : la grille est utilisée en une seule
-//  colonne pleine largeur (`isGrid: false`).
+//  `AnnReaderView` en plein écran). V2 2026-09-28 (U06#6) : le titre est masqué
+//  (`showsTitle: false`), comme `showsItemTitles` de la source. La disposition
+//  grille de la source n'est pas reprise ici : la grille est utilisée en une
+//  seule colonne pleine largeur (`isGrid: false`).
 //
 //  Dépendance documentée (seam honnête) : le lecteur d'énoncé propre à l'unité
 //  U18 n'est pas porté ; la route exacte (`onOpenSubject` →
@@ -40,6 +40,11 @@ extension TrainingCatalogView {
     /// `visibleExercises(_:)`. Le chapitre ouvert porte le contexte des
     /// prérequis (noms de chapitres et statuts de cours). L'appui ouvre
     /// l'énoncé (`openSubject`) : jamais une confirmation à franchir.
+    ///
+    /// V2 2026-09-28 (U06#6) : `showsTitle` est faux, comme la source
+    /// (`const showsItemTitles = false`, `SubjectsScreen.tsx:3740`) — les listes
+    /// d'entraînement n'affichent que le numéro visible et les badges, le titre
+    /// restant disponible pour le lecteur et l'accessibilité.
     func exerciseList(_ visible: [TrainExercise], chapter: TrackChapter) -> some View {
         let context = prerequisiteCardContext()
         return TrainGridExerciseGrid(count: visible.count, isGrid: false) { index in
@@ -49,6 +54,7 @@ extension TrainingCatalogView {
                 itemNumber: index + 1,
                 progress: progress.items[exercise.id],
                 isOpenable: true,
+                showsTitle: false,
                 onOpen: { openTrainingReader(exercise) }
             )
         }

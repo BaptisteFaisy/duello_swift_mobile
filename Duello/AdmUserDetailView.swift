@@ -39,12 +39,11 @@ struct AdmUserDetailView: View {
 
     private var metrics: AdmUserUsageMetrics { AdmUserUsageMetrics(usage: user.usage) }
 
-    /// Retour à la liste (`BackButton` du source).
+    /// Retour à la liste (`BackButton` du source, `iconSize={20}`).
     private var backButton: some View {
         Button(action: onBack) {
-            HStack(spacing: 4) {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 13, weight: .bold))
+            HStack(spacing: 3) {
+                IonIcon(name: "chevron-back", size: 20, color: Theme.ink)
                 Text("Users")
                     .font(.system(size: 13, weight: .heavy))
             }
@@ -72,7 +71,7 @@ struct AdmUserDetailView: View {
                 .multilineTextAlignment(.center)
                 .padding(.top, 12)
             Text(AdmUserText.path(for: user))
-                .font(.system(size: 12, weight: .semibold))
+                .font(.system(size: 12, weight: .regular))
                 .foregroundStyle(Theme.inkSoft)
                 .multilineTextAlignment(.center)
                 .padding(.top, 5)
@@ -89,13 +88,12 @@ struct AdmUserDetailView: View {
             RoundedRectangle(cornerRadius: Theme.radiusLarge)
                 .stroke(Theme.border, lineWidth: 1)
         )
+        .admCardShadow()
     }
 
     private func registrationEmailRow(_ email: String) -> some View {
         HStack(spacing: 8) {
-            Image(systemName: "envelope")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Theme.inkSoft)
+            IonIcon(name: "mail-outline", size: 15, color: Theme.inkSoft)
             VStack(alignment: .leading, spacing: 2) {
                 Text("Adresse d’inscription")
                     .font(.system(size: 9, weight: .heavy))
@@ -115,12 +113,13 @@ struct AdmUserDetailView: View {
         .padding(.top, 12)
     }
 
-    /// Badges d'annuaire : visibilité, puis école visée.
+    /// Badges d'annuaire : visibilité, puis école visée. La source ne met pas
+    /// ces libellés en majuscules (`badgeText` n'a aucun `textTransform`).
     private var badges: some View {
         HStack(spacing: 7) {
-            DuelloPill(text: listingLabel, tone: .ink)
+            AdmPill(text: listingLabel)
             if !user.targetSchool.isEmpty {
-                DuelloPill(text: user.targetSchool, tone: .neutral)
+                AdmPill(text: user.targetSchool)
             }
         }
         .padding(.top, 12)
@@ -153,10 +152,13 @@ struct AdmUserDetailView: View {
         }
     }
 
+    /// `privacyCard` : bandeau d'agrégation, `marginTop: 18` de la source.
     private var privacyCard: some View {
         AdmNoticeCard(
-            icon: "checkmark.shield",
-            text: "Ces indicateurs sont agrégés. Les réponses, brouillons et contenus scolaires de l’utilisateur ne sont pas transmis."
+            icon: "shield-checkmark-outline",
+            text: "Ces indicateurs sont agrégés. Les réponses, brouillons et contenus scolaires de l’utilisateur ne sont pas transmis.",
+            textSize: 10,
+            topPadding: 18
         )
     }
 }

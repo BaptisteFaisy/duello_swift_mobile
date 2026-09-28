@@ -14,10 +14,11 @@
 //  défaut). C'est le motif déjà employé par `ChalHome2QueuePanel`.
 //
 //  Replis documentés : la proposition de défi (`canProposeChallenge`) est fixée
-//  à faux — la passerelle vers `ChallengePlayerView` n'est pas reliée ici ; les
-//  sorties « bloquer » et « signaler » sont des no-op (elles appartiennent au
-//  lot « Social »). La vue reste pleinement fonctionnelle pour la recherche,
-//  la fiche publique et l'abonnement local (`toggleFollow`).
+//  à faux — la passerelle vers `ChallengePlayerView` n'est pas reliée ici. Le
+//  blocage (`ReportSafetyAPI.block`) et le signalement (`ReportUserSheet`) sont
+//  portés par `AcctSearchView`, comme `requestBlockMember` / `reportMember` de
+//  la source. La vue reste pleinement fonctionnelle pour la recherche, la fiche
+//  publique et l'abonnement local (`toggleFollow`).
 //
 //  Cible : iOS 16, aucune API iOS 17.
 //
@@ -35,9 +36,7 @@ struct AcctIntDirectorySheet: View {
                 AcctSearchView(
                     model: model,
                     canProposeChallenge: false,
-                    onProposeChallenge: { _ in },
-                    onBlock: { _ in },
-                    onReport: { _ in }
+                    onProposeChallenge: { _ in }
                 )
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)

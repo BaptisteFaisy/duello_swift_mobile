@@ -17,6 +17,10 @@
 //  ne sont **pas** portés : la liste vient du stockage local et du réseau,
 //  jamais d’une génération locale.
 //
+//  V2 (28/09/2026, écart 20 C3) : `withCorrectionReadyNotification` porte la
+//  notification « correction prête » produite à la fin d’une correction
+//  (`utils/notifications.ts:73-86`).
+//
 //  Cible : iOS 16.
 //
 import Foundation
@@ -203,6 +207,29 @@ enum AcctNotifications {
             c.read = true
             return c
         }
+    }
+
+    /// `withCorrectionReadyNotification` : ajoute la notification « correction
+    /// prête » en tête, une seule fois par `jobId` (id `annale-correction:<jobId>`,
+    /// `createdAt` ISO). Identique à `utils/notifications.ts:73-86`.
+    static func withCorrectionReadyNotification(
+        _ existing: [AcctNotification],
+        jobId: String,
+        itemId: String,
+        title: String,
+        score: Double
+    ) -> [AcctNotification] {
+        let id = "annale-correction:\(jobId)"
+        if existing.contains(where: { $0.id == id }) { return existing }
+        let created = AcctNotification(
+            id: id, kind: .annaleCorrectionReady,
+            actorId: "", actorName: "",
+            performanceLabel: "", performanceText: "",
+            subject: "", chapterNames: [], durationMinutes: 0,
+            jobId: jobId, itemId: itemId, title: title, score: score,
+            createdAt: ISO8601DateFormatter.flexible.string(from: Date()),
+            read: false)
+        return [created] + existing
     }
 
     /// `mergeRemoteNotifications` : ajoute les événements distants sans réouvrir

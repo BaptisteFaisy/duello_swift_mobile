@@ -29,8 +29,9 @@ enum OnbUiConstants {
     static let years: [String] = ["1re année", "2e année"]
 
     /// `ONBOARDING_LEVELS` — mondes proposés par la page « TON NIVEAU », la
-    /// prépa au-dessus du lycée (JP 2026-09-18).
-    static let onboardingLevels: [String] = ["Prépa", "Lycée"]
+    /// prépa au-dessus du lycée (JP 2026-09-18). Pastilles compactes côte à
+    /// côte comme 1re/2e année : Lycée à gauche, Prépa à droite (JP 2026-09-23).
+    static let onboardingLevels: [String] = ["Lycée", "Prépa"]
 
     /// `STEP_COPY` — surtitres d'étape (`OnboardingStepKey` → `eyebrow`).
     ///

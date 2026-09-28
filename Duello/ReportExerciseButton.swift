@@ -137,9 +137,7 @@ private struct ReportExerciseTrigger: View {
 
     var body: some View {
         Button(action: { visible = true }) {
-            Image(systemName: "ladybug")
-                .font(.system(size: compact ? 15 : 18, weight: .semibold))
-                .foregroundStyle(Theme.like)
+            IonIcon(name: "bug-outline", size: compact ? 17 : 20, color: Theme.like)
                 .frame(width: side, height: side)
                 .background(Theme.surface)
                 .clipShape(RoundedRectangle(cornerRadius: corner))
@@ -236,9 +234,7 @@ private struct ReportExerciseDialog: View {
 
     private var header: some View {
         HStack(spacing: 12) {
-            Image(systemName: "ladybug")
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundStyle(Theme.like)
+            IonIcon(name: "bug-outline", size: 22, color: Theme.like)
                 .frame(width: 42, height: 42)
                 .background(Theme.like.opacity(0.12))
                 .clipShape(RoundedRectangle(cornerRadius: 14))
@@ -255,9 +251,7 @@ private struct ReportExerciseDialog: View {
             .frame(maxWidth: .infinity, alignment: .leading)
 
             Button(action: { dismiss() }) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(Theme.ink)
+                IonIcon(name: "close", size: 21, color: Theme.ink)
                     .frame(width: 36, height: 36)
                     .background(Theme.surfaceMuted)
                     .clipShape(RoundedRectangle(cornerRadius: 11))
@@ -326,9 +320,7 @@ private struct ReportExerciseDialog: View {
 
     private var errorCard: some View {
         HStack(spacing: 8) {
-            Image(systemName: "exclamationmark.circle")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(Theme.like)
+            IonIcon(name: "alert-circle-outline", size: 17, color: Theme.like)
             Text(errorMessage)
                 .font(.system(size: 11))
                 .foregroundStyle(Theme.ink)
@@ -349,9 +341,7 @@ private struct ReportExerciseDialog: View {
                 if sending {
                     ProgressView().progressViewStyle(.circular).tint(Theme.surface)
                 } else {
-                    Image(systemName: "paperplane.fill")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Theme.surface)
+                    IonIcon(name: "send", size: 17, color: Theme.white)
                     Text("Envoyer")
                         .font(.system(size: 12, weight: .black))
                         .foregroundStyle(Theme.surface)

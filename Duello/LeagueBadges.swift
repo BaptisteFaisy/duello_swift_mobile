@@ -55,52 +55,52 @@ enum LeagueBadges {
               leaderboardFilename: "league-ecricome-laurier-v2.png"),
         Badge(key: "x",
               filename: "blasons-ingenieurs/ecole-polytechnique.png",
-              leaderboardFilename: "blasons-ingenieurs/ecole-polytechnique.png"),
+              leaderboardFilename: "league-x-laurier-v5.png"),
         Badge(key: "ens-ulm",
               filename: "blasons-ingenieurs/ens-ulm.png",
-              leaderboardFilename: "blasons-ingenieurs/ens-ulm.png"),
+              leaderboardFilename: "league-ens-ulm-laurier-v5.png"),
         Badge(key: "centralesupelec",
               filename: "blasons-ingenieurs/centralesupelec.png",
-              leaderboardFilename: "blasons-ingenieurs/centralesupelec.png"),
+              leaderboardFilename: "league-centralesupelec-laurier-v5.png"),
         Badge(key: "mines-paris-psl",
               filename: "blasons-ingenieurs/mines-paris-psl.png",
-              leaderboardFilename: "blasons-ingenieurs/mines-paris-psl.png"),
+              leaderboardFilename: "league-mines-paris-psl-laurier-v5.png"),
         Badge(key: "ponts-paristech",
               filename: "blasons-ingenieurs/ponts-paristech.png",
-              leaderboardFilename: "blasons-ingenieurs/ponts-paristech.png"),
+              leaderboardFilename: "league-ponts-paristech-laurier-v5.png"),
         Badge(key: "telecom-paris",
               filename: "blasons-ingenieurs/telecom-paris.png",
-              leaderboardFilename: "blasons-ingenieurs/telecom-paris.png"),
+              leaderboardFilename: "league-telecom-paris-laurier-v5.png"),
         Badge(key: "ensae-paris",
               filename: "blasons-ingenieurs/ensae-paris.png",
-              leaderboardFilename: "blasons-ingenieurs/ensae-paris.png"),
+              leaderboardFilename: "league-ensae-paris-laurier-v5.png"),
         Badge(key: "ens-lyon",
               filename: "blasons-bl/ens-lyon-engineering-v1.png",
-              leaderboardFilename: "blasons-bl/ens-lyon-engineering-v1.png"),
+              leaderboardFilename: "league-ens-lyon-laurier-v2.png"),
         Badge(key: "ens-paris-saclay",
               filename: "blasons-bl/ens-paris-saclay-engineering-v1.png",
-              leaderboardFilename: "blasons-bl/ens-paris-saclay-engineering-v1.png"),
+              leaderboardFilename: "league-ens-paris-saclay-laurier-v2.png"),
         Badge(key: "espci-paris",
               filename: "blasons-bl/espci-paris.png",
-              leaderboardFilename: "blasons-bl/espci-paris.png"),
+              leaderboardFilename: "league-espci-paris-laurier-v1.png"),
         Badge(key: "chimie-paristech",
               filename: "blasons-bl/chimie-paristech.png",
-              leaderboardFilename: "blasons-bl/chimie-paristech.png"),
+              leaderboardFilename: "league-chimie-paristech-laurier-v1.png"),
         Badge(key: "agroparistech",
               filename: "blasons-bl/agroparistech.png",
-              leaderboardFilename: "blasons-bl/agroparistech.png"),
+              leaderboardFilename: "league-agroparistech-laurier-v1.png"),
         Badge(key: "agroparistech-bcpst",
               filename: "blasons-bcpst/agroparistech-engineering-v1.png",
-              leaderboardFilename: "blasons-bcpst/agroparistech-engineering-v1.png"),
+              leaderboardFilename: "league-agroparistech-bcpst-laurier-v1.png"),
         Badge(key: "enva",
               filename: "blasons-bcpst/enva-engineering-v1.png",
-              leaderboardFilename: "blasons-bcpst/enva-engineering-v1.png"),
+              leaderboardFilename: "league-enva-laurier-v1.png"),
         Badge(key: "institut-agro",
               filename: "blasons-bcpst/institut-agro-engineering-v1.png",
-              leaderboardFilename: "blasons-bcpst/institut-agro-engineering-v1.png"),
+              leaderboardFilename: "league-institut-agro-laurier-v1.png"),
         Badge(key: "vetagro-sup",
               filename: "blasons-bcpst/vetagro-sup-engineering-v1.png",
-              leaderboardFilename: "blasons-bcpst/vetagro-sup-engineering-v1.png"),
+              leaderboardFilename: "league-vetagro-sup-laurier-v1.png"),
     ]
 
     /// Blason d'une ligue, ou `nil` si l'identifiant est inconnu.
@@ -131,8 +131,11 @@ enum LeagueBadges {
 
 // MARK: - Vue
 
-/// Blason d'une ligue servi à distance (`leagueBadgeSourceForLeague` de la
-/// source Expo, ramené ici à sa seule forme exploitable : l'image distante).
+/// Blason d'une ligue servi à distance (`leagueLeaderboardBadgeSourceForLeague`
+/// de la source Expo, ramené ici à sa seule forme exploitable : l'image
+/// distante). Le classement utilise la série « laurier » (`leaderboardFilename`
+/// : `-v2` commerce, `-v5` écoles d'ingénieurs, `-v1` B/L et BCPST), comme
+/// `leagueBadgeSourceForLeague` côté RN.
 ///
 /// Sans PNG embarqué, le blason passe par `CachedRemoteImage` (`AsyncImage`
 /// remplacé par le cache partagé) ; un identifiant inconnu retombe sur le
@@ -144,7 +147,7 @@ struct LeagueBadgeImage: View {
     let size: CGFloat
 
     var body: some View {
-        if let url = LeagueBadges.badgeURL(forLeague: leagueId) {
+        if let url = LeagueBadges.leaderboardBadgeURL(forLeague: leagueId) {
             CachedRemoteImage(url: url) { image in
                 image.resizable().scaledToFit()
             } placeholder: {

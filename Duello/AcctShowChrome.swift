@@ -12,7 +12,8 @@
 //       `accountPerformanceTitle`, `accountPerformanceSubtitle`,
 //       `accountPerformanceBody` et `chartEmpty`.
 //
-//  Réutilise `Theme`, `ChartTimeGranularity`, `AcctEvoPerformanceChartLoading`.
+//  Réutilise `Theme`, `ChartTimeGranularity`, `IonIcon`,
+//  `AcctEvoPerformanceChartLoading`.
 //
 //  Cible : iOS 16, aucune API iOS 17 ; aucune dépendance externe.
 //
@@ -37,7 +38,7 @@ struct AcctShowGranularityTabs: View {
     }
 
     var body: some View {
-        HStack(spacing: 2) {
+        HStack(spacing: 3) {
             ForEach(ChartTimeGranularity.allCases, id: \.self) { period in
                 tab(period)
             }
@@ -60,6 +61,7 @@ struct AcctShowGranularityTabs: View {
             Text(Self.label(for: period))
                 .font(.system(size: 12, weight: .heavy))
                 .foregroundStyle(selected ? Theme.surface : Theme.inkSoft)
+                .padding(.horizontal, 4)
                 .frame(maxWidth: .infinity, minHeight: 30)
                 .background(selected ? Theme.ink : Color.clear)
                 .clipShape(RoundedRectangle(cornerRadius: 10))
@@ -77,6 +79,9 @@ struct AcctShowSectionCard<Content: View>: View {
     let title: String
     var subtitle: String? = nil
     var trailing: AnyView? = nil
+    /// Marge haute de la carte : 20 partout (`accountPerformanceSection`),
+    /// 12 pour la première section (`firstAccountPerformanceSection`).
+    var topPadding: CGFloat = 20
     let content: Content
 
     init(
@@ -85,6 +90,7 @@ struct AcctShowSectionCard<Content: View>: View {
         title: String,
         subtitle: String? = nil,
         trailing: AnyView? = nil,
+        topPadding: CGFloat = 20,
         @ViewBuilder content: () -> Content
     ) {
         self.icon = icon
@@ -92,6 +98,7 @@ struct AcctShowSectionCard<Content: View>: View {
         self.title = title
         self.subtitle = subtitle
         self.trailing = trailing
+        self.topPadding = topPadding
         self.content = content()
     }
 
@@ -109,7 +116,7 @@ struct AcctShowSectionCard<Content: View>: View {
             RoundedRectangle(cornerRadius: Theme.radiusLarge)
                 .stroke(Theme.border, lineWidth: 1)
         )
-        .padding(.top, 20)
+        .padding(.top, topPadding)
     }
 
     /// Pictogramme, titre et sous-titre à gauche, action à droite.
@@ -117,9 +124,7 @@ struct AcctShowSectionCard<Content: View>: View {
         HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
-                    Image(systemName: icon)
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(iconColor)
+                    IonIcon(name: icon, size: 15, color: iconColor)
                     Text(title)
                         .font(.system(size: 14, weight: .heavy))
                         .foregroundStyle(Theme.ink)
@@ -147,9 +152,7 @@ struct AcctShowChartEmpty: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 22, weight: .regular))
-                .foregroundStyle(Theme.inkFaint)
+            IonIcon(name: icon, size: 22, color: Theme.inkFaint)
             Text(message)
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(Theme.inkSoft)

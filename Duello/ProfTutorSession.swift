@@ -84,6 +84,41 @@ final class ProfTutorSession: ObservableObject {
         }
     }
 
+    /// `openImage` : pose une photo expliquée (page scannée, photo de cours) et
+    /// lance son explication streamée par le relais vision.
+    func openImage(image: String, mimeType: String, context: ProfTutorContext) {
+        stopStream()
+        runId += 1
+        let run = runId
+        request = ProfTutorRequest(quote: "", image: image, mimeType: mimeType, context: context)
+        messages = []
+        streamingText = ""
+        error = ""
+        status = .streaming
+        let token = self.token ?? ""
+        streamTask = Task { [weak self] in
+            do {
+                let text = try await ProfTutorApi.streamExplainImage(
+                    token: token,
+                    image: image,
+                    mimeType: mimeType,
+                    context: context
+                ) { [weak self] chunk in
+                    Task { @MainActor in
+                        guard let self, self.runId == run else { return }
+                        self.streamingText += chunk
+                    }
+                }
+                guard let self, self.runId == run else { return }
+                self.messages = [ProfTutorMessage(role: .assistant, text: text)]
+                self.streamingText = ""
+                self.status = .ready
+            } catch {
+                self?.fail(error, run: run)
+            }
+        }
+    }
+
     /// `send` : ajoute la question et rejoue le passage en tête d'historique.
     func send(_ input: String) {
         let text = clampProfQuestion(input)
@@ -97,8 +132,13 @@ final class ProfTutorSession: ObservableObject {
         streamingText = ""
         error = ""
         status = .streaming
+        // Après une photo, l'explication reçue porte le contexte : l'image,
+        // lourde, ne repart pas à chaque question.
+        let replay = request.image != nil
+            ? "Photo de cours expliquée, en appui de la réponse."
+            : "Passage expliqué : \(request.quote)"
         let history = [
-            ProfTutorMessage(role: .user, text: "Passage expliqué : \(request.quote)"),
+            ProfTutorMessage(role: .user, text: replay),
         ] + nextMessages
         let token = self.token ?? ""
         let context = request.context

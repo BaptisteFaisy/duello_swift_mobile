@@ -44,16 +44,77 @@ struct ReportPublicProfilePayload: Encodable {
     var details: ReportPublicProfileDetails?
 }
 
-/// Détails publics d'identité publiés (`PublicProfileDetails`).
+/// Détails publics d'identité publiés (`PublicProfileDetails` de
+/// `data/socialProfiles.ts:33-73`).
 ///
-/// Limite assumée : le port Swift ne reconstruit pas encore les séries
-/// (`details.elo`, `timeSeries`, `subjectSuccesses`, `xpSeries`, `weeklyXp`) —
-/// elles appartiennent au lot des graphiques. Seules les informations
-/// d'identité sont publiées, le reste est laissé au serveur.
+/// Toute la forme de l'instantané est reproduite : identité, activité, séries
+/// d'Elo (globale et par matière), séries temporelles, succès par matière,
+/// exercices très durs réussis et série d'XP. `weeklyXp` (classement hebdo par
+/// matière) reste absent : aucune source locale ne l'alimente encore.
 struct ReportPublicProfileDetails: Encodable {
     var currentTrack: String
     var specialty: String
     var personalGoal: String
+    var activity: ReportPublicActivity
+    var elo: ReportPublicEloDetails
+    var timeSeries: ReportPublicTimeSeries
+    var subjectSuccesses: [ReportPublicSubjectSuccess]
+    var veryHardExerciseSuccessIds: [String]
+    var xpSeries: [ReportPublicXpPoint]?
+}
+
+/// `PublicProfileDetails.activity` : compteurs d'entraînement publiés.
+struct ReportPublicActivity: Encodable {
+    var challengesCompleted: Int
+    var exercisesCompleted: Int
+    var exerciseMinutes: Int
+}
+
+/// `PublicProfileDetails.elo` : série globale et séries par matière.
+struct ReportPublicEloDetails: Encodable {
+    var overall: ReportPublicEloSeries
+    var subjects: [ReportPublicEloSeries]
+}
+
+/// `PublicEloSeries` : étiquette, cote courante (`null` si aucune matière jouée)
+/// et points de la courbe.
+struct ReportPublicEloSeries: Encodable {
+    var label: String
+    var current: Int?
+    var points: [ReportPublicEloPoint]
+}
+
+/// `EloSeriesPoint` : cote à un instant (millisecondes depuis l'époque Unix).
+struct ReportPublicEloPoint: Encodable {
+    var elo: Int
+    var at: Double
+}
+
+/// `PublicProfileDetails.timeSeries` : colonnes jour / semaine / mois.
+struct ReportPublicTimeSeries: Encodable {
+    var day: [ReportPublicTimeBucket]
+    var week: [ReportPublicTimeBucket]
+    var month: [ReportPublicTimeBucket]
+}
+
+/// `SubjectTimeBucket` : une colonne de la série temporelle.
+struct ReportPublicTimeBucket: Encodable {
+    var start: Double
+    var minutesBySubject: [String: Int]
+    var minutes: Int
+}
+
+/// `subjectSuccesses` : réussites par matière (`{ subject, succeeded, total }`).
+struct ReportPublicSubjectSuccess: Encodable {
+    var subject: String
+    var succeeded: Int
+    var total: Int
+}
+
+/// `XpSeriesPoint` : total d'XP atteint à un instant.
+struct ReportPublicXpPoint: Encodable {
+    var xp: Double
+    var at: Double
 }
 
 /// Publication et nettoyage des profils de l'annuaire
@@ -100,10 +161,16 @@ enum ReportPublicProfile {
     // MARK: Publication
 
     /// Construit le corps publié à partir du profil local (`publicProfile`).
+    ///
+    /// `details` et `xpAwards` viennent de l'instantané public relu par le
+    /// publieur (`ReportPublicProfileSnapshot`) : ce constructeur ne fait que
+    /// les recopier, il ne les recalcule pas.
     static func payload(
         profile: UserProfile,
         performance: ReportPublicPerformance,
-        premium: Bool
+        premium: Bool,
+        details: ReportPublicProfileDetails? = nil,
+        xpAwards: [String] = []
     ) -> ReportPublicProfilePayload {
         ReportPublicProfilePayload(
             id: publicProfileId(email: profile.email),
@@ -117,8 +184,8 @@ enum ReportPublicProfile {
             photoUri: PhotoPickUri.publicProfilePhotoUri(profile.photoUri),
             isPremium: premium,
             performance: performance,
-            xpAwards: [],
-            details: nil
+            xpAwards: xpAwards,
+            details: details
         )
     }
 

@@ -7,8 +7,15 @@
 //
 //  Fichiers source Expo portés (libellés repris mot pour mot) :
 //    - src/screens/AccountScreen.tsx (peopleSearchBar, peopleResults,
-//                                     personResult, directoryStatus)
+//                                     directoryStatus, backToMineButton
+//                                     « Mon profil », requestBlockMember,
+//                                     reportMember)
 //    - src/components/PremiumBadge.tsx (« Compte abonné »)
+//    - src/components/UserReportModal.tsx (feuille de signalement)
+//    - src/components/ProfileSafetyMenu.tsx (menu de sécurité)
+//
+//  La ligne de résultat (`personResult`) vit dans `AcctSearchMemberViews.swift`
+//  depuis le lot V2 (règle des 500 lignes).
 //
 //  Découpé de `AcctSearchModel.swift` et `AcctSearchMemberViews.swift` (règle
 //  des 500 lignes) : l'état reste dans le modèle, ces vues ne font que le lire.
@@ -31,9 +38,7 @@ struct AcctSearchBar: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 19, weight: .semibold))
-                .foregroundStyle(Theme.inkSoft)
+            IonIcon(name: "search", size: 19, color: Theme.inkSoft)
 
             ZStack(alignment: .leading) {
                 if query.isEmpty {
@@ -57,9 +62,7 @@ struct AcctSearchBar: View {
 
             if !query.isEmpty {
                 Button(action: onClear) {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 16))
-                        .foregroundStyle(Theme.inkFaint)
+                    IonIcon(name: "close-circle", size: 19, color: Theme.inkFaint)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Effacer la recherche")
@@ -88,19 +91,17 @@ struct AcctSearchMessage: View {
     var body: some View {
         VStack(spacing: 8) {
             if let icon {
-                Image(systemName: icon)
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(Theme.inkSoft)
+                IonIcon(name: icon, size: 19, color: Theme.inkSoft)
             }
             Text(text)
-                .font(.system(size: 12, weight: .semibold))
+                .font(.system(size: 11))
                 .foregroundStyle(Theme.inkSoft)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
             if let retry {
                 Button(action: retry) {
                     Text("Réessayer")
-                        .font(.system(size: 12, weight: .heavy))
+                        .font(.system(size: 11, weight: .heavy))
                         .foregroundStyle(Theme.ink)
                         .padding(.vertical, 7)
                         .padding(.horizontal, 16)
@@ -115,106 +116,9 @@ struct AcctSearchMessage: View {
                 .accessibilityLabel("Réessayer la recherche")
             }
         }
-        .padding(.vertical, 22)
+        .padding(.vertical, 18)
         .padding(.horizontal, 16)
     }
-}
-
-// MARK: - Ligne de résultat
-
-/// Ligne d'un résultat (`personResult`) : avatar et présence, pseudo, pastille
-/// d'abonné, méta de programme, blason de ligue et bouton de suivi.
-struct AcctSearchCandidateRow: View {
-    let member: AcctSearchMember
-    let online: Bool
-    let followed: Bool
-    let onSelect: () -> Void
-    let onToggleFollow: () -> Void
-
-    var body: some View {
-        HStack(spacing: 10) {
-            Button(action: onSelect) {
-                HStack(spacing: 10) {
-                    SocialAvatarPresence(online: online) {
-                        SocInviteAvatar(member: member.profile, size: 38)
-                    }
-                    copy
-                    Spacer(minLength: 0)
-                }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Voir le profil de \(member.displayName)")
-
-            if let badge = leagueBadgeURL {
-                AsyncImage(url: badge) { image in
-                    image.resizable().scaledToFit()
-                } placeholder: {
-                    Color.clear
-                }
-                .frame(width: 24, height: 24)
-                .accessibilityLabel("Ligue \(league.label) de \(member.displayName)")
-            }
-
-            Button(action: onToggleFollow) {
-                Image(systemName: followed ? "checkmark" : "plus")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(followed ? Theme.surface : Theme.ink)
-                    .frame(width: 30, height: 30)
-                    .background(followed ? Theme.ink : Theme.surface)
-                    .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: Theme.radiusSmall)
-                            .stroke(Theme.border, lineWidth: 1)
-                    )
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(followed ? "Ne plus suivre \(member.displayName)" : "Suivre \(member.displayName)")
-        }
-        .padding(.horizontal, 6)
-        .frame(minHeight: AcctSearchConstants.resultHeight)
-    }
-
-    /// Pseudo, pastille d'abonné et méta de programme.
-    private var copy: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            HStack(spacing: 5) {
-                Text(member.displayName)
-                    .font(.system(size: 13, weight: .heavy))
-                    .foregroundStyle(Theme.ink)
-                    .lineLimit(1)
-                if member.isPremium { PremPremiumBadge(size: 13) }
-            }
-            Text(metaLine)
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(Theme.inkSoft)
-                .lineLimit(1)
-        }
-    }
-
-    /// `[filière, spécialité, « N Elo », « N XP », classe, prépa]` joints par « · ».
-    private var metaLine: String {
-        [
-            member.track,
-            member.specialty.trimmingCharacters(in: .whitespacesAndNewlines),
-            "\(elo) Elo",
-            "\(groupedNumber(Int(member.xp.rounded()))) XP",
-            member.className,
-            member.prepName,
-        ]
-        .filter { !$0.isEmpty }
-        .joined(separator: " · ")
-    }
-
-    /// Elo publié, ou la cote initiale (`INITIAL_SUBJECT_ELO`) quand il manque.
-    private var elo: Int {
-        Int(max(0, (member.elo ?? Double(SocChallengeInvites.initialSubjectElo)).rounded()))
-    }
-
-    /// Même famille de blasons que la fiche : la filière publiée prime.
-    private var league: EloLeague { eloLeague(for: elo, track: member.track) }
-
-    private var leagueBadgeURL: URL? { LeagueBadges.badgeURL(forLeague: league.id) }
 }
 
 // MARK: - Menu des résultats
@@ -242,7 +146,7 @@ struct AcctSearchResultsMenu: View {
             if searching {
                 AcctSearchMessage(icon: nil, text: "Recherche en cours…", retry: nil)
             } else if let errorMessage {
-                AcctSearchMessage(icon: "icloud.slash", text: errorMessage, retry: onRetry)
+                AcctSearchMessage(icon: "cloud-offline-outline", text: errorMessage, retry: onRetry)
             } else if results.isEmpty {
                 AcctSearchMessage(
                     icon: nil,
@@ -258,7 +162,7 @@ struct AcctSearchResultsMenu: View {
             RoundedRectangle(cornerRadius: Theme.radiusMedium)
                 .stroke(Theme.border, lineWidth: 1)
         )
-        .padding(.top, 6)
+        .padding(.top, 8)
     }
 
     /// Liste bornée en hauteur : cinq lignes visibles, le reste défile.
@@ -302,6 +206,24 @@ struct AcctSearchResultsMenu: View {
 
 // MARK: - Annuaire de recherche
 
+/// Alerte en cours de l'annuaire : confirmation de blocage, retour de blocage
+/// ou accusé de signalement (`Alert.alert` d'`AccountScreen.tsx`).
+private enum AcctSearchAlert: Identifiable {
+    case confirmBlock(AcctSearchMember)
+    case blocked(String)
+    case blockFailed(String)
+    case reportSent
+
+    var id: String {
+        switch self {
+        case .confirmBlock(let member): return "confirm-\(member.id)"
+        case .blocked(let name): return "blocked-\(name)"
+        case .blockFailed: return "block-failed"
+        case .reportSent: return "report-sent"
+        }
+    }
+}
+
 /// Annuaire de recherche de l'onglet « Mon compte » : champ, menu des résultats
 /// et fiche publique du membre sélectionné. Le modèle est créé par l'appelant
 /// (`AcctSearchModel`) et partagé ; le jeton vient de `SessionStore`.
@@ -312,8 +234,10 @@ struct AcctSearchView: View {
     /// Ouvre la préparation d'un défi depuis la fiche consultée.
     let canProposeChallenge: Bool
     let onProposeChallenge: (AcctSearchMember) -> Void
-    let onBlock: (AcctSearchMember) -> Void
-    let onReport: (AcctSearchMember) -> Void
+    /// État de publication du profil à l'annuaire (`publication` d'Expo) : `nil`
+    /// tant qu'aucune publication n'a été tentée. Le bandeau d'état s'affiche
+    /// dès que le profil n'est pas publié.
+    var publication: ReportDirectoryPublication? = nil
     /// Accessoire de droite de la ligne de recherche. L'onglet « Mon compte »
     /// y place la cloche des notifications et la roue des réglages
     /// (`searchRow` de `AccountScreen.tsx`, l. 2404-2516) ; la feuille
@@ -321,50 +245,32 @@ struct AcctSearchView: View {
     var rowAccessory: AnyView? = nil
 
     @State private var premiumMessageVisible = false
+    /// Membre visé par le signalement en cours (`reportedMember`).
+    @State private var reportTarget: AcctSearchMember?
+    /// Vrai quand le signalement vient d'aboutir : l'accusé s'affiche à la
+    /// fermeture de la feuille (`reportMember` d'Expo).
+    @State private var reportSucceeded = false
+    /// Alerte en cours (confirmation de blocage, retour de blocage, accusé).
+    @State private var alert: AcctSearchAlert?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 9) {
-                AcctSearchBar(
-                    query: $model.query,
-                    onFocus: { model.openSearchMenu() },
-                    onClear: { model.query = "" }
-                )
-                if let rowAccessory {
-                    rowAccessory
-                }
+            searchBar
+
+            if model.menuOpen { resultsMenu }
+
+            if let publication, let message = Self.publicationMessage(publication) {
+                AcctSearchDirectoryStatus(message: message)
             }
 
-            if model.menuOpen {
-                AcctSearchResultsMenu(
-                    results: model.searchResults,
-                    searching: model.searching,
-                    errorMessage: model.errorMessage,
-                    loadingMore: model.loadingMore,
-                    hasSearchQuery: model.hasSearchQuery,
-                    hasMore: AcctSearchBrowseCache.shared.hasMore,
-                    followedIds: model.followedIds,
-                    scrollHeight: model.resultsScrollHeight,
-                    onRetry: { model.attempt += 1 },
-                    onSelect: { model.openMember($0.id) },
-                    onToggleFollow: { model.toggleFollow($0.id) },
-                    onLoadMore: { Task { await model.loadMoreDirectory(token: session.token) } }
-                )
+            if model.selectedMemberId != nil { monProfilButton }
+
+            if model.selectedMember != nil && model.selectedProfileState == .failed {
+                AcctSearchRefreshBanner(onRetry: { model.selectedProfileAttempt += 1 })
             }
 
             if let selected = model.selectedMember {
-                AcctSearchMemberShowcase(
-                    member: selected,
-                    followed: model.isFollowed(selected.id),
-                    followsMe: model.selectedFollowsMe,
-                    canProposeChallenge: canProposeChallenge,
-                    premiumMessageVisible: premiumMessageVisible,
-                    onToggleFollow: { model.toggleFollow(selected.id) },
-                    onProposeChallenge: { onProposeChallenge(selected) },
-                    onTogglePremiumMessage: { premiumMessageVisible.toggle() },
-                    onBlock: { onBlock(selected) },
-                    onReport: { onReport(selected) }
-                )
+                showcase(selected)
             } else if model.selectedMemberId != nil {
                 AcctSearchProfileStatus(
                     failed: model.selectedProfileState == .failed,
@@ -372,7 +278,10 @@ struct AcctSearchView: View {
                 )
             }
         }
-        .onAppear { model.ownEmail = session.profile.email }
+        .onAppear {
+            model.ownEmail = session.profile.email
+            model.authToken = session.token
+        }
         .task(id: model.searchTaskId) {
             await model.runSearch(token: session.token)
         }
@@ -392,5 +301,181 @@ struct AcctSearchView: View {
             }
         }
         .onChange(of: model.selectedMemberId) { _ in premiumMessageVisible = false }
+        .sheet(item: $reportTarget, onDismiss: presentReportConfirmation) { member in
+            reportSheet(member)
+        }
+        .alert(
+            alertTitle,
+            isPresented: Binding(
+                get: { alert != nil },
+                set: { if !$0 { alert = nil } }
+            ),
+            presenting: alert
+        ) { current in
+            alertActions(current)
+        } message: { current in
+            Text(alertMessage(current))
+        }
+    }
+
+    /// Champ de recherche et son accessoire de droite (`searchRow`).
+    private var searchBar: some View {
+        HStack(spacing: 9) {
+            AcctSearchBar(
+                query: $model.query,
+                onFocus: { model.openSearchMenu() },
+                onClear: { model.query = "" }
+            )
+            if let rowAccessory { rowAccessory }
+        }
+    }
+
+    /// Menu des résultats (`peopleResults`).
+    private var resultsMenu: some View {
+        AcctSearchResultsMenu(
+            results: model.searchResults,
+            searching: model.searching,
+            errorMessage: model.errorMessage,
+            loadingMore: model.loadingMore,
+            hasSearchQuery: model.hasSearchQuery,
+            hasMore: AcctSearchBrowseCache.shared.hasMore,
+            followedIds: model.followedIds,
+            scrollHeight: model.resultsScrollHeight,
+            onRetry: { model.attempt += 1 },
+            onSelect: { model.openMember($0.id) },
+            onToggleFollow: { model.toggleFollow($0.id) },
+            onLoadMore: { Task { await model.loadMoreDirectory(token: session.token) } }
+        )
+    }
+
+    /// Bouton « Mon profil » (`backToMineButton`) : revient à son propre profil
+    /// depuis la fiche d'un membre (`showOwnProfile`).
+    private var monProfilButton: some View {
+        Button(action: { model.showOwnProfile() }) {
+            HStack(spacing: 4) {
+                IonIcon(name: "chevron-back", size: 17, color: Theme.ink)
+                Text("Mon profil")
+                    .font(.system(size: 11, weight: .heavy))
+                    .foregroundStyle(Theme.ink)
+            }
+            .frame(minHeight: 40)
+            .padding(.horizontal, 13)
+            .background(Theme.surfaceMuted)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Revenir à mon profil")
+        .padding(.top, 12)
+    }
+
+    /// Fiche publique du membre ouvert (`showcase`, `socialActions`).
+    private func showcase(_ selected: AcctSearchMember) -> some View {
+        AcctSearchMemberShowcase(
+            member: selected,
+            followed: model.isFollowed(selected.id),
+            followsMe: model.selectedFollowsMe,
+            canProposeChallenge: canProposeChallenge,
+            blocking: model.blockingMemberId == selected.id,
+            blockDisabled: model.blockingMemberId != nil,
+            premiumMessageVisible: premiumMessageVisible,
+            onToggleFollow: { model.toggleFollow(selected.id) },
+            onProposeChallenge: { onProposeChallenge(selected) },
+            onTogglePremiumMessage: { premiumMessageVisible.toggle() },
+            onBlock: { alert = .confirmBlock(selected) },
+            onReport: { reportTarget = selected }
+        )
+    }
+
+    /// Feuille de signalement (`UserReportModal`) : le dépôt réussi referme la
+    /// feuille, l'accusé suit à la fermeture.
+    private func reportSheet(_ member: AcctSearchMember) -> some View {
+        ReportUserSheet(
+            memberName: member.displayName,
+            onSubmit: { reason, details in
+                try await ReportSafetyAPI.submitReport(
+                    targetId: member.id,
+                    reason: reason,
+                    details: details,
+                    token: session.token
+                )
+                reportSucceeded = true
+                reportTarget = nil
+            },
+            onClose: { reportTarget = nil }
+        )
+    }
+
+    /// Accusé de signalement (`Signalement envoyé`), présenté à la fermeture.
+    private func presentReportConfirmation() {
+        guard reportSucceeded else { return }
+        reportSucceeded = false
+        alert = .reportSent
+    }
+
+    /// Blocage confirmé (`requestBlockMember`) : bloque puis rend le compte rendu.
+    @MainActor
+    private func runBlock(_ member: AcctSearchMember) async {
+        do {
+            try await model.block(member.id, token: session.token)
+            alert = .blocked(member.displayName)
+        } catch {
+            alert = .blockFailed(
+                (error as? LocalizedError)?.errorDescription ?? "Réessaie dans un instant."
+            )
+        }
+    }
+
+    /// Boutons de l'alerte en cours.
+    @ViewBuilder
+    private func alertActions(_ current: AcctSearchAlert) -> some View {
+        switch current {
+        case .confirmBlock(let member):
+            Button("Annuler", role: .cancel) { alert = nil }
+            Button("Bloquer", role: .destructive) {
+                Task { await runBlock(member) }
+            }
+        case .blocked, .blockFailed, .reportSent:
+            Button("OK", role: .cancel) { alert = nil }
+        }
+    }
+
+    private var alertTitle: String {
+        switch alert {
+        case .confirmBlock(let member): return "Bloquer \(member.displayName) ?"
+        case .blocked: return "Compte bloqué"
+        case .blockFailed: return "Blocage impossible"
+        case .reportSent: return "Signalement envoyé"
+        case .none: return ""
+        }
+    }
+
+    private func alertMessage(_ current: AcctSearchAlert) -> String {
+        switch current {
+        case .confirmBlock:
+            return "Ce compte et le tien ne pourront plus se trouver, se suivre, recevoir de notifications l’un de l’autre ni s’inviter à un défi. Tu pourras annuler ce choix dans Mes informations."
+        case .blocked(let name):
+            return "\(name) a été retiré de tes interactions sociales."
+        case .blockFailed(let message):
+            return message
+        case .reportSent:
+            return "Merci. L’équipe Duello pourra examiner ce compte sans avertir la personne concernée."
+        }
+    }
+
+    /// Texte du bandeau d'état de l'annuaire (`directoryStatus` d'Expo) : `nil`
+    /// quand le profil est publié, sinon le message exact de la source.
+    private static func publicationMessage(
+        _ publication: ReportDirectoryPublication
+    ) -> String? {
+        switch publication {
+        case .published:
+            return nil
+        case .incomplete:
+            return "Complète ton nom pour apparaître dans l'annuaire."
+        case .rejected(let message, _):
+            return "Ton profil n'est pas dans l'annuaire : \(message)"
+        case .unreachable(let message):
+            return "Ton profil n'est pas dans l'annuaire : \(message)"
+        }
     }
 }

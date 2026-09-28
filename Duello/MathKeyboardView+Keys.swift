@@ -24,6 +24,9 @@ extension MathKeyboardView {
             .padding(.bottom, 1)
         }
         .frame(maxHeight: draftOpen ? 66 : 70)
+        // Le glissement horizontal change d'onglet sans bloquer le défilement
+        // vertical de la grille (`simultaneousGesture`).
+        .simultaneousGesture(sectionSwipeGesture)
     }
 
     func keyButton(_ key: MathKbKey) -> some View {
@@ -40,18 +43,15 @@ extension MathKeyboardView {
         } label: {
             Text(shown)
                 .font(.system(size: key.wide ? 11 : 14, weight: key.wide ? .heavy : .bold))
-                .foregroundStyle(muted ? Theme.inkFaint : Theme.ink)
+                .foregroundStyle(muted ? Theme.inkSoft : Theme.ink)
                 .lineLimit(1)
                 .padding(.horizontal, key.wide ? 8 : 4)
                 .frame(minWidth: 32, minHeight: 30)
-                .background(Theme.surface)
-                .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
-                .overlay(
-                    RoundedRectangle(cornerRadius: Theme.radiusSmall)
-                        .stroke(Theme.border, lineWidth: 1)
-                )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(MathKbPressStyle(
+            cornerRadius: Theme.radiusSmall,
+            background: muted ? Theme.surfaceMuted : Theme.surface
+        ))
         .accessibilityLabel(accessibilityLabel(for: key, muted: muted))
     }
 

@@ -11,9 +11,13 @@
 //  automatique de fin repose sur une comparaison d'instants, donc il part même
 //  si l'application a dormi entre-temps.
 //
-//  Limite connue : le crédit local idempotent des XP et du delta Elo
-//  (`src/utils/eventRewards.ts`) n'est pas porté — `ProgressStore`, partagé et
-//  non modifiable dans ce lot, n'expose pas d'entrée pour un événement.
+//  Limite connue : le crédit local idempotent des XP et du delta Elo est porté
+//  (`EvEventRewards.swift` + `EvEventRewards+Storage.swift`, miroir de
+//  `src/utils/eventRewards.ts`) mais **pas encore câblé ici** : aucune
+//  conformité `EvEventRewardsStorage` n'existe (le stockage de compte partagé
+//  vit dans `RewCompletion`/`RewRemoteAccountData`, non modifiables dans ce
+//  lot). La publication du classement n'alimente donc pas encore les compteurs
+//  locaux d'XP et la courbe Elo — câblage signalé, à raccorder.
 //
 //  Cible : iOS 16.
 //

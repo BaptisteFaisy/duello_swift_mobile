@@ -22,13 +22,23 @@ extension MessagesView {
                         }
                     }
                 }
-                .duelloCard()
+                .padding(.horizontal, 15)
+                .background(Theme.surface)
+                .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
+                .duelloShadow()
             }
             .padding(.horizontal, 20)
             .padding(.top, 22)
             .padding(.bottom, 32)
         }
         .scrollDismissesKeyboard(.interactively)
+    }
+
+    /// État non-lu d'une ligne : la condition d'Expo est **double**
+    /// (`unreadCount > 0 && conversation.unread > 0`, `MessagesScreen.tsx:327,332`) :
+    /// sans non-lus côté parent, aucune pastille ni aperçu en gras.
+    private func showsUnread(_ conversation: DemoConversation) -> Bool {
+        unreadCount > 0 && conversation.unread > 0
     }
 
     private func conversationRow(_ conversation: DemoConversation) -> some View {
@@ -43,7 +53,7 @@ extension MessagesView {
                     .frame(width: 48, height: 48)
                 if conversation.isOnline {
                     Circle()
-                        .fill(Theme.progress)
+                        .fill(Theme.primaryLight)
                         .frame(width: 13, height: 13)
                         .overlay(Circle().stroke(Theme.surface, lineWidth: 2))
                 }
@@ -62,11 +72,11 @@ extension MessagesView {
 
                 HStack(spacing: 7) {
                     Text(conversation.preview)
-                        .font(.system(size: 10, weight: conversation.unread > 0 ? .bold : .medium))
-                        .foregroundStyle(conversation.unread > 0 ? Theme.ink : Theme.inkSoft)
+                        .font(.system(size: 10, weight: showsUnread(conversation) ? .bold : .medium))
+                        .foregroundStyle(showsUnread(conversation) ? Theme.ink : Theme.inkSoft)
                         .lineLimit(1)
                     Spacer(minLength: 0)
-                    if conversation.unread > 0 {
+                    if showsUnread(conversation) {
                         unreadBadge(conversation.unread)
                     }
                 }

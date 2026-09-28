@@ -4,31 +4,42 @@ import SwiftUI
 ///
 /// Les constantes viennent de `src/components/HecJourneyScene.tsx` :
 /// `HEC_JOURNEY_NODE_SIZE` (1,62), `HEC_JOURNEY_NODE_HEIGHT` (0,25),
-/// `HEC_JOURNEY_TRACK_VERTICAL_OFFSET` (−0,26),
-/// `HEC_JOURNEY_ASSESSMENT_BRANCH_LENGTH` (0,87),
-/// `HEC_JOURNEY_ASSESSMENT_BLOCK_WIDTH` (0,82) et la taille du blason
+/// `HEC_JOURNEY_TRACK_VERTICAL_OFFSET` (−0,26), `HEC_JOURNEY_TRACK_RADIUS`
+/// (0,13), `HEC_JOURNEY_ASSESSMENT_BRANCH_LENGTH` (0,87),
+/// `HEC_JOURNEY_ASSESSMENT_BLOCK_WIDTH` (0,82),
+/// `HEC_JOURNEY_ASSESSMENT_BLOCK_HEIGHT` (0,18) et la taille du blason
 /// (`admissionCrestImage` : 152 points).
 enum HecJourneyMetrics {
     /// Points par unité du monde : resserre le parcours à l'échelle de l'écran.
     static let worldScale: CGFloat = 26
     static let nodeWidth: CGFloat = 1.62 * worldScale
-    /// Épaisseur du pavé : 0,25 unité dans la source, relevée à 0,45 pour
-    /// rester lisible sans éclairage ni ombres.
-    static let nodeThickness: CGFloat = 0.45 * worldScale
+    /// Épaisseur du pavé : `HEC_JOURNEY_NODE_HEIGHT` (0,25), sans relief
+    /// ajouté — la source reste à 0,25 même sans éclairage.
+    static let nodeThickness: CGFloat = 0.25 * worldScale
     static let trackRadius: CGFloat = 0.13 * worldScale
     static let trackOffset: CGFloat = -0.26 * worldScale
     static let assessmentBranchLength: CGFloat = 0.87 * worldScale
+    /// Tige du repère : section `0,024` unité.
+    static let assessmentBranchThickness: CGFloat = 0.024 * worldScale
+    /// Pavé du repère : `0,82 × 0,18`.
     static let assessmentWidth: CGFloat = 0.82 * worldScale
+    static let assessmentHeight: CGFloat = 0.18 * worldScale
     /// Hauteur du bloc de premier plan dans le cadre (sous le centre, comme la
     /// caméra qui regarde la piste de haut).
     static let focusRatio: CGFloat = 0.68
-    /// Opacité plancher des blocs lointains.
-    static let minimumOpacity: Double = 0.18
+    /// Opacité plancher des blocs lointains : nulle — la brume les noie.
+    static let minimumOpacity: Double = 0
     static let captionOffset: CGFloat = 30
     static let captionWidth: CGFloat = 150
     /// `journeyNativeCrestLabelPoint` : le blason flotte 0,72 au-dessus du bloc.
     static let crestLift: CGFloat = 0.72 * worldScale
     static let crestHeight: CGFloat = 144
+    /// Socle du blason (`JourneyAdmissionMarker`) : cylindre `0,96` de rayon,
+    /// `0,2` de haut, posé `0,13` sous le bloc.
+    static let crestSocleWidth: CGFloat = 0.96 * 2 * worldScale
+    static let crestSocleHeight: CGFloat = 0.2 * worldScale
+    /// `AdmissionCrestSprite` : `2,34` au repos, `2,5` quand le blason est actif.
+    static let crestActiveScale: CGFloat = 2.5 / 2.34
 }
 
 /// Frise du parcours HEC : la scène 3D d'Expo projetée en deux dimensions.
@@ -61,6 +72,10 @@ struct HecJourneySceneView: View {
 
     @State private var dragStartOffset: CGFloat = 0
     @State private var dragAxis: HecJourneyGesture.Axis?
+    /// Dernier échantillon du geste, pour estimer la vitesse (pt/ms) sans
+    /// `DragGesture.Value.velocity` (iOS 17+).
+    @State private var lastSample: (translation: CGFloat, time: Date)?
+    @State private var velocity: CGFloat = 0
 
     var body: some View {
         GeometryReader { geometry in
@@ -97,23 +112,36 @@ struct HecJourneySceneView: View {
     // MARK: Piste
 
     /// La piste : dans la source, un tuyau de rayon 0,13 unité, presque
-    /// transparent (opacité 0,035) sur fond blanc ; ici un trait de 7 points,
+    /// transparent (opacité 0,035) sur fond blanc ; ici un trait de 7 points
+    /// (= diamètre 0,26), lissé comme la courbe Catmull-Rom de la source, et
     /// assez marqué pour être vu sans relief.
     private func trackLayer(points: [CGPoint]) -> some View {
-        Path { path in
-            for (order, point) in points.enumerated() {
-                let shifted = CGPoint(x: point.x, y: point.y + HecJourneyMetrics.trackOffset)
-                if order == 0 {
-                    path.move(to: shifted)
-                } else {
-                    path.addLine(to: shifted)
-                }
-            }
+        let shifted = points.map { CGPoint(x: $0.x, y: $0.y + HecJourneyMetrics.trackOffset) }
+        return HecJourneySceneView.smoothedPath(shifted)
+            .stroke(
+                HecJourneyPalette.track.opacity(0.55),
+                style: StrokeStyle(lineWidth: 7, lineCap: .round, lineJoin: .round)
+            )
+    }
+
+    /// Catmull-Rom → Bézier (tension 0,42 comme `CatmullRomCurve3`), pour que la
+    /// piste ne montre pas les angles d'une polyligne.
+    private static func smoothedPath(_ points: [CGPoint]) -> Path {
+        var path = Path()
+        guard let first = points.first else { return path }
+        path.move(to: first)
+        guard points.count > 1 else { return path }
+        let k: CGFloat = 0.14
+        for index in 0..<(points.count - 1) {
+            let p0 = points[max(0, index - 1)]
+            let p1 = points[index]
+            let p2 = points[index + 1]
+            let p3 = points[min(points.count - 1, index + 2)]
+            let c1 = CGPoint(x: p1.x + (p2.x - p0.x) * k, y: p1.y + (p2.y - p0.y) * k)
+            let c2 = CGPoint(x: p2.x - (p3.x - p1.x) * k, y: p2.y - (p3.y - p1.y) * k)
+            path.addCurve(to: p2, control1: c1, control2: c2)
         }
-        .stroke(
-            HecJourneyPalette.track.opacity(0.55),
-            style: StrokeStyle(lineWidth: 7, lineCap: .round, lineJoin: .round)
-        )
+        return path
     }
 
     // MARK: Blocs
@@ -127,12 +155,7 @@ struct HecJourneySceneView: View {
                     .offset(x: sideOffset(index: index), y: HecJourneyMetrics.trackOffset)
                     .position(point)
             } else if block.type == .admission {
-                HecJourneyCrestView(
-                    crest: projection.crest(at: index),
-                    height: HecJourneyMetrics.crestHeight
-                )
-                .opacity(projection.crestOpacity(at: index))
-                .position(x: point.x, y: point.y - HecJourneyMetrics.crestLift)
+                admissionLayer(index: index, point: point, projection: projection)
             } else {
                 HecJourneyNodeView(
                     block: block,
@@ -145,6 +168,34 @@ struct HecJourneySceneView: View {
         .opacity(block.type == .admission ? 1 : projection.opacity(at: index))
         .onTapGesture { onSelectNode(index) }
         .accessibilityLabel(HecJourneyCopy.a11yOpenBlock(block.title))
+    }
+
+    /// Blason final : le socle blanc sous le sprite, l'échelle qui suit la
+    /// distance (`crestScale`) et le grossissement `× 2,5/2,34` quand il est
+    /// actif (`AdmissionCrestSprite`).
+    private func admissionLayer(
+        index: Int,
+        point: CGPoint,
+        projection: HecJourneyProjection
+    ) -> some View {
+        let scale = projection.crestScale(at: index)
+            * (index == activeIndex ? HecJourneyMetrics.crestActiveScale : 1)
+        return ZStack {
+            Ellipse()
+                .fill(Color.white)
+                .frame(
+                    width: HecJourneyMetrics.crestSocleWidth * scale,
+                    height: HecJourneyMetrics.crestSocleHeight * scale
+                )
+                .offset(y: HecJourneyMetrics.crestHeight * scale / 2)
+            HecJourneyCrestView(
+                crest: projection.crest(at: index),
+                height: HecJourneyMetrics.crestHeight
+            )
+            .scaleEffect(scale)
+        }
+        .opacity(projection.crestOpacity(at: index))
+        .position(x: point.x, y: point.y - HecJourneyMetrics.crestLift)
     }
 
     /// Écart latéral d'un repère : une colle part à gauche, les autres à
@@ -168,7 +219,10 @@ struct HecJourneySceneView: View {
                         dx: value.translation.width,
                         dy: value.translation.height
                     )
+                    lastSample = nil
+                    velocity = 0
                 }
+                sampleVelocity(value.translation.height)
                 guard dragAxis == .vertical else { return }
                 scrollOffset = HecJourneyGesture.offsetFromPull(
                     startOffset: dragStartOffset,
@@ -184,9 +238,10 @@ struct HecJourneySceneView: View {
                 let axis = dragAxis
                     ?? HecJourneyGesture.axis(dx: value.translation.width, dy: value.translation.height)
                 dragAxis = nil
+                lastSample = nil
                 guard axis == .vertical else { return }
                 let projected = HecJourneyGesture.offsetFromPull(
-                    startOffset: scrollOffset + HecJourneyGesture.momentum(from: value),
+                    startOffset: scrollOffset + HecJourneyGesture.momentum(velocity: velocity),
                     translationY: 0,
                     count: blocks.count
                 )
@@ -194,15 +249,27 @@ struct HecJourneySceneView: View {
             }
     }
 
+    /// Estime la vitesse du doigt en points par milliseconde, comme le `vy` du
+    /// `PanResponder` de la source, à partir de deux échantillons successifs.
+    private func sampleVelocity(_ translation: CGFloat) {
+        let now = Date()
+        if let last = lastSample {
+            let elapsed = now.timeIntervalSince(last.time) * 1000
+            if elapsed > 0 {
+                velocity = (translation - last.translation) / elapsed
+            }
+        }
+        lastSample = (translation, now)
+    }
+
     /// `onPanResponderRelease` : la frise se cale sur le cran le plus proche,
-    /// avec le ressort de la source (amortissement 25, raideur 145, masse 0,76
-    /// — transposés en `spring(response:dampingFraction:)`).
+    /// avec le ressort de la source (`damping 25, stiffness 145, mass 0,76`).
     private func snap(to index: Int) {
         guard index >= 0 else { return }
         if index != activeIndex {
             onActiveIndexChange(index)
         }
-        withAnimation(.spring(response: 0.42, dampingFraction: 0.82)) {
+        withAnimation(.interpolatingSpring(mass: 0.76, stiffness: 145, damping: 25)) {
             scrollOffset = CGFloat(index) * HecJourneyGesture.nodeGap
         }
     }

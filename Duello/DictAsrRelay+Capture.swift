@@ -20,6 +20,7 @@ extension DictAsrRelay {
     /// Démarre la capture PCM16 mono 16 kHz
     /// (`useAudioStream({sampleRate:16_000, channels:1, encoding:'int16'})`).
     func demarrerCapture() {
+        activerSessionAudio()
         let entree = audioEngine.inputNode
         let formatEntree = entree.outputFormat(forBus: 0)
         let cible = AVAudioFormat(
@@ -43,6 +44,25 @@ extension DictAsrRelay {
         guard audioEngine.isRunning else { return }
         audioEngine.stop()
         audioEngine.inputNode.removeTap(onBus: 0)
+        desactiverSessionAudio()
+    }
+
+    /// Active la session audio avant capture — `setAudioModeAsync`
+    /// (`allowsRecording`, `playsInSilentMode`, `doNotMix`).
+    private func activerSessionAudio() {
+        let session = AVAudioSession.sharedInstance()
+        try? session.setCategory(
+            .playAndRecord, mode: .default,
+            options: [.defaultToSpeaker, .allowBluetooth]
+        )
+        try? session.setActive(true)
+    }
+
+    /// Rend la session audio au système après la capture.
+    private func desactiverSessionAudio() {
+        try? AVAudioSession.sharedInstance().setActive(
+            false, options: .notifyOthersOnDeactivation
+        )
     }
 
     /// Convertit un buffer capté en PCM16 mono, moyenné sans écrêtage.

@@ -3,8 +3,10 @@
 //  Duello
 //
 //  Horloge des phases d'un événement : début, durée réelle, ouverture de la
-//  salle d'attente, fin réelle de la participation et découpage du décompte.
-//  Les phases vivent du seul horaire affiché : aucun état local ne décide.
+//  salle d'attente, fin réelle de la participation, découpage du décompte,
+//  pastille de statut (`eventStatusBadge`) et ouverture du chat
+//  (`isEventChatOpen`). Les phases vivent du seul horaire affiché : aucun état
+//  local ne décide.
 //
 //  Fichier source Expo porté : `src/utils/eventSchedule.ts`.
 //  `formatEventCountdown` et `formatEventClock` — exportés par le module mais
@@ -60,7 +62,7 @@ enum EvEventSchedule {
     }
 
     /// Segments du décompte, du plus grand au plus petit ; les jours nuls sont
-    /// omis pour qu'une épreuve à quelques heures n'affiche pas un « 0 j ».
+    /// omis pour qu'une épreuve à quelques heures n'affiche pas un « 0 jours ».
     static func countdownSegments(targetAt: Date, now: Date) -> [EvCountdownSegment] {
         let total = Int(floor(max(0, targetAt.timeIntervalSince(now))))
         let days = total / 86_400
@@ -68,12 +70,43 @@ enum EvEventSchedule {
         let minutes = (total % 3_600) / 60
         let seconds = total % 60
         let segments = [
-            EvCountdownSegment(value: days, unit: "j"),
-            EvCountdownSegment(value: hours, unit: "h"),
-            EvCountdownSegment(value: minutes, unit: "min"),
-            EvCountdownSegment(value: seconds, unit: "s"),
+            EvCountdownSegment(value: days, unit: "jours"),
+            EvCountdownSegment(value: hours, unit: "heures"),
+            EvCountdownSegment(value: minutes, unit: "minutes"),
+            EvCountdownSegment(value: seconds, unit: "secondes"),
         ]
         return days > 0 ? segments : Array(segments.dropFirst())
+    }
+
+    /// Le chat d'un événement est ouvert dès que la page est accessible, puis
+    /// fermé pendant l'épreuve, et rouvert dès la fin : seule la phase « live »
+    /// le verrouille (`isEventChatOpen`).
+    static func isChatOpen(_ event: EvEvent, now: Date) -> Bool {
+        phase(event, now: now) != .live
+    }
+
+    /// Pastille de statut d'un événement, en majuscule sur les cartes :
+    /// « EN COURS » pendant l'épreuve, « TERMINÉ » une fois fini. Avant le
+    /// début, aucune pastille. Sur les cartes, `results` est inconnu
+    /// (`undefined` côté source) : un passé y est simplement terminé.
+    static func statusBadge(_ event: EvEvent, now: Date) -> EvEventStatusBadgeKey? {
+        let phase = phase(event, now: now)
+        if phase == .live { return .enCours }
+        if phase != .finished { return nil }
+        return .termine
+    }
+
+    /// Pastille de statut sur la page de l'événement, où l'état de correction
+    /// est connu : `results` à `nil` pendant le chargement (la correction est le
+    /// cas courant à la fin), puis l'état relu du serveur. Sans copie, il n'y a
+    /// rien à corriger : l'événement est terminé (`eventStatusBadge`).
+    static func statusBadge(_ event: EvEvent, now: Date, results: EvResultsState?) -> EvEventStatusBadgeKey? {
+        let phase = phase(event, now: now)
+        if phase == .live { return .enCours }
+        if phase != .finished { return nil }
+        guard let results else { return .correctionEnCours }
+        if results.leaderboard != nil { return .termine }
+        return results.participants > 0 ? .correctionEnCours : .termine
     }
 
     /// Compose une date locale à partir de ses composants.

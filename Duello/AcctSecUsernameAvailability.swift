@@ -31,7 +31,7 @@ enum AcctSecUsernameAvailability {
     }
 
     /// Bornes de `username.ts` (`USERNAME_MIN_LENGTH` / `USERNAME_MAX_LENGTH`).
-    static let minLength = 3
+    static let minLength = 1
     static let maxLength = 24
 
     /// `USERNAME_AVAILABILITY_TIMEOUT_MS` de la source, en secondes.
@@ -45,22 +45,35 @@ enum AcctSecUsernameAvailability {
             .precomposedStringWithCompatibilityMapping
     }
 
-    /// Motif `^[\p{L}\p{N}._-]+$` de `isValidUsername` (`utils/username.ts`),
-    /// compilé une fois.
+    /// Motif `USERNAME_ALLOWED_PATTERN` de `isValidUsername`
+    /// (`utils/username.ts`) : lettres et chiffres Unicode, plus ponctuation
+    /// bornée (`.` `_` `-` `!` `(` `)` `+` `~` `,` `;` `=` `$` `^` et
+    /// l'apostrophe typographique U+2019). Exclut espaces, contrôles/invisibles,
+    /// emojis et caractères réservés des URL (`/` `\` `@` `#` `?` `&` `%`).
+    /// Compilé une fois.
     private static let usernamePattern = try? NSRegularExpression(
-        pattern: #"^[\p{L}\p{N}._-]+$"#
+        pattern: #"^[\p{L}\p{N}._!'()+~,;=$^’-]+$"#
     )
 
-    /// `isValidUsername` : longueur 3–24 puis alphabet `\p{L}\p{N}._-`. La
-    /// source emploie `\p{N}` (tout nombre, pas seulement les chiffres
-    /// décimaux de `CharacterSet.decimalDigits`) et `\p{L}` (lettres seules,
-    /// sans les marques combinantes que `CharacterSet.letters` ajoute).
+    /// `USERNAME_ALPHANUMERIC_PATTERN` : au moins une lettre ou un chiffre.
+    private static let usernameAlphanumericPattern = try? NSRegularExpression(
+        pattern: #"[\p{L}\p{N}]"#
+    )
+
+    /// `isValidUsername` : longueur 1–24, alphabet autorisé, et au moins une
+    /// lettre ou un chiffre. La source emploie `\p{N}` (tout nombre, pas
+    /// seulement les chiffres décimaux de `CharacterSet.decimalDigits`) et
+    /// `\p{L}` (lettres seules, sans les marques combinantes que
+    /// `CharacterSet.letters` ajoute).
     static func isValid(_ value: String) -> Bool {
         let username = normalize(value)
         guard username.count >= minLength, username.count <= maxLength else { return false }
-        guard let pattern = usernamePattern else { return false }
         let range = NSRange(username.startIndex..<username.endIndex, in: username)
-        return pattern.firstMatch(in: username, options: [], range: range) != nil
+        guard let pattern = usernamePattern,
+              pattern.firstMatch(in: username, options: [], range: range) != nil
+        else { return false }
+        guard let alphanumeric = usernameAlphanumericPattern else { return false }
+        return alphanumeric.firstMatch(in: username, options: [], range: range) != nil
     }
 
     // MARK: Vérification réseau

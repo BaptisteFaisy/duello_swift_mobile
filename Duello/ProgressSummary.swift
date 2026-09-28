@@ -15,16 +15,16 @@ extension DuelloProgressView {
                 subjectPickerOpen.toggle()
             } label: {
                 HStack(spacing: 8) {
-                    Image(systemName: "line.3.horizontal.decrease.circle")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(Theme.primary)
+                    IonIcon(name: "funnel-outline", size: 16, color: Theme.primary)
                     Text("Matières · \(activeSubjectNames.count)/\(subjectNames.count)")
                         .font(.system(size: 13, weight: .heavy))
                         .foregroundStyle(Theme.ink)
                     Spacer(minLength: 8)
-                    Image(systemName: subjectPickerOpen ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(Theme.inkSoft)
+                    IonIcon(
+                        name: subjectPickerOpen ? "chevron-up" : "chevron-down",
+                        size: 18,
+                        color: Theme.inkSoft
+                    )
                 }
                 .padding(.vertical, 12)
                 .padding(.horizontal, 14)
@@ -35,6 +35,9 @@ extension DuelloProgressView {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .accessibilityAddTraits(.isButton)
+            .accessibilityLabel("Choisir les matières affichées")
+            .accessibilityValue(subjectPickerOpen ? "Déplié" : "Replié")
 
             if subjectPickerOpen {
                 subjectPickerPanel
@@ -69,6 +72,14 @@ extension DuelloProgressView {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                // `accessibilityRole="checkbox"` + `accessibilityState={{ checked }}`
+                // (`EnhancedProgressScreen.tsx:350-351`).
+                .accessibilityAddTraits(
+                    activeSubjectNames.contains(subject.name)
+                        ? [.isButton, .isSelected]
+                        : [.isButton]
+                )
+                .accessibilityValue(activeSubjectNames.contains(subject.name) ? "coché" : "non coché")
             }
         }
         .padding(8)
@@ -99,9 +110,7 @@ extension DuelloProgressView {
             RoundedRectangle(cornerRadius: 6)
                 .stroke(checked ? Theme.primary : Theme.inkFaint, lineWidth: 2)
             if checked {
-                Image(systemName: "checkmark")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(Theme.surface)
+                IonIcon(name: "checkmark", size: 14, color: Theme.surface)
             }
         }
         .frame(width: 22, height: 22)

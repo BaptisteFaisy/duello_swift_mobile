@@ -45,9 +45,11 @@ struct ChalRunVerdictCard: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
-            Image(systemName: result.verdict.source == .ai ? "sparkles" : "calculator")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(Theme.ink)
+            IonIcon(
+                name: result.verdict.source == .ai ? "sparkles" : "calculator-outline",
+                size: 16,
+                color: Theme.ink
+            )
                 .frame(width: 30, height: 30)
                 .background(Theme.surface)
                 .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
@@ -135,8 +137,7 @@ struct ChalRunProductionCard: View {
 
     private var winnerBadge: some View {
         HStack(spacing: 4) {
-            Image(systemName: "trophy")
-                .font(.system(size: 11, weight: .bold))
+            IonIcon(name: "trophy", size: 11, color: Theme.ink)
             Text("Vainqueur")
                 .font(.system(size: 8, weight: .heavy))
                 .tracking(0.6)

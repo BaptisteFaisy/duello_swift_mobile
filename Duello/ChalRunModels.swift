@@ -78,6 +78,9 @@ struct ChalRunResult {
     var minutes: Int
     /// Matière du défi (`subject`).
     var subject: String
+    /// Promotion de ligue franchie par ce défi (`leaguePromotion`), absente si
+    /// aucun palier de la cote moyenne n'est atteint.
+    var leaguePromotion: LeaguePromotion?
     var trainingTarget: ChalRunTrainingTarget
 
     /// L'adversaire a rendu sa copie : ses réponses sont dévoilées.

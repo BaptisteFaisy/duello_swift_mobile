@@ -69,7 +69,8 @@ struct AcctInfoSettingsView: View {
     var onOpenEmail: () -> Void = {}
     var onOpenPassword: () -> Void = {}
     var onOpenBlocked: () -> Void = {}
-    var onLogout: () -> Void = {}
+    /// Déconnexion réelle, faillible (RN `LogoutControl`).
+    var onLogout: () async throws -> Void = {}
     // Suppression réelle du compte (asynchrone, faillible), portée V1 U08#2.
     var onDeleteAccount: () async throws -> Void = {}
     /// Jeton de session, transmis au carrousel d'offres Premium.
@@ -79,18 +80,21 @@ struct AcctInfoSettingsView: View {
     /// Ferme les réglages : retour depuis « Paramètres » ou geste vers la droite.
     var onClose: () -> Void = {}
 
+    /// Profil du compte : nom et année sont **écrits ici** (persistance réelle,
+    /// écart U08#17/#18/#27) au lieu de `@State` local jamais reporté.
+    @Binding var profile: UserProfile
+    /// Reporte le profil modifié dans la persistance (`persistProfile`).
+    var onProfileChange: () -> Void = {}
+
     @State private var tab: SwipeSettingsTabs.Page
     @State private var page: AcctInfoPage
-    @State private var displayName: String
-    @State private var year: String
 
     init(
         notificationStore: NotificationPreferencesStore,
+        profile: Binding<UserProfile>,
         isGuest: Bool = false,
         initialTab: SwipeSettingsTabs.Page = .informations,
         initialPage: AcctInfoPage = .menu,
-        displayName: String = "",
-        year: String = "",
         biometricEnabled: Bool = false,
         onBiometricChange: @escaping (Bool) -> Void = { _ in },
         onOpenFeedback: @escaping () -> Void = {},
@@ -99,13 +103,15 @@ struct AcctInfoSettingsView: View {
         onOpenEmail: @escaping () -> Void = {},
         onOpenPassword: @escaping () -> Void = {},
         onOpenBlocked: @escaping () -> Void = {},
-        onLogout: @escaping () -> Void = {},
+        onLogout: @escaping () async throws -> Void = {},
         onDeleteAccount: @escaping () async throws -> Void = {},
         token: String? = nil,
         premiumDaysLabel: String? = nil,
+        onProfileChange: @escaping () -> Void = {},
         onClose: @escaping () -> Void = {}
     ) {
         _notificationStore = ObservedObject(wrappedValue: notificationStore)
+        _profile = profile
         self.isGuest = isGuest
         self.biometricEnabled = biometricEnabled
         self.onBiometricChange = onBiometricChange
@@ -119,11 +125,10 @@ struct AcctInfoSettingsView: View {
         self.onDeleteAccount = onDeleteAccount
         self.token = token
         self.premiumDaysLabel = premiumDaysLabel
+        self.onProfileChange = onProfileChange
         self.onClose = onClose
         _tab = State(initialValue: initialTab)
         _page = State(initialValue: initialPage)
-        _displayName = State(initialValue: displayName)
-        _year = State(initialValue: year)
     }
 
     var body: some View {
@@ -137,7 +142,14 @@ struct AcctInfoSettingsView: View {
             premiumSurface
         }
         .background(AcctInfoSettingsStyle.surface)
+        // Écart U08#17 : le nom édité est reporté dans le profil persisté.
+        .onChange(of: profile.displayName) { _ in onProfileChange() }
+        .onChange(of: profile.firstName) { _ in onProfileChange() }
     }
+
+    /// Chemin scolaire normalisé du profil (`normalizeAcademicPath`) : alimente
+    /// le bloc PSI de la page « Mes informations » (écart U08#19).
+    private var currentPath: AcademicPath { AcctInfoAcademic.path(profile) }
 
     // MARK: En-tête
 
@@ -159,9 +171,8 @@ struct AcctInfoSettingsView: View {
     /// Retour : catégories depuis une sous-page, sinon sortie des réglages.
     private var backButton: some View {
         Button(action: leaveSettingsOrInformationPage) {
-            Image(systemName: "chevron.left")
-                .font(.system(size: 21))
-                .foregroundStyle(Theme.ink)
+            // RN `BackButton` : `<Ionicons name="chevron-back" size={21} … />`.
+            IonIcon(name: "chevron-back", size: 21, color: Theme.ink)
                 .frame(
                     width: AcctInfoSettingsStyle.backButtonSize,
                     height: AcctInfoSettingsStyle.backButtonSize
@@ -249,7 +260,28 @@ struct AcctInfoSettingsView: View {
                     onOpenTerms: onOpenTerms
                 )
             case .personal:
-                AcctInfoPersonalPage(displayName: $displayName, year: $year, isGuest: isGuest)
+                AcctInfoPersonalPage(
+                    displayName: $profile.displayName,
+                    firstName: profile.firstName,
+                    year: profile.year,
+                    currentTrack: currentPath.currentTrack,
+                    firstYearTrack: currentPath.firstYearTrack,
+                    photoUri: profile.photoUri,
+                    isGuest: isGuest,
+                    onYearChange: { newYear in
+                        // Écarts U08#18/#27 : recalcul de la filière au changement d'année.
+                        profile = AcctInfoAcademic.changeYear(profile, to: newYear)
+                        onProfileChange()
+                    },
+                    onOriginChange: { origin in
+                        profile = AcctInfoAcademic.changeOrigin(profile, firstYearTrack: origin)
+                        onProfileChange()
+                    },
+                    onPhotoChange: { uri in
+                        profile.photoUri = uri
+                        onProfileChange()
+                    }
+                )
             case .account:
                 AcctInfoAccountPage(
                     notificationStore: notificationStore,

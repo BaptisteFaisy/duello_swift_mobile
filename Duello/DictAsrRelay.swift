@@ -60,6 +60,8 @@ final class DictAsrRelay: DictEngine {
     static let connectTimeout: TimeInterval = 8
     static let finishTimeout: TimeInterval = 75
     static let maxQueuedPcmBytes = 1024 * 1024
+    /// `AUDIO_TAIL_CAPTURE_MS` : termine le buffer natif qui contient le dernier mot.
+    static let audioTailMs: UInt64 = 150
 
     private let config: DictRelayConfig
     private let session: URLSession
@@ -73,7 +75,9 @@ final class DictAsrRelay: DictEngine {
     private var providerReady = false
     private var startSent = false
     private var stopSent = false
+    private var cloudStopRequested = false
     private var doneEmis = false
+    private var audioTailTask: Task<Void, Never>?
     private var pendingPcm: [Data] = []
     private var pendingPcmBytes = 0
 
@@ -98,7 +102,13 @@ final class DictAsrRelay: DictEngine {
 
     func start() async throws {
         let url = try Self.webSocketURL(for: config)
-        let task = session.webSocketTask(with: url)
+        // Le jeton de session accompagne l'ouverture de la socket
+        // (`headers: { Authorization: 'Bearer …' }` de la source).
+        var requete = URLRequest(url: url)
+        if !config.token.isEmpty {
+            requete.setValue("Bearer \(config.token)", forHTTPHeaderField: "Authorization")
+        }
+        let task = session.webSocketTask(with: requete)
         socket = task
         task.resume()
         enCours = true
@@ -115,22 +125,51 @@ final class DictAsrRelay: DictEngine {
     }
 
     func stop() {
-        guard enCours else { return }
+        guard enCours, !cloudStopRequested else { return }
+        cloudStopRequested = true
         // La capture s'arrête après le dernier buffer utile, puis le relais
         // réécoute l'audio entier et rend la phrase complète (`maybeSendCloudStop`).
         #if canImport(AVFoundation)
+        // Le buffer natif de 100 ms contient souvent le dernier mot : la capture
+        // n'est coupée qu'après ce délai de sécurité (`AUDIO_TAIL_CAPTURE_MS`).
+        audioTailTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: Self.audioTailMs * 1_000_000)
+            guard !Task.isCancelled else { return }
+            self?.finaliserArret()
+        }
+        #else
+        finaliserArret()
+        #endif
+    }
+
+    /// Coupe la capture puis envoie `stop` dès que le relais a confirmé le moteur.
+    private func finaliserArret() {
+        guard !stopSent else { return }
+        #if canImport(AVFoundation)
         arreterCapture()
         #endif
-        if startSent, !stopSent, let socket {
-            stopSent = true
-            socket.send(.string(#"{"type":"stop"}"#)) { _ in }
-            finishTimeoutTask = Task { [weak self] in
-                try? await Task.sleep(nanoseconds: UInt64(Self.finishTimeout * 1_000_000_000))
-                guard !Task.isCancelled else { return }
-                self?.fermer(fin: true)
-            }
-        } else {
-            fermer(fin: false)
+        audioTailTask = nil
+        guard startSent, let socket else {
+            fermer(fin: true)
+            return
+        }
+        guard providerReady else {
+            // Le moteur n'est pas encore prêt : la commande partira à `ready`.
+            armerDelaiDeFin()
+            return
+        }
+        stopSent = true
+        socket.send(.string(#"{"type":"stop"}"#)) { _ in }
+        armerDelaiDeFin()
+    }
+
+    /// Borne l'attente de la phrase complète (`finishTimeout`).
+    private func armerDelaiDeFin() {
+        guard finishTimeoutTask == nil else { return }
+        finishTimeoutTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(Self.finishTimeout * 1_000_000_000))
+            guard !Task.isCancelled else { return }
+            self?.fermer(fin: true)
         }
     }
 
@@ -171,6 +210,8 @@ final class DictAsrRelay: DictEngine {
             for pcm in pendingPcm { task.send(.data(pcm)) { _ in } }
             pendingPcm = []
             pendingPcmBytes = 0
+            // L'arrêt demandé pendant l'initialisation part maintenant.
+            if cloudStopRequested { finaliserArret() }
         case .done:
             doneEmis = true
             onEvent?(evenement)
@@ -219,6 +260,8 @@ final class DictAsrRelay: DictEngine {
         connectTimeoutTask = nil
         finishTimeoutTask?.cancel()
         finishTimeoutTask = nil
+        audioTailTask?.cancel()
+        audioTailTask = nil
         receiveTask?.cancel()
         receiveTask = nil
         let task = socket

@@ -146,7 +146,16 @@ struct OnbFlowView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 22)
                     .padding(.vertical, 30)
-                    .frame(minHeight: proxy.size.height, alignment: .center)
+                    // `schoolSearchScrollContent` : la source passe de
+                    // `justifyContent: 'center'` à `'flex-start'` (contenu en
+                    // haut) quand la recherche d'école a le focus
+                    // (`OnboardingScreen.tsx:1902-1914`).
+                    .frame(
+                        minHeight: proxy.size.height,
+                        alignment: coordinator.currentStep == .target && coordinator.schoolSearchFocused
+                            ? .top
+                            : .center
+                    )
                     .padding(
                         .bottom,
                         coordinator.currentStep == .target && coordinator.schoolSearchFocused ? 280 : 0
@@ -184,7 +193,13 @@ struct OnbFlowView: View {
                 } label: {
                     HStack(spacing: 9) {
                         Text(coordinator.continueLabel)
-                        Image(systemName: coordinator.isLastStep ? "checkmark" : "arrow.right")
+                        // `arrow-forward` / `checkmark`, 20, noir en thème
+                        // sombre (source, bouton principal).
+                        IonIcon(
+                            name: coordinator.isLastStep ? "checkmark" : "arrow-forward",
+                            size: 20,
+                            color: .black
+                        )
                     }
                     .frame(maxWidth: .infinity, minHeight: 54)
                 }
@@ -206,9 +221,8 @@ struct OnbFlowView: View {
     private var topBar: some View {
         HStack(spacing: 0) {
             Button(action: back) {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 24, weight: .semibold))
-                    .foregroundStyle(OnbFlowPalette.onDark)
+                // `chevron-back`, 24, blanc (`BackButton` de la source).
+                IonIcon(name: "chevron-back", size: 24, color: OnbFlowPalette.onDark)
                     .frame(width: 40, height: 40)
                     .contentShape(Rectangle())
             }
@@ -418,9 +432,9 @@ struct OnbFlowView: View {
 
     /// Une connexion fournisseur fait avancer sans second appui (source).
     private func advanceAfterProvider() {
-        withAnimation(.easeInOut(duration: 0.2)) {
-            coordinator.stepIndex = min(coordinator.stepIndex + 1, coordinator.steps.count - 1)
-        }
+        // La source change d'étape sans animation (`setStep` direct) : la
+        // connexion fournisseur emprunte le même chemin que `continueOnboarding`.
+        coordinator.stepIndex = min(coordinator.stepIndex + 1, coordinator.steps.count - 1)
     }
 
     /// `authenticateWithBiometrics` : validé ⇒ avance, sinon alerte.

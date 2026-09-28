@@ -28,54 +28,67 @@ struct AcctSecEmailView: View {
     @State private var errorMessage = ""
     @State private var isSaving = false
 
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
-                backButton
-                emailField
+    /// Adresse telle que la source la passe au formulaire (`email` de
+    /// `AccountEmailScreen.tsx`) : le paramètre explicite prime, sinon le profil.
+    private var sourceEmail: String { initialEmail ?? session.profile.email }
 
-                if !errorMessage.isEmpty {
-                    Text(errorMessage)
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(Theme.ink)
-                        .fixedSize(horizontal: false, vertical: true)
+    var body: some View {
+        // `contentContainerStyle` de la source (`AccountEmailScreen.tsx:107-113`) :
+        // `flexGrow: 1` (contenu à au moins la hauteur visible), `formArea` centré
+        // verticalement (`justifyContent: 'center'`, 82 % / 420), le bouton
+        // d'envoi restant collé au bas (`marginTop: 'auto'`).
+        GeometryReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    backButton
+                    Spacer(minLength: 0)
+                    form
+                        .frame(width: min((proxy.size.width - 40) * 0.82, 420))
+                        .frame(maxWidth: .infinity)
+                    Spacer(minLength: 0)
+                    saveButton
                 }
-                saveButton
-                Spacer(minLength: 24)
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+                .padding(.bottom, 36)
+                .frame(maxWidth: .infinity, minHeight: proxy.size.height, alignment: .top)
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 12)
-            .padding(.bottom, 24)
+            .scrollIndicators(.hidden)
         }
         .background(Theme.background)
         .onAppear {
-            if nextEmail.isEmpty { nextEmail = initialEmail ?? session.profile.email }
+            if nextEmail.isEmpty { nextEmail = sourceEmail }
         }
+        // `useEffect(() => setNextEmail(email), [email])` de la source : la
+        // saisie reprend la valeur passée dès que celle-ci change.
+        .onChange(of: initialEmail) { _ in nextEmail = sourceEmail }
     }
 
     // MARK: Sous-vues
 
-    /// Bouton retour gauche (`BackButton` « Retour aux paramètres » de la
-    /// source) : `AccountEmailScreen.tsx` n'a pas de barre de navigation.
+    /// `BackButton` « Retour aux paramètres » : chevron `chevron-back` 20 encre,
+    /// sans graisse, centré dans une boîte 40 × 40 puis décalé de -4 pt, cible
+    /// tactile élargie de 8 pt (`BackButton.tsx:61-95`). `AccountEmailScreen.tsx`
+    /// n'a pas de barre de navigation : le chevron est en tête de contenu.
     private var backButton: some View {
         Button {
             dismiss()
         } label: {
-            Image(systemName: "chevron.backward")
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundStyle(Theme.ink)
-                .frame(width: 44, height: 44, alignment: .leading)
+            IonIcon(name: "chevron-back", size: 20, color: Theme.ink)
+                .offset(x: -4)
+                .frame(width: 40, height: 40)
                 .contentShape(Rectangle())
+                .padding(8)
+                .contentShape(Rectangle())
+                .padding(-8)
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Retour aux paramètres")
     }
 
-    /// Champ local à icône (`AccountEmailScreen.tsx:124-135`) : légende
-    /// `Theme.ink`/700, icône `mail-outline` 20, bordure 1.5 `Theme.ink`, fond
-    /// blanc, hauteur 50. `DuelloTextField` (hors périmètre) ne porte ni icône
-    /// ni ces valeurs.
-    private var emailField: some View {
+    /// Formulaire (`form` de la source) : légende, champ à icône `mail-outline`
+    /// 20, message d'erreur. La largeur 82 % / 420 est posée par `body`.
+    private var form: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Nouvelle adresse e-mail")
                 .font(.system(size: 12, weight: .bold))
@@ -83,9 +96,7 @@ struct AcctSecEmailView: View {
                 .foregroundStyle(Theme.ink)
 
             HStack(spacing: 10) {
-                Image(systemName: "envelope")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(Theme.inkSoft)
+                IonIcon(name: "mail-outline", size: 20, color: Theme.inkSoft)
 
                 TextField("", text: $nextEmail)
                     .textContentType(.emailAddress)
@@ -104,6 +115,13 @@ struct AcctSecEmailView: View {
                 RoundedRectangle(cornerRadius: Theme.radiusSmall)
                     .stroke(Theme.ink, lineWidth: 1.5)
             )
+
+            if !errorMessage.isEmpty {
+                Text(errorMessage)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(Theme.ink)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .onChange(of: nextEmail) { _ in errorMessage = "" }
     }

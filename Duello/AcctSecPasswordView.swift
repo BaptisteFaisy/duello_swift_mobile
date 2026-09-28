@@ -24,38 +24,35 @@ struct AcctSecPasswordView: View {
     @State private var isSaving = false
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
-                backButton
-                AcctSecPasswordField(
-                    title: "Nouveau mot de passe",
-                    text: $password,
-                    isVisible: showPassword,
-                    onToggle: { showPassword.toggle() },
-                    onSubmit: { submit() }
-                )
-                .onChange(of: password) { _ in errorMessage = "" }
-
-                if !errorMessage.isEmpty {
-                    Text(errorMessage)
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(Theme.ink)
-                        .fixedSize(horizontal: false, vertical: true)
+        // `contentContainerStyle` de la source (`AccountPasswordScreen.tsx:115-121`) :
+        // `flexGrow: 1`, `formArea` centré verticalement (82 % / 420), bouton
+        // d'envoi collé au bas (`marginTop: 'auto'`).
+        GeometryReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    backButton
+                    Spacer(minLength: 0)
+                    form
+                        .frame(width: min((proxy.size.width - 40) * 0.82, 420))
+                        .frame(maxWidth: .infinity)
+                    Spacer(minLength: 0)
+                    saveButton
                 }
-                saveButton
-                Spacer(minLength: 24)
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+                .padding(.bottom, 36)
+                .frame(maxWidth: .infinity, minHeight: proxy.size.height, alignment: .top)
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 12)
-            .padding(.bottom, 24)
+            .scrollIndicators(.hidden)
         }
         .background(Theme.background)
     }
 
     // MARK: Politique de mot de passe (voir `new-password-policy.mjs`)
 
-    /// Message annonçant les deux bornes, repris mot pour mot de la source.
-    static let policyMessage = "Le mot de passe doit contenir entre 8 et 128 caractères."
+    /// Message annonçant les deux bornes, repris mot pour mot de la source
+    /// (`NEW_PASSWORD_POLICY_MESSAGE`, `new-password-policy.mjs:3-4`).
+    static let policyMessage = "Choisis un mot de passe de 8 à 128 caractères."
 
     static func isValidNewPassword(_ value: String) -> Bool {
         value.count >= 8 && value.count <= 128
@@ -63,20 +60,44 @@ struct AcctSecPasswordView: View {
 
     // MARK: Sous-vues
 
-    /// Bouton retour gauche (`BackButton` « Retour aux paramètres » de la
-    /// source) : `AccountPasswordScreen.tsx` n'a pas de barre de navigation.
+    /// `BackButton` « Retour aux paramètres » : chevron `chevron-back` 20 encre,
+    /// boîte 40 × 40, décalage -4 pt, cible 56 pt (`BackButton.tsx:61-95`).
+    /// `AccountPasswordScreen.tsx` n'a pas de barre de navigation.
     private var backButton: some View {
         Button {
             dismiss()
         } label: {
-            Image(systemName: "chevron.backward")
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundStyle(Theme.ink)
-                .frame(width: 44, height: 44, alignment: .leading)
+            IonIcon(name: "chevron-back", size: 20, color: Theme.ink)
+                .offset(x: -4)
+                .frame(width: 40, height: 40)
                 .contentShape(Rectangle())
+                .padding(8)
+                .contentShape(Rectangle())
+                .padding(-8)
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Retour aux paramètres")
+    }
+
+    /// Champ (`form` de la source) : politique d'affichage œil, message d'erreur.
+    private var form: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            AcctSecPasswordField(
+                title: "Nouveau mot de passe",
+                text: $password,
+                isVisible: showPassword,
+                onToggle: { showPassword.toggle() },
+                onSubmit: { submit() }
+            )
+            .onChange(of: password) { _ in errorMessage = "" }
+
+            if !errorMessage.isEmpty {
+                Text(errorMessage)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(Theme.ink)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
     }
 
     private var saveButton: some View {
@@ -146,9 +167,7 @@ private struct AcctSecPasswordField: View {
                 .foregroundStyle(Theme.ink)
 
             HStack(spacing: 10) {
-                Image(systemName: "key")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(Theme.inkSoft)
+                IonIcon(name: "key-outline", size: 20, color: Theme.inkSoft)
 
                 Group {
                     if isVisible {
@@ -165,10 +184,12 @@ private struct AcctSecPasswordField: View {
 
                 if let onToggle {
                     Button(action: onToggle) {
-                        Image(systemName: isVisible ? "eye.slash" : "eye")
-                            .font(.system(size: 20, weight: .semibold))
-                            .foregroundStyle(Theme.inkSoft)
-                            .frame(width: 38, height: 38)
+                        IonIcon(
+                            name: isVisible ? "eye-off-outline" : "eye-outline",
+                            size: 20,
+                            color: Theme.inkSoft
+                        )
+                        .frame(width: 38, height: 38)
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(isVisible ? "Masquer le mot de passe" : "Afficher le mot de passe")

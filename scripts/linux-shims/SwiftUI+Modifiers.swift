@@ -508,7 +508,6 @@ public extension View {
         minHeight: CGFloat? = nil, idealHeight: CGFloat? = nil, maxHeight: CGFloat? = nil,
         alignment: Alignment = .center
     ) -> some View { _ShimView() }
-    func frame(minWidth: CGFloat? = nil, maxWidth: CGFloat? = nil, minHeight: CGFloat? = nil, maxHeight: CGFloat? = nil, alignment: Alignment = .center) -> some View { _ShimView() }
     func fixedSize() -> some View { _ShimView() }
     func fixedSize(horizontal: Bool, vertical: Bool) -> some View { _ShimView() }
     func layoutPriority(_ value: Double) -> some View { _ShimView() }

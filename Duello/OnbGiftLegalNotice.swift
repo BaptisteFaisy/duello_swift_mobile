@@ -9,11 +9,12 @@
 //
 //  Deux liens dans une phrase ouvrent les conditions d’utilisation et la
 //  politique de confidentialité. La source présente chaque document dans un
-//  `Modal` glissant occupant 85 % de la hauteur, avec un bouton « Fermer » ; ici
-//  c’est une feuille système qui présente `TermsOfUseView` / `PrivacyPolicyView`,
-//  déjà portées (`AccountLegalViews.swift`) et qui portent elles-mêmes leur
-//  bouton « Fermer ». Les liens du texte attribué sont interceptés par
-//  `OpenURLAction` : aucun navigateur n’est ouvert.
+//  `Modal` glissant occupant 85 % de la hauteur, avec un bouton « Fermer » ;
+//  ici une feuille système présente `TermsOfUseView` / `PrivacyPolicyView`,
+//  déjà portées (`AccountLegalViews.swift`), bornée à 85 % de la hauteur
+//  (`presentationDetents`) et coiffée du même bouton « Fermer » (`close`, 24,
+//  `#000000`). Les liens du texte attribué sont interceptés par `OpenURLAction`
+//  : aucun navigateur n’est ouvert.
 //
 //  ⚠️ La source laisse l’appelant fournir le style (`style`); la vue porte ici
 //  la typographie de l’onboarding sombre (`guestTermsText` : 11 pt, `#858585`,
@@ -41,12 +42,17 @@ struct OnbGiftLegalNotice: View {
                 return .handled
             })
             .sheet(item: $page) { target in
-                switch target {
-                case .terms:
-                    TermsOfUseView()
-                case .privacy:
-                    PrivacyPolicyView()
+                OnbGiftLegalPanel(onClose: { page = nil }) {
+                    switch target {
+                    case .terms:
+                        TermsOfUseView()
+                    case .privacy:
+                        PrivacyPolicyView()
+                    }
                 }
+                // `LegalPanel` de la source : panneau de 85 % de la hauteur.
+                .presentationDetents([.fraction(0.85)])
+                .presentationDragIndicator(.hidden)
             }
     }
 
@@ -70,6 +76,41 @@ struct OnbGiftLegalNotice: View {
     }
 
     private static let noticeColor = Color(hex: 0x858585)
+}
+
+/// `LegalPanel` de la source (`OnboardingLegalNotice.tsx`) : panneau de 85 %
+/// de la hauteur, bouton « Fermer » (`close`, 24, `#000000`) en haut à droite,
+/// au-dessus du document.
+private struct OnbGiftLegalPanel<Content: View>: View {
+    let onClose: () -> Void
+    private let content: () -> Content
+
+    init(onClose: @escaping () -> Void, @ViewBuilder content: @escaping () -> Content) {
+        self.onClose = onClose
+        self.content = content
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 0) {
+                Spacer(minLength: 0)
+                Button(action: onClose) {
+                    IonIcon(name: "close", size: 24, color: .black)
+                        .frame(width: 40, height: 40)
+                        .background(Color.white)
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Fermer")
+            }
+            .padding(.trailing, 12)
+            .padding(.top, 4)
+
+            content()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(Color.white)
+    }
 }
 
 /// Page juridique ouverte depuis la mention d’onboarding.

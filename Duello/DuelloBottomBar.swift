@@ -1,87 +1,161 @@
+//
+//  DuelloBottomBar.swift
+//  Duello
+//
+//  Barre d'onglets principale — port de `src/components/BottomNavigation.tsx`.
+//
+//  L'original **dessine** sa barre (React Native) : trois cellules égales, une
+//  icône surmontant son libellé, l'onglet actif marqué par une pastille
+//  `primary` derrière l'icône et un libellé plus gras. La barre native d'iOS
+//  (`TabView`/`tabItem`) ne sait rendre ni cette pastille, ni l'avatar du
+//  profil, ni l'ordre exact des libellés : d'où ce composant maison.
+//
+//  Mesures et couleurs reprises telles quelles de la source : conteneur
+//  `minHeight` 72, marges 8/7/`max(insets.bottom, 5)`, icône 21 (Ionicons
+//  `person-outline` / `barbell-outline` / `flash-outline`), pastille 32×32
+//  (rayon `radii.small` = 10), avatar 30×30 (rayon 15, bord 1,5), libellé 9
+//  (700 inactif / 900 actif). L'onglet actif **interpole** son opacité et son
+//  échelle avec la progression du pager (`selectedPage`, `:136-148`).
+//
 import SwiftUI
 
-/// Barre d'onglets principale — port de `src/components/BottomNavigation.tsx`.
-///
-/// L'original **dessine** sa barre (React Native) : trois cellules égales, une
-/// icône surmontant son libellé, l'onglet actif marqué par une pastille
-/// `primary` derrière l'icône et un libellé plus gras. La barre native d'iOS
-/// (`TabView`/`tabItem`) ne sait rendre ni cette pastille, ni l'avatar du
-/// profil, ni l'ordre exact des libellés : d'où ce composant maison.
-///
-/// Mesures et couleurs reprises telles quelles de la source : conteneur
-/// `minHeight` 72, marges 8/7/5, icône 21, pastille 32×32 (rayon `radii.small`
-/// = 10), avatar 30×30 (rayon 15, bord 1,5), libellé 9 (700 inactif / 900 actif).
+/// Cellule de la barre (`tab` de `BottomNavigation.tsx:39-52`).
+private struct DuelloBottomTabSpec {
+    let key: String
+    let label: String
+    let icon: String
+}
+
 struct DuelloBottomBar: View {
     @Binding var selection: Int
+    /// Progression continue du pager : l'onglet actif interpole opacité/échelle.
+    @ObservedObject var pager: DuelloTabPagerModel
     /// Initiale de l'avatar (onglet Profil) — `getProfileInitial` de la source.
     var avatarInitial: String = "P"
+    /// Photo de profil (`photoUri`, `:167-192`) : prioritaire sur l'initiale.
+    var photoUri: String? = nil
     /// Pastille rouge de notification, onglet Profil (`hasUnreadNotifications`).
     var hasUnreadNotifications: Bool = false
-
-    private struct TabItem {
-        let label: String
-        let symbol: String
-    }
+    /// Inset bas de la fenêtre (`Math.max(insets.bottom, 5)`, `:69`).
+    var bottomSafeAreaInset: CGFloat = 0
 
     /// Même ordre que `BOTTOM_TAB_ORDER` et `tabs` de `BottomNavigation.tsx`.
-    private static let tabs: [TabItem] = [
-        TabItem(label: "Profil", symbol: "person"),
-        TabItem(label: "Entraînement", symbol: "dumbbell"),
-        TabItem(label: "Défis", symbol: "bolt"),
+    private static let tabs: [DuelloBottomTabSpec] = [
+        DuelloBottomTabSpec(key: "account", label: "Profil", icon: "person-outline"),
+        DuelloBottomTabSpec(key: "training", label: "Entraînement", icon: "barbell-outline"),
+        DuelloBottomTabSpec(key: "challenges", label: "Défis", icon: "flash-outline"),
     ]
-
-    private static let iconSize: CGFloat = 21
 
     var body: some View {
         HStack(spacing: 0) {
-            ForEach(Array(Self.tabs.enumerated()), id: \.offset) { index, tab in
-                cell(tab, index: index)
+            ForEach(Array(Self.tabs.enumerated()), id: \.offset) { index, spec in
+                DuelloBottomTabCell(
+                    spec: spec,
+                    index: index,
+                    selection: $selection,
+                    pager: pager,
+                    avatarInitial: avatarInitial,
+                    photoUri: photoUri,
+                    hasUnreadNotifications: hasUnreadNotifications
+                )
             }
         }
         .padding(.horizontal, 8)
         .padding(.top, 7)
-        .padding(.bottom, 5)
+        .padding(.bottom, max(bottomSafeAreaInset, 5))
         .frame(minHeight: 72)
-        .background(Theme.surface)
+        .background(Theme.surface, ignoresSafeAreaEdges: .bottom)
         .overlay(alignment: .top) {
             Rectangle()
                 .fill(Theme.border)
                 .frame(height: 0.5)
         }
     }
+}
 
-    private func cell(_ tab: TabItem, index: Int) -> some View {
-        let isActive = selection == index
-        return Button {
-            selection = index
-        } label: {
-            VStack(spacing: 4) {
-                ZStack {
-                    if index == 0 {
-                        avatar(isActive: isActive)
-                    } else {
-                        symbol(tab.symbol, isActive: isActive)
-                    }
+/// Une cellule de la barre (`NavigationTab`, `BottomNavigation.tsx:114-261`).
+private struct DuelloBottomTabCell: View {
+    let spec: DuelloBottomTabSpec
+    let index: Int
+    @Binding var selection: Int
+    @ObservedObject var pager: DuelloTabPagerModel
+    let avatarInitial: String
+    let photoUri: String?
+    let hasUnreadNotifications: Bool
+
+    /// `activateOnPressIn` : l'onglet change dès le contact (`AppPressable`).
+    private static let iconSize: CGFloat = 21
+
+    var body: some View {
+        let progress = max(0, 1 - min(1, abs(pager.progress - CGFloat(index))))
+        let unselected = min(1, abs(pager.progress - CGFloat(index)))
+        let isSelected = selection == index
+
+        return VStack(spacing: 4) {
+            ZStack {
+                if spec.key == "account" {
+                    avatar(isActive: false)
+                        .opacity(unselected)
+                    avatar(isActive: true)
+                        .opacity(progress)
+                        .scaleEffect(0.94 + 0.06 * progress)
+                } else {
+                    symbol(isActive: false)
+                        .opacity(unselected)
+                    symbol(isActive: true)
+                        .opacity(progress)
+                        .scaleEffect(0.94 + 0.06 * progress)
                 }
-                .frame(width: 44, height: 32)
-
-                Text(tab.label)
-                    .font(.system(size: 9, weight: isActive ? .black : .bold))
-                    .foregroundStyle(isActive ? Theme.primary : Theme.inkSoft)
-                    .lineLimit(1)
             }
-            .frame(maxWidth: .infinity)
-            .contentShape(Rectangle())
+            .frame(width: 44, height: 32)
+            .overlay(alignment: .topTrailing) {
+                if spec.key == "account" && hasUnreadNotifications {
+                    Circle()
+                        .fill(Theme.like)
+                        .frame(width: 10, height: 10)
+                        .overlay(Circle().stroke(Theme.surface, lineWidth: 2))
+                        .padding(.trailing, 5)
+                }
+            }
+
+            ZStack {
+                Text(spec.label)
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(Theme.inkSoft)
+                    .opacity(unselected)
+                Text(spec.label)
+                    .font(.system(size: 9, weight: .black))
+                    .foregroundStyle(Theme.primary)
+                    .opacity(progress)
+            }
+            .lineLimit(1)
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel(tab.label)
-        .accessibilityAddTraits(isActive ? [.isSelected] : [])
+        .frame(maxWidth: .infinity)
+        .contentShape(Rectangle())
+        // `activateOnPressIn` (`AppPressable`) : l'onglet change dès le contact,
+        // sans attendre le relâchement (`minimumDuration: 0`).
+        // `perform:`/`onPressingChanged:` explicites : la surface SwiftUI
+        // expose DEUX surcharges `onLongPressGesture(minimumDuration:maximumDistance:…)`
+        // (celle avec `perform:onPressingChanged:` et l'ancienne avec
+        // `pressing:perform:`) ; fournir `maximumDistance:` + une closure finale
+        // seule est ambigu. On lève l'ambiguïté sans changer le comportement.
+        .onLongPressGesture(
+            minimumDuration: 0, maximumDistance: .infinity,
+            perform: { selection = index }, onPressingChanged: nil
+        )
+        .accessibilityElement()
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : [.isButton])
+        .accessibilityLabel(
+            spec.key == "account" && hasUnreadNotifications
+                ? "\(spec.label), notification non lue"
+                : spec.label
+        )
+        .accessibilityAction { selection = index }
     }
 
-    private func symbol(_ name: String, isActive: Bool) -> some View {
-        Image(systemName: name)
-            .font(.system(size: Self.iconSize, weight: .regular))
-            .foregroundStyle(isActive ? Color.white : Theme.inkSoft)
+    /// Icône Ionicons, `inkSoft` inactif / `white` sur pastille `primary` actif.
+    private func symbol(isActive: Bool) -> some View {
+        IonIcon(name: spec.icon, size: Self.iconSize, color: isActive ? .white : Theme.inkSoft)
             .frame(width: 32, height: 32)
             .background(isActive ? Theme.primary : Color.clear)
             .clipShape(
@@ -89,24 +163,31 @@ struct DuelloBottomBar: View {
             )
     }
 
+    /// Avatar 30×30 (`avatar`, `:317-343`) : photo `cover` ou initiale.
     private func avatar(isActive: Bool) -> some View {
+        Group {
+            if let uri = photoUri, let url = URL(string: uri) {
+                CachedRemoteImage(url: url) { image in
+                    image.resizable().scaledToFill()
+                } placeholder: {
+                    avatarInitialLabel(isActive: isActive)
+                }
+            } else {
+                avatarInitialLabel(isActive: isActive)
+            }
+        }
+        .frame(width: 30, height: 30)
+        .background(isActive ? Theme.primary : Theme.primaryLight)
+        .clipShape(Circle())
+        .overlay(
+            Circle().stroke(isActive ? Theme.primary : Theme.border, lineWidth: 1.5)
+        )
+    }
+
+    /// Initiale de l'avatar (`avatarInitial` / `activeAvatarInitial`).
+    private func avatarInitialLabel(isActive: Bool) -> some View {
         Text(avatarInitial)
             .font(.system(size: 13, weight: .black))
             .foregroundStyle(isActive ? Color.white : Theme.inkSoft)
-            .frame(width: 30, height: 30)
-            .background(isActive ? Theme.primary : Theme.primaryLight)
-            .clipShape(Circle())
-            .overlay(
-                Circle().stroke(isActive ? Theme.primary : Theme.border, lineWidth: 1.5)
-            )
-            .overlay(alignment: .topTrailing) {
-                if hasUnreadNotifications {
-                    Circle()
-                        .fill(Theme.like)
-                        .frame(width: 10, height: 10)
-                        .overlay(Circle().stroke(Theme.surface, lineWidth: 2))
-                        .offset(x: 5)
-                }
-            }
     }
 }

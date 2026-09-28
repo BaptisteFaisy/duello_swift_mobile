@@ -8,10 +8,15 @@ import SwiftUI
 /// « Autre école », rang d'admission, puis « ENREGISTRER MON ADMISSION » et
 /// « RÉINITIALISER ».
 ///
-/// Limites assumées : le blason officiel (`leagueBadgeSourceForLeague`) est un
-/// PNG absent de l'app Swift, donc le repli de la source est repris
-/// (`HecJourneyCrestView`) ; et les alertes d'échec d'enregistrement n'ont pas
-/// d'équivalent, l'écriture locale étant synchrone et sans erreur possible.
+/// Les mesures, typos et styles d'interaction reproduisent fidèlement la
+/// source RN :
+/// - en-tête avec `BackButton` (chevron nu, 22), padding horizontal 14 ;
+/// - pastille d'école : cercle 10×10 (`schoolDot`), sélection `checkmark-circle` 18 ;
+/// - champs de texte : `minHeight` 52, padding horizontal 15, radius 14,
+///   typo 16/700, auto-capitalisation par mot pour l'école, filtre numérique et
+///   limite 6 pour le rang ;
+/// - boutons : `minHeight` 52/48, radius 15, typo 10/900 letter-spacing 1.1,
+///   opacité désactivée 0,32.
 struct HecJourneyAdmissionView: View {
     let admission: HecJourneyAdmission?
     /// Filière du profil (`admissionTrack` côté Expo) : elle filtre les écoles.
@@ -90,13 +95,16 @@ struct HecJourneyAdmissionView: View {
                         .padding(.top, 24)
                     Text(HecJourneyAdmissionCopy.question)
                         .font(.system(size: 24, weight: .black))
+                        .lineSpacing(6)
                         .foregroundStyle(Theme.ink)
                         .multilineTextAlignment(.center)
                         .padding(.top, 20)
                     Text(HecJourneyAdmissionCopy.subtitle)
                         .font(.system(size: 13, weight: .semibold))
+                        .lineSpacing(6)
                         .foregroundStyle(Theme.inkSoft)
                         .multilineTextAlignment(.center)
+                        .frame(maxWidth: 350)
                         .padding(.top, 8)
                     schoolGrid
                         .padding(.top, 22)
@@ -105,7 +113,6 @@ struct HecJourneyAdmissionView: View {
                     }
                     rankField
                     saveButton
-                        .padding(.top, 22)
                     resetButton
                 }
                 .padding(.horizontal, 18)
@@ -137,17 +144,19 @@ struct HecJourneyAdmissionView: View {
             }
             HStack {
                 HecJourneySheet.IconButton(
-                    systemName: "chevron.left",
+                    name: "chevron-back",
                     label: HecJourneyCopy.a11yBackToJourney,
-                    size: 18,
+                    size: 22,
                     tint: Theme.ink,
-                    frame: 40,
+                    width: 40,
+                    height: 40,
+                    pressOpacity: 0.6,
                     action: onBack
                 )
                 Spacer(minLength: 0)
             }
-            .padding(.horizontal, 8)
         }
+        .padding(.horizontal, 14)
         .frame(minHeight: 64)
         .background(Theme.background)
         .overlay(alignment: .bottom) {
@@ -170,33 +179,32 @@ struct HecJourneyAdmissionView: View {
         return Button {
             schoolId = school.id
         } label: {
-            HStack(spacing: 10) {
-                RoundedRectangle(cornerRadius: 4)
+            HStack(spacing: 11) {
+                Circle()
                     .fill(Color(hex: school.colorHex))
-                    .frame(width: 18, height: 18)
+                    .frame(width: 10, height: 10)
                 Text(school.name)
                     .font(.system(size: 13, weight: .bold))
+                    .lineSpacing(4)
                     .foregroundStyle(Theme.ink)
                     .multilineTextAlignment(.leading)
                     .lineLimit(2)
                 Spacer(minLength: 6)
                 if selected {
-                    Image(systemName: "checkmark.circle")
-                        .font(.system(size: 17, weight: .bold))
-                        .foregroundStyle(Theme.ink)
+                    IonIcon(name: "checkmark-circle", size: 18, color: Theme.ink)
                 }
             }
             .padding(.horizontal, 14)
             .frame(minHeight: 50)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(selected ? Theme.surfaceMuted : Theme.surface)
-            .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
+            .background(selected ? Color(hex: 0xF0EEE9) : Theme.surface)
+            .clipShape(RoundedRectangle(cornerRadius: 14))
             .overlay(
-                RoundedRectangle(cornerRadius: Theme.radiusMedium)
+                RoundedRectangle(cornerRadius: 14)
                     .stroke(selected ? Theme.ink : Theme.border, lineWidth: 1)
             )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(HecJourneySheet.PressOpacityStyle(pressed: 0.68))
         .accessibilityLabel(HecJourneyAdmissionCopy.a11ySchool(school.name))
         .accessibilityAddTraits(selected ? [.isSelected] : [])
     }
@@ -204,21 +212,67 @@ struct HecJourneyAdmissionView: View {
     // MARK: Saisies
 
     private var customNameField: some View {
-        DuelloTextField(
-            title: HecJourneyAdmissionCopy.schoolNameLabel,
-            text: $customSchoolName
-        )
+        VStack(alignment: .leading, spacing: 7) {
+            Text(HecJourneyAdmissionCopy.schoolNameLabel)
+                .font(.system(size: 9, weight: .black))
+                .tracking(1.1)
+                .foregroundStyle(Theme.inkSoft)
+            TextField(
+                "",
+                text: Binding(
+                    get: { customSchoolName },
+                    set: { customSchoolName = String($0.prefix(80)) }
+                ),
+                prompt: Text(HecJourneyAdmissionCopy.schoolNamePlaceholder).foregroundColor(Theme.inkFaint)
+            )
+            .textInputAutocapitalization(.words)
+            .autocorrectionDisabled()
+            .font(.system(size: 16, weight: .bold))
+            .foregroundStyle(Theme.ink)
+            .padding(.horizontal, 15)
+            .frame(minHeight: 52)
+            .background(Theme.surface)
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(Theme.border, lineWidth: 1)
+            )
+        }
         .padding(.top, 20)
     }
 
     private var rankField: some View {
-        DuelloTextField(
-            title: HecJourneyAdmissionCopy.rankLabel,
-            text: $rankText,
-            keyboard: .numberPad
-        )
+        VStack(alignment: .leading, spacing: 7) {
+            Text(HecJourneyAdmissionCopy.rankLabel)
+                .font(.system(size: 9, weight: .black))
+                .tracking(1.1)
+                .foregroundStyle(Theme.inkSoft)
+            TextField(
+                "",
+                text: Binding(
+                    get: { rankText },
+                    set: { newValue in
+                        let digits = newValue.filter(\.isNumber)
+                        rankText = String(digits.prefix(6))
+                    }
+                ),
+                prompt: Text(HecJourneyAdmissionCopy.rankPlaceholder).foregroundColor(Theme.inkFaint)
+            )
+            .keyboardType(.numberPad)
+            .autocorrectionDisabled()
+            .font(.system(size: 16, weight: .bold))
+            .foregroundStyle(Theme.ink)
+            .padding(.horizontal, 15)
+            .frame(minHeight: 52)
+            .background(Theme.surface)
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(Theme.border, lineWidth: 1)
+            )
+            .accessibilityLabel(HecJourneyAdmissionCopy.rankA11y)
+        }
         .padding(.top, 20)
-        .accessibilityLabel(HecJourneyAdmissionCopy.rankA11y)
     }
 
     // MARK: Actions
@@ -228,16 +282,17 @@ struct HecJourneyAdmissionView: View {
             if let draft = draftAdmission { onSave(draft) }
         } label: {
             Text(HecJourneyAdmissionCopy.save)
-                .font(.system(size: 15, weight: .heavy))
-                .foregroundStyle(Theme.surface)
-                .padding(.vertical, 14)
-                .frame(maxWidth: .infinity)
+                .font(.system(size: 10, weight: .black))
+                .tracking(1.1)
+                .foregroundStyle(Color.white)
+                .frame(maxWidth: .infinity, minHeight: 52)
                 .background(Theme.ink)
-                .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
+                .clipShape(RoundedRectangle(cornerRadius: 15))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(HecJourneySheet.PressOpacityStyle(pressed: 0.68))
         .disabled(draftAdmission == nil)
-        .opacity(draftAdmission == nil ? 0.45 : 1)
+        .opacity(draftAdmission == nil ? 0.32 : 1)
+        .padding(.top, 24)
         .accessibilityLabel(HecJourneyAdmissionCopy.saveA11y)
     }
 
@@ -246,20 +301,20 @@ struct HecJourneyAdmissionView: View {
             confirmReset = true
         } label: {
             Text(HecJourneyAdmissionCopy.reset)
-                .font(.system(size: 13, weight: .heavy))
+                .font(.system(size: 10, weight: .black))
+                .tracking(1.1)
                 .foregroundStyle(Theme.ink)
-                .padding(.vertical, 12)
-                .frame(maxWidth: .infinity)
+                .frame(maxWidth: .infinity, minHeight: 48)
                 .background(Theme.surface)
-                .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
+                .clipShape(RoundedRectangle(cornerRadius: 15))
                 .overlay(
-                    RoundedRectangle(cornerRadius: Theme.radiusLarge)
+                    RoundedRectangle(cornerRadius: 15)
                         .stroke(Theme.border, lineWidth: 1)
                 )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(HecJourneySheet.PressOpacityStyle(pressed: 0.68))
         .disabled(admission == nil)
-        .opacity(admission == nil ? 0.45 : 1)
+        .opacity(admission == nil ? 0.32 : 1)
         .padding(.top, 10)
         .accessibilityLabel(HecJourneyAdmissionCopy.resetA11y)
     }

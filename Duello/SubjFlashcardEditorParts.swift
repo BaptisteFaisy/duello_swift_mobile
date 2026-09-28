@@ -110,8 +110,10 @@ struct SubjFlashcardEditorMathPreview: View {
 // MARK: - Bouton d'outil
 
 /// Bouton compact de la ligne d'outils (`flashcardToolButton` et ses états).
+/// Le glyphe est un Ionicons du RN (nom logique), rendu par `IonIcon` : la
+/// source passe `color={actif ? colors.white : colors.primary}` à l'icône.
 struct SubjFlashcardToolButton: View {
-    let systemImage: String
+    let ionIcon: String
     let label: String
     let accessibility: String
     var active: Bool = false
@@ -121,8 +123,7 @@ struct SubjFlashcardToolButton: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 2) {
-                Image(systemName: systemImage)
-                    .font(.system(size: 13, weight: .semibold))
+                IonIcon(name: ionIcon, size: 13, color: active ? Theme.surface : Theme.primary)
                 Text(label)
                     .font(.system(size: 10, weight: .heavy))
             }

@@ -161,18 +161,44 @@ final class RankingsSnapshotCache {
     private let storage: RankingsSnapshotStorage
     private let lock = NSLock()
     private var writeTail: Task<Void, Never> = Task {}
+    /// Cache mémoire (port de `subjectLeaderboardCache` /
+    /// `weeklyXpLeaderboardCache` de `socialApi.ts`) : la dernière réponse
+    /// validée reste affichable pendant que la réponse réseau suivante arrive,
+    /// sans relire le disque.
+    private var memory: [String: [LeaderboardEntry]] = [:]
 
     init(storage: RankingsSnapshotStorage = RankingsUserDefaultsSnapshotStorage()) {
         self.storage = storage
     }
 
-    /// Persiste la dernière réponse validée d'un classement (échecs ignorés).
+    /// Clé mémoire : cache et clé de classement joints.
+    private func memoryKey(_ cache: RankingsSnapshotCacheName, _ key: String) -> String {
+        "\(cache.rawValue)|\(key)"
+    }
+
+    /// Dernier classement connu en mémoire (`cachedSubjectLeaderboard` /
+    /// `cachedWeeklyXpLeaderboard`), sans attendre le réseau.
+    func cachedEntries(
+        _ cache: RankingsSnapshotCacheName,
+        key: String
+    ) -> [LeaderboardEntry]? {
+        lock.lock()
+        defer { lock.unlock() }
+        return memory[memoryKey(cache, key)]
+    }
+
+    /// Persiste la dernière réponse validée d'un classement (échecs ignorés) :
+    /// mémoire d'abord, puis disque (analogue de `socialApi.ts`, qui alimente
+    /// son cache mémoire puis `saveRankingsSnapshot`).
     func save(
         _ cache: RankingsSnapshotCacheName,
         key: String,
         entries: [LeaderboardEntry]
     ) {
         guard !key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        lock.lock()
+        memory[memoryKey(cache, key)] = entries
+        lock.unlock()
         enqueueWrite(
             RankingsSnapshotEntry(
                 cache: cache,
@@ -181,6 +207,23 @@ final class RankingsSnapshotCache {
                 entries: entries
             )
         )
+    }
+
+    /// Dernier classement connu, mémoire puis disque
+    /// (`restoreCachedSubjectLeaderboard` / `restoreCachedWeeklyXpLeaderboard`) :
+    /// le premier rendu après un démarrage n'attend pas le réseau.
+    func restore(
+        _ cache: RankingsSnapshotCacheName,
+        key: String
+    ) async -> [LeaderboardEntry]? {
+        if let cached = cachedEntries(cache, key: key) { return cached }
+        guard let snapshots = await load() else { return nil }
+        lock.lock()
+        for snapshot in snapshots where memory[memoryKey(snapshot.cache, snapshot.key)] == nil {
+            memory[memoryKey(snapshot.cache, snapshot.key)] = snapshot.entries
+        }
+        lock.unlock()
+        return cachedEntries(cache, key: key)
     }
 
     /// Relit tous les instantanés persistés, ou `nil` si rien d'exploitable.
@@ -194,6 +237,9 @@ final class RankingsSnapshotCache {
 
     /// Efface les instantanés, y compris une écriture en attente.
     func clear() async {
+        lock.lock()
+        memory.removeAll()
+        lock.unlock()
         let removal = enqueue { [storage] in
             await storage.removeItem(Self.storageKey)
         }
@@ -257,6 +303,22 @@ func saveRankingsSnapshot(
 /// Relit tous les instantanés persistés, ou `nil` si rien d'exploitable.
 func loadRankingsSnapshots() async -> [RankingsSnapshotEntry]? {
     await RankingsSnapshotCache.shared.load()
+}
+
+/// Dernier classement connu en mémoire, sans attendre le réseau.
+func cachedRankingsSnapshotEntries(
+    _ cache: RankingsSnapshotCacheName,
+    key: String
+) -> [LeaderboardEntry]? {
+    RankingsSnapshotCache.shared.cachedEntries(cache, key: key)
+}
+
+/// Dernier classement connu, mémoire puis disque (relecture d'un démarrage).
+func restoreRankingsSnapshotEntries(
+    _ cache: RankingsSnapshotCacheName,
+    key: String
+) async -> [LeaderboardEntry]? {
+    await RankingsSnapshotCache.shared.restore(cache, key: key)
 }
 
 /// Efface les instantanés : le classement repart d'une copie réseau franche.

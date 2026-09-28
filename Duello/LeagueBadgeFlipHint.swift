@@ -161,9 +161,7 @@ private struct LeagueFlipHand: View {
     }
 
     var body: some View {
-        Image(systemName: "hand.point.left")
-            .font(.system(size: 23))
-            .foregroundStyle(Theme.inkSoft)
+        IonIcon(name: "hand-left-outline", size: 23, color: Theme.inkSoft)
             .frame(width: 24, height: 24)
             .scaleEffect(scale)
             .offset(x: translateX)
@@ -207,9 +205,7 @@ private struct LeagueFlipBadge: View {
                     Color.clear
                 }
             } else {
-                Image(systemName: "shield")
-                    .font(.system(size: 42))
-                    .foregroundStyle(Theme.ink)
+                IonIcon(name: "shield-outline", size: 42, color: Theme.ink)
             }
         }
     }
@@ -222,9 +218,7 @@ private struct LeagueFlipDismissButton: View {
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: "xmark")
-                .font(.system(size: 20))
-                .foregroundStyle(Theme.inkSoft)
+            IonIcon(name: "close", size: 20, color: Theme.inkSoft)
                 .frame(width: 32, height: 32)
                 .contentShape(Rectangle())
         }

@@ -3,10 +3,6 @@ import SwiftUI
 extension MessagesView {
     // MARK: - Navigation et envoi
 
-    var totalUnread: Int {
-        conversations.reduce(0) { $0 + $1.unread }
-    }
-
     func findConversation(_ id: String) -> DemoConversation? {
         conversations.first { $0.id == id }
     }
@@ -18,10 +14,9 @@ extension MessagesView {
     func open(_ conversation: DemoConversation) {
         selectedConversationId = conversation.id
         composer = ""
-        // Ouvrir une conversation remet ses non-lus à zéro (`onClearUnread`).
-        if let index = conversations.firstIndex(where: { $0.id == conversation.id }) {
-            conversations[index].unread = 0
-        }
+        // Ouvrir une conversation remet les non-lus à zéro côté parent
+        // (`onClearUnread()`, `MessagesScreen.tsx:185-189`).
+        onClearUnread()
     }
 
     func open(_ topic: ForumTopic) {

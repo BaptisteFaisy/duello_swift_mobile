@@ -4,7 +4,7 @@
 //
 //  Types partagés de l'API événement : verdict par question, copie d'un
 //  participant, ligne de classement, inscription en salle d'attente, état de
-//  correction et compteurs d'interactions.
+//  correction, compteurs d'interactions et messages du chat.
 //
 //  Fichier source Expo porté : `src/utils/eventTypes.ts`.
 //
@@ -80,4 +80,22 @@ struct EvInteractionCounts: Equatable {
     var viewers: Int
     /// Personnes ayant partagé l'événement au moins une fois.
     var shares: Int
+}
+
+/// Un message du chat d'un événement, avec son auteur (`EventChatMessage`).
+struct EvEventChatMessage: Identifiable, Equatable {
+    var id: String
+    var authorId: String
+    var displayName: String
+    var photoUri: String?
+    var body: String
+    /// Instant d'envoi, en millisecondes depuis l'époque.
+    var createdAt: Double
+}
+
+/// Discussion d'un événement : les cent derniers messages et leur total
+/// (`EventChatState`).
+struct EvEventChatState: Equatable {
+    var messages: [EvEventChatMessage]
+    var total: Int
 }

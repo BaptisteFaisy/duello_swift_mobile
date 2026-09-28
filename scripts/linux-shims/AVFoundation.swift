@@ -140,3 +140,64 @@ open class AVAudioConverter: NSObject {
         .haveData
     }
 }
+
+// MARK: - Session audio (AVFAudio)
+//
+// `AVAudioSession` : utilisée par `DictSpeechEngine` et `DictAsrRelay+Capture`
+// (`setCategory(_:mode:options:)`, `setActive(_:options:)`,
+// `requestRecordPermission`). Aucune de ces méthodes n'est exécutée.
+
+open class AVAudioSession: NSObject {
+    public static func sharedInstance() -> AVAudioSession { AVAudioSession() }
+
+    public struct Category: Hashable, RawRepresentable, Sendable {
+        public let rawValue: String
+        public init(rawValue: String) { self.rawValue = rawValue }
+
+        public static let ambient = Category(rawValue: "ambient")
+        public static let soloAmbient = Category(rawValue: "soloAmbient")
+        public static let playback = Category(rawValue: "playback")
+        public static let record = Category(rawValue: "record")
+        public static let playAndRecord = Category(rawValue: "playAndRecord")
+        public static let multiRoute = Category(rawValue: "multiRoute")
+    }
+
+    public struct Mode: Hashable, RawRepresentable, Sendable {
+        public let rawValue: String
+        public init(rawValue: String) { self.rawValue = rawValue }
+
+        public static let `default` = Mode(rawValue: "default")
+        public static let measurement = Mode(rawValue: "measurement")
+        public static let voiceChat = Mode(rawValue: "voiceChat")
+        public static let gameChat = Mode(rawValue: "gameChat")
+        public static let videoRecording = Mode(rawValue: "videoRecording")
+        public static let voicePrompt = Mode(rawValue: "voicePrompt")
+    }
+
+    public struct CategoryOptions: OptionSet, Sendable {
+        public let rawValue: UInt
+        public init(rawValue: UInt) { self.rawValue = rawValue }
+
+        public static let mixWithOthers = CategoryOptions(rawValue: 1 << 0)
+        public static let duckOthers = CategoryOptions(rawValue: 1 << 1)
+        public static let allowBluetooth = CategoryOptions(rawValue: 1 << 2)
+        public static let defaultToSpeaker = CategoryOptions(rawValue: 1 << 3)
+        public static let allowBluetoothA2DP = CategoryOptions(rawValue: 1 << 4)
+        public static let interruptSpokenAudioAndMixWithOthers = CategoryOptions(rawValue: 1 << 5)
+    }
+
+    public struct SetActiveOptions: OptionSet, Sendable {
+        public let rawValue: UInt
+        public init(rawValue: UInt) { self.rawValue = rawValue }
+
+        public static let notifyOthersOnDeactivation = SetActiveOptions(rawValue: 1 << 0)
+    }
+
+    public func setCategory(_ category: Category) throws {}
+
+    public func setCategory(_ category: Category, mode: Mode, options: CategoryOptions = []) throws {}
+
+    public func setActive(_ active: Bool, options: SetActiveOptions = []) throws {}
+
+    public func requestRecordPermission(_ response: @escaping (Bool) -> Void) {}
+}

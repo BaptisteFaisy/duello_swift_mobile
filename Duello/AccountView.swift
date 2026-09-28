@@ -59,10 +59,23 @@ struct AccountView: View {
                 // (`openMember` de `AccountScreen.tsx:2271`) puis referme la
                 // feuille (`leaveNotifications`) : la fiche se pose alors sur
                 // le profil de l'onglet « Mon compte ».
-                AcctIntNotificationsSheet(onOpenMember: { memberId in
-                    search.openMember(memberId)
-                    notificationsOpen = false
-                })
+                //
+                // Les listes Amis (écart #13) sont peuplées depuis le modèle de
+                // recherche du profil — mêmes données d'annuaire que la
+                // recherche (`knownProfiles` + `followerIds`/`followedIds`,
+                // `AccountScreen.tsx:1680-1686`). Repli documenté : tant que le
+                // lot « Social » n'alimente pas `followerIds`/`followedIds`, les
+                // listes restent vides et affichent leur message d'état vide.
+                AcctIntNotificationsSheet(
+                    onOpenMember: { memberId in
+                        search.openMember(memberId)
+                        notificationsOpen = false
+                    },
+                    knownProfiles: search.knownProfiles,
+                    followerIds: search.followerIds,
+                    followedIds: search.followedIds,
+                    onToggleFollow: { search.toggleFollow($0) }
+                )
             }
             .sheet(isPresented: $settingsOpen) {
                 AcctIntSettingsSheet(email: session.profile.email, token: session.token)

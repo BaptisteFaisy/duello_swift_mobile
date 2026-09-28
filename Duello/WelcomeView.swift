@@ -9,7 +9,7 @@ struct WelcomeView: View {
     /// d'inscription, qui se joue **hors** de la feuille de connexion
     /// (`authStage === 'signup'`).
     var onCreateAccount: () -> Void = {}
-    /// Mode capture : la feuille de connexion peut s'ouvrir d'elle-même
+    /// Mode capture : la connexion peut s'ouvrir d'elle-même
     /// (`DUELLO_SHOT=login`) ; l'inscription, elle, passe par `onCreateAccount`.
     @State private var showLogin = ScreenshotTour.welcomeDestination == .login
 
@@ -28,7 +28,7 @@ struct WelcomeView: View {
                         Image("DuelloLogo")
                             .resizable()
                             .scaledToFit()
-                            .frame(width: min(96, proxy.size.width * 0.4), height: 96)
+                            .frame(width: 96, height: 96)
                             .accessibilityLabel("Marque Duello")
 
                         Spacer(minLength: 0)
@@ -63,7 +63,7 @@ struct WelcomeView: View {
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Écran de bienvenue")
         }
-        .sheet(isPresented: $showLogin) {
+        .fullScreenCover(isPresented: $showLogin) {
             LoginView()
         }
     }
@@ -231,7 +231,14 @@ struct GoogleGLogo: View {
     }
 }
 
-/// Bouton blanc plein radius 18, pressé : opacité 0.84 et scale 0.99.
+/// Bouton blanc plein radius 18.
+///
+/// **Aucun retour d'appui** : la source passe ses deux boutons par
+/// `AppPressable as Pressable` (`WelcomeScreen.tsx:13`), qui résout toujours le
+/// style fonctionnel avec `RESTING_PRESS_STATE = { pressed: false }`
+/// (`AppPressable.tsx:14,79-81`) — `pressed && styles.pressed` n'est donc
+/// **jamais** appliqué et `styles.pressed` (`:209`, opacité 0.84 + scale 0.99)
+/// reste mort. Le bouton Swift ne doit rien animer à l'appui.
 struct DuelloWelcomeButton: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -239,12 +246,18 @@ struct DuelloWelcomeButton: ButtonStyle {
             .foregroundStyle(.black)
             .background(Color.white)
             .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
-            .opacity(configuration.isPressed ? 0.84 : 1)
-            .scaleEffect(configuration.isPressed ? 0.99 : 1)
     }
 }
 
-/// Feuille de connexion de l'accueil.
+/// Écran de connexion de l'accueil, présenté **plein écran**.
+///
+/// La source ne présente pas la connexion en feuille modale : `onLogin`
+/// (`WelcomeScreen.tsx:90`) fait `setAuthStage('login')` (`App.tsx:2537`), et
+/// `App.tsx:2512-2523` **remplace** l'accueil par `LoginScreen` (aucun `Modal`
+/// dans `LoginScreen.tsx`) ; `onBack` revient à `authStage = 'welcome'`
+/// (`App.tsx:2521`). Le `fullScreenCover` de `WelcomeView` reproduit ce
+/// remplacement, et le « lien de retour » ferme la présentation
+/// (`LoginIntAssembly` câble `onBack` sur `dismiss()`).
 ///
 /// Branche l'écran de connexion **sombre** porté au lot 14-A
 /// (`LoginScrScreen`, assemblé par `LoginIntAssembly`), fidèle à
@@ -253,7 +266,7 @@ struct DuelloWelcomeButton: ButtonStyle {
 /// bandeau d'erreur, séparateur « OU », bouton biométrie, en-tête
 /// eyebrow/titre/sous-titre, fournisseurs Google/Apple.
 ///
-/// L'inscription ne passe plus par cette feuille : la source la joue **avant**
+/// L'inscription ne passe pas par cet écran : la source la joue **avant**
 /// toute session (`onCreateAccount` → `authStage === 'signup'` →
 /// `OnboardingScreen`), elle vit donc dans `SignupFlowView`.
 struct LoginView: View {

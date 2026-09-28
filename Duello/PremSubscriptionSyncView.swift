@@ -35,6 +35,17 @@ struct PremSubscriptionSyncView: View {
         Color.clear
             .frame(width: 0, height: 0)
             .accessibilityHidden(true)
+            // V1 (écart 19#4) : la célébration d’abonnement
+            // (`PremiumUnlockCelebrationCoordinator`, `App.tsx:2586`) n’était
+            // montée par personne. Elle est sœur de la synchronisation dans la
+            // source ; elle est donc posée ici, sur ce fichier premium déjà
+            // racine, pour n’avoir qu’un seul abonnement aux déblocages.
+            .overlay {
+                PremCodeUnlockCoordinator(
+                    accountId: sync.accountId,
+                    daysRemaining: sync.daysRemaining
+                )
+            }
             .onAppear { sync.start() }
             .onDisappear { sync.stop() }
             .onChange(of: scenePhase) { phase in

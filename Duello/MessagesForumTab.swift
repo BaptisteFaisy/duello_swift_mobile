@@ -34,9 +34,7 @@ extension MessagesView {
                 RoundedRectangle(cornerRadius: 17)
                     .fill(Theme.primaryLight)
                     .frame(width: 48, height: 48)
-                Image(systemName: "person.2.fill")
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundStyle(Theme.ink)
+                IonIcon(name: "people", size: 23, color: Theme.ink)
             }
 
             VStack(alignment: .leading, spacing: 4) {
@@ -54,7 +52,6 @@ extension MessagesView {
         .padding(16)
         .background(Theme.primaryLight)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
-        .padding(.bottom, 22)
     }
 
     private func topicRow(_ topic: ForumTopic) -> some View {
@@ -63,12 +60,10 @@ extension MessagesView {
                 RoundedRectangle(cornerRadius: 15)
                     .fill(topic.color)
                     .frame(width: 44, height: 44)
-                Image(systemName: topic.icon)
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(Theme.ink)
+                IonIcon(name: topic.icon, size: 20, color: Theme.ink)
             }
 
-            VStack(alignment: .leading, spacing: 5) {
+            VStack(alignment: .leading, spacing: 0) {
                 Text(topic.category)
                     .font(.system(size: 8, weight: .black))
                     .tracking(0.8)
@@ -78,19 +73,22 @@ extension MessagesView {
                     .foregroundStyle(Theme.ink)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
+                    .padding(.top, 5)
                 Text("\(topic.author) · \(topic.replies) réponses · \(topic.time)")
                     .font(.system(size: 8, weight: .medium))
                     .foregroundStyle(Theme.inkFaint)
+                    .padding(.top, 6)
             }
 
             Spacer(minLength: 0)
 
-            Image(systemName: "chevron.right")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Theme.inkFaint)
+            IonIcon(name: "chevron-forward", size: 17, color: Theme.inkFaint)
         }
-        .frame(maxWidth: .infinity, minHeight: 74, alignment: .leading)
-        .duelloCard()
+        .padding(15)
+        .frame(maxWidth: .infinity, minHeight: 106, alignment: .leading)
+        .background(Theme.surface)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
+        .duelloShadow()
         .contentShape(Rectangle())
     }
 }

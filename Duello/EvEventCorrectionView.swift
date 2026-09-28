@@ -9,7 +9,8 @@
 //  jusqu'à la fin réelle de l'événement.
 //
 //  Fichier source Expo porté : `src/components/event/EventCorrectionView.tsx`.
-//  Substitution SF Symbols : chevron-up/down → chevron.up/chevron.down.
+//  Icône Ionicons : chevron-up / chevron-down (16), comme la source — plus de
+//  substitution SF Symbol.
 //
 //  Cible : iOS 16.
 //
@@ -135,9 +136,7 @@ private struct EvEventCorrectionQuestion: View {
                             .font(.system(size: 13, weight: .heavy))
                             .foregroundStyle(Theme.ink)
                         Spacer(minLength: 0)
-                        Image(systemName: open ? "chevron.up" : "chevron.down")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(Theme.inkSoft)
+                        IonIcon(name: open ? "chevron-up" : "chevron-down", size: 16, color: Theme.inkSoft)
                     }
                     .padding(12)
                     .contentShape(Rectangle())

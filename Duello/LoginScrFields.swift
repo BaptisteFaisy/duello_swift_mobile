@@ -54,7 +54,7 @@ struct LoginScrFieldProps {
     /// Libellé au-dessus du champ, déjà en capitales comme dans la source.
     var label: String
     var placeholder: String
-    /// Symbole SF remplaçant l'`Ionicons` de la source.
+    /// Nom Ionicons de la source (`<Ionicons name=… />`), rendu par `IonIcon`.
     var icon: String? = nil
     var keyboard: UIKeyboardType = .default
     var isSecure: Bool = false
@@ -76,14 +76,17 @@ struct LoginScrField: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(props.label)
+                // `fieldLabel` (`LoginScreen.tsx:743`) : `fontSize: 13`,
+                // `fontWeight: '800'`. `.heavy` de SwiftUI = **800** (900 est
+                // `.black`), donc déjà conforme.
                 .font(.system(size: 13, weight: .heavy))
                 .foregroundStyle(LoginScrPalette.onDark)
 
             HStack(spacing: 10) {
                 if let icon = props.icon {
-                    Image(systemName: icon)
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundStyle(LoginScrPalette.icon)
+                    // `<Ionicons name={icon} size={20} color="#A3A3A3" />`
+                    // (`LoginScreen.tsx:738`).
+                    IonIcon(name: icon, size: 20, color: LoginScrPalette.icon)
                 }
                 input
                 if let trailing = props.trailing {
@@ -142,12 +145,14 @@ struct LoginScrRevealToggle: View {
         Button {
             isRevealed.toggle()
         } label: {
-            Image(systemName: isRevealed ? "eye.slash" : "eye")
-                .font(.system(size: 21, weight: .semibold))
-                .foregroundStyle(LoginScrPalette.icon)
-                .frame(width: 36, height: 36)
-                .background(LoginScrPalette.action)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+            IonIcon(
+                name: isRevealed ? "eye-off-outline" : "eye-outline",
+                size: 21,
+                color: LoginScrPalette.icon
+            )
+            .frame(width: 36, height: 36)
+            .background(LoginScrPalette.action)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(.plain)
         .accessibilityLabel(isRevealed ? "Masquer le mot de passe" : "Afficher le mot de passe")
@@ -162,9 +167,7 @@ struct LoginScrErrorCard: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 10) {
-            Image(systemName: "exclamationmark.circle")
-                .font(.system(size: 19, weight: .semibold))
-                .foregroundStyle(LoginScrPalette.onDark)
+            IonIcon(name: "alert-circle-outline", size: 19, color: LoginScrPalette.onDark)
             Text(message)
                 .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(LoginScrPalette.onDark)
@@ -229,8 +232,7 @@ struct LoginScrBiometricButton: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 10) {
-                Image(systemName: "touchid")
-                    .font(.system(size: 23, weight: .semibold))
+                IonIcon(name: "finger-print", size: 23, color: LoginScrPalette.onDark)
                 Text(isLoading ? "Vérification…" : "Continuer avec la biométrie")
                     .font(.system(size: 13, weight: .black))
             }
@@ -279,8 +281,8 @@ struct LoginScrFooterPrimary: View {
         Button(action: action) {
             HStack(spacing: 9) {
                 Text(title)
-                Image(systemName: "arrow.right")
-                    .font(.system(size: 20, weight: .bold))
+                // `arrow-forward` 20 `#000000` (`LoginScreen.tsx:649`).
+                IonIcon(name: "arrow-forward", size: 20, color: .black)
             }
             .frame(maxWidth: .infinity, minHeight: 54)
         }

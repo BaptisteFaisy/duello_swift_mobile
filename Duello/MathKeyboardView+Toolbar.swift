@@ -16,14 +16,23 @@ extension MathKeyboardView {
 
     var tabsRow: some View {
         HStack(spacing: 4) {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 5) {
-                    ForEach(sections) { item in
-                        tabButton(item)
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 5) {
+                        ForEach(sections) { item in
+                            tabButton(item)
+                                .id(item.id)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                    .padding(.trailing, 2)
+                }
+                // Recentrage sur l'onglet actif (`tabsRef.scrollTo`, RN).
+                .onChange(of: sectionId) { newValue in
+                    withAnimation(.easeOut(duration: 0.25)) {
+                        proxy.scrollTo(newValue, anchor: .center)
                     }
                 }
-                .padding(.vertical, 4)
-                .padding(.trailing, 2)
             }
             closeButton
         }
@@ -39,13 +48,12 @@ extension MathKeyboardView {
                 .foregroundStyle(selected ? Theme.surface : Theme.inkSoft)
                 .padding(.vertical, 4)
                 .padding(.horizontal, 9)
-                .background(selected ? Theme.ink : Theme.surface)
-                .clipShape(Capsule())
-                .overlay(
-                    Capsule().stroke(selected ? Theme.ink : Theme.border, lineWidth: 1)
-                )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(MathKbPressStyle(
+            background: selected ? Theme.primary : Theme.surface,
+            border: selected ? Theme.primary : Theme.border,
+            capsule: true
+        ))
         .accessibilityLabel("Onglet \(item.label)")
     }
 
@@ -53,18 +61,11 @@ extension MathKeyboardView {
         Button {
             close()
         } label: {
-            Image(systemName: "chevron.up")
-                .font(.system(size: 14, weight: .bold))
-                .foregroundStyle(Theme.inkSoft)
+            // Icône du RN : `chevron-up` size 17 color inkSoft.
+            IonIcon(name: "chevron-up", size: 17, color: Theme.inkSoft)
                 .frame(width: 28, height: 24)
-                .background(Theme.surface)
-                .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
-                .overlay(
-                    RoundedRectangle(cornerRadius: Theme.radiusSmall)
-                        .stroke(Theme.border, lineWidth: 1)
-                )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(MathKbPressStyle(cornerRadius: Theme.radiusSmall))
         .accessibilityLabel("Fermer le clavier maths")
     }
     // MARK: Rangée d'actions
@@ -76,24 +77,26 @@ extension MathKeyboardView {
                     accessibility: subscriptMode ? "Écrire sur la ligne" : "Écrire en indice",
                     label: "xₙ",
                     highlighted: subscriptMode,
-                    labelSize: 15
+                    labelSize: 15,
+                    labelColor: Theme.ink
                 ) {
                     subscriptMode.toggle()
                 }
             }
 
-            MathKbActionKey(accessibility: "Espace", label: "espace") {
+            // La touche espace occupe la largeur restante (`spaceKey` `flex:1`).
+            MathKbActionKey(accessibility: "Espace", label: "espace", expandable: true) {
                 insertDraftText(" ")
             }
 
             MathKbActionKey(
                 accessibility: returnAccessibilityLabel,
-                systemImage: draftOpen ? "chevron.forward" : "return"
+                ionIcon: draftOpen ? "chevron-forward" : "return-down-back"
             ) {
                 handleReturn()
             }
 
-            MathKbActionKey(accessibility: "Effacer", systemImage: "delete.left") {
+            MathKbActionKey(accessibility: "Effacer", ionIcon: "backspace-outline", iconSize: 18) {
                 handleBackspace()
             }
         }

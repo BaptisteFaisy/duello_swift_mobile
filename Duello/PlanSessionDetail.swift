@@ -2,18 +2,40 @@
 //  PlanSessionDetail.swift
 //  Duello
 //
-//  Écran « Plan » — détail d'une séance : feuille du bas, pastilles d'information et disposition en lignes.
+//  Écran « Plan » — détail d'une séance : fondu sur fond assombri, carte ancrée
+//  en bas, pastilles d'information.
 //
 import Foundation
 import SwiftUI
 
 // MARK: - Détail d'une séance
 
-/// `SessionDetailModal` (lignes 294-358) : feuille du bas, fermable au geste,
-/// par le bouton « Fermer » ou en touchant l'arrière-plan.
-struct PlanSessionSheet: View {
+/// `SessionDetailModal` (lignes 294-358) : `animationType="fade"` sur un fond
+/// `rgba(15,23,42,0.45)`, carte `justifyContent: 'flex-end'`. Le fondu est porté
+/// par la transition d'opacité posée dans `PlanScreen` ; toucher le fond ferme,
+/// toucher la carte ne fait rien.
+struct PlanSessionDetailOverlay: View {
     let session: PlanSession
-    @Environment(\.dismiss) private var dismiss
+    let onClose: () -> Void
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            Color(hex: 0x0F172A, alpha: 0.45)
+                .ignoresSafeArea()
+                .contentShape(Rectangle())
+                .onTapGesture(perform: onClose)
+
+            PlanSessionDetailCard(session: session, onClose: onClose)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 16)
+        }
+    }
+}
+
+/// Carte du détail (`modalCard`, lignes 313-354).
+struct PlanSessionDetailCard: View {
+    let session: PlanSession
+    let onClose: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -22,9 +44,7 @@ struct PlanSessionSheet: View {
                     RoundedRectangle(cornerRadius: 14)
                         .fill(session.color)
                         .frame(width: 44, height: 44)
-                    Image(systemName: session.icon)
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundStyle(Theme.ink)
+                    IonIcon(name: session.icon, size: 22, color: Theme.ink)
                 }
                 VStack(alignment: .leading, spacing: 3) {
                     Text(session.title)
@@ -36,11 +56,9 @@ struct PlanSessionSheet: View {
                 }
                 Spacer(minLength: 8)
                 Button {
-                    dismiss()
+                    onClose()
                 } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(Theme.inkSoft)
+                    IonIcon(name: "close", size: 20, color: Theme.inkSoft)
                         .frame(width: 34, height: 34)
                         .background(Theme.surfaceMuted)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
@@ -63,34 +81,34 @@ struct PlanSessionSheet: View {
 
             PlanFlowLayout(spacing: 8, lineSpacing: 8) {
                 if let priority = session.priority {
-                    PlanMetaChip(icon: "flag", text: "Priorité \(priority.label)")
+                    PlanMetaChip(icon: "flag-outline", text: "Priorité \(priority.label)")
                 }
                 if let deadline = session.deadline, !deadline.isEmpty {
-                    PlanMetaChip(icon: "alarm", text: "Pour \(deadline)")
+                    PlanMetaChip(icon: "alarm-outline", text: "Pour \(deadline)")
                 }
                 PlanMetaChip(
-                    icon: "hourglass",
+                    icon: "hourglass-outline",
                     text: "\(PlanDateEngine.formatDuration(session.durationMinutes)) de travail"
                 )
             }
             .padding(.top, 16)
-
-            Spacer(minLength: 0)
         }
         .padding(20)
         .background(Theme.surface)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
+        .shadow(color: Theme.ink.opacity(0.04), radius: 8, x: 0, y: 2)
     }
 }
 
-/// Pastille d'information du détail (`modalMetaChip`, lignes 334-351).
+/// Pastille d'information du détail (`modalMetaChip`, lignes 334-351) : icône
+/// `flag-outline`/`alarm-outline`/`hourglass-outline` 13, texte 10.
 struct PlanMetaChip: View {
     let icon: String
     let text: String
 
     var body: some View {
         HStack(spacing: 5) {
-            Image(systemName: icon)
-                .font(.system(size: 11, weight: .semibold))
+            IonIcon(name: icon, size: 13, color: Theme.inkSoft)
             Text(text)
                 .font(.system(size: 10, weight: .bold))
         }

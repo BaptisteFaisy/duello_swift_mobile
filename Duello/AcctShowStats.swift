@@ -71,7 +71,7 @@ struct AcctShowLevelProgress: View {
     var compactTitle: Bool = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 12) {
                 Text("\(compactTitle ? "Niveau" : "Progression du niveau") \(summary.level)")
                     .font(.system(size: 11, weight: .black))
@@ -81,6 +81,7 @@ struct AcctShowLevelProgress: View {
                     .font(.system(size: 11, weight: .black))
                     .foregroundStyle(Theme.ink)
             }
+            .padding(.bottom, 10)
 
             ChartXpProgressBar(
                 progress: summary.progress,
@@ -93,6 +94,7 @@ struct AcctShowLevelProgress: View {
                 .font(.system(size: 9, weight: .semibold))
                 .foregroundStyle(Theme.inkSoft)
                 .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 8)
         }
         .padding(.vertical, 14)
         .padding(.horizontal, 16)
@@ -119,7 +121,7 @@ struct AcctShowSubjectSuccessSection: View {
 
     var body: some View {
         AcctShowSectionCard(
-            icon: "checkmark.circle",
+            icon: "checkmark-done-outline",
             iconColor: ChartGoogleGColors.red,
             title: "Exos réussis par matière",
             subtitle: "Exercices, colles et annales entièrement réussis",
@@ -128,7 +130,7 @@ struct AcctShowSubjectSuccessSection: View {
             if total > 0 {
                 ChartSubjectSuccessChart(entries: entries)
             } else {
-                AcctShowChartEmpty(icon: "graduationcap", message: emptyMessage)
+                AcctShowChartEmpty(icon: "school-outline", message: emptyMessage)
             }
         }
     }

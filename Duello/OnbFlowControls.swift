@@ -53,8 +53,13 @@ struct OnbFlowBiometricButton: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 10) {
-                Image(systemName: verified ? "checkmark.circle.fill" : "touchid")
-                    .font(.system(size: 23))
+                // `checkmark-circle` / `finger-print`, 23, blanc (source,
+                // `biometricButton` en thème sombre).
+                IonIcon(
+                    name: verified ? "checkmark-circle" : "finger-print",
+                    size: 23,
+                    color: .white
+                )
                 Text(verified ? "Biométrie validée" : "Créer mon compte avec la biométrie")
                     .font(.system(size: 13, weight: .black))
             }
@@ -83,9 +88,8 @@ struct OnbFlowGoalIllustration: View {
                     .fill(Color(hex: 0xECEEED))
                     .frame(width: 86, height: 86)
                     .rotationEffect(.degrees(-5))
-                Image(systemName: "flag")
-                    .font(.system(size: 34))
-                    .foregroundStyle(Theme.ink)
+                // `flag`, 34, `colors.primary` (source, `goalIllustration`).
+                IonIcon(name: "flag", size: 34, color: Theme.ink)
                 // `sparkOne` / `sparkTwo` : deux pastilles décoratives.
                 Circle()
                     .fill(Theme.ink)
@@ -118,16 +122,15 @@ struct OnbFlowSchoolSuggestions: View {
                     onSelect(school)
                 } label: {
                     HStack(spacing: 9) {
-                        Image(systemName: "school")
-                            .font(.system(size: 17))
-                            .foregroundStyle(Theme.progress)
+                        // `school-outline`, 17, `colors.primary` (source,
+                        // `suggestionItem`).
+                        IonIcon(name: "school-outline", size: 17, color: Theme.ink)
                         Text(school)
                             .font(.system(size: 12, weight: .bold))
                             .foregroundStyle(Theme.ink)
                         Spacer(minLength: 0)
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 17))
-                            .foregroundStyle(Theme.inkFaint)
+                        // `chevron-forward`, 17, `inkFaint`.
+                        IonIcon(name: "chevron-forward", size: 17, color: Theme.inkFaint)
                     }
                     .padding(.horizontal, 13)
                     .frame(minHeight: 44)
@@ -191,7 +194,9 @@ struct OnbFlowProviderButtons: View {
                 appearance: .dark,
                 disabled: isGoogleLoading,
                 username: username,
-                onAuthenticated: { identity, payload in onApple(identity, payload) }
+                onAuthenticated: { identity, payload in
+                    signInWithApple(identity: identity, payload: payload)
+                }
             )
 
             if let googleError {
@@ -254,5 +259,24 @@ struct OnbFlowProviderButtons: View {
             get: { pendingReuse != nil },
             set: { presented in if !presented { pendingReuse = nil } }
         )
+    }
+
+    /// `authenticateWithApple` : même garde que Google (`shouldConfirmProviderLogin`,
+    /// `authStage = "signup"`). « Continuer la création » ne rend pas l'identité :
+    /// le parcours n'avance pas et rien n'est lié
+    /// (`ProviderAuthFollowUp.declined`, `useOnboardingProviderAuth.ts`).
+    private func signInWithApple(identity: AppleAuthIdentity, payload: DuelloAPI.SessionPayload) {
+        if let alert = loginIntProviderReuseAlert(
+            provider: .apple,
+            subject: identity.subject,
+            email: identity.email,
+            subjectKeyPath: \AcctStoredAccount.appleSubject,
+            authStage: "signup",
+            upgradingGuest: false,
+            hasActiveSession: session.isSignedIn,
+            proceed: { onApple(identity, payload) }
+        ) {
+            pendingReuse = alert
+        }
     }
 }

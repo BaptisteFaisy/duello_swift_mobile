@@ -49,6 +49,8 @@ enum HecJourneyPalette {
     static let sheetInkHint = Color(hex: 0x8E8983)
     /// Bordures et fonds translucides de la feuille.
     static let sheetBorderSoft = Color.white.opacity(0.14)
+    /// Fond du bouton « UTILISER LE … » (`customDateButton`).
+    static let sheetSoftFill = Color.white.opacity(0.09)
     /// Filet entre deux lignes de liste (`borderBottomColor` de `chapterOption`).
     static let sheetRowSeparator = Color.white.opacity(0.07)
     static let sheetIconSurface = Color.white.opacity(0.08)

@@ -799,6 +799,24 @@
 		EAFAE5B65094DB0AA932DEF7 /* TrainChapterFlashcards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2569B9FF9DBBBB5658DD5BC7 /* TrainChapterFlashcards.swift */; };
 		01D6E23160A173C14C42244A /* IonIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8907398F420F8D304EA258D2 /* IonIcon.swift */; };
 		4201CBCAE462150980190083 /* IoniconsGlyphs.generated.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1ABB833690D4F7EDD377AA86 /* IoniconsGlyphs.generated.swift */; };
+		7DC21A936AA0F21B350315D0 /* AcctInfoAcademicPath.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E15288661E505F94F857D8C /* AcctInfoAcademicPath.swift */; };
+		55A902F8A22DC25267B37413 /* AcctNotificationsFriendsList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7318398B795523205D3A24D7 /* AcctNotificationsFriendsList.swift */; };
+		85E9CD919DA923AD06745CE3 /* AcctNotificationsPressStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80D2CDD0EB7F806E5BC8F89C /* AcctNotificationsPressStyle.swift */; };
+		5D7D52AD38FEF00F64900738 /* AnnReaderWorkspace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B1D130D69411AF527CEB58C /* AnnReaderWorkspace.swift */; };
+		80CB8399AC3FF9A92D4972C8 /* DictControlModel+Finalisation.swift in Sources */ = {isa = PBXBuildFile; fileRef = F66AB5345EBFF6860BC3F03D /* DictControlModel+Finalisation.swift */; };
+		1ABE8DF9D9C4BE85F9EFDFC2 /* DictRelayConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56643005A3F3F7C230E03F61 /* DictRelayConfig.swift */; };
+		8489EAFBD0E4AD5A53AA2E80 /* DuelloAnimatedBottomBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = E17960F70D740E83A054BF69 /* DuelloAnimatedBottomBar.swift */; };
+		0A03174946707E1960DB9843 /* DuelloBottomTabPager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23EE7776E200490C347461E6 /* DuelloBottomTabPager.swift */; };
+		156FAC51C11A89852EA12FB4 /* EvEventChatSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F119860917FAEF63F683522 /* EvEventChatSheet.swift */; };
+		E28E9D4EAE14C95194647A92 /* EvEventStatusBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = F49D79F95B82C721224987C1 /* EvEventStatusBadge.swift */; };
+		4201CBCAE462150980190083 /* IoniconsGlyphs.generated.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1ABB833690D4F7EDD377AA86 /* IoniconsGlyphs.generated.swift */; };
+		EF2D4892AF2E48EA97B329D7 /* ProfIaProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E280C0BB18FB40D18A0D1D6 /* ProfIaProfile.swift */; };
+		CDA25F2A739A3270101BE6E4 /* ProfTutorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91FCA75CAF9E5027FEC8F78C /* ProfTutorSheet.swift */; };
+		AB0AF77AC4E0DF85461D02A4 /* PushNotifAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6727824E346341F1F9B12731 /* PushNotifAppDelegate.swift */; };
+		E8293BB411EE7CCD879492E4 /* RankingEloCohort.swift in Sources */ = {isa = PBXBuildFile; fileRef = 956745FFC70F1CAFE5B38D4F /* RankingEloCohort.swift */; };
+		2E3776DCB763EA5E16E25E33 /* RankingEloThresholdHint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97B203A8853EAD2CA617DB29 /* RankingEloThresholdHint.swift */; };
+		5ACE2B62372718BA23F20321 /* ReportLocalSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25B6232CD02F4C75B6EF4AC8 /* ReportLocalSnapshot.swift */; };
+		4201CBCAE462150980190083 /* IoniconsGlyphs.generated.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1ABB833690D4F7EDD377AA86 /* IoniconsGlyphs.generated.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -1594,6 +1612,24 @@
 		A49074BBE618B40D6857003B /* OnbFlowSteps+Alerts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OnbFlowSteps+Alerts.swift"; sourceTree = "<group>"; };
 		2569B9FF9DBBBB5658DD5BC7 /* TrainChapterFlashcards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainChapterFlashcards.swift; sourceTree = "<group>"; };
 		8907398F420F8D304EA258D2 /* IonIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IonIcon.swift; sourceTree = "<group>"; };
+		1ABB833690D4F7EDD377AA86 /* IoniconsGlyphs.generated.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IoniconsGlyphs.generated.swift; sourceTree = "<group>"; };
+		4E15288661E505F94F857D8C /* AcctInfoAcademicPath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctInfoAcademicPath.swift; sourceTree = "<group>"; };
+		7318398B795523205D3A24D7 /* AcctNotificationsFriendsList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctNotificationsFriendsList.swift; sourceTree = "<group>"; };
+		80D2CDD0EB7F806E5BC8F89C /* AcctNotificationsPressStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctNotificationsPressStyle.swift; sourceTree = "<group>"; };
+		8B1D130D69411AF527CEB58C /* AnnReaderWorkspace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnReaderWorkspace.swift; sourceTree = "<group>"; };
+		F66AB5345EBFF6860BC3F03D /* DictControlModel+Finalisation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DictControlModel+Finalisation.swift"; sourceTree = "<group>"; };
+		56643005A3F3F7C230E03F61 /* DictRelayConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictRelayConfig.swift; sourceTree = "<group>"; };
+		E17960F70D740E83A054BF69 /* DuelloAnimatedBottomBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuelloAnimatedBottomBar.swift; sourceTree = "<group>"; };
+		23EE7776E200490C347461E6 /* DuelloBottomTabPager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuelloBottomTabPager.swift; sourceTree = "<group>"; };
+		8F119860917FAEF63F683522 /* EvEventChatSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EvEventChatSheet.swift; sourceTree = "<group>"; };
+		F49D79F95B82C721224987C1 /* EvEventStatusBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EvEventStatusBadge.swift; sourceTree = "<group>"; };
+		1ABB833690D4F7EDD377AA86 /* IoniconsGlyphs.generated.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IoniconsGlyphs.generated.swift; sourceTree = "<group>"; };
+		1E280C0BB18FB40D18A0D1D6 /* ProfIaProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfIaProfile.swift; sourceTree = "<group>"; };
+		91FCA75CAF9E5027FEC8F78C /* ProfTutorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfTutorSheet.swift; sourceTree = "<group>"; };
+		6727824E346341F1F9B12731 /* PushNotifAppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushNotifAppDelegate.swift; sourceTree = "<group>"; };
+		956745FFC70F1CAFE5B38D4F /* RankingEloCohort.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingEloCohort.swift; sourceTree = "<group>"; };
+		97B203A8853EAD2CA617DB29 /* RankingEloThresholdHint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingEloThresholdHint.swift; sourceTree = "<group>"; };
+		25B6232CD02F4C75B6EF4AC8 /* ReportLocalSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportLocalSnapshot.swift; sourceTree = "<group>"; };
 		1ABB833690D4F7EDD377AA86 /* IoniconsGlyphs.generated.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IoniconsGlyphs.generated.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -2411,6 +2447,24 @@
 				A49074BBE618B40D6857003B /* OnbFlowSteps+Alerts.swift */,
 				2569B9FF9DBBBB5658DD5BC7 /* TrainChapterFlashcards.swift */,
 				8907398F420F8D304EA258D2 /* IonIcon.swift */,
+				1ABB833690D4F7EDD377AA86 /* IoniconsGlyphs.generated.swift */,
+				4E15288661E505F94F857D8C /* AcctInfoAcademicPath.swift */,
+				7318398B795523205D3A24D7 /* AcctNotificationsFriendsList.swift */,
+				80D2CDD0EB7F806E5BC8F89C /* AcctNotificationsPressStyle.swift */,
+				8B1D130D69411AF527CEB58C /* AnnReaderWorkspace.swift */,
+				F66AB5345EBFF6860BC3F03D /* DictControlModel+Finalisation.swift */,
+				56643005A3F3F7C230E03F61 /* DictRelayConfig.swift */,
+				E17960F70D740E83A054BF69 /* DuelloAnimatedBottomBar.swift */,
+				23EE7776E200490C347461E6 /* DuelloBottomTabPager.swift */,
+				8F119860917FAEF63F683522 /* EvEventChatSheet.swift */,
+				F49D79F95B82C721224987C1 /* EvEventStatusBadge.swift */,
+				1ABB833690D4F7EDD377AA86 /* IoniconsGlyphs.generated.swift */,
+				1E280C0BB18FB40D18A0D1D6 /* ProfIaProfile.swift */,
+				91FCA75CAF9E5027FEC8F78C /* ProfTutorSheet.swift */,
+				6727824E346341F1F9B12731 /* PushNotifAppDelegate.swift */,
+				956745FFC70F1CAFE5B38D4F /* RankingEloCohort.swift */,
+				97B203A8853EAD2CA617DB29 /* RankingEloThresholdHint.swift */,
+				25B6232CD02F4C75B6EF4AC8 /* ReportLocalSnapshot.swift */,
 				1ABB833690D4F7EDD377AA86 /* IoniconsGlyphs.generated.swift */,
 			);
 			path = Duello;
@@ -3284,6 +3338,24 @@
 				E0D020815011AD5AC43F4B8A /* OnbFlowSteps+Alerts.swift in Sources */,
 				EAFAE5B65094DB0AA932DEF7 /* TrainChapterFlashcards.swift in Sources */,
 				01D6E23160A173C14C42244A /* IonIcon.swift in Sources */,
+				4201CBCAE462150980190083 /* IoniconsGlyphs.generated.swift in Sources */,
+				7DC21A936AA0F21B350315D0 /* AcctInfoAcademicPath.swift in Sources */,
+				55A902F8A22DC25267B37413 /* AcctNotificationsFriendsList.swift in Sources */,
+				85E9CD919DA923AD06745CE3 /* AcctNotificationsPressStyle.swift in Sources */,
+				5D7D52AD38FEF00F64900738 /* AnnReaderWorkspace.swift in Sources */,
+				80CB8399AC3FF9A92D4972C8 /* DictControlModel+Finalisation.swift in Sources */,
+				1ABE8DF9D9C4BE85F9EFDFC2 /* DictRelayConfig.swift in Sources */,
+				8489EAFBD0E4AD5A53AA2E80 /* DuelloAnimatedBottomBar.swift in Sources */,
+				0A03174946707E1960DB9843 /* DuelloBottomTabPager.swift in Sources */,
+				156FAC51C11A89852EA12FB4 /* EvEventChatSheet.swift in Sources */,
+				E28E9D4EAE14C95194647A92 /* EvEventStatusBadge.swift in Sources */,
+				4201CBCAE462150980190083 /* IoniconsGlyphs.generated.swift in Sources */,
+				EF2D4892AF2E48EA97B329D7 /* ProfIaProfile.swift in Sources */,
+				CDA25F2A739A3270101BE6E4 /* ProfTutorSheet.swift in Sources */,
+				AB0AF77AC4E0DF85461D02A4 /* PushNotifAppDelegate.swift in Sources */,
+				E8293BB411EE7CCD879492E4 /* RankingEloCohort.swift in Sources */,
+				2E3776DCB763EA5E16E25E33 /* RankingEloThresholdHint.swift in Sources */,
+				5ACE2B62372718BA23F20321 /* ReportLocalSnapshot.swift in Sources */,
 				4201CBCAE462150980190083 /* IoniconsGlyphs.generated.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

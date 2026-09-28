@@ -106,8 +106,9 @@ struct ChatMessage: Identifiable {
     ]
 }
 
-/// Sujet de l'onglet Forum. `icon` porte un symbole SF équivalent à
-/// l'ionone d'Expo (`calculator-outline`, `flask-outline`, `book-outline`).
+/// Sujet de l'onglet Forum. `icon` porte le nom logique Ionicons de la source
+/// Expo (`calculator-outline`, `flask-outline`, `book-outline`), rendu par
+/// `IonIcon` avec le glyphe exact du RN.
 struct ForumTopic: Identifiable {
     let id: String
     let category: String
@@ -126,7 +127,7 @@ struct ForumTopic: Identifiable {
             author: "Nina B.",
             replies: 24,
             time: "Il y a 12 min",
-            icon: "function",
+            icon: "calculator-outline",
             color: Theme.primaryLight
         ),
         ForumTopic(
@@ -136,7 +137,7 @@ struct ForumTopic: Identifiable {
             author: "Alex T.",
             replies: 18,
             time: "Il y a 35 min",
-            icon: "flask",
+            icon: "flask-outline",
             color: Theme.surfaceMuted
         ),
         ForumTopic(
@@ -146,7 +147,7 @@ struct ForumTopic: Identifiable {
             author: "Sarah L.",
             replies: 31,
             time: "Hier",
-            icon: "book",
+            icon: "book-outline",
             color: Theme.primaryLight
         ),
     ]

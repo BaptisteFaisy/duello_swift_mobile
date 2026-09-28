@@ -73,19 +73,19 @@ enum HecJourneyBlocks {
         }
     }
 
-    /// `BLOCK_TYPE_ICONS`, transposées en SF Symbols (la source utilise
-    /// Ionicons).
-    static func icon(_ type: HecJourneyBlockType) -> String {
+    /// `BLOCK_TYPE_ICONS` de `src/components/HecJourney.tsx:106-118` : noms
+    /// **Ionicons** exacts, rendus par `IonIcon` (jamais un SF Symbol).
+    static func iconName(_ type: HecJourneyBlockType) -> String {
         switch type {
-        case .chapter: return "book"
-        case .holiday: return "sun.max"
-        case .mockExam: return "graduationcap"
-        case .writtenExams: return "doc.text"
-        case .oralExams: return "mic"
-        case .colle: return "person.2"
-        case .ds: return "square.and.pencil"
-        case .interrogation: return "questionmark.circle"
-        case .neutral: return "plus"
+        case .chapter: return "book-outline"
+        case .holiday: return "sunny-outline"
+        case .mockExam: return "school-outline"
+        case .writtenExams: return "document-text-outline"
+        case .oralExams: return "mic-outline"
+        case .colle: return "people-outline"
+        case .ds: return "create-outline"
+        case .interrogation: return "help-circle-outline"
+        case .neutral: return "add"
         }
     }
 

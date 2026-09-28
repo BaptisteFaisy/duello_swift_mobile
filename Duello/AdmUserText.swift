@@ -33,12 +33,11 @@ enum AdmUserText {
         return parts.isEmpty ? "Profil non publié dans l’annuaire" : parts.joined(separator: " · ")
     }
 
-    /// `lastActivity` : dernier signe de vie connu (usage, feedback, mise à jour).
+    /// `lastActivity` : dernier signe de vie connu (usage, feedback, mise à
+    /// jour). Sémantique `??` du source : seule une valeur **absente** bascule
+    /// sur l'étage suivant, une chaîne vide est retenue telle quelle.
     static func lastActivity(for user: AdmUserRecord) -> String? {
-        if let lastSeenAt = user.usage?.lastSeenAt, !lastSeenAt.isEmpty { return lastSeenAt }
-        if let lastFeedbackAt = user.lastFeedbackAt, !lastFeedbackAt.isEmpty { return lastFeedbackAt }
-        if let updatedAt = user.updatedAt, !updatedAt.isEmpty { return updatedAt }
-        return nil
+        user.usage?.lastSeenAt ?? user.lastFeedbackAt ?? user.updatedAt
     }
 
     /// `searchableUser` : concaténation insensible à la casse des champs de

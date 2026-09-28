@@ -37,10 +37,7 @@ extension MathKeyboardView {
                     .foregroundStyle(Theme.ink)
                 Text("Choisis une case, puis utilise les touches.")
                     .font(.system(size: 8, weight: .semibold))
-                    .foregroundStyle(Theme.inkFaint)
-                Text("Les touches s’ajoutent en fin de case.")
-                    .font(.system(size: 8, weight: .semibold))
-                    .foregroundStyle(Theme.inkFaint)
+                    .foregroundStyle(Theme.inkSoft)
             }
             Spacer(minLength: 8)
             VStack(alignment: .trailing, spacing: 4) {
@@ -88,13 +85,13 @@ extension MathKeyboardView {
                 .font(.system(size: 8, weight: .heavy))
                 .foregroundStyle(Theme.inkSoft)
             MathKbMiniButton(
-                systemImage: "chevron.backward",
+                ionIcon: "chevron-back",
                 enabled: draft.active > 0
             ) {
                 moveMatrixCell(-1)
             }
             MathKbMiniButton(
-                systemImage: "chevron.forward",
+                ionIcon: "chevron-forward",
                 enabled: draft.active < draft.cells.count - 1
             ) {
                 moveMatrixCell(1)
@@ -112,6 +109,7 @@ extension MathKeyboardView {
     func matrixCell(row: Int, column: Int, draft: MathKbMatrixDraft) -> some View {
         let index = row * draft.columns + column
         let selected = index == draft.active
+        let value = index < draft.cells.count ? draft.cells[index] : ""
         return TextField("…", text: matrixCellBinding(index))
             .font(.system(size: 12, weight: .heavy))
             .multilineTextAlignment(.center)
@@ -119,18 +117,18 @@ extension MathKeyboardView {
             .textInputAutocapitalization(.never)
             .focused($matrixFocus, equals: index)
             .frame(width: 56, height: 30)
-            .background(selected ? Theme.primaryLight : Theme.surface)
+            .background(selected ? Theme.primaryLight : Theme.surfaceMuted)
             .clipShape(RoundedRectangle(cornerRadius: 8))
             .overlay(
                 RoundedRectangle(cornerRadius: 8)
-                    .stroke(selected ? Theme.ink : Theme.border, lineWidth: 1)
+                    .stroke(selected ? Theme.primary : Theme.border, lineWidth: 1)
             )
             .onTapGesture {
                 matrixDraft?.active = index
                 matrixFocus = index
             }
             .accessibilityLabel(
-                "Case ligne \(row + 1), colonne \(column + 1)"
+                "Case ligne \(row + 1), colonne \(column + 1), \(value.isEmpty ? "vide" : value)"
             )
     }
 

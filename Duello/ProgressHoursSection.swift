@@ -15,7 +15,7 @@ extension DuelloProgressView {
                 summaryBlock("Jours travaillés", "\(progress.activeDayCount())")
             }
         }
-        .progressCard(padding: 18)
+        .progressCard(padding: 18, radius: Theme.radiusLarge)
         .padding(.bottom, 20)
 
         VStack(alignment: .leading, spacing: 12) {
@@ -53,9 +53,7 @@ extension DuelloProgressView {
                 RoundedRectangle(cornerRadius: 12)
                     .fill(Theme.primaryLight)
                     .frame(width: 38, height: 38)
-                Image(systemName: "clock")
-                    .font(.system(size: 19, weight: .semibold))
-                    .foregroundStyle(Theme.primary)
+                IonIcon(name: "time-outline", size: 19, color: Theme.primary)
             }
 
             VStack(alignment: .leading, spacing: 3) {

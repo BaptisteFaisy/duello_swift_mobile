@@ -185,17 +185,18 @@ struct AdmWaitlistEntry: Decodable, Identifiable, Equatable {
         case phone, email, school, position, referrals, referredBy, createdAt
     }
 
-    /// Téléphone renseigné : une chaîne vide vaut absence.
+    /// Téléphone renseigné : une chaîne vide vaut absence (sert à la clé de
+    /// liste ; l'affichage suit, lui, la sémantique `??` du source).
     var phoneOrNil: String? {
         guard let phone,
               !phone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
         return phone
     }
 
-    /// Contact affiché : le téléphone prime sur l'adresse, comme l'écran Expo.
-    /// Si les deux manquent — cas que le source rendrait par `null` — un libellé
-    /// local explicite est affiché.
-    var contact: String { phoneOrNil ?? email ?? "Contact inconnu" }
+    /// Contact affiché : le téléphone prime sur l'adresse, comme l'écran Expo
+    /// (`entry.phone ?? entry.email`). Une chaîne vide est retenue telle quelle
+    /// (elle n'est pas traitée comme absente) et `nil` reste vide.
+    var contact: String { phone ?? email ?? "" }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)

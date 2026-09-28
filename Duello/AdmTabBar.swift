@@ -5,9 +5,9 @@
 //  Navigation par onglets de l'espace d'administration.
 //
 //  Fichier source Expo porté : src/admin/AdminApp.tsx (`AdminTab`,
-//  `AdminTabButton`, barre du bas). Les libellés et l'ordre des onglets sont
-//  repris mot pour mot : Stats, Admin, Users, Waitlist, Promo, Rapports,
-//  Feedback.
+//  `AdminTabButton`, barre du bas). Les libellés, l'ordre des onglets et les
+//  icônes Ionicons sont repris mot pour mot : Stats, Admin, Users, Waitlist,
+//  Promo, Rapports, Feedback.
 //
 //  L'espace admin garde sa propre barre : il ne réutilise pas la navigation de
 //  l'application élève (`MainTabView`), qui ne doit jamais s'afficher ici.
@@ -42,21 +42,22 @@ enum AdmTab: String, CaseIterable, Identifiable {
         }
     }
 
-    /// Icône de l'onglet, transposée des noms Ionicons du source.
-    var systemImage: String {
+    /// Icône de l'onglet : nom Ionicons exact de `AdminApp.tsx`.
+    var iconName: String {
         switch self {
-        case .analytics: return "chart.bar"
-        case .admin: return "checkmark.shield"
-        case .users: return "person.2"
-        case .waitlist: return "envelope"
-        case .promo: return "tag"
-        case .reports: return "ladybug"
-        case .feedback: return "bubble.left.and.bubble.right"
+        case .analytics: return "analytics-outline"
+        case .admin: return "shield-checkmark-outline"
+        case .users: return "people-outline"
+        case .waitlist: return "mail-outline"
+        case .promo: return "pricetag-outline"
+        case .reports: return "bug-outline"
+        case .feedback: return "chatbubble-ellipses-outline"
         }
     }
 }
 
-/// Barre d'onglets du bas (`bottomNav` de `AdminApp.tsx`).
+/// Barre d'onglets du bas (`bottomNav` de `AdminApp.tsx`) : `minHeight: 66`,
+/// icône 22, libellé 10/800.
 struct AdmTabBar: View {
     @Binding var active: AdmTab
 
@@ -66,8 +67,7 @@ struct AdmTabBar: View {
                 button(for: tab)
             }
         }
-        .frame(minHeight: 62)
-        .padding(.top, 6)
+        .frame(minHeight: 66)
         .background(Theme.surface)
         .overlay(alignment: .top) {
             Rectangle()
@@ -81,11 +81,13 @@ struct AdmTabBar: View {
             active = tab
         } label: {
             VStack(spacing: 3) {
-                Image(systemName: tab.systemImage)
-                    .font(.system(size: 19, weight: .semibold))
-                    .foregroundStyle(tab == active ? Theme.primary : Theme.inkFaint)
+                IonIcon(
+                    name: tab.iconName,
+                    size: 22,
+                    color: tab == active ? Theme.primary : Theme.inkFaint
+                )
                 Text(tab.title)
-                    .font(.system(size: 9, weight: .heavy))
+                    .font(.system(size: 10, weight: .heavy))
                     .foregroundStyle(tab == active ? Theme.primary : Theme.inkFaint)
                     .lineLimit(1)
             }

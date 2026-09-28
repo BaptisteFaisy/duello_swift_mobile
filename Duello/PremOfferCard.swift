@@ -35,15 +35,18 @@ struct PremOfferCard: View {
             .frame(minHeight: 25)
 
             // `planName` : le titre de la formule (« Gratuite », « Annuelle »,
-            // « Hebdomadaire »), exigence stores reprise par la source.
-            Text(offer.name)
-                .font(.system(size: 12, weight: .black))
-                .kerning(1.1)
-                .textCase(.uppercase)
-                .multilineTextAlignment(.center)
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.top, 12)
+            // « Hebdomadaire »), exigence stores reprise par la source —
+            // **masqué** dans les builds development (`PremiumOfferCard.tsx:55`).
+            if !PremDevelopmentBuild.isActive {
+                Text(offer.name)
+                    .font(.system(size: 12, weight: .black))
+                    .kerning(1.1)
+                    .textCase(.uppercase)
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 12)
+            }
 
             PremOfferPriceRow(offer: offer, discount: discount)
 
@@ -133,18 +136,22 @@ struct PremOfferPriceRow: View {
 /// `OfferFeatures` : coche blanche pour un bénéfice inclus, croix grisée sinon.
 ///
 /// `marginTop: 17` et `paddingTop: 17` de la source se cumulent : 34 points
-/// séparent le dernier prix de la liste.
+/// séparent le dernier prix de la liste. L'écart entre bénéfices passe à 16 en
+/// build development (`PremiumOfferCard.tsx:104`).
 struct PremOfferFeatures: View {
     let features: [PremOfferFeature]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: PremDevelopmentBuild.isActive ? 16 : 12) {
             ForEach(features) { feature in
                 HStack(alignment: .top, spacing: 8) {
-                    Image(systemName: feature.available ? "checkmark" : "xmark")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(feature.available ? Color.white : PremOfferPalette.limited)
-                        .frame(width: 18)
+                    // `Ionicons name={feature.available ? 'checkmark' : 'close'}`.
+                    IonIcon(
+                        name: feature.available ? "checkmark" : "close",
+                        size: 18,
+                        color: feature.available ? Color.white : PremOfferPalette.limited
+                    )
+                    .frame(width: 18)
                     Text(feature.label)
                         .font(.system(size: 12, weight: .bold))
                         .foregroundStyle(feature.available ? Color.white : PremOfferPalette.limited)

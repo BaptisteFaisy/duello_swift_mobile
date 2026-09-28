@@ -75,6 +75,17 @@ struct CtdDocumentViewer: View {
     /// quand un import remplace le fichier affiché.
     let revision: Double
     var height: CGFloat = 330
+    /// `positioning` : le repère rouge est affiché et suit le défilement, pour
+    /// que l'élève place la position atteinte (`CourseDocumentViewer.native.tsx:178-182`).
+    var positioning: Bool = false
+    /// `initialPosition` : position (0…1) à retrouver à l'ouverture.
+    var initialPosition: Double? = nil
+    /// `onPositionChange` : position (0…1) du repère, à chaque défilement.
+    var onPositionChange: ((Double) -> Void)? = nil
+    /// `onReady` : le premier contenu est affiché.
+    var onReady: (() -> Void)? = nil
+    /// `onComplete` : le document est entièrement rendu.
+    var onComplete: (() -> Void)? = nil
 
     /// Session Duello (injectée à la racine) : fournit le jeton du prof IA.
     @EnvironmentObject private var session: SessionStore
@@ -141,18 +152,31 @@ struct CtdDocumentViewer: View {
             // le pont du prof IA (« Expliquer ce passage ») puisse la lire ; le
             // pont bloque lui-même copie, coupe et menu contextuel.
             CtdHtmlDocumentView(
-                html: CtdDocumentHtml.imageHtml(base64: base64, mimeType: mimeType),
+                html: CtdDocumentHtml.imageHtml(
+                    base64: base64,
+                    mimeType: mimeType,
+                    positioning: positioning,
+                    initialPosition: initialPosition
+                ),
                 selectable: true,
                 onMessage: handleMessage
             )
         case .pdf(let data):
-            CtdPdfDocumentView(data: data)
+            CtdPdfDocumentView(
+                data: data,
+                positioning: positioning,
+                initialPosition: initialPosition,
+                onPositionChange: onPositionChange,
+                onReady: onReady,
+                onComplete: onComplete
+            )
         }
     }
 
     /// Le document prévient quand la photo n'a pas pu s'afficher
-    /// (`type: "error"`), et publie les événements du pont du prof IA
-    /// (sélection expliquée, copie bloquée, page sans texte).
+    /// (`type: "error"`), publie les événements de cycle de vie (`ready`,
+    /// `complete`, `position`) et les messages du pont du prof IA (sélection
+    /// expliquée, copie bloquée, page sans texte).
     private func handleMessage(_ text: String) {
         if let profEvent = parseProfBridgeMessage(text) {
             handleProfBridgeEvent(profEvent)
@@ -163,27 +187,55 @@ struct CtdDocumentViewer: View {
               let event = object as? [String: Any],
               let type = event["type"] as? String
         else { return }
-        if type == "error" { failed = true }
+        switch type {
+        case "error":
+            failed = true
+        case "ready":
+            onReady?()
+            // Une photo est complète dès qu'elle est affichée ; un PDF, non.
+            if mimeType.isImage { onComplete?() }
+        case "complete":
+            onComplete?()
+        case "position":
+            if let position = event["position"] as? Double { onPositionChange?(position) }
+        default:
+            break
+        }
     }
 
-    /// `onMessage` du pont : une sélection expliquée ouvre la feuille (après
-    /// accord IA) ; copie bloquée et page sans texte restent au script.
+    /// `onMessage` du pont : une sélection (ou une photo) expliquée ouvre la
+    /// feuille après accord IA ; copie bloquée et page sans texte restent au
+    /// script (`CourseDocumentViewer.native.tsx:118-151`).
     private func handleProfBridgeEvent(_ event: ProfBridgeEvent) {
         switch event {
         case .explain(let passage, let page):
-            let request = ProfTutorRequest(
+            presentProf(ProfTutorRequest(
                 quote: passage,
                 context: ProfTutorContext(source: .cours, page: page)
-            )
-            guard CtdAiConsent.isGranted else {
-                profPendingRequest = request
-                profConsentVisible = true
-                return
-            }
-            profRequest = request
+            ))
+        case .explainImage(let image, let page):
+            // Photo ou page scannée : `quote` est vide, le relais vision lit
+            // l'image (`parseProfImageDataUrl`).
+            guard let parsed = parseProfImageDataUrl(image) else { return }
+            presentProf(ProfTutorRequest(
+                quote: "",
+                image: parsed.base64,
+                mimeType: parsed.mimeType,
+                context: ProfTutorContext(source: .cours, page: page)
+            ))
         case .copyBlocked, .noText:
             break
         }
+    }
+
+    /// Ouvre la feuille du prof IA, après accord de partage si nécessaire.
+    private func presentProf(_ request: ProfTutorRequest) {
+        guard CtdAiConsent.isGranted else {
+            profPendingRequest = request
+            profConsentVisible = true
+            return
+        }
+        profRequest = request
     }
 
     /// Accord donné : la demande retenue s'ouvre (`resolveConsent` de
@@ -239,9 +291,7 @@ struct CtdFullscreenButton: View {
 
     var body: some View {
         Button(action: onOpen) {
-            Image(systemName: "arrow.up.left.and.arrow.down.right")
-                .font(.system(size: 15, weight: .bold))
-                .foregroundStyle(Theme.ink)
+            IonIcon(name: "expand-outline", size: 22, color: Theme.ink)
                 .frame(width: 42, height: 42)
                 .background(Theme.surface.opacity(0.94))
                 .clipShape(RoundedRectangle(cornerRadius: 13))

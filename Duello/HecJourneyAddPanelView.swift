@@ -40,11 +40,12 @@ struct HecJourneyAddPanelView: View {
             }
         }
         .background(HecJourneyPalette.sheet)
-        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .clipShape(RoundedRectangle(cornerRadius: 15))
         .overlay(
-            RoundedRectangle(cornerRadius: 18)
+            RoundedRectangle(cornerRadius: 15)
                 .stroke(HecJourneyPalette.sheetBorder, lineWidth: 1)
         )
+        .frame(maxHeight: 360)
         .onChange(of: flow.calendarOpen) { isOpen in
             if isOpen {
                 calendarMonth = HecJourneyDates.startOfMonth(flow.draftDate)
@@ -63,22 +64,24 @@ struct HecJourneyAddPanelView: View {
             HStack(spacing: 0) {
                 if panel != .types {
                     HecJourneySheet.IconButton(
-                        systemName: "chevron.left",
+                        name: "chevron-back",
                         label: HecJourneyCopy.a11yBackStep,
                         size: 15,
                         tint: HecJourneyPalette.sheetInkSoft,
-                        frame: 30,
+                        width: 30,
+                        height: 30,
                         action: { flow.back() }
                     )
                 }
                 Spacer(minLength: 0)
                 if panel == .types, flow.targetNeutralId != nil {
                     HecJourneySheet.IconButton(
-                        systemName: "trash",
+                        name: "trash-outline",
                         label: HecJourneyCopy.a11yDeleteNeutral,
                         size: 15,
                         tint: HecJourneyPalette.sheetDanger,
-                        frame: 30,
+                        width: 30,
+                        height: 30,
                         action: { flow.requestNeutralDeletion() }
                     )
                 }
@@ -124,11 +127,12 @@ struct HecJourneyAddPanelView: View {
     private var dateRow: some View {
         HStack(spacing: 0) {
             HecJourneySheet.IconButton(
-                systemName: "chevron.left",
+                name: "chevron-back",
                 label: HecJourneyCopy.a11yPreviousDay,
                 size: 17,
                 tint: HecJourneyPalette.sheetInkSoft,
-                frame: 34,
+                width: 34,
+                height: 38,
                 action: { flow.shiftDraftDate(by: -1) }
             )
             VStack(spacing: 0) {
@@ -139,25 +143,29 @@ struct HecJourneyAddPanelView: View {
                 Text(HecJourneyDates.format(flow.draftDate))
                     .font(.system(size: 13, weight: .heavy))
                     .foregroundStyle(HecJourneyPalette.sheetInk)
+                    .padding(.top, 3)
             }
-            .frame(maxWidth: .infinity)
+            .frame(minWidth: 112, maxWidth: .infinity)
             HecJourneySheet.IconButton(
-                systemName: "calendar",
+                name: "calendar-outline",
                 label: HecJourneyCopy.a11yOpenCalendar,
                 size: 17,
                 tint: HecJourneyPalette.sheetInkSoft,
-                frame: 34,
+                width: 34,
+                height: 38,
                 action: { flow.toggleCalendar() }
             )
             HecJourneySheet.IconButton(
-                systemName: "chevron.right",
+                name: "chevron-forward",
                 label: HecJourneyCopy.a11yNextDay,
                 size: 17,
                 tint: HecJourneyPalette.sheetInkSoft,
-                frame: 34,
+                width: 34,
+                height: 38,
                 action: { flow.shiftDraftDate(by: 1) }
             )
         }
+        .padding(.horizontal, 8)
         .frame(minHeight: 48)
         .overlay(alignment: .bottom) {
             HecJourneySheet.Separator(color: HecJourneyPalette.sheetSeparatorSoft)

@@ -24,6 +24,22 @@ enum PrepAggregation {
     case sum
 }
 
+/// Joueur connecté fusionné au classement (`currentUser` de la source) :
+/// identité locale, filière et cote/XP frais. Les cotes du serveur peuvent
+/// retarder après un défi, la valeur locale gagne dès qu'elle est chargée.
+struct RankingCurrentUser {
+    let id: String
+    let displayName: String
+    let prepName: String
+    let track: String?
+    let currentTrack: String?
+    let specialty: String?
+    let year: String?
+    /// Cote Elo ou XP de la semaine, selon le classement.
+    let score: Int
+    let photoUri: String?
+}
+
 /// Nom de prépa replié en clé de comparaison (`normalizedPrepName`) : sans
 /// accents, en minuscules, ponctuation ramenée à un espace simple.
 private func normalizedPrepName(_ value: String) -> String {
@@ -98,15 +114,28 @@ private func prepLeaderboardGroups(
 /// Agrège les profils publics par prépa (`buildPrepLeaderboard`) : cote moyenne
 /// pour l'Elo, somme des XP pour la semaine. La prépa du compte est mise en
 /// avant (`isCurrentUser`) ; les rangs restent strictement individuels.
+///
+/// Le joueur connecté est fusionné comme dans `buildPrepLeaderboard` : sa copie
+/// distante est écartée puis sa ligne locale (cote/XP frais) ajoutée, dès que
+/// sa prépa est renseignée et son score chargé.
 func prepLeaderboardRows(
     _ entries: [LeaderboardEntry],
     currentPrepName: String,
     scoreFor: (LeaderboardEntry) -> Int,
-    aggregation: PrepAggregation
+    aggregation: PrepAggregation,
+    currentUser: RankingCurrentUser? = nil,
+    currentUserScoreLoaded: Bool = true
 ) -> [RankedLeaderboardRow] {
+    var source = entries
+    if let currentUser, currentUserScoreLoaded,
+       !normalizedPrepName(currentUser.prepName).isEmpty {
+        source = source.filter { $0.id != currentUser.id }
+        source.append(currentUserEntry(currentUser))
+    }
+
     let currentPrep = normalizedPrepName(currentPrepName)
     let groups = prepLeaderboardGroups(
-        entries,
+        source,
         currentPrep: currentPrep,
         currentPrepName: currentPrepName,
         scoreFor: scoreFor,
@@ -204,106 +233,193 @@ func leaderboardRankLabel(_ rank: Int) -> String {
     rank == 1 ? "1er" : "\(rank)e"
 }
 
-/// Prépare les lignes du classement Elo : filtre les comptes exclus, écarte les
-/// identifiants vides, trie par cote décroissante puis par nom, et marque le
-/// joueur connecté (`buildSubjectLeaderboard`).
+/// Entrée anonyme normalisée (`Anonyme`, sans identité locale).
+private func anonymousEntry(id: String, score: Int) -> LeaderboardEntry {
+    LeaderboardEntry(
+        id: id,
+        displayName: "Anonyme",
+        prepName: "",
+        elo: score,
+        isAnonymous: true
+    )
+}
+
+/// Prépare les lignes du classement Elo (`buildSubjectLeaderboard`) : écarte les
+/// comptes exclus et les identifiants vides, **fusionne le joueur connecté**
+/// (sa cote locale remplace celle du serveur dès qu'elle est chargée), trie par
+/// cote décroissante puis par nom et marque le joueur connecté.
 ///
-/// Extrait de l'ancien `RankingsView.swift` : était `private`, élargi à
-/// `internal` car appelé par `RankingSubjectLeaderboard` — corps inchangé.
-func rankedSubjectRows(_ entries: [LeaderboardEntry], currentId: String) -> [RankedLeaderboardRow] {
-    let sorted = entries
-        .filter { !$0.id.isEmpty && !excludedLeaderboardIds.contains($0.id) }
-        .map { entry in (entry: entry, score: max(0, entry.elo ?? 0)) }
-        .sorted { first, second in
-            if first.score != second.score { return first.score > second.score }
-            return first.entry.displayName.localizedCaseInsensitiveCompare(second.entry.displayName) == .orderedAscending
+/// Un compte privé (`hideCurrentUserIdentity`) n'est jamais relié à sa ligne
+/// anonyme distante : la ligne locale n'est pas ajoutée, et une place anonyme
+/// n'est créée que si la liste serait vide ou si la portée l'exige
+/// (`ensureAnonymousCurrentUser`).
+func rankedSubjectRows(
+    _ entries: [LeaderboardEntry],
+    currentUser: RankingCurrentUser,
+    hideCurrentUserIdentity: Bool = false,
+    ensureAnonymousCurrentUser: Bool = false,
+    currentUserScoreLoaded: Bool = true
+) -> [RankedLeaderboardRow] {
+    var byId: [String: (entry: LeaderboardEntry, score: Int)] = [:]
+    for entry in entries {
+        guard !entry.id.isEmpty, !excludedLeaderboardIds.contains(entry.id) else { continue }
+        if entry.isAnonymous == true {
+            let score = max(0, entry.elo ?? 0)
+            byId[entry.id] = (anonymousEntry(id: entry.id, score: score), score)
+        } else {
+            guard let elo = entry.elo else { continue }
+            byId[entry.id] = (entry, max(0, elo))
         }
+    }
+
+    let currentExcluded = excludedLeaderboardIds.contains(currentUser.id)
+    let currentScore = max(0, currentUser.score)
+    if currentUserScoreLoaded && !hideCurrentUserIdentity && !currentExcluded {
+        byId[currentUser.id] = (currentUserEntry(currentUser), currentScore)
+    } else if hideCurrentUserIdentity, currentUserScoreLoaded, !currentExcluded,
+              ensureAnonymousCurrentUser || byId.isEmpty {
+        // Premier chargement avant la publication distante : la liste ne reste
+        // pas vide, mais aucun attribut local n'est rendu.
+        byId["anonymous-local"] = (
+            anonymousEntry(id: "anonymous-local", score: currentScore),
+            currentScore
+        )
+    }
+
+    let sorted = byId.values.sorted { first, second in
+        if first.score != second.score { return first.score > second.score }
+        return first.entry.displayName.localizedCaseInsensitiveCompare(second.entry.displayName) == .orderedAscending
+    }
 
     return sorted.enumerated().map { index, item in
-        let anonymous = item.entry.isAnonymous == true
-        let name = anonymous
-            ? "Anonyme"
-            : (item.entry.displayName.isEmpty ? "Élève" : item.entry.displayName)
-        return RankedLeaderboardRow(
-            id: item.entry.id,
-            rank: index + 1,
-            displayName: name,
-            initial: String(name.prefix(1)).uppercased(),
-            meta: anonymous
-                ? "Compte privé"
-                : (item.entry.prepName.isEmpty ? "—" : item.entry.prepName),
+        row(
+            entry: item.entry,
             score: item.score,
+            rank: index + 1,
             valueLabel: "ELO",
-            isCurrentUser: !anonymous && item.entry.id == currentId,
-            isAnonymous: anonymous,
-            photoUri: nil,
-            year: anonymous ? "" : (item.entry.year ?? ""),
-            isPrepRow: false
+            isCurrentUser: !hideCurrentUserIdentity && item.entry.id == currentUser.id
         )
     }
 }
 
-/// Prépare les lignes du classement XP hebdo : même filtre et même tri que le
-/// classement Elo, sur les XP, avec la filière et l'année en contexte
-/// (`buildWeeklyXpLeaderboard`).
+/// Prépare les lignes du classement XP hebdo (`buildWeeklyXpLeaderboard`) :
+/// même fusion et même tri que l'Elo, sur les XP, avec la filière et l'année en
+/// contexte (`formatWeeklyXpAcademicLabel`).
 ///
-/// Extrait de l'ancien `RankingsView.swift` : était `private`, élargi à
-/// `internal` car appelé par `RankingWeeklyXp`. `currentTracks` apporte la
-/// filière réellement suivie par identifiant (`entry.currentTrack ?? track`).
+/// `currentTracks` apporte la filière réellement suivie par identifiant quand
+/// une réponse ancienne ne la porte pas encore (`entry.currentTrack ?? track`).
 func rankedWeeklyRows(
     _ entries: [LeaderboardEntry],
-    currentId: String,
-    currentTracks: [String: String] = [:]
+    currentUser: RankingCurrentUser,
+    currentTracks: [String: String] = [:],
+    hideCurrentUserIdentity: Bool = false,
+    currentUserScoreLoaded: Bool = true
 ) -> [RankedLeaderboardRow] {
-    let sorted = entries
-        .filter { !$0.id.isEmpty && !excludedLeaderboardIds.contains($0.id) }
-        .map { entry in (entry: entry, score: max(0, Int((entry.xp ?? 0).rounded()))) }
-        .sorted { first, second in
-            if first.score != second.score { return first.score > second.score }
-            return first.entry.displayName.localizedCaseInsensitiveCompare(second.entry.displayName) == .orderedAscending
+    var byId: [String: (entry: LeaderboardEntry, score: Int)] = [:]
+    for entry in entries {
+        guard !entry.id.isEmpty, !excludedLeaderboardIds.contains(entry.id) else { continue }
+        guard let rawXp = entry.xp, rawXp.isFinite, rawXp >= 0 else { continue }
+        let score = max(0, Int(rawXp.rounded()))
+        if entry.isAnonymous == true {
+            byId[entry.id] = (anonymousEntry(id: entry.id, score: score), score)
+        } else {
+            byId[entry.id] = (entry, score)
         }
+    }
+
+    let currentXp = max(0, currentUser.score)
+    let currentExcluded = excludedLeaderboardIds.contains(currentUser.id)
+    if !currentExcluded && currentUserScoreLoaded {
+        if hideCurrentUserIdentity {
+            // Compte privé : sa ligne vient du serveur. Tant qu'elle n'est pas
+            // publiée, une ligne anonyme locale tient sa place sans rien révéler.
+            let publishedAnonymously = byId.values.contains {
+                $0.entry.isAnonymous == true && $0.score == currentXp
+            }
+            if !publishedAnonymously {
+                byId["anonymous-local"] = (
+                    anonymousEntry(id: "anonymous-local", score: currentXp),
+                    currentXp
+                )
+            }
+        } else {
+            byId[currentUser.id] = (currentUserEntry(currentUser), currentXp)
+        }
+    }
+
+    let sorted = byId.values.sorted { first, second in
+        if first.score != second.score { return first.score > second.score }
+        return first.entry.displayName.localizedCaseInsensitiveCompare(second.entry.displayName) == .orderedAscending
+    }
 
     return sorted.enumerated().map { index, item in
         let anonymous = item.entry.isAnonymous == true
-        let name = anonymous
-            ? "Anonyme"
-            : (item.entry.displayName.isEmpty ? "Élève" : item.entry.displayName)
-        let academic = weeklyAcademicLabel(
-            currentTrack: currentTracks[item.entry.id],
+        let academic = anonymous ? "" : weeklyAcademicLabel(
+            currentTrack: item.entry.currentTrack ?? currentTracks[item.entry.id],
             track: item.entry.track,
             specialty: item.entry.specialty,
             year: item.entry.year
         )
-        let meta: String
-        if anonymous {
-            meta = "Compte privé"
-        } else if !academic.isEmpty {
-            meta = academic
-        } else {
-            meta = item.entry.prepName.isEmpty ? "—" : item.entry.prepName
-        }
-        return RankedLeaderboardRow(
-            id: item.entry.id,
-            rank: index + 1,
-            displayName: name,
-            initial: String(name.prefix(1)).uppercased(),
-            meta: meta,
+        return row(
+            entry: item.entry,
             score: item.score,
+            rank: index + 1,
             valueLabel: "XP",
-            isCurrentUser: !anonymous && item.entry.id == currentId,
-            isAnonymous: anonymous,
-            photoUri: nil,
-            year: anonymous ? "" : (item.entry.year ?? ""),
-            isPrepRow: false
+            isCurrentUser: !hideCurrentUserIdentity && item.entry.id == currentUser.id,
+            meta: anonymous
+                ? "Compte privé"
+                : (academic.isEmpty
+                    ? (item.entry.prepName.isEmpty ? "—" : item.entry.prepName)
+                    : academic)
         )
     }
 }
 
+/// Ligne anonyme distante ou locale, prête à afficher.
+private func row(
+    entry: LeaderboardEntry,
+    score: Int,
+    rank: Int,
+    valueLabel: String,
+    isCurrentUser: Bool,
+    meta: String? = nil
+) -> RankedLeaderboardRow {
+    let anonymous = entry.isAnonymous == true
+    let name = anonymous ? "Anonyme" : (entry.displayName.isEmpty ? "Élève" : entry.displayName)
+    return RankedLeaderboardRow(
+        id: entry.id,
+        rank: rank,
+        displayName: name,
+        initial: String(name.prefix(1)).uppercased(),
+        meta: meta ?? (anonymous ? "Compte privé" : ""),
+        score: score,
+        valueLabel: valueLabel,
+        isCurrentUser: isCurrentUser,
+        isAnonymous: anonymous,
+        photoUri: nil,
+        year: anonymous ? "" : (entry.year ?? ""),
+        isPrepRow: false
+    )
+}
+
+/// Entrée de classement du joueur connecté (`currentUser` de la source).
+private func currentUserEntry(_ user: RankingCurrentUser) -> LeaderboardEntry {
+    LeaderboardEntry(
+        id: user.id,
+        displayName: user.displayName,
+        prepName: user.prepName,
+        track: user.track,
+        currentTrack: user.currentTrack,
+        specialty: user.specialty,
+        year: user.year,
+        elo: user.score,
+        xp: Double(user.score)
+    )
+}
+
 /// Filières réellement suivies (`currentTrack`) d'une réponse `/weekly-xp`,
-/// indexées par identifiant : `LeaderboardEntry` ne décode pas ce champ, absent
-/// des anciens instantanés publics (`formatWeeklyXpAcademicLabel`,
-/// `weeklyXpLeaderboard.ts:196`). Relecture tolérante : toute anomalie laisse
-/// la table vide et la ligne retombe sur `track`.
+/// indexées par identifiant : la relecture tolérante laisse la table vide en
+/// cas d'anomalie, et la ligne retombe sur le champ décodé `currentTrack`.
 func weeklyXpCurrentTracks(from data: Data) -> [String: String] {
     struct Item: Decodable {
         var id: String?

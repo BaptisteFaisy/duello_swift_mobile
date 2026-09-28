@@ -55,9 +55,7 @@ struct CollScoreCard: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            Image(systemName: "graduationcap")
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(Theme.primary)
+            IonIcon(name: "school-outline", size: 19, color: Theme.primary)
             VStack(alignment: .leading, spacing: 2) {
                 Text("Note de la colle")
                     .font(.system(size: 11, weight: .heavy))
@@ -123,9 +121,7 @@ struct CollQuestionCard: View {
                 .foregroundStyle(Theme.ink)
             Spacer(minLength: 8)
             Button(action: onDelete) {
-                Image(systemName: "trash")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Theme.inkSoft)
+                IonIcon(name: "trash-outline", size: 18, color: Theme.inkSoft)
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Supprimer la question \(index + 1)")

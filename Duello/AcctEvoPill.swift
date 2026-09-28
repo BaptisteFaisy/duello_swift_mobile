@@ -79,7 +79,7 @@ struct AcctEvoPerformanceEvolutionPill: View {
 
     /// Flèche de sens : jamais affichée quand la variation est nulle.
     private var arrowSymbol: String? {
-        value > 0 ? "arrow.up" : (value < 0 ? "arrow.down" : nil)
+        value > 0 ? "arrow-up" : (value < 0 ? "arrow-down" : nil)
     }
 
     var body: some View {
@@ -88,12 +88,10 @@ struct AcctEvoPerformanceEvolutionPill: View {
         } label: {
             HStack(spacing: 2) {
                 if let arrowSymbol {
-                    Image(systemName: arrowSymbol)
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(Theme.ink)
+                    IonIcon(name: arrowSymbol, size: 11, color: Theme.ink)
                 }
                 Text(AcctEvoEvolutionFormat.evolutionSign(value) + valueText)
-                    .font(.system(size: 10, weight: .heavy))
+                    .font(.system(size: 10, weight: .black))
                     .foregroundStyle(Theme.ink)
             }
             .padding(.vertical, 3)

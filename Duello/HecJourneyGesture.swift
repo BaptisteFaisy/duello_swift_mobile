@@ -45,13 +45,10 @@ enum HecJourneyGesture {
         return min(max(startOffset + translationY, 0), maximum)
     }
 
-    /// Élan projeté : la source multiplie la vitesse par 72 points
-    /// (`withSpring(targetIndex * HEC_JOURNEY_NODE_GAP)`) ; SwiftUI fournit une
-    /// translation projetée, dont on retire la translation déjà parcourue pour
-    /// obtenir le même dépassement.
-    static func momentum(from value: DragGesture.Value) -> CGFloat {
-        let residual = value.predictedEndTranslation.height - value.translation.height
-        let limit = momentumLimit * momentumStep
-        return min(max(residual, -limit), limit)
+    /// Élan projeté (`HecJourney.tsx:521-522`) :
+    /// `Math.max(-1,8, Math.min(1,8, vy)) * 72`, où `vy` est la vitesse du doigt
+    /// en points par milliseconde (comme le `gestureState.vy` de la source).
+    static func momentum(velocity: CGFloat) -> CGFloat {
+        min(max(velocity, -momentumLimit), momentumLimit) * momentumStep
     }
 }

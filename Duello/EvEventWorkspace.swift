@@ -8,9 +8,11 @@
 //  après, la correction puis le classement.
 //
 //  Fichier source Expo porté : `src/components/event/EventWorkspace.tsx`
-//  (aiguillage des phases, barre du haut `EventTopBar`, onglets `SectionTab`).
-//  Substitution SF Symbols : le chevron retour d'`AppPressable`/`BackButton`
-//  devient `chevron.left`.
+//  (aiguillage des phases, barre du haut `EventTopBar`, onglets `SectionTab`,
+//  geste de retour `useEventBackSwipe`).
+//
+//  Icône Ionicons : le chevron retour d'`AppPressable`/`BackButton` est
+//  `chevron-back` (21 pt) dans un cadre de 36×36, comme la source.
 //
 //  Cible : iOS 16.
 //
@@ -31,17 +33,27 @@ struct EvEventWorkspace: View {
     let email: String
     let token: String?
     let onBack: () -> Void
+    /// Ouvre le profil d'un participant (classement, chat) ; `nil` laisse les
+    /// lignes inactives.
+    var onOpenProfile: ((String) -> Void)? = nil
 
     @StateObject private var model: EvEventSession
     @State private var section: EvEventSection = .correction
     @State private var splitRatio: Double = 0.5
     @State private var photosVisible = false
 
-    init(event: EvEvent, email: String, token: String?, onBack: @escaping () -> Void) {
+    init(
+        event: EvEvent,
+        email: String,
+        token: String?,
+        onBack: @escaping () -> Void,
+        onOpenProfile: ((String) -> Void)? = nil
+    ) {
         self.event = event
         self.email = email
         self.token = token
         self.onBack = onBack
+        self.onOpenProfile = onOpenProfile
         _model = StateObject(wrappedValue: EvEventSession(event: event, email: email, token: token))
     }
 
@@ -51,10 +63,32 @@ struct EvEventWorkspace: View {
     /// présents et marquer « (toi) » dans la feuille des vues.
     private var ownId: String { DuelloAPI.publicProfileId(email: email) }
 
+    /// Retour au geste : un swipe horizontal vers la droite dans les trois états
+    /// de la page (décompte, épreuve, correction/classement). Seuls les gestes
+    /// francs partent : plus de 32 pt, ou un flick rapide, avec une nette
+    /// dominance horizontale — un défilement vertical garde la main.
+    private var backSwipe: some Gesture {
+        DragGesture(minimumDistance: 10)
+            .onEnded { value in
+                let dx = value.translation.width
+                let dy = value.translation.height
+                guard dx > 0, dx > abs(dy) * 1.5 else { return }
+                let velocityX = value.predictedEndTranslation.width - dx
+                let quickFlick = dx > 12 && abs(velocityX) > 380
+                if dx > 32 || quickFlick { onBack() }
+            }
+    }
+
     var body: some View {
         Group {
             if model.phase == .finished {
-                EvEventFinishedView(event: event, model: model, section: $section, onBack: onBack)
+                EvEventFinishedView(
+                    event: event,
+                    model: model,
+                    section: $section,
+                    onBack: onBack,
+                    onOpenProfile: onOpenProfile
+                )
             } else if model.phase == .live, let subject {
                 EvEventLiveView(
                     subject: subject,
@@ -64,10 +98,16 @@ struct EvEventWorkspace: View {
                     onBack: onBack
                 )
             } else {
-                EvEventWaitingView(event: event, model: model, onBack: onBack)
+                EvEventWaitingView(
+                    event: event,
+                    model: model,
+                    onBack: onBack,
+                    onOpenProfile: onOpenProfile
+                )
             }
         }
         .background(Theme.surface)
+        .simultaneousGesture(backSwipe)
         // Le rail des présents hérite du store injecté par `.evEventPresence`,
         // qui doit donc rester le plus à l'extérieur (sinon « No
         // ObservableObject found »).
@@ -80,26 +120,31 @@ struct EvEventWorkspace: View {
 
 // MARK: - Barre du haut
 
-/// Barre du haut de l'espace événement : chevron retour, titre facultatif et
-/// contenu de droite facultatif (`EventTopBar`).
+/// Barre du haut de l'espace événement : chevron retour, titre facultatif
+/// (texte ou vue, comme le décompte et les onglets) et contenu de droite
+/// facultatif (`EventTopBar`). Même géométrie que l'en-tête du classement Elo :
+/// barre de 48, chevron 36×36 à 24 du bord gauche, titre centré par un espaceur
+/// symétrique.
 struct EvEventTopBar: View {
     var title: String? = nil
+    var titleView: AnyView? = nil
     var trailing: AnyView? = nil
     let onBack: () -> Void
 
     var body: some View {
         HStack(spacing: 8) {
             Button(action: onBack) {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(Theme.ink)
-                    .frame(width: 32, height: 32)
+                IonIcon(name: "chevron-back", size: 21, color: Theme.ink)
+                    .frame(width: 36, height: 36)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Retour")
 
-            if let title {
+            if let titleView {
+                titleView
+                    .frame(maxWidth: .infinity, alignment: .center)
+            } else if let title {
                 Text(title)
                     .font(.system(size: 15, weight: .black))
                     .foregroundStyle(Theme.ink)
@@ -115,14 +160,15 @@ struct EvEventTopBar: View {
                 Color.clear.frame(width: 40)
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .frame(minHeight: 48)
+        .padding(.horizontal, 24)
     }
 }
 
 // MARK: - Onglet de section
 
 /// Onglet de section (Correction / Classement) d'un événement terminé.
+/// Le fond commun (gris) vit dans le conteneur, comme `sectionTabs`.
 struct EvEventSectionTab: View {
     let label: String
     let selected: Bool
@@ -131,12 +177,13 @@ struct EvEventSectionTab: View {
     var body: some View {
         Button(action: onPress) {
             Text(label)
-                .font(.system(size: 13, weight: .heavy))
+                .font(.system(size: 12, weight: .heavy))
                 .foregroundStyle(selected ? Color.white : Theme.inkSoft)
-                .padding(.vertical, 8)
-                .padding(.horizontal, 16)
-                .background(selected ? Theme.ink : Theme.surfaceMuted)
+                .frame(minHeight: 30)
+                .padding(.horizontal, 12)
+                .background(selected ? Theme.primary : Color.clear)
                 .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(selected ? [.isSelected] : [])

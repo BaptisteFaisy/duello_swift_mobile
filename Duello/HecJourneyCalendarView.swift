@@ -75,25 +75,23 @@ struct HecJourneyCalendarView: View {
 
     private var header: some View {
         HStack(spacing: 0) {
-            arrow(systemName: "chevron.left", label: HecJourneyCalendarCopy.previousMonth, offset: -1)
+            arrow(name: "chevron-back", label: HecJourneyCalendarCopy.previousMonth, offset: -1)
             Text(grid.title)
                 .font(.system(size: 12, weight: .heavy))
                 .foregroundStyle(HecJourneyPalette.sheetInk)
                 .frame(maxWidth: .infinity)
-            arrow(systemName: "chevron.right", label: HecJourneyCalendarCopy.nextMonth, offset: 1)
+            arrow(name: "chevron-forward", label: HecJourneyCalendarCopy.nextMonth, offset: 1)
         }
         .frame(height: 46)
     }
 
-    private func arrow(systemName: String, label: String, offset: Int) -> some View {
+    private func arrow(name: String, label: String, offset: Int) -> some View {
         Button {
             let current = HecJourneyDates.startOfMonth(month)
             let next = Calendar.current.date(byAdding: .month, value: offset, to: current) ?? current
             onChangeMonth(HecJourneyDates.startOfMonth(next))
         } label: {
-            Image(systemName: systemName)
-                .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(HecJourneyPalette.sheetInkSoft)
+            IonIcon(name: name, size: 15, color: HecJourneyPalette.sheetInkSoft)
                 .frame(width: 34, height: 34)
         }
         .buttonStyle(.plain)

@@ -5,13 +5,23 @@ import SwiftUI
 // `openTrainingReader`) ; U06#3 : page « Mon cours » câblée sur
 // `SubjCourseChapterRow.onOpen` ; U06#4 : feuille « Cartes » alimentée par les
 // cartes persistées du chapitre + révision (`SubjFlashcardReviewModal`).
+//
+// V2 2026-09-28 (U06#5, #8, #9) : un chapitre s'ouvre désormais en **plein
+// écran** (`openChapterList` → `if (openChapter && activeSubject && activeChapter)`,
+// `SubjectsScreen.tsx:7595-9400`), au lieu d'un dépliage inline. L'en-tête du
+// chapitre porte le retour et les menus de filtre (`showChapterHeaderFilters`) ;
+// le récapitulatif (`detailSummary`) ne paraît plus dans les maths Exercices et
+// Colles, où la source le masque (`summaryProgressTotal > 0 && canFilterByBadge`).
 
 /// Détail d'un chapitre ouvert : ligne, exercices, filtre de difficulté et
 /// compteurs d'avancement. Extension de `TrainingCatalogView`.
 extension TrainingCatalogView {
 
-    // MARK: Chapitre
+    // MARK: Catalogue (liste des chapitres)
 
+    /// Ligne d'un chapitre dans le programme de la matière. L'appui ouvre la
+    /// page du chapitre (`openChapterList`) : la source remplace tout l'écran,
+    /// elle ne déplie pas la ligne.
     @ViewBuilder
     func chapterBlock(_ chapter: TrackChapter) -> some View {
         let subjChapter = TrainIntProgram.subjChapter(
@@ -27,7 +37,7 @@ extension TrainingCatalogView {
                 hasCourseDocument: courseDocuments[chapter.id] ?? false,
                 isReturnHighlighted: false,
                 onToggleCourseStatus: { courseStatus.cycle(chapter.id) },
-                onOpen: { openCoursePage(chapter) }
+                onOpen: { openChapterDetail(chapter) }
             )
         } else if let chapterMode = activeMode.chapterMode {
             SubjChapterRow(
@@ -37,22 +47,92 @@ extension TrainingCatalogView {
                 summary: chapterSummary(for: chapter),
                 isReturnHighlighted: false,
                 onToggleCourseStatus: { courseStatus.cycle(chapter.id) },
-                onOpen: { toggle(chapter) }
+                onOpen: { openChapterDetail(chapter) }
             )
-        }
-        if expanded.contains(chapter.id) {
-            chapterBody(chapter)
         }
     }
 
-    /// Ouvre la page « Mon cours » d'un chapitre (U06#3) : relit d'abord le
-    /// repère et la présence du document pour la barre de la ligne.
-    func openCoursePage(_ chapter: TrackChapter) {
-        let stored = TrainCourseDocument.load(year: programYear ?? 1, chapterId: chapter.id)
-        coursePositions[chapter.id] = stored?.classProgress?.position
-        courseDocuments[chapter.id] = stored == nil ? nil : true
-        coursePage = chapter
+    // MARK: Page d'un chapitre (plein écran)
+
+    /// Page d'un chapitre ouvert : en-tête (retour + filtres), puis le contenu du
+    /// mode — page « Mon cours » en Cours, liste des sujets sinon. Remplace le
+    /// programme de la matière, comme `openChapter` de la source.
+    func chapterDetailPage(_ chapter: TrackChapter) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            chapterDetailHeader(chapter)
+            ScrollView {
+                if activeMode == .cours {
+                    TrainCoursePage(
+                        subjectName: subject.name,
+                        chapter: chapter,
+                        programYear: programYear ?? 1,
+                        onCourseStatus: { courseStatus.set(chapter.id, status: $0) },
+                        onClose: { refreshCourseMarkers(for: chapter.id) }
+                    )
+                    .padding(.horizontal, 20)
+                    .padding(.top, 16)
+                    .padding(.bottom, 40)
+                } else {
+                    chapterBody(chapter)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 16)
+                        .padding(.bottom, 40)
+                }
+            }
+        }
+        .background(Theme.background)
+        .task(id: chapter.id) {
+            if activeMode == .cours {
+                refreshCourseMarkers(for: chapter.id)
+            } else {
+                await loadExercisesIfNeeded(for: chapter)
+            }
+        }
+        .onDisappear { refreshCourseMarkers(for: chapter.id) }
     }
+
+    /// En-tête du chapitre : barre de retour (`Revenir à la liste des
+    /// chapitres`) puis menus de filtre, montés quand la banque servie et des
+    /// sujets sont présents (`showChapterHeaderFilters`).
+    private func chapterDetailHeader(_ chapter: TrackChapter) -> some View {
+        let loaded = loadedExercises[chapter.id] ?? []
+        return HStack(alignment: .bottom, spacing: 4) {
+            chapterBackButton
+            if showsChapterHeaderFilters(chapter) && canFilterByBadge(chapter) && !loaded.isEmpty {
+                filterRow(chapter)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 8)
+        .padding(.bottom, 8)
+        .background(Theme.background)
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(Theme.border).frame(height: 1)
+        }
+    }
+
+    /// Retour à la liste des chapitres (`closeChapterToList`) : carré de 40
+    /// points bordé, chevron vers le programme de la matière.
+    private var chapterBackButton: some View {
+        Button {
+            closeChapterDetail()
+        } label: {
+            Image(systemName: "chevron.left")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(Theme.ink)
+                .frame(width: 40, height: 40)
+                .background(Theme.surface)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12).stroke(Theme.border, lineWidth: 1)
+                )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Revenir à la liste des chapitres")
+    }
+
+    // MARK: Corps du chapitre
 
     @ViewBuilder
     private func chapterBody(_ chapter: TrackChapter) -> some View {
@@ -72,10 +152,7 @@ extension TrainingCatalogView {
             let loaded = loadedExercises[chapter.id] ?? []
             let visible = visibleExercises(chapter)
             VStack(alignment: .leading, spacing: 8) {
-                if !loaded.isEmpty {
-                    detailSummary(loaded: loaded)
-                }
-                filterRow(chapter)
+                chapterSummaryLine(chapter)
                 if visible.isEmpty {
                     emptyExercises(chapter, hasLoadedItems: !loaded.isEmpty)
                 } else {
@@ -87,8 +164,21 @@ extension TrainingCatalogView {
         }
     }
 
-    /// Récapitulatif d'un chapitre ouvert : « 12 exercices disponibles · 3 avec
-    /// corrigé » (branche `!canFilterByBadge` de `SubjectsScreen`).
+    /// Récapitulatif du chapitre (`ListHeaderComponent`). La source le masque
+    /// dès que la banque servie filtre (`canFilterByBadge`) : rien ne s'affiche
+    /// alors dans les maths Exercices et Colles.
+    @ViewBuilder
+    private func chapterSummaryLine(_ chapter: TrackChapter) -> some View {
+        if !canFilterByBadge(chapter) {
+            let loaded = loadedExercises[chapter.id] ?? []
+            if !loaded.isEmpty {
+                detailSummary(loaded: loaded)
+            }
+        }
+    }
+
+    /// « 12 exercices disponibles · 3 avec corrigé » (branche
+    /// `!canFilterByBadge` de `SubjectsScreen`).
     private func detailSummary(loaded: [TrainExercise]) -> some View {
         let solutions = loaded.filter { $0.hasSolution }.count
         var text = TrainCopy.availability(.exercise, count: loaded.count)
@@ -96,17 +186,18 @@ extension TrainingCatalogView {
             text += " · \(solutions) avec corrigé"
         }
         return Text(text)
-            .font(.system(size: 11, weight: .semibold))
-            .foregroundStyle(Theme.inkFaint)
+            .font(.system(size: 12, weight: .bold))
+            .foregroundStyle(Theme.inkSoft)
+            .padding(.bottom, 4)
     }
 
-    // Le filtre du chapitre ouvert (menus « Notions », « Difficulté » et
-    // « Classique ») vit dans `TrainIntFilters.swift` (`filterRow(_:)`).
+    // Le filtre du chapitre ouvert (menus « Prérequis » et « Difficulté ») vit
+    // dans `TrainIntFilters.swift` (`filterRow(_:)`).
 
     @ViewBuilder
     private func emptyExercises(_ chapter: TrackChapter, hasLoadedItems: Bool) -> some View {
         if hasLoadedItems {
-            // Des sujets existent, mais le filtre de difficulté les masque tous.
+            // Des sujets existent, mais le filtre les masque tous.
             DuelloEmptyState(
                 icon: "line.3.horizontal.decrease.circle",
                 title: "Aucun exercice",

@@ -90,9 +90,7 @@ struct ConsentAiCard: View {
     /// Icône « sparkles », titre, état, puis l'interrupteur.
     private var row: some View {
         HStack(alignment: .center, spacing: 10) {
-            Image(systemName: "sparkles")
-                .font(.system(size: iconSize, weight: .semibold))
-                .foregroundStyle(Theme.primary)
+            IonIcon(name: "sparkles-outline", size: iconSize, color: Theme.primary)
                 .frame(width: 34, height: 34)
             VStack(alignment: .leading, spacing: 2) {
                 Text("Traitement par l’IA")
@@ -104,9 +102,7 @@ struct ConsentAiCard: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 8)
-            Toggle("", isOn: enabledBinding)
-                .labelsHidden()
-                .tint(Theme.ink)
+            AiConsentSwitch(isOn: enabledBinding)
                 .disabled(accepted == nil || busy)
                 .accessibilityLabel(
                     "Autoriser le traitement par les prestataires d’intelligence artificielle"
@@ -123,9 +119,7 @@ struct ConsentAiCard: View {
                 Text("À quoi sert ce réglage ?")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(Theme.inkSoft)
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(Theme.inkFaint)
+                IonIcon(name: "chevron-forward", size: 15, color: Theme.inkFaint)
                     .rotationEffect(.degrees(showDetails ? 90 : 0))
             }
             .padding(.top, 6)
@@ -154,5 +148,34 @@ struct ConsentAiCard: View {
         busy = true
         accepted = ConsentAiSharing.setEnabled(enabled)
         busy = false
+    }
+}
+
+/// Interrupteur de la carte (`Switch` de `AiConsentCard.tsx:32-39`) : la source
+/// peint la piste `trackColor` (`false` → `surfaceMuted`, `true` →
+/// `primaryLight`) et le pouce `thumbColor` (`primary` si allumé, sinon
+/// `inkFaint`). Mesures de l'interrupteur iOS (piste 51 × 31, pouce 27).
+///
+/// Comme `NotifSwitch` (`NotificationSettingsCard.swift`), l'interrupteur est
+/// un contrôle dédié piloté par une `Binding<Bool>` plutôt qu'un `ToggleStyle`
+/// (dont `configuration.isOn` n'est pas portable d'un environnement à l'autre).
+private struct AiConsentSwitch: View {
+    @Binding var isOn: Bool
+
+    var body: some View {
+        Button { isOn.toggle() } label: {
+            ZStack(alignment: isOn ? .trailing : .leading) {
+                Capsule()
+                    .fill(isOn ? Theme.primaryLight : Theme.surfaceMuted)
+                    .frame(width: 51, height: 31)
+                Circle()
+                    .fill(isOn ? Theme.primary : Theme.inkFaint)
+                    .frame(width: 27, height: 27)
+                    .padding(2)
+                    .shadow(color: Color.black.opacity(0.15), radius: 1, y: 1)
+            }
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
     }
 }

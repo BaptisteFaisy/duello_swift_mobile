@@ -6,6 +6,13 @@ import SwiftUI
 /// servie séparément ; cette version ne portant pas encore cette banque, le
 /// socle embarqué est le dénominateur des colles — exactement ce qu'Expo compte
 /// sans contenu téléchargé (`servedChapterEntries` retombe alors sur le socle).
+///
+/// Pour `ecg-approfondies-2`, `buildColleBankItems` (`chapterItems.ts:1050-1080`)
+/// ajoute au socle les colles Mansuy (`td-*` du socle d'exercices ECG2,
+/// `ecgAdvancedYear2Exercises.floor.*.generated.ts`, source « Mathieu Mansuy ·
+/// ECG2 maths approfondies ») et les questions sans préparation ESCP
+/// (`escpQspColleSeeds`, `chapterItems.ts:2100-2129`) — présentes **hors ligne**,
+/// donc comptées ici comme le fait Expo sans contenu téléchargé.
 enum ProgressColleSocle {
     /// Parcours → identifiant de chapitre → clés de colle.
     static let banks: [String: [String: [String]]] = [
@@ -23,8 +30,12 @@ enum ProgressColleSocle {
             "suites": ["exo-21-suite-arithmetico-geometrique", "exo-3-recurrence-lineaire-ordre-2", "exo-4-suite-recurrente-divergente", "somme-suites-adjacentes-manuscrite", "audeval-colle-2-exercice-2", "audeval-colle-2-exercice-5", "audeval-colle-3-exercice-1", "audeval-colle-3-exercice-3", "audeval-colle-5-exercice-1", "audeval-colle-5-exercice-3", "audeval-colle-5-exercice-4", "audeval-colle-8-exercice-1", "audeval-colle-11-exercice-1", "audeval-colle-13-exercice-2", "audeval-colle-15-exercice-4", "audeval-colle-17-exercice-4", "audeval-colle-21-exercice-4", "hec-oral-2021-esp-s9", "hec-oral-2021-esp-s11", "hec-oral-2023-esp-11", "hec-oral-2023-esp-14", "hec-oral-2023-esp-16", "hec-oral-2023-esp-19", "colles-approfondies-ecg1-385-chapitre-01-exercice-004", "colles-approfondies-ecg1-385-chapitre-01-exercice-009", "colles-approfondies-ecg1-385-chapitre-01-exercice-013", "colles-approfondies-ecg1-385-chapitre-01-exercice-017", "colles-approfondies-ecg1-385-chapitre-01-exercice-018", "colles-approfondies-ecg1-385-chapitre-02-exercice-011", "colles-approfondies-ecg1-385-chapitre-11-exercice-001", "colles-approfondies-ecg1-385-chapitre-11-exercice-002", "colles-approfondies-ecg1-385-chapitre-11-exercice-003", "colles-approfondies-ecg1-385-chapitre-11-exercice-004", "colles-approfondies-ecg1-385-chapitre-11-exercice-005", "colles-approfondies-ecg1-385-chapitre-11-exercice-007", "colles-approfondies-ecg1-385-chapitre-11-exercice-008", "colles-approfondies-ecg1-385-chapitre-11-exercice-009", "colles-approfondies-ecg1-385-chapitre-11-exercice-010", "colles-approfondies-ecg1-385-chapitre-11-exercice-011", "colles-approfondies-ecg1-385-chapitre-11-exercice-012", "colles-approfondies-ecg1-385-chapitre-11-exercice-013", "colles-approfondies-ecg1-385-chapitre-12-exercice-001", "colles-approfondies-ecg1-385-chapitre-12-exercice-002", "colles-approfondies-ecg1-385-chapitre-12-exercice-003", "colles-approfondies-ecg1-385-chapitre-12-exercice-005", "colles-approfondies-ecg1-385-chapitre-12-exercice-006", "colles-approfondies-ecg1-385-chapitre-12-exercice-007", "colles-approfondies-ecg1-385-chapitre-12-exercice-008", "colles-approfondies-ecg1-385-chapitre-12-exercice-009", "colles-approfondies-ecg1-385-chapitre-12-exercice-010", "colles-approfondies-ecg1-385-chapitre-12-exercice-011", "colles-approfondies-ecg1-385-chapitre-12-exercice-012", "colles-approfondies-ecg1-385-chapitre-12-exercice-013", "colles-approfondies-ecg1-385-chapitre-15-exercice-007", "colles-approfondies-ecg1-385-chapitre-15-exercice-009", "colles-approfondies-ecg1-385-chapitre-31-exercice-004"],
         ],
         "ecg-approfondies-2": [
-            "couples-vecteurs": ["hec-oral-2019-esp-s295"],
-            "familles-sommables": ["clemenceau-ecg2-2025-semaine-09-exercice-1"],
+            "couples-vecteurs": ["hec-oral-2019-esp-s295", "td-7-exercice-7-1", "td-7-exercice-7-2", "td-7-exercice-7-3", "td-7-exercice-7-4", "td-7-exercice-7-5", "td-7-exercice-7-6", "td-7-exercice-7-7", "td-7-exercice-7-8", "td-7-exercice-7-9", "td-7-exercice-7-10", "td-7-exercice-7-12", "td-7-exercice-7-13", "td-7-exercice-7-14", "td-7-exercice-7-15", "td-7-exercice-7-16", "td-7-exercice-7-17", "td-7-exercice-7-18", "td-7-exercice-7-19", "td-7-exercice-7-20", "td-7-exercice-7-21", "td-7-exercice-7-22", "td-12-exercice-12-1", "td-12-exercice-12-2", "td-12-exercice-12-3", "td-12-exercice-12-4", "td-12-exercice-12-5", "td-12-exercice-12-6", "td-12-exercice-12-7", "td-12-exercice-12-8", "td-12-exercice-12-9", "td-14-exercice-14-1", "td-14-exercice-14-2", "td-14-exercice-14-3", "td-14-exercice-14-4", "td-14-exercice-14-5", "td-14-exercice-14-6", "td-14-exercice-14-7", "td-14-exercice-14-8", "td-14-exercice-14-9", "td-14-exercice-14-10", "td-14-exercice-14-11", "td-14-exercice-14-12", "td-14-exercice-14-13", "td-14-exercice-14-14", "td-14-exercice-14-15", "td-14-exercice-14-16", "td-25-exercice-25-10", "td-25-exercice-25-11", "td-25-exercice-25-12", "td-25-exercice-25-13", "td-25-exercice-25-14", "td-25-exercice-25-15", "td-25-exercice-25-24", "td-25-exercice-25-25", "td-25-exercice-25-26", "td-25-exercice-25-27", "td-25-exercice-25-28", "td-25-exercice-25-29", "td-25-exercice-25-30"],
+            "familles-sommables": ["clemenceau-ecg2-2025-semaine-09-exercice-1", "td-2-exercice-2-1", "td-2-exercice-2-2", "td-2-exercice-2-3", "td-2-exercice-2-4", "td-2-exercice-2-5", "td-2-exercice-2-6", "td-2-exercice-2-7", "td-2-exercice-2-8", "td-2-exercice-2-9", "td-2-exercice-2-10", "td-2-exercice-2-11", "td-2-exercice-2-12", "td-2-exercice-2-13", "td-2-exercice-2-14", "td-2-exercice-2-15", "td-2-exercice-2-16", "td-2-exercice-2-17", "td-23-exercice-23-25", "td-23-exercice-23-26", "td-23-exercice-23-27", "td-23-exercice-23-28", "td-23-exercice-23-29", "td-23-exercice-23-30"],
+            "analyse-concours": ["td-0a-exercice-0-1", "td-0a-exercice-0-2", "td-0a-exercice-0-3", "td-0a-exercice-0-4", "td-0a-exercice-0-5", "td-0a-exercice-0-6", "td-0b-exercice-0-7", "td-0b-exercice-0-8", "td-0b-exercice-0-9", "td-0b-exercice-0-10", "td-0b-exercice-0-11", "td-0b-exercice-0-12", "td-0b-exercice-0-13", "td-0b-exercice-0-14", "td-0b-exercice-0-15", "td-0b-exercice-0-16", "td-23-exercice-23-1", "td-23-exercice-23-2", "td-23-exercice-23-3", "td-23-exercice-23-4", "td-23-exercice-23-5", "td-23-exercice-23-6", "td-23-exercice-23-7", "td-23-exercice-23-9", "td-23-exercice-23-10", "td-23-exercice-23-11", "td-23-exercice-23-12", "td-23-exercice-23-13", "td-23-exercice-23-14", "td-23-exercice-23-15", "td-23-exercice-23-17", "td-23-exercice-23-19", "td-23-exercice-23-20", "td-23-exercice-23-21", "td-23-exercice-23-22", "td-23-exercice-23-23", "td-23-exercice-23-24"],
+            "complements-variables-aleatoires": ["escp-oral-2025-qsp-1"],
+            "algebre-bilineaire": ["escp-oral-2025-qsp-2"],
+            "variables-densite": ["escp-oral-2025-qsp-3"],
         ],
     ]
 }
@@ -62,9 +73,18 @@ extension DuelloProgressView {
     /// Banque d'items servie pour ce profil, repliée en `matière:chapitre`. Les
     /// clés du catalogue sont `<année>:<matière>:<chapitre>` : une année 2 porte
     /// les banques des deux années, on réunit donc les chapitres homonymes.
+    ///
+    /// Les chapitres d'informatique (`python-*`) comptent : l'écran Progression
+    /// itère **tous** les chapitres de la matière (`trainingStats`,
+    /// `EnhancedProgressScreen.tsx:102`), contrairement aux défis
+    /// (`getChallengeTrackSubjects`, `tracks.ts:2018`), d'où
+    /// `includeInformatique: true`.
     var itemPool: [String: [String]] {
         var merged: [String: Set<String>] = [:]
-        for (key, ids) in DuelloExerciseCatalog.forProfile(session.profile) {
+        for (key, ids) in DuelloExerciseCatalog.forProfile(
+            session.profile,
+            includeInformatique: true
+        ) {
             let parts = key.split(separator: ":", maxSplits: 2)
             guard parts.count == 3 else { continue }
             merged["\(parts[1]):\(parts[2])", default: []].formUnion(ids)
@@ -75,7 +95,9 @@ extension DuelloProgressView {
     /// Périmètre de la banque servie pour le profil (`chapterItemScope` d'Expo) :
     /// « ecg-approfondies-1 », « ecg-appliquees-2 », « mpsi-1 » ou « mp-2 ».
     var chapterScope: String {
-        let isSecondYear = session.profile.year.lowercased().contains("2")
+        // `toProgramYear` (`tracks.ts:1953-1954`) : seule « 1re année » vaut 1,
+        // tout le reste — 2e, 3e année (cube, 5/2) — vaut 2.
+        let isSecondYear = session.profile.year != "1re année"
         if session.profile.track.uppercased().contains("MPSI") {
             return isSecondYear ? "mp-2" : "mpsi-1"
         }

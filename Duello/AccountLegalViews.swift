@@ -40,7 +40,11 @@ struct LegalDocumentView: View {
                 backButton(onBack)
             }
 
-            ScrollView {
+            // `ElasticScrollView.tsx` : défilement commun aux pages légales.
+            // L'indicateur vertical est masqué (`showsVerticalScrollIndicator=
+            // {false}`) et le contenu occupe au moins la hauteur visible
+            // (`flexGrow: 1`).
+            Ui2ElasticScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     Text(document.title)
                         .font(.system(size: 24, weight: .black))
@@ -62,7 +66,9 @@ struct LegalDocumentView: View {
                         LegalSectionRow(section: section)
                     }
 
-                    if showsBackToSettingsSpacer {
+                    // `backToSettingsSpacer` : rendu uniquement quand `onBack`
+                    // est fourni (`TermsOfUseScreen.tsx:47`).
+                    if showsBackToSettingsSpacer, onBack != nil {
                         Color.clear.frame(height: 12)
                     }
                 }
@@ -77,10 +83,17 @@ struct LegalDocumentView: View {
     /// Chevron de retour, aligné sur le bord `LEGAL_PAGE_BACK_INSET` (24).
     private func backButton(_ action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Image(systemName: "chevron.left")
-                .font(.system(size: 20, weight: .bold))
-                .foregroundStyle(Theme.ink)
-                .frame(width: 40, height: 40, alignment: .leading)
+            // `BackButton.tsx` : glyphe `chevron-back` 20 `ink`, sans graisse,
+            // centré dans une boîte 40×40 puis décalé de -4 pt.
+            IonIcon(name: "chevron-back", size: 20, color: Theme.ink)
+                .offset(x: -4)
+                .frame(width: 40, height: 40)
+                .contentShape(Rectangle())
+                // `hitSlop={8}` : cible tactile élargie de 8 pt (56 pt) sans
+                // décaler la mise en page.
+                .padding(8)
+                .contentShape(Rectangle())
+                .padding(-8)
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Retour aux paramètres")
@@ -99,7 +112,9 @@ private struct LegalSectionRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Button {
-                withAnimation(.easeInOut(duration: 0.18)) { expanded.toggle() }
+                // `setExpanded((value) => !value)` de la source : bascule sèche,
+                // aucune animation (`LegalSectionView.tsx:26`).
+                expanded.toggle()
             } label: {
                 HStack(spacing: 6) {
                     Text(section.title)
@@ -107,9 +122,8 @@ private struct LegalSectionRow: View {
                         .foregroundStyle(Theme.ink)
                         .multilineTextAlignment(.leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(Theme.inkFaint)
+                    // `Ionicons "chevron-forward"` 16 `inkFaint`, sans graisse.
+                    IonIcon(name: "chevron-forward", size: 16, color: Theme.inkFaint)
                         .rotationEffect(.degrees(expanded ? 90 : 0))
                 }
                 .padding(.vertical, 4)
@@ -117,6 +131,8 @@ private struct LegalSectionRow: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("\(expanded ? "Replier" : "Déplier") : \(section.title)")
+            // `accessibilityState={{ expanded }}` de la source.
+            .accessibilityValue(expanded ? "Déplié" : "Replié")
 
             if expanded {
                 VStack(alignment: .leading, spacing: 0) {
@@ -149,24 +165,26 @@ private struct LegalSectionRow: View {
 
 /// Écran « Politique de confidentialité » (voir `PrivacyPolicyScreen.tsx`).
 struct PrivacyPolicyView: View {
-    @Environment(\.dismiss) private var dismiss
+    /// `onBack?` de la source : absent (onboarding, premium), aucun chevron.
+    var onBack: (() -> Void)? = nil
 
     var body: some View {
         LegalDocumentView(
             document: LegalContent.privacyPolicy,
-            onBack: { dismiss() }
+            onBack: onBack
         )
     }
 }
 
 /// Écran « Conditions d'utilisation » (voir `TermsOfUseScreen.tsx`).
 struct TermsOfUseView: View {
-    @Environment(\.dismiss) private var dismiss
+    /// `onBack?` de la source : absent (onboarding, premium), aucun chevron.
+    var onBack: (() -> Void)? = nil
 
     var body: some View {
         LegalDocumentView(
             document: LegalContent.termsOfUse,
-            onBack: { dismiss() },
+            onBack: onBack,
             showsBackToSettingsSpacer: true
         )
     }

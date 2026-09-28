@@ -52,16 +52,26 @@ struct ExtraFeedbackView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                if let onBack { backButton(onBack) }
-                formCard
-                if !errorMessage.isEmpty { errorCard }
-                submitButton
+        // `scrollContent` de la source (`FeedbackScreen.tsx:203-209`) : `flexGrow: 1`,
+        // `formArea` (82 % / 420) centré verticalement, bouton d'envoi collé au bas
+        // (`marginTop: 'auto'`).
+        GeometryReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    if let onBack { backButton(onBack) }
+                    Spacer(minLength: 0)
+                    formArea
+                        .frame(width: min((proxy.size.width - 40) * 0.82, 420))
+                        .frame(maxWidth: .infinity)
+                    Spacer(minLength: 0)
+                    submitButton
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+                .padding(.bottom, 36)
+                .frame(maxWidth: .infinity, minHeight: proxy.size.height, alignment: .top)
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
-            .padding(.bottom, 36)
+            .scrollIndicators(.hidden)
         }
         .background(Theme.background)
         .scrollDismissesKeyboard(.interactively)
@@ -69,6 +79,18 @@ struct ExtraFeedbackView: View {
             Button("OK") { resetForm() }
         } message: {
             Text("Ton retour a bien été transmis à l’équipe Duello. Merci pour ta contribution !")
+        }
+    }
+
+    /// `formArea` de la source : carte de formulaire, puis la carte d'erreur le
+    /// cas échéant (`FeedbackScreen.tsx:117-174`).
+    private var formArea: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            formCard
+            if !errorMessage.isEmpty {
+                errorCard
+                    .padding(.top, 12)
+            }
         }
     }
 
@@ -108,9 +130,7 @@ struct ExtraFeedbackView: View {
 
     private var errorCard: some View {
         HStack(alignment: .top, spacing: 9) {
-            Image(systemName: "exclamationmark.circle")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(Theme.ink)
+            IonIcon(name: "alert-circle-outline", size: 18, color: Theme.white)
             Text(errorMessage)
                 .font(.system(size: 11, weight: .heavy))
                 .foregroundStyle(Theme.ink)
@@ -132,8 +152,7 @@ struct ExtraFeedbackView: View {
                 if isSending {
                     ProgressView().tint(Theme.surface)
                 } else {
-                    Image(systemName: "paperplane.fill")
-                        .font(.system(size: 16, weight: .semibold))
+                    IonIcon(name: "send", size: 18, color: Theme.white)
                     Text("Envoyer mon message")
                 }
             }
@@ -148,13 +167,17 @@ struct ExtraFeedbackView: View {
 
     private func backButton(_ action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Image(systemName: "chevron.left")
-                .font(.system(size: 18, weight: .bold))
-                .foregroundStyle(Theme.ink)
-                .frame(width: 40, height: 40, alignment: .leading)
+            IonIcon(name: "chevron-back", size: 20, color: Theme.ink)
+                .offset(x: -4)
+                .frame(width: 40, height: 40)
+                .contentShape(Rectangle())
+                .padding(8)
+                .contentShape(Rectangle())
+                .padding(-8)
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Retour aux paramètres")
+        .padding(.bottom, 12)
     }
 
     private func field<Content: View>(

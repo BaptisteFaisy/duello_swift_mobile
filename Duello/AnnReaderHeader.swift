@@ -9,12 +9,10 @@ extension AnnReaderView {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top, spacing: 10) {
                 Button(action: onClose) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 17, weight: .bold))
-                        .foregroundStyle(Theme.ink)
-                        .frame(width: 34, height: 34)
+                    IonIcon(name: "chevron-back", size: 22, color: Theme.ink)
+                        .frame(width: 42, height: 42)
                         .background(Theme.surfaceMuted)
-                        .clipShape(Circle())
+                        .clipShape(RoundedRectangle(cornerRadius: 13))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Fermer le sujet")
@@ -108,11 +106,13 @@ extension AnnReaderView {
     }
 
     /// Questions dont le corrigé est déverrouillé (`unlockedCorrectionCount`) :
-    /// au-delà de la difficulté 5, seul un verdict validé ouvre le corrigé.
+    /// au-delà de la difficulté 5, seul un verdict validé ouvre le corrigé —
+    /// sauf la difficulté 6 (« Extrême »), toujours ouverte dès qu'un verdict
+    /// existe (`AnnaleViewer.tsx:3841-3845`).
     private var unlockedCorrectionCount: Int {
         entry.questions.filter { question in
             guard let verdict = verdicts[question.id] else { return false }
-            return entry.difficulty < 5 || verdict.isValidated
+            return entry.difficulty < 5 || entry.difficulty >= 6 || verdict.isValidated
         }.count
     }
 

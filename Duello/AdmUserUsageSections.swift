@@ -92,10 +92,10 @@ struct AdmUserUsageSections: View {
                     .foregroundStyle(Theme.ink)
                 Spacer(minLength: 8)
                 Text("\(AdmFormat.durationSeconds(seconds)) · \(visits) visite\(AdmFormat.plural(visits))")
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(.system(size: 10, weight: .regular))
                     .foregroundStyle(Theme.inkSoft)
             }
-            DuelloProgressTrack(fraction: fraction, tint: Theme.primary, height: 7)
+            AdmProgressTrack(fraction: fraction, tint: Theme.primary, height: 7, minimumFraction: 0.02)
         }
     }
 
@@ -105,7 +105,7 @@ struct AdmUserUsageSections: View {
             VStack(spacing: 0) {
                 if metrics.recentDays.isEmpty {
                     Text("Les données quotidiennes apparaîtront après la prochaine utilisation de l’app.")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.system(size: 11, weight: .regular))
                         .foregroundStyle(Theme.inkSoft)
                         .multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
@@ -134,7 +134,7 @@ struct AdmUserUsageSections: View {
                     .font(.system(size: 11, weight: .black))
                     .foregroundStyle(Theme.ink)
                 Text("\(day.sessions) session\(AdmFormat.plural(day.sessions))")
-                    .font(.system(size: 9, weight: .semibold))
+                    .font(.system(size: 9, weight: .regular))
                     .foregroundStyle(Theme.inkFaint)
             }
             Spacer(minLength: 8)
@@ -155,7 +155,7 @@ struct AdmUserUsageSections: View {
                 .font(.system(size: 12, weight: .black))
                 .foregroundStyle(Theme.ink)
             Text(label)
-                .font(.system(size: 8, weight: .semibold))
+                .font(.system(size: 8, weight: .regular))
                 .foregroundStyle(Theme.inkFaint)
         }
         .frame(minWidth: 62, alignment: .trailing)
@@ -165,12 +165,12 @@ struct AdmUserUsageSections: View {
         VStack(alignment: .leading, spacing: 9) {
             AdmSectionLabel(title: "ACTIONS ET PROGRESSION")
             VStack(spacing: 0) {
-                activityRow(icon: "figure.strengthtraining.traditional", label: "Exercices terminés", value: "\(user.usage?.actions.exerciseCompleted ?? 0)")
-                activityRow(icon: "bolt", label: "Défis terminés", value: "\(user.usage?.actions.challengeCompleted ?? 0)")
-                activityRow(icon: "book", label: "Mises à jour de cours", value: "\(user.usage?.actions.courseUpdated ?? 0)")
-                activityRow(icon: "bubble.left.and.bubble.right", label: "Feedbacks envoyés", value: "\(user.usage?.actions.feedbackSent ?? 0)")
-                activityRow(icon: "graduationcap", label: "Progression du programme", value: "\(Int((user.performance?.completion ?? 0).rounded())) %")
-                activityRow(icon: "doc.text", label: "Notes renseignées", value: "\(user.performance?.gradeCount ?? 0)", last: true)
+                activityRow(icon: "barbell-outline", label: "Exercices terminés", value: "\(user.usage?.actions.exerciseCompleted ?? 0)")
+                activityRow(icon: "flash-outline", label: "Défis terminés", value: "\(user.usage?.actions.challengeCompleted ?? 0)")
+                activityRow(icon: "book-outline", label: "Mises à jour de cours", value: "\(user.usage?.actions.courseUpdated ?? 0)")
+                activityRow(icon: "chatbubble-ellipses-outline", label: "Feedbacks envoyés", value: "\(user.usage?.actions.feedbackSent ?? 0)")
+                activityRow(icon: "school-outline", label: "Progression du programme", value: "\(Int((user.performance?.completion ?? 0).rounded())) %")
+                activityRow(icon: "document-text-outline", label: "Notes renseignées", value: "\(user.performance?.gradeCount ?? 0)", last: true)
             }
             .frame(maxWidth: .infinity)
             .padding(.horizontal, 16)
@@ -191,9 +191,7 @@ struct AdmUserUsageSections: View {
         last: Bool = false
     ) -> some View {
         HStack(spacing: 11) {
-            Image(systemName: icon)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(Theme.ink)
+            IonIcon(name: icon, size: 18, color: Theme.ink)
                 .frame(width: 34, height: 34)
                 .background(Theme.primaryLight)
                 .clipShape(RoundedRectangle(cornerRadius: 12))

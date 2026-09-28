@@ -17,12 +17,16 @@
 //      `ReportPublicProfile.publish`, ReportAPI.swift:127).
 //
 //  Doctrine « seam honnête » (SPEC §5) : les dépendances natives encore absentes
-//  (instantané public complet, registre multi-comptes de sessions serveur) sont
-//  des protocoles dont l'implémentation par défaut REFUSE clairement — jamais un
-//  stub muet. Le bus de stockage, lui, est réellement fonctionnel.
+//  (registre multi-comptes de sessions serveur) sont des protocoles dont
+//  l'implémentation par défaut REFUSE clairement — jamais un stub muet. Le bus
+//  de stockage est réellement fonctionnel, et l'instantané public est désormais
+//  **branché** (`ReportLocalSnapshotProvider` lit `ProgressStore`), plus refusé.
 //
 //  Notes datées :
 //    - 2026-09-24 — création (vague 2, unité U9).
+//    - 2026-09-28 — l'instantané public n'est plus une couture refusée : le
+//      provider lit le stockage local de `ProgressStore` (XP, Elo, activité,
+//      complétion, série) et publie un `details` complet (#3/#26).
 //
 //  Cible : iOS 16, aucune dépendance externe.
 //
@@ -159,34 +163,6 @@ private final class ReportNotificationSubscription: ReportSubscription {
 
     func cancel() {
         NotificationCenter.default.removeObserver(token)
-    }
-}
-
-// MARK: - Lecture de l'instantané
-
-/// `loadPublicProfileSnapshot` : relit toutes les sources du compte avant une
-/// publication distante. Couture : le port Swift de ces sources (activité,
-/// progression, cotes, séries) appartient aux lots graphiques/données.
-protocol ReportPublicProfileSnapshotProviding {
-    func load(
-        accountId: String,
-        profile: UserProfile,
-        registeredAt: Double
-    ) async throws -> ReportPublicProfileSnapshot
-}
-
-/// Implémentation par défaut : refuse clairement plutôt que de publier des
-/// statistiques de repli (`FALLBACK_PUBLIC_PERFORMANCE`) qui écraseraient les
-/// valeurs réelles déjà présentes dans l'annuaire.
-struct ReportUnwiredSnapshotProvider: ReportPublicProfileSnapshotProviding {
-    func load(
-        accountId: String,
-        profile: UserProfile,
-        registeredAt: Double
-    ) async throws -> ReportPublicProfileSnapshot {
-        throw ReportPublicProfileError.snapshotUnavailable(
-            "L’instantané public complet n’est pas encore porté sur iOS."
-        )
     }
 }
 

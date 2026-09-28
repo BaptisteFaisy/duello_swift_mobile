@@ -5,10 +5,18 @@ import SwiftUI
 /// (liste des matières, puis chapitres d'une matière).
 struct TrainingView: View {
     @EnvironmentObject private var session: SessionStore
+    @EnvironmentObject private var progress: ProgressStore
 
     /// Année du programme choisie dans le sélecteur de l'en-tête. `nil` = celle
     /// du compte, comme `localProgramYear` de la source.
     @State private var programYearOverride: Int?
+
+    /// Sujets servis par matière (`successSummaries[subject.id].total` de la
+    /// source), lus dans le manifeste de contenu.
+    @State private var subjectTotals: [String: Int] = [:]
+    /// Vrai dès que les totaux sont connus (`progressLoaded`) : la carte annonce
+    /// alors « X/Y sujets réussis » au lieu de « Y sujets disponibles ».
+    @State private var totalsLoaded = false
 
     var body: some View {
         NavigationStack {
@@ -30,11 +38,9 @@ struct TrainingView: View {
                         profileYear: profileYear,
                         onSelectYear: { programYearOverride = $0 }
                     )
-                } else if subjects.isEmpty {
-                    emptyState
-                        .navigationTitle("Entraînement")
-                        .navigationBarTitleDisplayMode(.inline)
                 } else {
+                    // Repli historique : la source ne peint ni pied de liste ni
+                    // état vide, la liste des matières se suffit à elle-même.
                     subjectList
                         .navigationTitle("Entraînement")
                         .navigationBarTitleDisplayMode(.inline)
@@ -42,6 +48,7 @@ struct TrainingView: View {
             }
             .background(Theme.background)
         }
+        .task(id: programYear) { await loadSubjectTotals() }
     }
 
     /// La matière ouverte d'office par l'onglet Entraînement (`maths`), ou `nil`
@@ -83,6 +90,35 @@ struct TrainingView: View {
         )
     }
 
+    /// Décompte du catalogue par matière (`successSummaries`), lu dans le
+    /// manifeste de contenu — même source que l'en-tête d'une matière.
+    private func loadSubjectTotals() async {
+        guard let manifest = try? await DuelloAPI.contentManifest() else { return }
+        let counts = TrainContent.catalogCounts(
+            manifest: manifest,
+            track: session.profile.track,
+            specialty: session.profile.specialty,
+            year: session.profile.year
+        )
+        var totals: [String: Int] = [:]
+        for subject in subjects {
+            totals[subject.id] = subject.chapters.reduce(0) { $0 + (counts[$1.id] ?? 0) }
+        }
+        subjectTotals = totals
+        totalsLoaded = true
+    }
+
+    /// Sujets réussis d'une matière (`successSummaries[subject.id].succeeded`) :
+    /// un sujet réussi ne compte qu'une fois, lu dans l'avancement local.
+    private func succeededCount(_ subject: TrackSubject) -> Int {
+        let chapterIds = Set(subject.chapters.map { $0.id })
+        return progress.items.keys.filter { itemId in
+            guard let chapterId = TrainItemID.chapterId(of: itemId) else { return false }
+            guard chapterIds.contains(chapterId) else { return false }
+            return progress.items[itemId]?.bestOutcome == .success
+        }.count
+    }
+
     private var subjectList: some View {
         List {
             Section {
@@ -90,72 +126,114 @@ struct TrainingView: View {
                     NavigationLink {
                         TrainingCatalogView(subject: subject)
                     } label: {
-                        SubjectRow(subject: subject)
+                        SubjectRow(
+                            subject: subject,
+                            succeeded: succeededCount(subject),
+                            total: subjectTotals[subject.id] ?? 0,
+                            progressLoaded: totalsLoaded
+                        )
                     }
                     .listRowSeparator(.hidden)
                     .listRowBackground(Color.clear)
                     .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
                 }
-            } footer: {
-                Text("Choisis une matière pour voir son programme et lancer un entraînement.")
-                    .font(.system(size: 12, weight: .semibold))
             }
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
     }
-
-    private var emptyState: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "barbell")
-                .font(.system(size: 36, weight: .semibold))
-                .foregroundStyle(Theme.inkFaint)
-            Text("Choisis ton parcours dans « Mon compte »")
-                .font(.system(size: 15, weight: .bold))
-                .foregroundStyle(Theme.inkSoft)
-                .multilineTextAlignment(.center)
-        }
-        .padding(24)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
 }
 
+/// Carte d'une matière (`subjectCard` de la source) : icône de matière, nom,
+/// compteur de sujets réussis et barre d'avancement.
 private struct SubjectRow: View {
     let subject: TrackSubject
+    let succeeded: Int
+    let total: Int
+    let progressLoaded: Bool
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 14) {
             ZStack {
-                RoundedRectangle(cornerRadius: Theme.radiusSmall)
+                RoundedRectangle(cornerRadius: 15)
                     .fill(Theme.primaryLight)
-                    .frame(width: 42, height: 42)
-                Image(systemName: subject.icon)
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(Theme.ink)
+                    .frame(width: 44, height: 44)
+                IonIcon(name: SubjectIcon.ionName(for: subject.id), size: 20, color: Theme.primary)
             }
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 0) {
                 Text(subject.name)
                     .font(.system(size: 16, weight: .heavy))
                     .foregroundStyle(Theme.ink)
-                if let fullName = subject.fullName {
-                    Text(fullName)
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(Theme.inkFaint)
-                        .lineLimit(1)
-                }
+                Text(summaryText)
+                    .font(.system(size: 11, weight: .black))
+                    .foregroundStyle(Theme.primary)
+                    .padding(.top, 2)
+                subjectProgressTrack
             }
-            Spacer()
-            Text("\(subject.chapters.count) ch.")
-                .font(.system(size: 12, weight: .heavy))
-                .foregroundStyle(Theme.inkFaint)
+            Spacer(minLength: 0)
+            IonIcon(name: "chevron-forward", size: 20, color: Theme.inkSoft)
         }
-        .padding(12)
+        .padding(16)
         .background(Theme.surface)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
         .overlay(
             RoundedRectangle(cornerRadius: Theme.radiusMedium)
                 .stroke(Theme.border, lineWidth: 1)
         )
+    }
+
+    /// `successSummary.total > 0 ? (progressLoaded ? « X/Y sujets réussis » :
+    /// « Y sujets disponibles ») : « Aucun sujet disponible »`.
+    private var summaryText: String {
+        guard total > 0 else { return "Aucun sujet disponible" }
+        return progressLoaded
+            ? TrainCopy.subjectSuccess(succeeded: succeeded, total: total)
+            : "\(total) sujets disponibles"
+    }
+
+    /// Piste d'avancement de la matière (`subjectProgressTrack`) : fond blanc
+    /// bordé, remplissage neutre `#D8D8D8`, hauteur 7.
+    private var subjectProgressTrack: some View {
+        GeometryReader { geometry in
+            ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 3.5).fill(Theme.surface)
+                RoundedRectangle(cornerRadius: 3.5)
+                    .fill(Color(hex: 0xD8D8D8))
+                    .frame(width: fillWidth(in: geometry.size.width))
+            }
+        }
+        .frame(height: 7)
+        .overlay(
+            RoundedRectangle(cornerRadius: 3.5).stroke(Theme.border, lineWidth: 1)
+        )
+        .padding(.top, 7)
+    }
+
+    /// Part réussie, avec un départ visible de 8 points dès la première
+    /// réussite (`subjectProgressFill`).
+    private func fillWidth(in available: CGFloat) -> CGFloat {
+        guard progressLoaded, total > 0, succeeded > 0 else { return 0 }
+        let fraction = min(1, max(0, Double(succeeded) / Double(total)))
+        return max(8, available * CGFloat(fraction))
+    }
+}
+
+/// Icône Ionicons d'une matière (`TRAINING_MODES` de `src/data/tracks.ts`), par
+/// identifiant de matière.
+enum SubjectIcon {
+    /// Nom logique Ionicons d'une matière, tel qu'écrit dans la source.
+    static func ionName(for subjectId: String) -> String {
+        switch subjectId {
+        case "maths": return "calculator"
+        case "physique", "physique-chimie": return "flask"
+        case "chimie": return "beaker"
+        case "sciences-ingenieur": return "construct"
+        case "informatique": return "laptop"
+        case "francais-philo": return "book"
+        case "anglais": return "language"
+        case "lv2": return "chatbubbles"
+        default: return "book"
+        }
     }
 }
 

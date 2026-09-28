@@ -2,21 +2,19 @@ import SwiftUI
 import Foundation
 
 /// Tableau blanc du mode entraînement, porté de :
-/// - `src/components/Whiteboard.native.tsx` (document canvas et ses bornes) ;
+/// - `src/components/Whiteboard.native.tsx` (document canvas, encre unique,
+///   pincement à deux doigts) ;
 /// - `src/components/whiteboardModel.ts` (encodage du brouillon) ;
 /// - `src/components/WhiteboardHistoryControls.tsx` (barre d’outils + historique).
 ///
 /// Écarts assumés par rapport à la source :
 /// - **Pas de WebView ni de moteur d’encre** : rendu `Canvas` SwiftUI et un
 ///   `DragGesture` unique aiguillé par le mode (jamais deux gestes concurrents).
-/// - **Zoom hors périmètre** : le pincement à deux doigts de la source n’est
-///   pas porté ; seul le mode « Déplacer » (translation) l’est.
-/// - **Gomme ajoutée** : sans moteur d’encre, la gomme ne rabote pas un tracé,
-///   elle **supprime tout le tracé qu’elle touche** (distance point/segment ≤
-///   demi-largeur du trait + rayon de gomme), limite documentée ici et dans l’UI.
-/// - **Couleurs ajoutées** : la source ne dessine qu’en `#172554` ; le portage
-///   ajoute `colorHex` et `width` à `WbStroke` pour la palette et la gomme.
-///   Le format sérialisé reste toutefois celui de la source (voir `WbCodec`).
+/// - **Pincement** : `MagnificationGesture` (iOS 16 ne fournit pas le point
+///   d’appui du geste), donc le zoom est centré sur le plateau, bornes 0,5–4
+///   comme la source (`MIN_SCALE`/`MAX_SCALE`).
+///
+/// La source ne dessine qu’en `#172554`, trait 2 : ni palette ni gomme.
 
 // MARK: - Modèle
 
@@ -27,14 +25,12 @@ struct WbPoint: Codable, Hashable {
 }
 
 /// Un tracé du brouillon. La source (`WhiteboardStroke`) ne porte que `points` :
-/// `id`, `colorHex` et `width` sont des **ajouts du portage** (identité SwiftUI,
-/// palette de couleurs, gomme). Ils ne sont jamais sérialisés : seuls `points`
-/// partent dans le JSON, conformément au format d’origine.
+/// `id` est un **ajout du portage** (identité SwiftUI) et n’est jamais
+/// sérialisé — seuls `points` partent dans le JSON, conformément au format
+/// d’origine.
 struct WbStroke: Codable, Hashable, Identifiable {
     var id: UUID = UUID()
     var points: [WbPoint]
-    var colorHex: Int = WbPalette.defaultInkHex
-    var width: Double = WbPalette.brushWidth
 
     private enum CodingKeys: String, CodingKey {
         case points
@@ -43,14 +39,11 @@ struct WbStroke: Codable, Hashable, Identifiable {
 
 extension WbStroke {
     /// Décode un tracé depuis le format source (`{"points":[…]}`) : `id` est
-    /// **régénéré**, la couleur reprend l’encre par défaut et la largeur vaut 2,
-    /// car la source ne transmet que les points.
+    /// **régénéré**, la source ne transmettant que les points.
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         points = try container.decode([WbPoint].self, forKey: .points)
         id = UUID()
-        colorHex = WbPalette.defaultInkHex
-        width = WbPalette.brushWidth
     }
 }
 
@@ -85,38 +78,23 @@ enum WbCodec {
     }
 }
 
-// MARK: - Palette
+// MARK: - Mesures
 
-/// Une couleur nommée de la palette de traits.
-struct WbColor: Identifiable, Hashable {
-    let id: Int
-    let name: String
-
-    var hex: Int { id }
-    var color: Color { Color(hex: id) }
-}
-
-/// Palette et mesures du tableau blanc. L’encre par défaut (`0x172554`) et la
-/// largeur de trait (`2`) sont les constantes de la source.
+/// Mesures et constantes du tableau blanc, reprises de la source : encre
+/// `#172554`, trait `2`, fond blanc, échelle bornée 0,5–4.
 enum WbPalette {
-    static let defaultInkHex = 0x172554
+    static let inkHex = 0x172554
     static let brushWidth: Double = 2
     static let backgroundHex = 0xFFFFFF
-    /// Rayon de la pointe de gomme, ajouté par le portage (la source n’en a pas).
-    static let eraserRadius: Double = 10
-
-    static let colors: [WbColor] = [
-        WbColor(id: 0x172554, name: "Encre"),
-        WbColor(id: 0xDC2626, name: "Rouge"),
-        WbColor(id: 0x16A34A, name: "Vert"),
-        WbColor(id: 0x2563EB, name: "Bleu"),
-        WbColor(id: 0xEA580C, name: "Orange")
-    ]
+    /// `MIN_SCALE` (`Whiteboard.native.tsx:58`).
+    static let minScale: CGFloat = 0.5
+    /// `MAX_SCALE` (`Whiteboard.native.tsx:59`).
+    static let maxScale: CGFloat = 4
 }
 
-/// Mode d’interaction du plateau. `erase` est un ajout du portage.
+/// Mode d’interaction du plateau (`WhiteboardInteractionMode`) : `draw` / `pan`.
 enum WbTool {
-    case draw, pan, erase
+    case draw, pan
 }
 
 // MARK: - Historique
@@ -186,16 +164,18 @@ final class WbHistoryModel: ObservableObject {
 }
 
 /// Calque des tracés validés. `Equatable` : via `.equatable()`, il n'est pas
-/// redessiné pendant la saisie du brouillon — seul le décalage (mode
-/// « Déplacer ») ou la liste des tracés validés le relance. `.drawingGroup()`
-/// rasterise l'ensemble des tracés validés en une seule passe.
+/// redessiné pendant la saisie du brouillon — seul le décalage ou le zoom (mode
+/// « Déplacer », pincement) ou la liste des tracés validés le relance.
+/// `.drawingGroup()` rasterise l'ensemble des tracés validés en une seule passe.
 private struct WbCommittedLayer: View, Equatable {
     let strokes: [WbStroke]
     let offset: CGSize
+    let scale: CGFloat
 
     var body: some View {
         Canvas { context, _ in
             context.translateBy(x: offset.width, y: offset.height)
+            context.scaleBy(x: scale, y: scale)
             for stroke in strokes {
                 WbCanvas.draw(stroke, into: &context)
             }
@@ -206,40 +186,48 @@ private struct WbCommittedLayer: View, Equatable {
 
 // MARK: - Plateau
 
-/// Zone de dessin : `Canvas` + un unique `DragGesture` aiguillé par le mode.
+/// Zone de dessin : `Canvas` + un `DragGesture` aiguillé par le mode, et un
+/// pincement à deux doigts pour le zoom (`Whiteboard.native.tsx:149-239`).
 struct WbCanvas: View {
     let strokes: [WbStroke]
     let tool: WbTool
-    let colorHex: Int
-    let width: Double
     let onStrokesChange: ([WbStroke]) -> Void
 
     @State private var draft: [WbPoint] = []
-    @State private var draftColorHex: Int = WbPalette.defaultInkHex
-    @State private var draftWidth: Double = WbPalette.brushWidth
     @State private var offset: CGSize = .zero
     @State private var panBase: CGSize = .zero
+    @State private var scale: CGFloat = 1
+    @State private var scaleBase: CGFloat = 1
 
     var body: some View {
         // Rendu incrémental : les tracés validés vivent dans un calque
         // `Equatable` qui n'est pas redessiné pendant que le brouillon évolue ;
         // seule la couche du brouillon est reconstruite à chaque point.
         ZStack {
-            WbCommittedLayer(strokes: strokes, offset: offset)
+            WbCommittedLayer(strokes: strokes, offset: offset, scale: scale)
                 .equatable()
             Canvas { context, _ in
                 guard !draft.isEmpty else { return }
                 context.translateBy(x: offset.width, y: offset.height)
-                WbCanvas.draw(
-                    WbStroke(points: draft, colorHex: draftColorHex, width: draftWidth),
-                    into: &context
-                )
+                context.scaleBy(x: scale, y: scale)
+                WbCanvas.draw(WbStroke(points: draft), into: &context)
             }
         }
         .background(Color(hex: WbPalette.backgroundHex))
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .contentShape(Rectangle())
-        .gesture(DragGesture(minimumDistance: 0).onChanged { handle($0, isEnd: false) }.onEnded { handle($0, isEnd: true) })
+        .gesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { handle($0, isEnd: false) }
+                .onEnded { handle($0, isEnd: true) }
+        )
+        .simultaneousGesture(
+            MagnificationGesture()
+                .onChanged { value in
+                    scale = min(WbPalette.maxScale, max(WbPalette.minScale, scaleBase * value))
+                }
+                .onEnded { _ in scaleBase = scale }
+        )
     }
 
     /// Dessine un tracé dans un contexte (chemin lissé, ou pastille si le tracé
@@ -247,10 +235,10 @@ struct WbCanvas: View {
     static func draw(_ stroke: WbStroke, into context: inout GraphicsContext) {
         let points = stroke.points
         guard let first = points.first else { return }
-        let color = Color(hex: stroke.colorHex)
+        let color = Color(hex: WbPalette.inkHex)
         if points.count == 1 {
-            let radius = stroke.width / 2
-            let frame = CGRect(x: first.x - radius, y: first.y - radius, width: stroke.width, height: stroke.width)
+            let radius = WbPalette.brushWidth / 2
+            let frame = CGRect(x: first.x - radius, y: first.y - radius, width: WbPalette.brushWidth, height: WbPalette.brushWidth)
             context.fill(Path(ellipseIn: frame), with: .color(color))
             return
         }
@@ -263,11 +251,10 @@ struct WbCanvas: View {
             path.addQuadCurve(to: middle, control: CGPoint(x: previous.x, y: previous.y))
         }
         if let last = points.last { path.addLine(to: CGPoint(x: last.x, y: last.y)) }
-        context.stroke(path, with: .color(color), style: StrokeStyle(lineWidth: stroke.width, lineCap: .round, lineJoin: .round))
+        context.stroke(path, with: .color(color), style: StrokeStyle(lineWidth: WbPalette.brushWidth, lineCap: .round, lineJoin: .round))
     }
 
-    /// Aiguillage du geste par le mode. Le zoom est hors périmètre : seul le
-    /// mode « Déplacer » translate le plateau.
+    /// Aiguillage du geste par le mode. Le pincement (zoom) est traité à part.
     private func handle(_ value: DragGesture.Value, isEnd: Bool) {
         switch tool {
         case .pan:
@@ -276,39 +263,18 @@ struct WbCanvas: View {
             } else {
                 offset = CGSize(width: panBase.width + value.translation.width, height: panBase.height + value.translation.height)
             }
-        case .erase:
-            guard !isEnd else { return }
-            let probe = CGPoint(x: value.location.x - offset.width, y: value.location.y - offset.height)
-            let kept = strokes.filter { stroke in
-                let threshold = stroke.width / 2 + WbPalette.eraserRadius
-                let points = stroke.points
-                if points.count < 2 {
-                    guard let only = points.first else { return true }
-                    return hypot(only.x - probe.x, only.y - probe.y) > threshold
-                }
-                for index in 1..<points.count {
-                    let a = points[index - 1]
-                    let b = points[index]
-                    let dx = b.x - a.x, dy = b.y - a.y
-                    let lengthSquared = dx * dx + dy * dy
-                    let raw = lengthSquared == 0 ? 0 : ((probe.x - a.x) * dx + (probe.y - a.y) * dy) / lengthSquared
-                    let t = min(1, max(0, raw))
-                    if hypot(probe.x - (a.x + t * dx), probe.y - (a.y + t * dy)) <= threshold { return false }
-                }
-                return true
-            }
-            if kept.count != strokes.count { onStrokesChange(kept) }
         case .draw:
             if isEnd {
                 guard !draft.isEmpty else { return }
-                let stroke = WbStroke(points: draft, colorHex: draftColorHex, width: draftWidth)
+                let stroke = WbStroke(points: draft)
                 draft = []
                 onStrokesChange(strokes + [stroke])
             } else {
-                let point = WbPoint(x: value.location.x - offset.width, y: value.location.y - offset.height)
+                let point = WbPoint(
+                    x: (value.location.x - offset.width) / scale,
+                    y: (value.location.y - offset.height) / scale
+                )
                 if draft.isEmpty {
-                    draftColorHex = colorHex
-                    draftWidth = width
                     draft = [point]
                 } else if let last = draft.last, hypot(point.x - last.x, point.y - last.y) >= 0.5 {
                     draft.append(point)
@@ -320,52 +286,33 @@ struct WbCanvas: View {
 
 // MARK: - Barre d’outils
 
-/// Barre d’outils du tableau blanc, portée de `WhiteboardHistoryControls.tsx`,
-/// augmentée de la gomme, des couleurs et de l’effacement complet.
+/// Barre d’outils du tableau blanc, portée de `WhiteboardHistoryControls.tsx` :
+/// deux modes (Dessiner / Déplacer), annuler, rétablir, agrandir.
 struct WbToolbar: View {
     @Binding var tool: WbTool
-    @Binding var colorHex: Int
     let canUndo: Bool
     let canRedo: Bool
     let expanded: Bool
     let onUndo: () -> Void
     let onRedo: () -> Void
     let onToggleExpanded: () -> Void
-    let onClear: () -> Void
 
     var body: some View {
-        VStack(spacing: 6) {
-            HStack(spacing: 6) {
-                WbModeButton(title: "Dessiner", icon: "pencil", selected: tool == .draw) { tool = .draw }
-                    .accessibilityLabel("Dessiner sur le tableau blanc")
-                WbModeButton(title: "Déplacer", icon: "hand.point.up.left", selected: tool == .pan) { tool = .pan }
-                    .accessibilityLabel("Se déplacer dans le tableau blanc")
-                    .accessibilityHint("Fais glisser le tableau sans écrire")
-                Spacer(minLength: 0)
-                WbIconButton(icon: "arrow.uturn.backward", label: "Annuler le dernier trait", enabled: canUndo, action: onUndo)
-                WbIconButton(icon: "arrow.uturn.forward", label: "Rétablir le dernier trait", enabled: canRedo, action: onRedo)
-                WbIconButton(
-                    icon: expanded ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right",
-                    label: expanded ? "Réduire le tableau blanc" : "Agrandir le tableau blanc",
-                    prominent: true,
-                    action: onToggleExpanded
-                )
-            }
-            HStack(spacing: 8) {
-                WbModeButton(title: "Gomme", icon: "eraser", selected: tool == .erase) { tool = .erase }
-                    .accessibilityLabel("Gomme")
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 6) {
-                        ForEach(WbPalette.colors) { entry in
-                            WbColorDot(entry: entry, selected: entry.hex == colorHex) {
-                                colorHex = entry.hex
-                                if tool == .erase { tool = .draw }
-                            }
-                        }
-                    }
-                }
-                WbIconButton(icon: "trash", label: "Effacer le tableau", action: onClear)
-            }
+        HStack(spacing: 6) {
+            WbModeButton(title: "Dessiner", icon: "pencil-outline", selected: tool == .draw) { tool = .draw }
+                .accessibilityLabel("Dessiner sur le tableau blanc")
+            WbModeButton(title: "Déplacer", icon: "hand-left-outline", selected: tool == .pan) { tool = .pan }
+                .accessibilityLabel("Se déplacer dans le tableau blanc")
+                .accessibilityHint("Fais glisser le tableau sans écrire")
+            Spacer(minLength: 0)
+            WbIconButton(icon: "arrow-undo-outline", label: "Annuler le dernier trait", enabled: canUndo, action: onUndo)
+            WbIconButton(icon: "arrow-redo-outline", label: "Rétablir le dernier trait", enabled: canRedo, action: onRedo)
+            WbIconButton(
+                icon: expanded ? "contract-outline" : "expand-outline",
+                label: expanded ? "Réduire le tableau blanc" : "Agrandir le tableau blanc",
+                prominent: true,
+                action: onToggleExpanded
+            )
         }
         .padding(.horizontal, 7)
         .padding(.vertical, 5)
@@ -378,7 +325,8 @@ struct WbToolbar: View {
     }
 }
 
-/// Bouton de mode (Dessiner / Déplacer / Gomme).
+/// Bouton de mode (Dessiner / Déplacer) : icône Ionicons 16, libellé 9
+/// (`modeButton`, `WhiteboardHistoryControls.tsx:126-168`).
 struct WbModeButton: View {
     let title: String
     let icon: String
@@ -388,12 +336,12 @@ struct WbModeButton: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 4) {
-                Image(systemName: icon).font(.system(size: 12, weight: .bold))
-                Text(title).font(.system(size: 11, weight: .heavy)).lineLimit(1)
+                IonIcon(name: icon, size: 16, color: selected ? Theme.surface : Theme.primary)
+                Text(title).font(.system(size: 9, weight: .heavy)).lineLimit(1)
             }
-            .foregroundStyle(selected ? Theme.surface : Theme.ink)
-            .padding(.horizontal, 8)
-            .frame(height: 32)
+            .foregroundStyle(selected ? Theme.surface : Theme.primary)
+            .padding(.horizontal, 7)
+            .frame(minHeight: 32)
             .background(selected ? Theme.primary : Theme.surfaceMuted)
             .clipShape(RoundedRectangle(cornerRadius: 8))
         }
@@ -414,15 +362,13 @@ struct WhiteboardView: View {
 
     @StateObject private var history = WbHistoryModel()
     @State private var tool: WbTool = .draw
-    @State private var colorHex: Int = WbPalette.defaultInkHex
 
-    /// Aide d’accessibilité du plateau. Le pincement de la source est retiré :
-    /// le zoom est hors périmètre.
+    /// Aide d’accessibilité du plateau (`Whiteboard.native.tsx:367-371`), qui
+    /// mentionne le pincement à deux doigts.
     private var hint: String {
         switch tool {
-        case .draw: return "Fais glisser ton doigt ou ton stylet pour dessiner."
-        case .pan: return "Fais glisser le tableau pour te déplacer sans écrire."
-        case .erase: return "Fais glisser la gomme sur un tracé pour l’effacer."
+        case .draw: return "Fais glisser ton doigt ou ton stylet pour dessiner. Pince avec deux doigts pour zoomer ou dézoomer."
+        case .pan: return "Fais glisser le tableau pour te déplacer sans écrire. Pince avec deux doigts pour zoomer ou dézoomer."
         }
     }
 
@@ -430,24 +376,19 @@ struct WhiteboardView: View {
         VStack(spacing: 0) {
             WbToolbar(
                 tool: $tool,
-                colorHex: $colorHex,
                 canUndo: history.canUndo,
                 canRedo: history.canRedo,
                 expanded: expanded,
                 onUndo: { history.undo() },
                 onRedo: { history.redo() },
-                onToggleExpanded: onToggleExpanded,
-                onClear: { history.recordDrawing([]) }
+                onToggleExpanded: onToggleExpanded
             )
             WbCanvas(
                 strokes: strokes,
                 tool: tool,
-                colorHex: colorHex,
-                width: WbPalette.brushWidth,
                 onStrokesChange: { history.recordDrawing($0) }
             )
             .frame(minHeight: 116)
-            if tool == .erase { eraserHelp }
         }
         .frame(maxWidth: .infinity, minHeight: 158, alignment: .top)
         .background(Theme.surface)
@@ -464,15 +405,5 @@ struct WhiteboardView: View {
         .onChange(of: strokes) { newValue in
             history.recordDrawing(newValue, external: true)
         }
-    }
-
-    /// Aide discrète rappelant la limite de la gomme (pas de moteur d’encre).
-    private var eraserHelp: some View {
-        Text("La gomme efface tout le tracé qu’elle touche.")
-            .font(.system(size: 11, weight: .semibold))
-            .foregroundStyle(Theme.inkFaint)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
     }
 }

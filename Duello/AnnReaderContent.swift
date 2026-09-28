@@ -6,10 +6,9 @@ extension AnnReaderView {
     // MARK: Contenu
 
     @ViewBuilder
-    var content: some View {
+    var statementPane: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                questionNavigation
                 documentBody
             }
             .padding(.horizontal, 16)
@@ -19,7 +18,7 @@ extension AnnReaderView {
     }
 
     @ViewBuilder
-    private var questionNavigation: some View {
+    var questionNavigation: some View {
         if entry.questions.count > 1 {
             VStack(alignment: .leading, spacing: 6) {
                 Text("Questions")
@@ -42,39 +41,55 @@ extension AnnReaderView {
         let verdict = verdicts[question.id]
         let isClassic = classicQuestionIds.contains(question.id)
         let isForLater = unavailableQuestionIds.contains(question.id)
+        let grading = gradingQuestionIds.contains(question.id)
+        let gradingFailed = gradingErrors[question.id] != nil
+        let skin = AnnQuestionChipSkin(selected: selected, verdict: verdict)
         return Button {
             activeQuestionId = question.id
         } label: {
-            HStack(spacing: 5) {
-                if let verdict {
-                    Image(systemName: verdict.icon)
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(verdict.color)
+            HStack(spacing: 4) {
+                // Pendant la correction : indicateur d'activité ; en échec :
+                // `refresh-circle`. Un verdict « Parfaite » n'affiche pas d'icône
+                // (son contour vert suffit), comme la source.
+                if grading {
+                    ProgressView().tint(Theme.primary)
+                } else if verdict == .perfect {
+                    EmptyView()
+                } else if let verdict {
+                    IonIcon(name: verdict.icon, size: 14, color: verdict.color)
+                } else if gradingFailed {
+                    IonIcon(name: "refresh-circle", size: 14, color: Theme.like)
                 }
                 Text(question.displayLabel)
-                    .font(.system(size: 13, weight: .heavy))
-                    .foregroundStyle(selected ? Theme.surface : Theme.inkSoft)
+                    .font(.system(size: 11, weight: .heavy))
+                    .foregroundStyle(skin.text)
                 if isClassic {
-                    Image(systemName: "star.fill")
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundStyle(Theme.ink)
+                    IonIcon(name: "star", size: 11, color: Theme.ink)
                 }
                 if isForLater {
                     Circle()
-                        .fill(Theme.like)
+                        .fill(AnnQuestionChipSkin.prerequisiteDot)
                         .frame(width: 6, height: 6)
                 }
             }
-            .padding(.horizontal, 11)
-            .padding(.vertical, 7)
-            .background(selected ? Theme.ink : Theme.surfaceMuted)
+            .padding(.horizontal, 10)
+            .frame(minWidth: 52, minHeight: 34)
+            .background(skin.background)
             .clipShape(Capsule())
             .overlay(
-                Capsule().stroke(selected ? Color.clear : Theme.border, lineWidth: 1)
+                Capsule().stroke(skin.border, lineWidth: skin.borderWidth)
             )
+            .opacity(isForLater ? 0.58 : 1)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(accessibilityLabel(for: question, verdict: verdict, classic: isClassic, later: isForLater))
+        .accessibilityLabel(accessibilityLabel(
+            for: question,
+            verdict: verdict,
+            classic: isClassic,
+            later: isForLater,
+            grading: grading,
+            gradingFailed: gradingFailed
+        ))
     }
 
     /// Libellé d'accessibilité du bouton de question, mot pour mot du lecteur.
@@ -82,11 +97,17 @@ extension AnnReaderView {
         for question: AnnQuestion,
         verdict: AnnVerdict?,
         classic: Bool,
-        later: Bool
+        later: Bool,
+        grading: Bool,
+        gradingFailed: Bool
     ) -> String {
         var text = "Question \(question.displayLabel)"
         if let verdict {
             text += ", \(verdict.label.lowercased())"
+        } else if grading {
+            text += ", correction en cours"
+        } else if gradingFailed {
+            text += ", correction à relancer"
         }
         if classic { text += ", classique" }
         if later { text += ", conseillée pour plus tard" }
@@ -100,7 +121,7 @@ extension AnnReaderView {
             documentCard(
                 title: nil,
                 text: entry.statement,
-                empty: "Document indisponible"
+                empty: "Énoncé indisponible"
             )
         case .markingScheme:
             documentCard(
@@ -141,24 +162,44 @@ extension AnnReaderView {
     /// Corrigé par question, verrouillé tant que la réponse n'est pas validée.
     private func questionCorrectionCard(_ question: AnnQuestion) -> some View {
         let verdict = verdicts[question.id]
-        let unlocked = verdict != nil && (entry.difficulty < 5 || (verdict?.isValidated ?? false))
+        let unlocked = verdict != nil
+            && (entry.difficulty < 5 || entry.difficulty >= 6 || (verdict?.isValidated ?? false))
         let isClassic = classicQuestionIds.contains(question.id)
+        let correctionText = questionCorrectionText(question, unlocked: unlocked)
         return VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
                 Text("Question \(question.displayLabel)")
                     .font(.system(size: 14, weight: .heavy))
                     .foregroundStyle(Theme.ink)
                 if isClassic {
-                    Image(systemName: "star.fill")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(Theme.ink)
+                    IonIcon(name: "star", size: 12, color: Theme.ink)
+                        .accessibilityLabel("Question classique")
                 }
                 Spacer(minLength: 0)
-                Image(systemName: unlocked ? "lock.open" : "lock")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(unlocked ? Theme.ink : Theme.inkFaint)
+                if unlocked {
+                    // « ✦ Expliquer » : ouvre le prof IA sur le corrigé de la
+                    // question (`openProfForCorrection`, `AnnaleViewer.tsx:3876-3886`).
+                    Button {
+                        explainCorrection(correctionText, question: question.displayLabel)
+                    } label: {
+                        Text("✦ Expliquer")
+                            .font(.system(size: 11, weight: .heavy))
+                            .foregroundStyle(Theme.surface)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Theme.primary)
+                            .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Expliquer le corrigé de la question \(question.displayLabel)")
+                }
+                IonIcon(
+                    name: unlocked ? "lock-open-outline" : "lock-closed-outline",
+                    size: 15,
+                    color: unlocked ? Theme.primary : Theme.inkFaint
+                )
             }
-            Text(questionCorrectionText(question, unlocked: unlocked))
+            Text(correctionText)
                 .font(Theme.readingFont)
                 .foregroundStyle(unlocked ? Theme.ink : Theme.inkFaint)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -167,7 +208,7 @@ extension AnnReaderView {
     }
 
     /// Texte du corrigé d'une question, ou l'explication de son verrouillage,
-    /// mot pour mot du lecteur Expo.
+    /// mot pour mot du lecteur Expo (`AnnaleViewer.tsx:3842-3857`).
     private func questionCorrectionText(_ question: AnnQuestion, unlocked: Bool) -> String {
         if unlocked {
             if entry.solution != nil {
@@ -175,18 +216,15 @@ extension AnnReaderView {
             }
             return "Consulte le compte rendu de cette question pour voir le corrigé de référence disponible."
         }
-        if entry.difficulty >= 5, verdicts[question.id] != nil {
-            let level = entry.difficulty == 6 ? "Extrême" : "Très difficile"
-            return "\(level) · cette réponse doit être entièrement juste pour déverrouiller son corrigé."
+        if entry.difficulty == 5, verdicts[question.id] != nil {
+            return "Très difficile · cette réponse doit être entièrement juste pour déverrouiller son corrigé."
         }
         return "Soumets cette réponse pour rendre son corrigé accessible."
     }
 
     private var lockedSolutionCard: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Image(systemName: "lock")
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(Theme.inkFaint)
+            IonIcon(name: "lock-closed-outline", size: 22, color: Theme.inkFaint)
             Text(solutionLockMessage)
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(Theme.inkSoft)
@@ -226,9 +264,7 @@ extension AnnReaderView {
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 VStack(alignment: .leading, spacing: 6) {
-                    Image(systemName: "cloud")
-                        .font(.system(size: 22, weight: .semibold))
-                        .foregroundStyle(Theme.inkFaint)
+                    IonIcon(name: "cloud-offline-outline", size: 36, color: Theme.inkFaint)
                     Text(empty)
                         .font(.system(size: 15, weight: .bold))
                         .foregroundStyle(Theme.inkSoft)
@@ -240,5 +276,56 @@ extension AnnReaderView {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .duelloCard()
+    }
+}
+
+// MARK: - Habillage d'une puce de question
+
+/// Fond, contour et couleur de texte d'une puce de question, repris des styles
+/// `questionTab*` du lecteur Expo (`AnnaleViewer.tsx:5553-5615`). Un verdict
+/// posé l'emporte sur la sélection : le contour vert d'une réponse juste reste
+/// visible même quand la puce est ouverte.
+struct AnnQuestionChipSkin {
+    /// `colors.prerequisitesMissing` (`theme.ts`) : pastille « conseillée pour
+    /// plus tard », absente du thème Swift partagé.
+    static let prerequisiteDot = Color(hex: 0xB42318)
+    /// `colors.likeLight` (`theme.ts`) : fond de la puce d'une réponse fausse.
+    static let incorrectBackground = Color(hex: 0xFDECEC)
+
+    var background: Color
+    var border: Color
+    var borderWidth: CGFloat
+    var text: Color
+
+    init(selected: Bool, verdict: AnnVerdict?) {
+        if selected {
+            background = Theme.primaryLight
+            border = Theme.primary
+            borderWidth = 2
+        } else {
+            background = Theme.surface
+            border = Theme.ink
+            borderWidth = 1
+        }
+        text = Theme.ink
+        guard let verdict else { return }
+        switch verdict {
+        case .perfect:
+            background = Theme.gradingPerfectLight
+            border = Theme.gradingPerfect
+            borderWidth = 2
+            text = Theme.gradingPerfect
+        case .correct:
+            background = Theme.surface
+            border = AnnVerdict.masteryColor
+            borderWidth = 2
+            text = AnnVerdict.masteryColor
+        case .partial:
+            background = Theme.gradingPartialLight
+            border = Theme.gradingPartial
+        case .incorrect:
+            background = AnnQuestionChipSkin.incorrectBackground
+            border = Theme.like
+        }
     }
 }

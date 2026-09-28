@@ -13,9 +13,9 @@
 //    - src/admin/adminAnalytics.ts              (`dateKey`, `analyticsToday`)
 //
 //  Les écrans Expo s'appuient sur `Intl.DateTimeFormat('fr-FR')` : les mêmes
-//  options sont reprises ici. Seule la ponctuation entre date et heure peut
-//  différer légèrement (`à` au lieu de `,`), la langue et l'ordre restant ceux
-//  de `fr-FR`.
+//  options sont reprises ici, y compris la ponctuation `, ` entre la date et
+//  l'heure de `dateStyle: 'medium'` + `timeStyle: 'short'` (là où le style
+//  natif iOS écrirait `à`).
 //
 //  Cible : iOS 16. Aucune dépendance externe.
 //
@@ -90,11 +90,12 @@ enum AdmFormat {
         return formatter
     }()
 
+    /// `formatDate` des écrans admin : `Intl.DateTimeFormat('fr-FR', {
+    /// dateStyle: 'medium', timeStyle: 'short' })` → « 12 sept. 2026, 14:30 ».
     private static let mediumDateTime: DateFormatter = {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "fr_FR")
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .short
+        formatter.dateFormat = "d MMM yyyy, HH:mm"
         return formatter
     }()
 

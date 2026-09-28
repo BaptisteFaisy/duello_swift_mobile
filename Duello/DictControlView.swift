@@ -28,42 +28,89 @@ enum DictProcessingStage: String {
 /// Modèle du contrôle de dictée — états de `useDictation`.
 @MainActor
 final class DictControlModel: ObservableObject {
-    @Published private(set) var isListening = false
-    @Published private(set) var isFormatting = false
-    @Published private(set) var stage: DictProcessingStage?
-    @Published private(set) var engine: DictEngineKind?
-    @Published private(set) var error = ""
-    @Published private(set) var notice = ""
+    @Published var isListening = false
+    @Published var isFormatting = false
+    @Published var stage: DictProcessingStage?
+    @Published var engine: DictEngineKind?
+    @Published var error = ""
+    @Published var notice = ""
 
     /// Invite affichée pendant l'écoute (`useDictation`).
     static let noticeEcoute =
         "Écoute en cours : parle jusqu’au bout, puis appuie sur Arrêter. La phrase complète apparaîtra ensuite."
 
-    private var moteurActif: DictEngine?
-    private var transcription = ""
-    private var phrases = DictTranscriptState.empty
-    private var texteComplet = ""
-    private let permission: () async -> Bool
-    private let fabriquerMoteur: () -> DictEngine
-    private let configurationRelais: () -> DictRelayConfig?
+    /// Énoncé visible, fourni à [OI] comme aide de désambiguïsation
+    /// (`transcriptionContext`), figé avec la phrase.
+    var contexteTranscription: DictMathContext?
+
+    var moteurActif: DictEngine?
+    var transcription = ""
+    var phrases = DictTranscriptState.empty
+    var texteComplet = ""
+    /// Relais retenu pour la dictée en cours (`relayEndpoint` / `relayToken`).
+    var relaisConfigure: DictRelayConfig?
+    /// Génération de la demande courante (`dictationRequest`).
+    var dictationRequest = 0
+    /// Observateurs d'activité de l'application (`useDictationAppState`).
+    var observateurs: [NSObjectProtocol] = []
+    let portail: DictAppStateGate
+    let permission: () async -> Bool
+    let fabriquerMoteur: () -> DictEngine
+    let configurationRelais: () -> DictRelayConfig?
+    let consentementPartage: () async -> Bool
 
     init(
         permission: @escaping () async -> Bool = { true },
         fabriquerMoteur: @escaping () -> DictEngine = { DictEngineFactory.moteurParDefaut() },
-        configurationRelais: @escaping () -> DictRelayConfig? = { nil }
+        configurationRelais: @escaping () -> DictRelayConfig? = { DictRelayConfig.resolve() },
+        consentementPartage: @escaping () async -> Bool = { CtdAiConsent.isGranted }
     ) {
         self.permission = permission
         self.fabriquerMoteur = fabriquerMoteur
         self.configurationRelais = configurationRelais
+        self.consentementPartage = consentementPartage
+        self.observateurs = []
+        self.portail = DictAppStateGate(estActif: { DictAppStateGate.applicationIsActive })
+        portail.onCancel = { [weak self] in self?.annuler() }
+        observateurs = portail.demarrerObservation()
+    }
+
+    deinit {
+        for observateur in observateurs {
+            NotificationCenter.default.removeObserver(observateur)
+        }
     }
 
     /// Démarre la dictée, ou l'arrête si elle est déjà en cours — `toggle`.
     func toggle(currentText: String, math: Bool, permissionMessage: String, apply: @escaping (String) -> Void) async {
+        dictationRequest += 1
+        if isFormatting { return }
         if isListening {
             await arreter(currentText: currentText, math: math, apply: apply)
             return
         }
         await demarrer(permissionMessage: permissionMessage)
+    }
+
+    /// Lie un démarrage différé à la cible courante et l'invalide à l'annulation
+    /// (`createToggleRequest`) : une seconde demande périme la première.
+    func createToggleRequest(
+        currentText: String,
+        math: Bool,
+        permissionMessage: String,
+        apply: @escaping (String) -> Void
+    ) -> () -> Void {
+        dictationRequest += 1
+        let request = dictationRequest
+        return { [weak self] in
+            guard let self, request == self.dictationRequest else { return }
+            Task { @MainActor in
+                await self.toggle(
+                    currentText: currentText, math: math,
+                    permissionMessage: permissionMessage, apply: apply
+                )
+            }
+        }
     }
 
     /// Résout l'accès puis lance le moteur (relais premium, sinon appareil).
@@ -77,8 +124,16 @@ final class DictControlModel: ObservableObject {
         phrases = .empty
         texteComplet = ""
 
-        // Mode premium : le relais temps réel d'abord, s'il est configuré.
-        if await demarrerMoteurRelais() { return }
+        // Mode premium : consentement au partage, puis relais temps réel.
+        relaisConfigure = configurationRelais()
+        if let relais = relaisConfigure {
+            if await consentementPartage() {
+                if await demarrerMoteurRelais(relais) { return }
+            } else {
+                // `fallbackToDevice` sans transmission : reconnaissance du téléphone.
+                notice = DictRelayText.sansPartage
+            }
+        }
 
         let moteur = fabriquerMoteur()
         brancher(moteur)
@@ -98,12 +153,12 @@ final class DictControlModel: ObservableObject {
 
     /// Résout l'accès micro/reconnaissance. Renvoie vrai si l'accès est accordé ;
     /// sinon pose `error` (message de permission ou d'indisponibilité) et renvoie faux.
-    private func resoudreAcces(permissionMessage: String) async -> Bool {
+    func resoudreAcces(permissionMessage: String) async -> Bool {
         let acces = await DictPolicy.resolveAccess(
             isWeb: false,
             recognitionAvailable: { true },
-            requestWebMicrophonePermission: { await permission() },
-            requestNativeSpeechPermission: { await permission() }
+            requestWebMicrophonePermission: { await portail.requestPermission { await permission() } },
+            requestNativeSpeechPermission: { await portail.requestPermission { await permission() } }
         )
         switch acces {
         case .granted:
@@ -119,8 +174,7 @@ final class DictControlModel: ObservableObject {
 
     /// Tente le relais premium. Renvoie vrai s'il a démarré (dictée lancée) ;
     /// sinon laisse le repli `device` s'appliquer au retour dans `demarrer`.
-    private func demarrerMoteurRelais() async -> Bool {
-        guard let relais = configurationRelais() else { return false }
+    func demarrerMoteurRelais(_ relais: DictRelayConfig) async -> Bool {
         let moteur = DictAsrRelay(config: relais)
         brancher(moteur)
         engine = relais.kind
@@ -138,7 +192,7 @@ final class DictControlModel: ObservableObject {
     }
 
     /// Branche un moteur sur le fil des événements de l'interface.
-    private func brancher(_ moteur: DictEngine) {
+    func brancher(_ moteur: DictEngine) {
         moteur.onEvent = { [weak self] evenement in
             Task { @MainActor in self?.recevoir(evenement) }
         }
@@ -163,7 +217,11 @@ final class DictControlModel: ObservableObject {
         case .refinementError:
             notice = "La finalisation de la transcription est indisponible."
         case let .error(code, message):
-            if !code.isEmpty {
+            if code == "unauthorized" || code == "premium-required" {
+                error = DictRelayText.messageErreur(code: code, message: message)
+            } else if isListening {
+                Task { await basculerSurAppareil(notice: message) }
+            } else if !code.isEmpty {
                 error = message.isEmpty
                     ? "La dictée n’a pas abouti. Tu peux réessayer ou écrire directement."
                     : message
@@ -187,33 +245,39 @@ final class DictControlModel: ObservableObject {
         let choisie = DictPolicy.selectCompletedTranscript(phrases, fullText: texteComplet).text
         let brut = (choisie.isEmpty ? transcription : choisie)
             .trimmingCharacters(in: .whitespacesAndNewlines)
+        phrases = .empty
+        texteComplet = ""
         guard !brut.isEmpty else {
             error = "Aucune parole exploitable n’a été reconnue. Tu peux réessayer ou écrire directement."
             notice = ""
+            isFormatting = false
+            stage = nil
             return
         }
 
-        isFormatting = true
-        stage = .alibaba
-        let rendu = DictPolicy.renderTranscript(brut, math: math)
-        apply(DictPolicy.appendTranscript(currentText, rendu))
-        isFormatting = false
-        stage = nil
-        notice = ""
-        error = ""
-        phrases = .empty
-        texteComplet = ""
+        // La phrase est posée avant la seconde passe ; celle-ci la corrigera
+        // sans remplacer les hypothèses mot après mot.
+        let apercu = DictPolicy.appendTranscript(currentText, DictPolicy.renderTranscript(brut, math: math))
+        apply(apercu)
+        await finaliser(brut: brut, prefixe: currentText, apply: apply)
     }
 
     /// Annule la dictée sans transcription — `cancel`.
     func annuler() {
+        dictationRequest += 1
         moteurActif?.cancel()
         moteurActif = nil
+        portail.cancelPending()
         isListening = false
+        isFormatting = false
+        stage = nil
         engine = nil
+        error = ""
+        notice = ""
         transcription = ""
         phrases = .empty
         texteComplet = ""
+        relaisConfigure = nil
     }
 }
 

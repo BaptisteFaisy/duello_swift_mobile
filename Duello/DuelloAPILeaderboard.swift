@@ -10,15 +10,27 @@ extension DuelloAPI {
         var entries: [LeaderboardEntry]?
     }
 
-    /// `GET /leaderboard?subject=…` — classement d'une matière.
-    static func subjectLeaderboard(subject: String, token: String?) async throws -> [LeaderboardEntry] {
+    /// `GET /leaderboard?subject=…[&cohort=…]` — classement d'une matière.
+    /// Le filtre de cohorte est rejoué sur les lignes reçues (`subjectLeaderboard.ts`).
+    static func subjectLeaderboard(
+        subject: String,
+        cohort: String? = nil,
+        token: String?
+    ) async throws -> [LeaderboardEntry] {
+        var query = [URLQueryItem(name: "subject", value: subject)]
+        if let cohort, !cohort.isEmpty {
+            query.append(URLQueryItem(name: "cohort", value: cohort))
+        }
         let response = try await request(
             LeaderboardResponse.self,
             "leaderboard",
             token: token,
-            query: [URLQueryItem(name: "subject", value: subject)]
+            query: query
         )
-        return response.entries ?? []
+        return filterSubjectLeaderboardEntriesByCohort(
+            response.entries ?? [],
+            cohort: cohort
+        )
     }
 
     /// `GET /weekly-xp?subject=…&week=…` — classement hebdo d'une matière.

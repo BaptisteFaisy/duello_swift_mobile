@@ -101,9 +101,12 @@ struct PremPromoCodeStatus: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
-            Image(systemName: success ? "checkmark.circle" : "exclamationmark.circle")
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(success ? Theme.premium : Theme.like)
+            // `Ionicons name={success ? 'checkmark-circle' : 'alert-circle'}`.
+            IonIcon(
+                name: success ? "checkmark-circle" : "alert-circle",
+                size: 18,
+                color: success ? Theme.premium : Theme.like
+            )
             Text(message)
                 .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(success ? Theme.premium : Theme.like)

@@ -57,17 +57,24 @@ struct AdmPromoCodeStat: Decodable, Identifiable, Equatable {
 
 /// Charge utile de création d'un code promo (`AdminPromoCodeCreateInput`).
 /// Encodée telle quelle vers `POST /admin/promo-codes`.
+///
+/// `label`, `maxRedemptions`, `startsAt` et `expiresAt` sont facultatifs comme
+/// dans la source (`label?: string`, `startsAt?: number`, …) : `nil` est omis du
+/// JSON. Le seul producteur (`AdmPromoForm.parse`) ne remplit jamais `startsAt`,
+/// exactement comme `parsePromoForm`.
 struct AdmPromoCodeCreateInput: Encodable, Equatable {
     var code: String
-    var label: String
+    var label: String?
     var percentOff: Int
     /// Absent quand le nombre d'utilisations est illimité.
     var maxRedemptions: Int?
+    /// Absent : la date de début reste celle décidée par le serveur.
+    var startsAt: Double? = nil
     /// Absent quand le code n'expire pas.
     var expiresAt: Double?
 
     enum CodingKeys: String, CodingKey {
-        case code, label, percentOff, maxRedemptions, expiresAt
+        case code, label, percentOff, maxRedemptions, startsAt, expiresAt
     }
 }
 

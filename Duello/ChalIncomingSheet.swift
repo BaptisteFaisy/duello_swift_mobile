@@ -86,9 +86,7 @@ struct ChalIncomingSheet: View {
     }
 
     private var iconBadge: some View {
-        Image(systemName: "bolt.fill")
-            .font(.system(size: 24, weight: .bold))
-            .foregroundStyle(Color.white)
+        IonIcon(name: "flash", size: 24, color: Color.white)
             .frame(width: 52, height: 52)
             .background(Theme.ink)
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
@@ -120,16 +118,16 @@ struct ChalIncomingSheet: View {
 
     private func challengeCard(_ invitation: ChalIncomingInvitation) -> some View {
         VStack(spacing: 0) {
-            detailRow(icon: "book", label: "MATIÈRE", value: invitation.challenge.subject)
+            detailRow(icon: "book-outline", label: "MATIÈRE", value: invitation.challenge.subject)
             divider
             detailRow(
-                icon: "square.stack",
+                icon: "layers-outline",
                 label: "CHAPITRES",
                 value: ChalCopy.chapterSummary(invitation.challenge.names)
             )
             divider
             detailRow(
-                icon: "timer",
+                icon: "timer-outline",
                 label: "FORMAT",
                 value: "\(invitation.challenge.minutes) min · même sujet, même chrono"
             )
@@ -147,10 +145,7 @@ struct ChalIncomingSheet: View {
 
     private func detailRow(icon: String, label: String, value: String) -> some View {
         HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(Theme.ink)
-                .frame(width: 22)
+            IonIcon(name: icon, size: 18, color: Theme.ink)
             VStack(alignment: .leading, spacing: 3) {
                 Text(label)
                     .font(.system(size: 8, weight: .black))
@@ -195,8 +190,7 @@ struct ChalIncomingSheet: View {
                         ProgressView().tint(.white)
                     } else {
                         HStack(spacing: 6) {
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 18, weight: .bold))
+                            IonIcon(name: "checkmark", size: 18, color: Color.white)
                             Text("Accepter")
                                 .font(.system(size: 12, weight: .black))
                         }

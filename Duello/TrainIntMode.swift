@@ -22,7 +22,7 @@
 //
 //  Limite assumée : le mode « Cours » n'ouvre pas de document PDF ici :
 //  `SubjCourseChapterRow` ouvre la page « Mon cours » du chapitre
-//  (`openCoursePage`).
+//  (`openChapterDetail`, page plein écran du chapitre en mode Cours).
 //
 //  Cible iOS 16, aucune dépendance externe.
 //
@@ -105,15 +105,41 @@ extension TrainingCatalogView {
     /// matière, avec son lecteur et sa correction de copie (`AnnalesView`). La
     /// banque réelle est un catalogue généré côté Expo, non porté : la banque
     /// embarquée sert de démonstration et de forme d'échange.
+    ///
+    /// V2 2026-09-28 (U06#13) : la carte « prochainement » des annales MPSI/MP
+    /// (`annaleItems.length === 0 && userTrack === 'MPSI'`, `10171`) remplace la
+    /// banque de démonstration, faute d'annales servies pour cette filière.
+    @ViewBuilder
     var annalesSection: some View {
-        AnnalesView(
-            subject: subject.name,
-            subjectId: subject.id,
-            track: session.profile.track,
-            specialty: session.profile.specialty
-        )
-        .environmentObject(session)
-        .environmentObject(progress)
+        if TrainContent.normalize(session.profile.track) == "mpsi" {
+            annalesComingSoonCard
+        } else {
+            AnnalesView(
+                subject: subject.name,
+                subjectId: subject.id,
+                track: session.profile.track,
+                specialty: session.profile.specialty
+            )
+            .environmentObject(session)
+            .environmentObject(progress)
+            .padding(.top, 8)
+        }
+    }
+
+    /// « Les annales de MPSI/MP seront ajoutées prochainement. » (`infoCard` +
+    /// `information-circle` 20, `10171-10179`).
+    private var annalesComingSoonCard: some View {
+        HStack(alignment: .top, spacing: 12) {
+            IonIcon(name: "information-circle", size: 20, color: Theme.primary)
+            Text("Les annales de \((programYear ?? 1) == 1 ? "MPSI" : "MP") seront ajoutées prochainement.")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(Theme.ink)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
+        .padding(16)
+        .background(Theme.primaryLight)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
         .padding(.top, 8)
     }
 

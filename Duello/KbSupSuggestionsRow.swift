@@ -85,14 +85,12 @@ struct KbSupSuggestionsRow: View {
                 .lineLimit(1)
                 .padding(.horizontal, key.wide ? 8 : 4)
                 .frame(minWidth: 32, minHeight: 30)
-                .background(Theme.primaryLight)
-                .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
-                .overlay(
-                    RoundedRectangle(cornerRadius: Theme.radiusSmall)
-                        .stroke(Theme.primary, lineWidth: 1)
-                )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(MathKbPressStyle(
+            cornerRadius: Theme.radiusSmall,
+            background: Theme.primaryLight,
+            border: Theme.primary
+        ))
         .accessibilityLabel(accessibilityLabel(for: key))
     }
 

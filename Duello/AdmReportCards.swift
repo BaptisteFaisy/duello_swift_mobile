@@ -6,7 +6,8 @@
 //
 //  Fichier source Expo porté : src/admin/AdminExerciseReportsScreen.tsx
 //  (`reportCard` des signalements de comptes et de contenus, `TARGET_LABEL`,
-//  `SOURCE_LABEL`, `USER_REASON_LABEL`). Les libellés sont repris mot pour mot.
+//  `SOURCE_LABEL`, `USER_REASON_LABEL`). Les libellés et les mesures sont repris
+//  mot pour mot.
 //
 //  Cible : iOS 16. Aucune dépendance externe.
 //
@@ -18,39 +19,43 @@ struct AdmUserReportCard: View {
     let report: AdmUserReportRecord
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 0) {
             AdmReportHeader(
-                icon: "flag",
-                tint: Theme.like,
+                icon: "flag-outline",
                 title: report.reportedDisplayName,
                 date: AdmFormat.recordDate(report.createdAt),
                 badge: "COMPTE"
             )
             Text(report.reason.label)
-                .font(.system(size: 14, weight: .heavy))
+                .font(.system(size: 15, weight: .black))
                 .foregroundStyle(Theme.ink)
                 .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 15)
             Text("Signalé par \(report.reporterDisplayName)")
-                .font(.system(size: 11, weight: .semibold))
+                .font(.system(size: 11, weight: .bold))
                 .foregroundStyle(Theme.inkSoft)
+                .padding(.top, 5)
             Text("Cible : \(report.reportedId) · Auteur : \(report.reporterId)")
-                .font(.system(size: 10, weight: .semibold))
+                .font(.system(size: 9, weight: .regular))
                 .foregroundStyle(Theme.inkFaint)
                 .textSelection(.enabled)
                 .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 5)
             AdmReportMessage(
                 label: "PRÉCISIONS CONFIDENTIELLES",
                 message: report.details
             )
+            .padding(.top, 14)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
+        .padding(17)
         .background(Theme.surface)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
         .overlay(
             RoundedRectangle(cornerRadius: Theme.radiusLarge)
                 .stroke(Theme.border, lineWidth: 1)
         )
+        .admCardShadow()
     }
 }
 
@@ -59,70 +64,81 @@ struct AdmContentReportCard: View {
     let report: AdmExerciseReportRecord
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 0) {
             AdmReportHeader(
-                icon: "ladybug",
-                tint: Theme.like,
+                icon: "bug-outline",
                 title: report.displayName,
                 date: AdmFormat.recordDate(report.createdAt),
                 badge: report.target.label
             )
             Text(report.exerciseTitle)
-                .font(.system(size: 14, weight: .heavy))
+                .font(.system(size: 15, weight: .black))
                 .foregroundStyle(Theme.ink)
                 .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 15)
             Text("\(report.subject) · \(report.source.label)")
-                .font(.system(size: 11, weight: .semibold))
+                .font(.system(size: 11, weight: .bold))
                 .foregroundStyle(Theme.inkSoft)
                 .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 5)
             Text("ID : \(report.exerciseId)")
-                .font(.system(size: 10, weight: .semibold))
+                .font(.system(size: 9, weight: .regular))
                 .foregroundStyle(Theme.inkFaint)
                 .textSelection(.enabled)
                 .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 5)
             AdmReportMessage(
                 label: "PRÉCISION DE L’ÉLÈVE",
                 message: report.message
             )
+            .padding(.top, 14)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
+        .padding(17)
         .background(Theme.surface)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
         .overlay(
             RoundedRectangle(cornerRadius: Theme.radiusLarge)
                 .stroke(Theme.border, lineWidth: 1)
         )
+        .admCardShadow()
     }
 }
 
 /// En-tête commun : icône, nom, date et étiquette de cible.
 struct AdmReportHeader: View {
     let icon: String
-    let tint: Color
     let title: String
     let date: String
     let badge: String
 
     var body: some View {
-        HStack(spacing: 11) {
-            Image(systemName: icon)
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(tint)
-                .frame(width: 40, height: 40)
-                .background(Theme.primaryLight)
-                .clipShape(RoundedRectangle(cornerRadius: 14))
+        HStack(spacing: 10) {
+            IonIcon(name: icon, size: 20, color: Theme.like)
+                .frame(width: 38, height: 38)
+                .background(Theme.likeLight)
+                .clipShape(RoundedRectangle(cornerRadius: 13))
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.system(size: 14, weight: .heavy))
+                    .font(.system(size: 13, weight: .black))
                     .foregroundStyle(Theme.ink)
                     .lineLimit(1)
                 Text(date)
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(.system(size: 9, weight: .regular))
                     .foregroundStyle(Theme.inkFaint)
             }
             Spacer(minLength: 8)
-            DuelloPill(text: badge, tone: .ink)
+            // `targetBadge` : fond `likeLight`, texte `like`, 9/900, rayon pilule,
+            // sans mise en majuscules.
+            AdmPill(
+                text: badge,
+                foreground: Theme.like,
+                background: Theme.likeLight,
+                fontSize: 9,
+                weight: .black,
+                verticalPadding: 6,
+                horizontalPadding: 9
+            )
         }
     }
 }
@@ -133,19 +149,20 @@ struct AdmReportMessage: View {
     let message: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 0) {
             Text(label)
-                .font(.system(size: 9, weight: .heavy))
+                .font(.system(size: 8, weight: .black))
                 .textCase(.uppercase)
                 .foregroundStyle(Theme.inkFaint)
             Text(message.isEmpty ? "Aucune précision ajoutée." : message)
-                .font(.system(size: 12, weight: .semibold))
+                .font(.system(size: 12, weight: .regular))
                 .foregroundStyle(Theme.inkSoft)
                 .textSelection(.enabled)
                 .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 6)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(13)
+        .padding(12)
         .background(Theme.surfaceMuted)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
     }

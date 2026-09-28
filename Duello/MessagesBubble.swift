@@ -47,7 +47,6 @@ struct MessageBubbleRow: View {
         .padding(.horizontal, 13)
         .background(isMine ? Theme.ink : Theme.surface)
         .clipShape(bubbleShape)
-        .overlay(bubbleBorder)
     }
 
     /// Trois coins à 17, un à 5 du côté de l'émetteur.
@@ -57,13 +56,6 @@ struct MessageBubbleRow: View {
     /// dessinée à la main : voir `MsgBubbleShape`.
     private var bubbleShape: MsgBubbleShape {
         MsgBubbleShape(radius: 17, tightRadius: 5, isMine: isMine)
-    }
-
-    @ViewBuilder
-    private var bubbleBorder: some View {
-        if !isMine {
-            bubbleShape.stroke(Theme.border, lineWidth: 1)
-        }
     }
 
     private func avatar(_ initial: String, background: Color, foreground: Color) -> some View {

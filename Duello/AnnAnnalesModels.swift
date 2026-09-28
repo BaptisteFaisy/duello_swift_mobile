@@ -52,25 +52,32 @@ enum AnnVerdict: String, Codable, CaseIterable, Identifiable {
         }
     }
 
-    /// Icône équivalente aux glyphes Ionicons de `questionVerdictIcon`.
+    /// Nom Ionicons du verdict, mot pour mot de `questionVerdictIcon`
+    /// (`AnnaleViewer.tsx:286-291`) : rendu par `IonIcon`, jamais un SF Symbol.
     var icon: String {
         switch self {
         case .perfect: return "sparkles"
-        case .correct: return "checkmark.circle.fill"
-        case .partial: return "exclamationmark.circle.fill"
-        case .incorrect: return "xmark.circle.fill"
+        case .correct: return "checkmark-circle"
+        case .partial: return "alert-circle"
+        case .incorrect: return "close-circle"
         }
     }
 
-    /// Couleur du verdict (`questionVerdictColor`).
+    /// Couleur du verdict (`questionVerdictColor`). « Juste » reprend le vert
+    /// de maîtrise `colors.mastery` (`theme.ts:24`, `#22C55E`) — pas le vert de
+    /// progression : le thème Swift partagé n'expose pas encore `mastery`
+    /// (à raccorder, voir rapport).
     var color: Color {
         switch self {
         case .perfect: return Theme.gradingPerfect
-        case .correct: return Theme.progress
+        case .correct: return AnnVerdict.masteryColor
         case .partial: return Theme.gradingPartial
         case .incorrect: return Theme.like
         }
     }
+
+    /// `colors.mastery` (`theme.ts:24`, `#22C55E`).
+    static let masteryColor = Color(hex: 0x22C55E)
 
     /// Ton de pastille correspondant.
     var tone: DuelloPillTone {

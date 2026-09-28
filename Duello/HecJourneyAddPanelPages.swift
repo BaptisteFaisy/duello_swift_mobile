@@ -9,7 +9,8 @@ import SwiftUI
 
 // MARK: - Types de blocs
 
-/// `typeGrid` : huit types sur deux colonnes, « DS » et « CB » gardant leurs
+/// `typeGrid` : huit types sur deux colonnes (« width: '50%' », `minHeight`
+/// 42, écart 10, icône 17 `#D9D6D1`), « DS » et « CB » gardant leurs
 /// capitales.
 struct HecJourneyAddTypesPage: View {
     @ObservedObject var flow: HecJourneyAddFlow
@@ -25,11 +26,12 @@ struct HecJourneyAddTypesPage: View {
                 Button {
                     flow.selectType(type)
                 } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: HecJourneyBlocks.icon(type))
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(HecJourneyPalette.sheetAccent)
-                            .frame(width: 20)
+                    HStack(spacing: 10) {
+                        IonIcon(
+                            name: HecJourneyBlocks.iconName(type),
+                            size: 17,
+                            color: HecJourneyPalette.sheetAccent
+                        )
                         Text(HecJourneyBlocks.optionLabel(type))
                             .font(.system(size: 11, weight: .bold))
                             .foregroundStyle(HecJourneyPalette.sheetInk)
@@ -37,10 +39,10 @@ struct HecJourneyAddTypesPage: View {
                         Spacer(minLength: 0)
                     }
                     .padding(.horizontal, 12)
-                    .frame(height: 44)
+                    .frame(maxWidth: .infinity, minHeight: 42, alignment: .leading)
                     .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(HecJourneySheet.PressFillStyle())
                 .accessibilityLabel(HecJourneyCopy.a11yAddType(type))
             }
         }
@@ -51,7 +53,8 @@ struct HecJourneyAddTypesPage: View {
 // MARK: - Chapitres
 
 /// `chapterList` : les chapitres du programme, numérotés, hauteur maximale de
-/// 230 points comme la source.
+/// 230 points comme la source. `chapterOption` : `minHeight` 52, écart 12,
+/// index 22 large, nom 13/700, `add` 17 `#A9A49E`.
 struct HecJourneyAddChaptersPage: View {
     @ObservedObject var flow: HecJourneyAddFlow
     let chapters: [HecJourneyChapter]
@@ -83,7 +86,15 @@ struct HecJourneyAddChaptersPage: View {
         HecJourneySheet.OptionRow(
             title: chapter.name,
             leading: String(format: "%02d", index + 1),
-            trailingIcon: "plus",
+            leadingWidth: 22,
+            trailingIcon: "add",
+            trailingSize: 17,
+            trailingTint: HecJourneyPalette.sheetInkSubtle,
+            titleSize: 13,
+            spacing: 12,
+            horizontalPadding: 16,
+            verticalPadding: 10,
+            minHeight: 52,
             action: { flow.selectChapter(chapter) }
         )
         .overlay(alignment: .bottom) {
@@ -95,7 +106,9 @@ struct HecJourneyAddChaptersPage: View {
 
 // MARK: - Vacances
 
-/// `holidayList` : les six entrées de `HEC_JOURNEY_SCHOOL_HOLIDAYS`.
+/// `holidayList` : les six entrées de `HEC_JOURNEY_SCHOOL_HOLIDAYS`
+/// (`maxHeight` 260, `holidayOption` : `minHeight` 43, écart 10, icône 16,
+/// texte 11/700, chevron 14).
 struct HecJourneyAddHolidaysPage: View {
     @ObservedObject var flow: HecJourneyAddFlow
 
@@ -105,8 +118,14 @@ struct HecJourneyAddHolidaysPage: View {
                 ForEach(HecJourneySchoolHoliday.allCases, id: \.self) { holiday in
                     HecJourneySheet.OptionRow(
                         title: holiday.label,
-                        icon: holiday == .toutes ? "square.stack" : "sun.max",
-                        trailingIcon: "chevron.right",
+                        icon: holiday == .toutes ? "albums-outline" : "sunny-outline",
+                        iconSize: 16,
+                        trailingIcon: "chevron-forward",
+                        trailingSize: 14,
+                        titleSize: 11,
+                        spacing: 10,
+                        horizontalPadding: 16,
+                        minHeight: 43,
                         action: {
                             flow.selectedHoliday = holiday
                             flow.panel = .holidayZone
@@ -119,7 +138,7 @@ struct HecJourneyAddHolidaysPage: View {
                 }
             }
         }
-        .frame(maxHeight: 230)
+        .frame(maxHeight: 260)
     }
 }
 
@@ -140,7 +159,14 @@ struct HecJourneyAddHolidayZonePage: View {
                 ForEach(HecJourneySchoolZone.allCases, id: \.self) { zone in
                     HecJourneySheet.ActionButton(
                         title: HecJourneyCopy.zoneButton(zone),
-                        filled: false,
+                        titleColor: HecJourneyPalette.sheetAccent,
+                        background: Color.clear,
+                        borderColor: HecJourneyPalette.sheetBorderSoft,
+                        titleSize: 8,
+                        tracking: 0.7,
+                        minHeight: 36,
+                        horizontalPadding: 0,
+                        pressFill: Color.white.opacity(0.08),
                         action: { flow.selectHolidayZone(zone) }
                     )
                     .accessibilityLabel(HecJourneyCopy.a11yChooseZone(zone))
@@ -149,13 +175,21 @@ struct HecJourneyAddHolidayZonePage: View {
             .padding(.top, 12)
             HecJourneySheet.ActionButton(
                 title: HecJourneyCopy.useCustomDate(HecJourneyDates.format(flow.draftDate)),
-                filled: false,
+                titleColor: HecJourneyPalette.sheetInk,
+                background: HecJourneyPalette.sheetSoftFill,
+                borderColor: Color.clear,
+                titleSize: 8,
+                tracking: 0.7,
+                minHeight: 38,
+                icon: "calendar-outline",
+                pressFill: Color.white.opacity(0.08),
                 action: { flow.selectHolidayZone(nil) }
             )
             .padding(.top, 8)
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 14)
+        .padding(.top, 13)
+        .padding(.bottom, 14)
     }
 }
 
@@ -167,9 +201,7 @@ struct HecJourneyAddDeletePage: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Image(systemName: "trash")
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(HecJourneyPalette.sheetDangerStrong)
+            IonIcon(name: "trash-outline", size: 18, color: HecJourneyPalette.sheetDangerStrong)
                 .frame(width: 34, height: 34)
                 .background(HecJourneyPalette.sheetDangerSurface)
                 .clipShape(RoundedRectangle(cornerRadius: 10))
@@ -177,30 +209,34 @@ struct HecJourneyAddDeletePage: View {
                 .font(.system(size: 14, weight: .heavy))
                 .foregroundStyle(HecJourneyPalette.sheetStrong)
                 .multilineTextAlignment(.center)
-                .padding(.top, 10)
+                .padding(.top, 5)
             Text(HecJourneyCopy.deleteBlockMessage)
                 .font(.system(size: 9, weight: .semibold))
                 .foregroundStyle(HecJourneyPalette.sheetInkHint)
                 .multilineTextAlignment(.center)
                 .padding(.top, 6)
-            HStack(spacing: 8) {
-                HecJourneySheet.ActionButton(
+            HecJourneySheet.ActionRow(slots: [
+                .init(flex: 0.8, button: HecJourneySheet.ActionButton(
                     title: HecJourneyCopy.cancelButton,
-                    filled: false,
+                    titleColor: HecJourneyPalette.sheetInkSubtle,
+                    background: Color.clear,
+                    borderColor: HecJourneyPalette.sheetBorderSoft,
+                    pressFill: Color.white.opacity(0.08),
                     action: { flow.panel = .types }
-                )
-                .accessibilityLabel(HecJourneyCopy.a11yCancelDelete)
-                HecJourneySheet.ActionButton(
+                )),
+                .init(flex: 1.2, button: HecJourneySheet.ActionButton(
                     title: HecJourneyCopy.deleteButton,
-                    danger: true,
+                    titleColor: .white,
+                    background: HecJourneyPalette.sheetDangerFill,
+                    pressOpacity: 0.72,
                     action: { flow.deleteNeutralBlock() }
-                )
-                .accessibilityLabel(HecJourneyCopy.a11yDeleteBlockConfirm)
-            }
+                )),
+            ])
             .padding(.top, 16)
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 14)
+        .padding(.top, 16)
+        .padding(.bottom, 14)
     }
 }
 
@@ -237,12 +273,14 @@ struct HecJourneyAddConfirmationPage: View {
     var body: some View {
         VStack(spacing: 0) {
             if let entry = flow.pendingEntry {
-                Image(systemName: HecJourneyBlocks.icon(entry.type))
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(HecJourneyPalette.sheetInk)
-                    .frame(width: 34, height: 34)
-                    .background(HecJourneyPalette.sheetIconSurface)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                IonIcon(
+                    name: HecJourneyBlocks.iconName(entry.type),
+                    size: 18,
+                    color: HecJourneyPalette.sheetInk
+                )
+                .frame(width: 34, height: 34)
+                .background(HecJourneyPalette.sheetIconSurface)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
                 Text(summary.type)
                     .font(.system(size: 8, weight: .black))
                     .tracking(1.2)
@@ -262,24 +300,41 @@ struct HecJourneyAddConfirmationPage: View {
             }
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 14)
+        .padding(.top, 16)
+        .padding(.bottom, 14)
     }
 
     /// « MODIFIER » n'apparaît pas pour un chapitre, comme la source.
+    @ViewBuilder
     private func actions(for entry: HecJourneyEntry) -> some View {
-        HStack(spacing: 8) {
-            if entry.type != .chapter {
-                HecJourneySheet.ActionButton(
+        if entry.type != .chapter {
+            HecJourneySheet.ActionRow(slots: [
+                .init(flex: 0.8, button: HecJourneySheet.ActionButton(
                     title: HecJourneyCopy.modifyButton,
-                    filled: false,
+                    titleColor: HecJourneyPalette.sheetInkSubtle,
+                    background: Color.clear,
+                    borderColor: HecJourneyPalette.sheetBorderSoft,
+                    pressFill: Color.white.opacity(0.08),
                     action: { flow.back() }
-                )
-            }
-            HecJourneySheet.ActionButton(
-                title: HecJourneyCopy.confirmButton,
-                action: { flow.confirmCreation() }
-            )
+                )),
+                .init(flex: 1.2, button: HecJourneySheet.ActionButton(
+                    title: HecJourneyCopy.confirmButton,
+                    tracking: 0.9,
+                    pressOpacity: 0.72,
+                    action: { flow.confirmCreation() }
+                )),
+            ])
+            .padding(.top, 16)
+        } else {
+            HecJourneySheet.ActionRow(slots: [
+                .init(flex: 1.2, button: HecJourneySheet.ActionButton(
+                    title: HecJourneyCopy.confirmButton,
+                    tracking: 0.9,
+                    pressOpacity: 0.72,
+                    action: { flow.confirmCreation() }
+                )),
+            ])
+            .padding(.top, 16)
         }
-        .padding(.top, 16)
     }
 }

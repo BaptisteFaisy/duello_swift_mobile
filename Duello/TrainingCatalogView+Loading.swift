@@ -34,20 +34,31 @@ extension TrainingCatalogView {
                 year: session.profile.year
             )
             state = .ready
+            loadCourseMarkers()
         } catch {
             manifestError = TrainErrorMessage.text(for: error)
             state = .error
         }
     }
 
-    func toggle(_ chapter: TrackChapter) {
-        if expanded.contains(chapter.id) {
-            expanded.remove(chapter.id)
-            return
-        }
-        expanded.insert(chapter.id)
+    /// Ouvre un chapitre en plein écran (`openChapterList` de la source) et
+    /// lance le chargement de ses sujets au premier affichage (hors mode Cours,
+    /// qui n'affiche pas de liste de sujets).
+    func openChapterDetail(_ chapter: TrackChapter) {
+        openChapter = chapter
+        guard activeMode != .cours else { return }
+        Task { await loadExercisesIfNeeded(for: chapter) }
+    }
+
+    /// Referme la page du chapitre et revient au programme de la matière.
+    func closeChapterDetail() {
+        openChapter = nil
+    }
+
+    /// Énoncés d'un chapitre, chargés à sa première ouverture seulement.
+    func loadExercisesIfNeeded(for chapter: TrackChapter) async {
         guard loadedExercises[chapter.id] == nil, chapterStates[chapter.id] == nil else { return }
-        Task { await loadExercises(for: chapter) }
+        await loadExercises(for: chapter)
     }
 
     /// Énoncés d'un chapitre, chargés à son premier dépliage seulement.
@@ -74,12 +85,27 @@ extension TrainingCatalogView {
         }
     }
 
-    /// Sujets du chapitre filtrés par difficulté, puis rangés par palier.
+    /// Sujets du chapitre filtrés par difficulté (multi-choix) puis par
+    /// prérequis, et rangés par palier (`filterItemsByBadges` puis
+    /// `filterItemsByPrerequisite` de la source).
     func visibleExercises(_ chapter: TrackChapter) -> [TrainExercise] {
         let loaded = loadedExercises[chapter.id] ?? []
-        guard let level = difficultyFilters[chapter.id] else {
-            return TrainExercise.orderedByDifficulty(loaded)
+        var items = loaded
+        if let levels = difficultyFilters[chapter.id], !levels.isEmpty {
+            items = items.filter { exercise in
+                guard let level = exercise.difficulty else { return false }
+                return levels.contains(level)
+            }
         }
-        return TrainExercise.orderedByDifficulty(loaded.filter { $0.difficulty == level })
+        let prerequisites = prerequisiteFilters[chapter.id] ?? []
+        if !prerequisites.isEmpty {
+            let context = prerequisiteCardContext()
+            items = items.filter { exercise in
+                prerequisites.contains(
+                    prerequisiteFilterValue(exercise, chapter: chapter, context: context)
+                )
+            }
+        }
+        return TrainExercise.orderedByDifficulty(items)
     }
 }

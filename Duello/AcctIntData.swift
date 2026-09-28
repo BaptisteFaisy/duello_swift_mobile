@@ -8,28 +8,64 @@
 //  `ProgressStore`. Reprend la composition de
 //  `src/screens/AccountScreen.tsx` : `viewedOverviewStats` (l. 1841-1872),
 //  `viewedDetailStats` (l. 1873-1902), `viewedXpSummary` (l. 1710,
-//  `summaryFromTotal`), `viewedOverallElo` (l. 1838), `viewedLeague` (l. 1839)
-//  et `showcasePath` (l. 2773-2790).
+//  `summaryFromTotal`), `viewedOverallElo` (l. 1838), `viewedLeague` (l. 1839),
+//  `showcasePath` (l. 2773-2790) et `buildEloSeries`/`groupEloSeriesByPeriod`
+//  (`utils/subjectElo.ts`, l. 380/164).
 //
 //  Repli documenté — donnée absente du portage local (jamais inventée) :
 //    - Succès par matière : le regroupement item → matière dépend du catalogue
 //      d'exercices, non relié ici → liste vide côté vitrine (la section n'est
 //      toutefois plus rendue, la source la masquant).
+//    - Notes de correction (`correctionGradePeriods`) : aucun store horodaté
+//      local (`prepapp-grades` n'est lu nulle part) → série vide.
+//    - Temps par période (`timeBuckets`) : `ProgressStore` n'expose aucun
+//      cumul horodaté (`exerciseMinutes`/`subjectMinutes` sont des totaux) →
+//      série vide.
+//    - Rang au classement (`profileRankTile`) : sans cohorte Elo/classement
+//      local, le rang est inconnu (`rank === null`) → tiret et « indisponible ».
 //
-//  XP totale, complétion de programme, courbes XP et Elo proviennent désormais
-//  de `ProgressStore` (`totalXp`, `competitionProgramPercent`, `xpHistory`,
+//  XP totale, complétion de programme, courbes XP et Elo proviennent de
+//  `ProgressStore` (`totalXp`, `competitionProgramPercent`, `xpHistory`,
 //  `eloHistory`), comme `buildOwnPerformance`/`competitionProgramPercent` de la
 //  source.
 //
 //  Cible : iOS 16, aucune API iOS 17.
 //
-import Foundation
+import SwiftUI
 
 /// Données de la vitrine de l'onglet « Mon compte », dérivées de l'état local.
 enum AcctIntData {
     /// Lignes du parcours publié (`showcasePath` : filière, année, option).
+    ///
+    /// `currentTrackForProfile` remplace le champ historique `track` (qui perd
+    /// BCPST et B/L derrière MPSI) ; l'option passe par
+    /// `accountAcademicOptionLabel`, qui rend la forme courte en ECG.
     static func pathLines(_ profile: UserProfile) -> [String] {
-        [profile.track, profile.year, profile.specialty]
+        let track = profile.followedTrack
+        // `normalizeAcademicPath(own).currentOption` : option actuelle relue
+        // d'abord de `academicPath.currentOption`, puis du champ historique.
+        let savedOption = OnbFlowAcademic.normalizedOption(
+            track: track,
+            candidate: profile.academicPath?.currentOption ?? "",
+            firstYear: false
+        )
+        let legacyOption = OnbFlowAcademic.normalizedOption(
+            track: track, candidate: profile.specialty, firstYear: false
+        )
+        var option = savedOption.isEmpty ? legacyOption : savedOption
+        // `accountAcademicOptionLabel` : en ECG, la forme courte « Maths
+        // appliquées » / « Maths approfondies » ; ailleurs, l'option reste telle
+        // quelle (chaîne vide quand elle n'est pas reconnue, la carte masquant
+        // les lignes vides).
+        if track == "ECG", !option.isEmpty {
+            let normalized = option.lowercased()
+            if normalized.contains("appliqu") {
+                option = "Maths appliquées"
+            } else if normalized.contains("approfond") {
+                option = "Maths approfondies"
+            }
+        }
+        return [track, profile.year, option]
     }
 
     /// Elo global (`viewedElo.overall.current`) : moyenne des Elo de matière,
@@ -70,53 +106,132 @@ enum AcctIntData {
         let xpText = ExGFormat.xp(totalXp)
         return [
             ChartPerformanceOverviewStat(
-                icon: "sparkles", value: xpText, label: "XP",
+                icon: "sparkles-outline", value: xpText, label: "XP",
                 accessibilityLabel: "\(xpText) XP",
                 color: ChartGoogleGColors.blue),
             ChartPerformanceOverviewStat(
-                icon: "trophy", value: "\(elo)", label: "ELO",
+                icon: "trophy-outline", value: "\(elo)", label: "ELO",
                 accessibilityLabel: "\(elo) Elo moyen",
                 color: ChartGoogleGColors.green),
             ChartPerformanceOverviewStat(
-                icon: "flame", value: "\(streakDays) j", label: "SÉRIE",
+                icon: "flame-outline", value: "\(streakDays) j", label: "SÉRIE",
                 accessibilityLabel: streakAccessibility(streakDays),
                 color: ChartGoogleGColors.yellow),
             ChartPerformanceOverviewStat(
-                icon: "chart.pie", value: "\(programPercent) %", label: "PROGRAMME",
+                icon: "pie-chart-outline", value: "\(programPercent) %", label: "PROGRAMME",
                 accessibilityLabel: "\(programPercent) % du programme menant aux concours",
                 color: ChartGoogleGColors.red),
         ]
     }
 
     /// Repères détaillés de la vitrine (`viewedDetailStats`).
+    ///
+    /// Sur la variante de développement (`USE_REFINED_OVERVIEW`), les deux
+    /// premières tuiles deviennent les rangs « Moi » (RANG XP, RANG ELO) ; sans
+    /// cohorte locale, `profileRankTile` rend le tiret d'attente.
     static func detailStats(
         level: Int,
         progress: ProgressStore
     ) -> [ChartPerformanceOverviewStat] {
         let timeText = ProgressStore.formatTrainingTime(minutes: progress.exerciseMinutes)
-        return [
+        let head: [ChartPerformanceOverviewStat]
+        if AcctEvoConstants.useRefinedOverview {
+            head = [
+                rankTile(
+                    icon: "medal-outline", label: "RANG XP",
+                    leaderboardName: "classement XP de la semaine",
+                    color: ChartGoogleGColors.blue),
+                rankTile(
+                    icon: "podium-outline", label: "RANG ELO",
+                    leaderboardName: "classement Elo",
+                    color: ChartGoogleGColors.green),
+            ]
+        } else {
+            head = [
+                ChartPerformanceOverviewStat(
+                    icon: "ribbon-outline", value: "\(level)", label: "NIVEAU",
+                    accessibilityLabel: "Niveau \(level)",
+                    color: ChartGoogleGColors.blue),
+                ChartPerformanceOverviewStat(
+                    icon: "flash-outline", value: "\(progress.challengesCompleted)",
+                    label: "DÉFIS",
+                    accessibilityLabel: "\(progress.challengesCompleted) défis terminés",
+                    color: ChartGoogleGColors.green),
+            ]
+        }
+        return head + [
             ChartPerformanceOverviewStat(
-                icon: "ribbon", value: "\(level)", label: "NIVEAU",
-                accessibilityLabel: "Niveau \(level)",
-                color: ChartGoogleGColors.blue),
-            ChartPerformanceOverviewStat(
-                icon: "bolt", value: "\(progress.challengesCompleted)", label: "DÉFIS",
-                accessibilityLabel: "\(progress.challengesCompleted) défis terminés",
-                color: ChartGoogleGColors.green),
-            ChartPerformanceOverviewStat(
-                icon: "checkmark.circle", value: "\(progress.exercisesCompleted)",
+                icon: "checkmark-done-outline", value: "\(progress.exercisesCompleted)",
                 label: "EXERCICES",
                 accessibilityLabel: "\(progress.exercisesCompleted) exercices terminés",
                 color: ChartGoogleGColors.yellow),
             ChartPerformanceOverviewStat(
-                icon: "timer", value: timeText, label: "ENTRAÎNEMENT",
+                icon: "timer-outline", value: timeText, label: "ENTRAÎNEMENT",
                 accessibilityLabel: "\(timeText) d’entraînement",
                 color: ChartGoogleGColors.red),
         ]
     }
 
+    /// Courbe d'Elo (`buildEloSeries` puis `groupEloSeriesByPeriod`) : un point
+    /// par défi joué, valeur = moyenne arrondie des Elo des matières déjà
+    /// jouées, puis une valeur de clôture par période.
+    static func eloSeries(
+        _ history: [ProgressEloEntry],
+        subject: String?,
+        granularity: ChartTimeGranularity
+    ) -> [ChartEloSeriesPoint] {
+        // `registeredAt` est absent du portage local : la série démarre au
+        // premier point daté (repli documenté, comme `ChartXpSeries.build`).
+        let played = history
+            .filter { subject == nil || $0.subject == subject }
+            .sorted { $0.at < $1.at }
+        guard !played.isEmpty else { return [] }
+
+        var latest: [String: Int] = [:]
+        var raw: [ChartEloSeriesPoint] = [
+            ChartEloSeriesPoint(elo: Double(ProgressStore.initialElo), at: 0)
+        ]
+        for entry in played {
+            latest[entry.subject] = entry.elo
+            let values = Array(latest.values)
+            let average = Double(values.reduce(0, +)) / Double(values.count)
+            raw.append(ChartEloSeriesPoint(elo: Double(Int(average.rounded())), at: entry.at))
+        }
+
+        // `groupEloSeriesByPeriod` : clôture par période ; le point non daté
+        // (Elo d'inscription) reste en tête.
+        let undatedStart = raw.first { $0.at <= 0 }
+        var closingByPeriod: [Double: ChartEloSeriesPoint] = [:]
+        for point in raw where point.at > 0 {
+            let start = ChartTimeSeries.bucketStart(point.at, granularity)
+            closingByPeriod[start] = ChartEloSeriesPoint(elo: point.elo, at: start)
+        }
+        var result: [ChartEloSeriesPoint] = []
+        if let undatedStart { result.append(undatedStart) }
+        result.append(contentsOf: closingByPeriod.values.sorted { $0.at < $1.at })
+        return result
+    }
+
     /// Libellé VoiceOver de la série (« 1 jour » / « N jours »).
     private static func streakAccessibility(_ days: Int) -> String {
         "\(days) jour\(days > 1 ? "s" : "") de série"
+    }
+
+    /// `profileRankTile` de `utils/profileLeaderboardRanks.ts` (l. 138) : sans
+    /// cohorte locale le rang est inconnu (`rank === null`), la tuile porte
+    /// `PROFILE_RANK_PENDING_VALUE` (« — ») et l'accessibilité « indisponible ».
+    private static func rankTile(
+        icon: String,
+        label: String,
+        leaderboardName: String,
+        color: Color
+    ) -> ChartPerformanceOverviewStat {
+        ChartPerformanceOverviewStat(
+            icon: icon,
+            value: "—",
+            label: label,
+            accessibilityLabel: "Rang au \(leaderboardName) indisponible",
+            color: color
+        )
     }
 }

@@ -14,7 +14,11 @@
 //                                        selectedProfileState,
 //                                        selectedProfileAttempt, knownProfiles,
 //                                        openMember, showOwnProfile,
-//                                        refreshSelectedProfile, toggleFollow)
+//                                        refreshSelectedProfile, toggleFollow,
+//                                        requestBlockMember/blockingMemberId)
+//    - src/utils/socialApi.ts           (publicProfileId,
+//                                        sendSocialNotification,
+//                                        blockSocialProfile)
 //    - src/utils/knownSocialProfiles.ts (mergeKnownSocialProfiles)
 //    - src/utils/socialVisibility.ts    (canViewFullProfile, viewedPremium)
 //    - src/utils/socialApi.ts           (publicProfileId)
@@ -37,6 +41,11 @@ final class AcctSearchModel: ObservableObject {
 
     /// Adresse du compte connecté : sert à dériver l'identifiant public.
     @Published var ownEmail = ""
+
+    /// Jeton de session, posé par la vue (`AcctSearchView.onAppear`). La source
+    /// émet `sendSocialNotification` sans jeton explicite ; il faut donc le
+    /// mémoriser pour le porter depuis `openMember`.
+    var authToken: String?
 
     /// Identifiant public du compte connecté (`publicProfileId` de
     /// `socialApi.ts`, FNV-1a de l'e-mail normalisé). C'est l'ancre de la fiche
@@ -70,6 +79,10 @@ final class AcctSearchModel: ObservableObject {
     @Published private(set) var selectedProfileState: AcctSearchProfileState = .idle
     /// Incrémenté par « Réessayer » : force la relecture de la fiche ouverte.
     @Published var selectedProfileAttempt = 0
+    /// Membre en cours de blocage (`blockingMemberId` d'Expo) : le menu de
+    /// sécurité montre une roue d'attente et « Bloquer » reste désactivé tant
+    /// que le blocage n'est pas terminé.
+    @Published private(set) var blockingMemberId: String?
 
     // MARK: Graphe social (alimenté par le lot « Social »)
 
@@ -226,16 +239,48 @@ final class AcctSearchModel: ObservableObject {
     }
 
     /// Ouvre la fiche d'un membre et referme le menu (`openMember`).
+    ///
+    /// Chaque visite compte : `sendSocialNotification(profile, memberId,
+    /// 'profile-view')` prévient le compte ciblé, sans bloquer l'affichage
+    /// (échec ignoré, comme le `catch` d'Expo ; le serveur ignore les doublons
+    /// et la visite de son propre profil).
     func openMember(_ memberId: String) {
         menuOpen = false
         selectedProfileState = .loading
         selectedMemberId = memberId
+
+        let actorId = ownPublicProfileId
+        guard !ownEmail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              actorId != memberId else { return }
+        let token = authToken
+        Task {
+            guard let body = try? DuelloAPI.encodeBody(
+                ["actorId": actorId, "targetId": memberId, "kind": "profile-view"]
+            ) else { return }
+            _ = try? await DuelloAPI.request(
+                "notifications", method: "POST", token: token, body: body
+            )
+        }
     }
 
     /// Revient à son propre profil (`showOwnProfile`).
     func showOwnProfile() {
         selectedProfileState = .idle
         selectedMemberId = nil
+    }
+
+    /// `blockSocialProfile` (`requestBlockMember` d'Expo) : bloque le membre, le
+    /// retire de toutes les listes sociales puis revient à son propre profil.
+    /// L'alerte de confirmation et les messages de succès/échec restent à la vue.
+    func block(_ memberId: String, token: String?) async throws {
+        blockingMemberId = memberId
+        defer { blockingMemberId = nil }
+        _ = try await ReportSafetyAPI.block(targetId: memberId, token: token)
+        directoryProfiles = directoryProfiles.filter { $0.id != memberId }
+        socialDirectory = socialDirectory.filter { $0.id != memberId }
+        followedIds = followedIds.filter { $0 != memberId }
+        followerIds = followerIds.filter { $0 != memberId }
+        showOwnProfile()
     }
 
     /// Relit la fiche ouverte dans l'annuaire (`refreshSelectedProfile`) : la
