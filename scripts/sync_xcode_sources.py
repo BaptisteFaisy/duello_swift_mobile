@@ -45,7 +45,7 @@ def referenced_names(text: str) -> set[str]:
     Couvre les deux formes de commentaire Xcode et les noms contenant `+`
     (`TrainingCatalogView+Entry.swift`) ou `-`.
     """
-    pattern = r"/\* ([A-Za-z0-9_+-]+\.swift)(?: in Sources)? \*/"
+    pattern = r"/\* ([A-Za-z0-9_.+-]+\.swift)(?: in Sources)? \*/"
     return set(re.findall(pattern, text))
 
 
