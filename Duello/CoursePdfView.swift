@@ -181,7 +181,7 @@ private struct CtdPdfKitView: UIViewRepresentable {
                 }
                 self.onSelection?(ProfPdfSelection(
                     text: text,
-                    page: pdfView.index(for: page) + 1,
+                    page: (pdfView.document?.index(for: page) ?? 0) + 1,
                     rect: pdfView.convert(selection.bounds(for: page), from: page)
                 ))
             }

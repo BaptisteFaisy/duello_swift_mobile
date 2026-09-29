@@ -25,6 +25,10 @@ open class PDFDocument: NSObject {
 
     public var pageCount: Int { 0 }
     public var isLocked: Bool { false }
+
+    /// `PDFDocument.index(for:)` — **c'est le document qui indexe les pages**,
+    /// pas la vue (`PDFView.index(for:)` n'existe pas dans le SDK réel).
+    public func index(for page: PDFPage) -> Int { 0 }
 }
 
 /// `PDFPage` : page du document, porteuse du texte sélectionnable.
@@ -54,7 +58,6 @@ open class PDFView: UIView {
     public var document: PDFDocument?
     public var currentSelection: PDFSelection?
 
-    public func index(for page: PDFPage) -> Int { 0 }
     public func convert(_ rect: CGRect, from page: PDFPage) -> CGRect { .zero }
     public func goToFirstPage(_ sender: Any?) {}
     public func goToLastPage(_ sender: Any?) {}
