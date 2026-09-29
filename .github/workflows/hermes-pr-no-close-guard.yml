@@ -70,7 +70,7 @@ defaults:
 jobs:
   guard:
     name: garde-fou anti-fermeture sans merge
-    runs-on: [self-hosted, zenbook]
+    runs-on: [self-hosted, macmini]
     # [GATE-TIMEOUT] Filet de securite : ce garde ne doit jamais pendre sur
     # une socket muette (le `timeout=` d'urllib ne borne que la lecture, pas
     # la duree totale). Le delai TOTAL par appel (_with_deadline) traite le

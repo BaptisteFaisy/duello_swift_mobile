@@ -89,7 +89,7 @@ jobs:
     # (duello-vps-02, label `duello` retire) : il ne fait plus la queue derriere
     # la file CI Typecheck/Batterie. Consequence : ne PAS retirer le label
     # `hermes-gate` de duello-vps-02 et ne PAS le remettre sur `duello` seul.
-    runs-on: [self-hosted, zenbook]
+    runs-on: [self-hosted, macmini]
     # [GATE-TIMEOUT] Filet de securite : le gate ne doit JAMAIS tenir le groupe de
     # concurrence `hermes-gate` des heures (constat 24/09 : job bloque sur une
     # socket muette, ~0 s de CPU). Le delai TOTAL par appel reseau
