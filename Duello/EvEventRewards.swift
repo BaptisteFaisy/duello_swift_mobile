@@ -29,6 +29,15 @@
 //
 //  Cible : iOS 16. Aucune dépendance externe.
 //
+//  Écarts assumés (2026-09-29, écart 14#10) :
+//   - la conformité `EvEventRewardsStorage` manquante est fournie
+//     (`EvEventRewardsDefaultsStorage`, `UserDefaults` cloisonné par compte, même
+//     couture que `AdmUsageAnalyticsDefaultsStorage`) ; l'**appel** de `record`
+//     à l'apparition de l'entrée propre au classement (`results.own`) reste à
+//     raccorder dans `EvEventSession.swift`, hors lot ;
+//   - le stockage reste local (la source écrit dans `AccountStorage` synchronisé
+//     serveur) : chemin serveur hors périmètre, comme le journal d'usage.
+//
 import Foundation
 
 /// `EventRewardResult`.
@@ -163,6 +172,26 @@ enum EvEventRewards {
         subjectElos[subject] ?? initialSubjectElo
     }
 
+    /// `recordEventRewards(scoped, …)` appelé par `useEventSession.ts:185-196` :
+    /// crédite le compte de `email` via la portée de repli `userStorageId`
+    /// (`fallbackStorage(profile.email)` de la source). Écart 14#10 : fournit la
+    /// conformité `EvEventRewardsStorage` manquante ; le déclenchement à
+    /// l'apparition de l'entrée propre au classement (`results.own`) est à
+    /// raccorder dans `EvEventSession.swift` (hors lot).
+    static func record(
+        email: String,
+        input: EvEventRewardsInput
+    ) async throws -> EvEventRewardResult {
+        let normalized = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let accountId = normalized.isEmpty
+            ? RewStorageScope.onboardingAccountStorageId
+            : RewStorageScope.userStorageId(normalized)
+        return try await record(
+            storage: EvEventRewardsDefaultsStorage(accountId: accountId),
+            input: input
+        )
+    }
+
     /// `recordEventRewards` : crédite XP et delta Elo une seule fois par événement.
     static func record(
         storage: EvEventRewardsStorage,
@@ -201,5 +230,41 @@ enum EvEventRewards {
 
             return EvEventRewardResult(credited: true, xpGained: entryXp, eloDelta: after - before)
         }
+    }
+}
+
+// MARK: - Couture de stockage (conformité)
+
+/// `AccountStorage` de la source adossé à `UserDefaults`, cloisonné par compte
+/// comme `storage/AccountStorage.tsx` : clé physique
+/// `RewStorageScope.accountStorageKey(accountId:logicalKey:)`, portée
+/// d'avant-session quand le compte est vide. Même couture que
+/// `AdmUsageAnalyticsDefaultsStorage` ; fournit la conformité
+/// `EvEventRewardsStorage` qui manquait (écart 14#10).
+///
+/// Note (limite assumée, 2026-09-29) : la source lit/écrit `AccountStorage`
+/// (synchronisé serveur) ; ici le stockage reste local, comme le journal d'usage
+/// (`AdmUsageAnalyticsDefaultsStorage`). Le chemin serveur est hors périmètre.
+struct EvEventRewardsDefaultsStorage: EvEventRewardsStorage {
+    /// Identifiant de compte local propriétaire de l'activité et des cotes.
+    let accountId: String
+    var defaults: UserDefaults = .standard
+
+    func getItem(_ key: String) async -> String? {
+        defaults.string(forKey: physicalKey(key))
+    }
+
+    func setItem(_ key: String, _ value: String) async {
+        defaults.set(value, forKey: physicalKey(key))
+    }
+
+    /// Clé physique de la donnée de compte ; sans compte, la portée est celle
+    /// des écrans d'avant-session.
+    private func physicalKey(_ logicalKey: String) -> String {
+        let scope = accountId.isEmpty
+            ? RewStorageScope.onboardingAccountStorageId
+            : accountId
+        return (try? RewStorageScope.accountStorageKey(accountId: scope, logicalKey: logicalKey))
+            ?? logicalKey
     }
 }

@@ -600,6 +600,17 @@ public struct ProjectionTransform: Equatable {
     public static let identity = ProjectionTransform()
 }
 
+/// `GeometryEffect` — effet de géométrie animable (iOS 13+). Shim no-op.
+public protocol GeometryEffect: Animatable, ViewModifier {
+    func effectValue(size: CGSize) -> ProjectionTransform
+}
+
+public extension GeometryEffect {
+    /// Les conformants ne fournissent que `effectValue` : `body` renvoie le
+    /// contenu inchangé, comme le fait le SDK via `_ViewModifier_Content`.
+    func body(content: Self.Content) -> some View { content }
+}
+
 // MARK: - Animation et transitions
 
 public extension View {

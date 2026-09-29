@@ -28,6 +28,27 @@
 //
 //  La connexion Apple passe par `LoginIntSession` (pont documenté).
 //
+//  Port de `src/screens/LoginScreen.tsx` (+ `App.tsx`).
+//
+//  Parité RN↔Swift (vague 2, 2026-09-29) :
+//    - `onLogin` sans mot de passe (P0) : compte administrateur → ouverture
+//      locale **sans** session serveur (`App.tsx:1982-1985`) ; compte
+//      biométrique → restauration de la session par la preuve d'appareil
+//      (`restoreServerSessionFromDevice`, `App.tsx:1959-1980`).
+//    - arbitrage fournisseur (P1) : une identité inconnue
+//      (`resolutionKind == "signup"`) n'ouvre plus de session ; elle est
+//      retenue (`LoginIntProviderSignupRouter`) au lieu d'appeler `proceed()`
+//      (`App.tsx:2115-2123`, `:2155-2162`).
+//    - présentation (P2) : la demande de lien de réinitialisation est présentée
+//      en **plein écran**, comme la page `ForgotPasswordScreen` de la source
+//      (`App.tsx:2540-2547`), et non en feuille modale.
+//
+//  Écarts assumés :
+//    - le routage de `RootView` vers l'inscription (`setAuthStage('signup')`) et
+//      l'ouverture de la surface d'administration après une ouverture locale
+//      restent hors de ce fichier : `RootView`/`DuelloApp` ne sont pas
+//      propriété de cette unité (voir rapport, « À raccorder »).
+//
 //  Cible : iOS 16. Aucune dépendance externe.
 //
 
@@ -47,7 +68,7 @@ struct LoginIntAssembly: View {
 
     var body: some View {
         LoginScrScreen(props: props)
-            .sheet(isPresented: isResetPresented) {
+            .fullScreenCover(isPresented: isResetPresented) {
                 // Unité 03 : le lien « J'ai oublié mon mot de passe » ouvre
                 // l'écran de **demande de lien** (`ForgotPasswordScreen`), pas
                 // le formulaire de nouveau mot de passe (réservé au lien
@@ -157,14 +178,56 @@ struct LoginIntAssembly: View {
         return localAccounts.first { $0.id == preferredId }
     }
 
-    /// `onLogin` : compte déjà résolu par le registre local. Sans mot de passe
-    /// (biométrie), aucune entrée serveur ne peut ouvrir la session : erreur
-    /// explicite.
+    /// `onLogin` : compte déjà résolu par le registre local. Avec un mot de
+    /// passe, le serveur ouvre la session ; sans (biométrie, ouverture après un
+    /// code de secours administrateur), `openWithoutPassword` tranche selon le
+    /// rôle (`login(loggedAccount, password?)`, `App.tsx:1926-2025`).
     private func signInKnownAccount(_ account: LoginScrAccount, password: String?) async throws {
         guard let password else {
-            throw DirectoryError(message: "Connexion biométrique indisponible sans registre local.")
+            try await openWithoutPassword(account)
+            return
         }
         try await session.signIn(email: account.email, password: password)
+    }
+
+    /// `onLogin` sans mot de passe (`App.tsx:1926-2025`).
+    ///
+    /// - compte **administrateur** : la source l'ouvre en local, sans session
+    ///   serveur (`setHasActiveSession(true)`, `App.tsx:1982-1985`) ;
+    /// - compte **utilisateur biométrique** : la preuve d'appareil rejoue la
+    ///   session serveur (`restoreServerSessionFromDevice`, `App.tsx:1959-1980`).
+    private func openWithoutPassword(_ account: LoginScrAccount) async throws {
+        if account.role == .admin {
+            session.profile = UserProfile()
+            session.isSignedIn = true
+            return
+        }
+        guard account.biometricEnabled else {
+            throw DirectoryError(message: "Connexion biométrique indisponible sans registre local.")
+        }
+        try await restoreDeviceSession(account)
+    }
+
+    /// `restoreServerSessionFromDevice` (`serverSession.ts:470`, appelé par
+    /// `App.tsx:1967`) : rejoue la session serveur du compte à partir de la
+    /// preuve locale de l'appareil (`deviceRecoveryProof`), puis vérifie que le
+    /// serveur a bien rendu le compte attendu avant de l'installer.
+    private func restoreDeviceSession(_ account: LoginScrAccount) async throws {
+        let proof = DevRegRecovery.proof(
+            createSecret: false,
+            accountId: account.id,
+            accountEmail: account.email
+        )
+        let recovered = try await DevRegRecovery.restore(
+            deviceId: proof.deviceId,
+            recoverySecret: proof.recoverySecret,
+            email: account.email
+        )
+        guard DevRegRecovery.normalizeEmail(recovered.account.email)
+            == DevRegRecovery.normalizeEmail(account.email) else {
+            throw DirectoryError(message: "La reconnexion biométrique n’est pas encore préparée pour ce compte. Reconnecte-toi une fois avec ton mot de passe, Google ou Apple, puis réactive la biométrie.")
+        }
+        try session.installSession(recovered.session)
     }
 
     /// `persistAccount` : `saveAccount` du registre local (`utils/auth.ts`).
@@ -205,6 +268,21 @@ struct LoginIntAssembly: View {
         subjectKeyPath: WritableKeyPath<AcctStoredAccount, String?>,
         proceed: @escaping @MainActor () throws -> Void
     ) {
+        // `resolution.kind === 'signup'` : la source n'ouvre **aucune** session
+        // pour une identité fournisseur inconnue — elle retient l'identité et
+        // route vers l'inscription (`App.tsx:2115-2123`, `:2155-2162`).
+        if loginIntResolveProviderAccount(
+            subject: subject,
+            email: email,
+            subjectKeyPath: subjectKeyPath
+        ) == nil {
+            LoginIntProviderSignupRouter.shared.pending = LoginIntPendingProviderSignup(
+                provider: provider,
+                subject: subject,
+                email: email
+            )
+            return
+        }
         let open: @MainActor () -> Void = {
             do {
                 try proceed()
@@ -261,6 +339,31 @@ struct LoginIntProviderReuseAlert {
     let title: String
     let message: String
     let proceed: @MainActor () -> Void
+}
+
+// MARK: - Identité fournisseur en attente d'inscription
+
+/// `pendingGoogleIdentity` / `pendingAppleIdentity` de la source : identité
+/// fournisseur certifiée pour un compte encore inconnu du registre local, que
+/// l'inscription préremplira (`App.tsx:2115-2123`, `:2155-2162`).
+struct LoginIntPendingProviderSignup: Equatable {
+    var provider: LoginScrProviderReuse.Provider
+    var subject: String
+    var email: String
+}
+
+/// Identité fournisseur retenue pour l'inscription (`setPendingGoogleIdentity` /
+/// `setPendingAppleIdentity` + `setAuthStage('signup')`).
+///
+/// La source bascule alors l'`authStage` de l'application ; `RootView` (hors de
+/// cette unité) doit observer `pending` et présenter `SignupFlowView` avec
+/// l'identité préremplie (voir rapport, « À raccorder »).
+@MainActor
+final class LoginIntProviderSignupRouter: ObservableObject {
+    static let shared = LoginIntProviderSignupRouter()
+    /// Identité en attente d'inscription (`nil` = aucune).
+    @Published var pending: LoginIntPendingProviderSignup?
+    private init() {}
 }
 
 /// Identités fournisseur déjà confirmées pendant un parcours d'inscription.

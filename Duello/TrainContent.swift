@@ -6,6 +6,16 @@ import Foundation
 /// décide quel descripteur de chapitre retenir quand plusieurs banques servent
 /// le même chapitre (1re et 2e année, colles, annales). La matière et l'option
 /// viennent du profil, la même source que `DuelloProgram.subjects`.
+///
+/// V1 (29/09/2026, écart 06#1) : `chapterIndex` retient le descripteur d'un
+/// chapitre dans les banques `colles-*` quand le mode ouvert est `.colles`
+/// (`colleCardCatalog`, `SubjectsScreen.tsx:4617`) ; la section Colles dépliait
+/// sinon les mêmes énoncés qu'en Exercices.
+///
+/// Écart assumé (29/09/2026) : `chapterIndex` est encore appelé sans son
+/// paramètre `mode` (défaut `.exercices`) ; brancher `activeMode` et ré-indexer
+/// à chaque changement d'onglet appartient à `TrainingCatalogView` (hors lot,
+/// voir « À raccorder » du rapport IMPL-05).
 enum TrainContent {
     /// Retire les accents et la casse, comme `DuelloProgram.normalize`.
     static func normalize(_ value: String) -> String {
@@ -91,20 +101,40 @@ enum TrainContent {
         return profile.filter { $0.contains(marker) && $0.hasSuffix("-statements") }
     }
 
+    /// Banques de colles de l'année affichée, dans l'ordre du profil
+    /// (`COLLE_BUNDLE_IDS` de `data/trainingCardCatalogs.ts` ; le filtre
+    /// `colles-*` terminé par `-<année>` est celui de
+    /// `currentTrainingContentBundleIds`, `contentStartup.ts:228-240`).
+    static func collesBundleIds(track: String, specialty: String, year: Int) -> [String] {
+        let suffix = "-\(year)"
+        return profileBundleIds(track: track, specialty: specialty, year: year)
+            .filter { $0.hasPrefix("colles-") && $0.hasSuffix(suffix) }
+    }
+
     /// Descripteur retenu par identifiant de chapitre. Quand plusieurs banques
     /// servent le même chapitre, la plus prioritaire pour le profil gagne ; à
     /// priorité égale, la première du manifeste est conservée.
+    ///
+    /// En mode Colles, les banques `colles-*` passent devant les énoncés
+    /// (`colleCardCatalog` lit `COLLE_BUNDLE_IDS[scope]`, `SubjectsScreen.tsx:4617`) :
+    /// un chapitre servi par les deux déplie alors ses colles, pas ses exercices.
+    /// Les énoncés restent le repli des chapitres sans colle.
     static func chapterIndex(
         manifest: DuelloAPI.ContentManifest,
         track: String,
         specialty: String,
-        year: String
+        year: String,
+        mode: SubjTrainingMode = .exercices
     ) -> [String: DuelloAPI.ContentChapterDescriptor] {
-        let order = exerciseBundleIds(
+        let programYearValue = programYear(from: year)
+        let statements = exerciseBundleIds(
             track: track,
             specialty: specialty,
-            year: programYear(from: year)
+            year: programYearValue
         )
+        let order = mode == .colles
+            ? collesBundleIds(track: track, specialty: specialty, year: programYearValue) + statements
+            : statements
         var best: [String: (rank: Int, descriptor: DuelloAPI.ContentChapterDescriptor)] = [:]
         for descriptor in manifest.chapters ?? [] {
             let rank = order.firstIndex(of: descriptor.bundleId) ?? order.count

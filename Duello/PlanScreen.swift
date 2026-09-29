@@ -22,7 +22,13 @@
 //     lot : la grille lit les créneaux persistés s'ils existent, sinon le rappel
 //     « Ajoute tes horaires de cours… » s'affiche, comme dans la source ;
 //   • le `console.log` de repli (EnhancedPlanScreen ligne 168) n'est pas porté :
-//     aucun `print` dans ce fichier.
+//     aucun `print` dans ce fichier ;
+//   • Écart assumé (2026-09-29) — le fond du détail de séance est posé sur le
+//     `ScrollView` de `PlanView`, pas à la racine (`MainTabView.swift` porte la
+//     barre d'onglets) : le voile s'arrête au-dessus de la barre, et les marges
+//     de `PlanSessionDetail.swift:29-30` sont fixes (insets non lus). Corriger
+//     exige `MainTabView.swift` / `PlanSessionDetail.swift`, hors lot — cf.
+//     « À raccorder » du rapport IMPL-07.
 //
 //  Extensions locales exigées par le contrat du lot, absentes de l'écran Expo :
 //  coche d'une tâche (`isDone`), report d'un jour (`postponedDays`), liste des
@@ -203,10 +209,12 @@ struct PlanView: View {
     // MARK: Sections au-dessus de la grille (mesurées ensemble)
 
     private var aboveContent: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        // Espacement 0 : les marges basses viennent de chaque bloc, comme les
+        // `marginBottom` de la source (bandeau 4/12, `dateJump` 12, rappel 12).
+        VStack(alignment: .leading, spacing: 0) {
             banners
-            dateJumpBar
-            if schedule.isEmpty { scheduleHint }
+            dateJumpBar.padding(.bottom, 12)
+            if schedule.isEmpty { scheduleHint.padding(.bottom, 12) }
             weekStrip
         }
     }
@@ -403,7 +411,13 @@ struct PlanBanner: View {
                 IonIcon(name: icon, size: iconSize, color: Theme.ink)
             }
             Text(text)
-                .font(.system(size: 11, weight: .heavy))
+                // Typo par ton : le bandeau d'avertissement reprend le style du
+                // rappel horaires (10 / 600), les bandeaux info et succès leur
+                // propre style (11 / 800) — `scheduleHintText` / `successText`.
+                .font(.system(
+                    size: tone == .warning ? 10 : 11,
+                    weight: tone == .warning ? .semibold : .heavy
+                ))
                 .foregroundStyle(tone == .warning ? Theme.inkSoft : Theme.ink)
             Spacer(minLength: 0)
         }
@@ -411,5 +425,8 @@ struct PlanBanner: View {
         .background(Theme.primaryLight)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
         .padding(.horizontal, 20)
+        // `marginBottom` de la source : 4 pour info/succès (`successBanner`),
+        // 12 pour l'avertissement (`scheduleHint`).
+        .padding(.bottom, tone == .warning ? 12 : 4)
     }
 }

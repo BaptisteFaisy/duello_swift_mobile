@@ -192,6 +192,11 @@ struct GoogleFieldButtonStyle: ButtonStyle {
 
 /// Logo « G » de Google, tracé à l'identique des quatre arcs du SVG Expo
 /// (anneau rayon 16 sur une grille 48, barre horizontale à droite).
+///
+/// Palette reprise de `GoogleGLogo.tsx:5-9` : les cinq teintes Swift
+/// (bleu/vert/jaune/rouge Google classiques) sont remplacées par les quatre
+/// teintes du SVG Expo (#FFC107 jaune, #FF3D00 orange, #4CAF50 vert,
+/// #1976D2 bleu), appliquées au même rôle d'arc.
 struct GoogleGLogo: View {
     var body: some View {
         GeometryReader { geo in
@@ -202,17 +207,17 @@ struct GoogleGLogo: View {
 
             ZStack {
                 arc(center: center, radius: radius, start: -47, end: 70)
-                    .stroke(Color(hex: 0x4285F4), lineWidth: stroke)
+                    .stroke(Color(hex: 0x1976D2), lineWidth: stroke)
                 arc(center: center, radius: radius, start: 70, end: 133)
-                    .stroke(Color(hex: 0x34A853), lineWidth: stroke)
+                    .stroke(Color(hex: 0x4CAF50), lineWidth: stroke)
                 arc(center: center, radius: radius, start: 133, end: 208)
-                    .stroke(Color(hex: 0xFBBC05), lineWidth: stroke)
+                    .stroke(Color(hex: 0xFFC107), lineWidth: stroke)
                 arc(center: center, radius: radius, start: 208, end: 313)
-                    .stroke(Color(hex: 0xEA4335), lineWidth: stroke)
+                    .stroke(Color(hex: 0xFF3D00), lineWidth: stroke)
                 Path { path in
                     path.addRect(CGRect(x: center.x, y: 20 * scale, width: 20 * scale, height: 8 * scale))
                 }
-                .fill(Color(hex: 0x4285F4))
+                .fill(Color(hex: 0x1976D2))
             }
         }
         .accessibilityLabel("Google")
@@ -279,6 +284,12 @@ struct LoginView: View {
 ///
 /// `onDark` : variante du parcours d'inscription en thème sombre — bouton
 /// blanc, texte noir (`guestContinueButton` / `guestContinueButtonText`).
+///
+/// **Aucun retour d'appui** : les 22 consommateurs du composant passent par
+/// `AppPressable`, qui résout toujours le style au repos
+/// (`RESTING_PRESS_STATE = { pressed: false }`, `AppPressable.tsx:14,75,78`) —
+/// l'ancien `.opacity` / `.scaleEffect` à l'appui n'existait pas dans le RN et
+/// est retiré.
 struct DuelloPrimaryButton: ButtonStyle {
     var onDark: Bool = false
 
@@ -288,8 +299,6 @@ struct DuelloPrimaryButton: ButtonStyle {
             .foregroundStyle(onDark ? Color.black : Theme.surface)
             .background(onDark ? Color.white : Theme.ink)
             .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
-            .opacity(configuration.isPressed ? 0.84 : 1)
-            .scaleEffect(configuration.isPressed ? 0.99 : 1)
     }
 }
 

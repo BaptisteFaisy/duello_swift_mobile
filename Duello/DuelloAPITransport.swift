@@ -3,6 +3,18 @@ import Foundation
 // Découpage de `DuelloAPI.swift` — socle du client HTTP : déclaration de
 // `DuelloAPI`, configuration (`baseURL`, codeurs JSON), requête générique et
 // erreur de transport partagée. Aucun type, membre ni signature renommé.
+//
+// Écarts assumés (29/09/2026, écarts 17 #1 à #4) :
+//   - l'adresse de base suit la variante `development` du RN
+//     (`config/duello-development.json` : Tailscale `…:8445/api`) ;
+//   - `Content-Type` n'est plus posé : la source (`adminApi.ts`) ne pose que
+//     `Accept` + `Authorization`. Résidu : `URLSession` n'ajoute aucun
+//     `Content-Type`, là où `fetch` (RN) en pose un `text/plain;charset=UTF-8`
+//     implicite pour un corps texte ;
+//   - le délai est de 10 s (`REQUEST_TIMEOUT` de `adminApi.ts`), partagé avec
+//     les autres routes faute de délai par appel ;
+//   - le repli HTTP sans `error` exploitable rend « Service indisponible (n). »,
+//     que `AdmAPITransport` remappe vers « Serveur indisponible (n) ».
 
 /// Erreur de l'annuaire, alignée sur `DirectoryError` côté Expo.
 struct DirectoryError: LocalizedError, Decodable {
@@ -18,21 +30,36 @@ struct DirectoryError: LocalizedError, Decodable {
         self.status = status
     }
 
+    /// Un corps sans `error` exploitable (clé absente ou vide) **échoue** : le
+    /// repli HTTP de `request` (« Service indisponible (statut). ») prend alors
+    /// le relais, comme `adminApi.ts` qui ne retient le message du corps que si
+    /// `body.error?.trim()` est vrai.
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        message = (try? c.decode(String.self, forKey: .message)) ?? "Service indisponible"
+        let raw = (try? c.decode(String.self, forKey: .message)) ?? ""
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            throw DecodingError.valueNotFound(
+                String.self,
+                DecodingError.Context(
+                    codingPath: c.codingPath,
+                    debugDescription: "Corps sans `error` exploitable."
+                )
+            )
+        }
+        message = trimmed
         status = nil
     }
 }
 
 /// Client HTTP du backend Duello (voir `src/utils/socialApi.ts`).
-/// Adresse figée dans le bundle : relay Cloudflare de **développement**.
-/// Correspond à la variante `development` de l'app Expo (`eas.json` +
-/// `config/duello-development.json` : `apiUrl`). Bascule prod : reprendre
-/// `https://duello-api-relay.duello.workers.dev/api`.
+/// Adresse figée dans le bundle : relais **de développement** du RN, la même
+/// que `config/duello-development.json` (`apiUrl`, Tailscale `…:8445/api`) et
+/// que la surcharge `EXPO_PUBLIC_DUELLO_API_URL` du profil EAS `development`.
+/// Bascule prod : reprendre `https://duello-api-relay.duello.workers.dev/api`.
 enum DuelloAPI {
-    /// `EXPO_PUBLIC_DUELLO_API_URL` de `eas.json` (profil `development`).
-    static let baseURL = URL(string: "https://duello-development-api-relay.duello.workers.dev/api")!
+    /// `apiUrl` de `config/duello-development.json` (profil `development`).
+    static let baseURL = URL(string: "https://baptiste-zenbook-ux362fa-ux362fa.tail3a8bdf.ts.net:8445/api")!
 
     static let decoder: JSONDecoder = {
         let d = JSONDecoder()
@@ -59,11 +86,8 @@ enum DuelloAPI {
         }
         var request = URLRequest(url: components.url!)
         request.httpMethod = method
-        request.timeoutInterval = 20
+        request.timeoutInterval = 10
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-        if body != nil {
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        }
         if let token {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }

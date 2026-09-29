@@ -37,18 +37,32 @@ import SwiftUI
 //
 // Hors périmètre, volontairement : l'atelier de réponse interactif (dictée,
 // tableau blanc, clavier mathématique, console Python, correction IA question
-// par question) relève des lots B et C ; la banque d'annales réelle est un
-// catalogue généré (plusieurs centaines de sujets) qui n'est pas porté ici, la
-// banque embarquée ci-dessous sert de démonstration et de forme d'échange.
+// par question) relève des lots B et C.
+//
+// V1 (29/09/2026, écart 06#8) : la section annales est rendue **en ligne**,
+// comme le panneau de matière de la source (`SubjectsScreen.tsx:10127-10243`) :
+// filtres + liste, sans l'en-tête « ANNALES » ni les titres de section
+// « Mes corrections », « Filtrer » et « Annales — N sujets » que ce fichier
+// ajoutait.
+//
+// Écarts assumés (29/09/2026) :
+//   - écart 06#3 (P1) : la banque d'annales **servie** (`annaleItems`,
+//     `SubjectsScreen.tsx:10193`) n'est pas branchée — elle dépend de l'axe
+//     données C. `entries` est donc vide par défaut : l'hôte fournit la banque
+//     réelle par `init(…entries:)` (voir « À raccorder » du rapport IMPL-05),
+//     et aucune annale de démonstration n'est plus affichée à sa place.
+//   - écart 06#9 (P2) : `AnnCorrectionMonitor` vit encore dans cette vue
+//     (arrêté à sa sortie) au lieu d'être monté à la racine de l'app
+//     (`App.tsx:2650`, `MainTabView`) — montage racine hors lot.
 
 // MARK: - Écran des annales
 
-/// Écran « Annales » d'une matière : liste filtrable, lecteur d'annale et
+/// Section « Annales » d'une matière : liste filtrable, lecteur d'annale et
 /// correction de copie.
 ///
-/// Contrat d'intégration : `AnnalesView()` s'affiche seul, avec la banque de
-/// démonstration ; l'hôte peut fournir la banque réelle et le parcours de
-/// l'élève par `init(subject:subjectId:track:specialty:entries:)`.
+/// Contrat d'intégration : `AnnalesView()` s'affiche seul ; l'hôte fournit la
+/// banque d'annales servie et le parcours de l'élève par
+/// `init(subject:subjectId:track:specialty:entries:)`.
 struct AnnalesView: View {
     /// Matière affichée (« Mathématiques »).
     var subject: String
@@ -59,7 +73,9 @@ struct AnnalesView: View {
     /// Spécialité de l'élève (ECG : « Maths appliquées » ou « Maths
     /// approfondies »).
     var specialty: String
-    /// Banque d'annales affichée.
+    /// Banque d'annales affichée — les annales **servies** de la matière
+    /// (`annaleItems`), fournies par l'hôte. Vide par défaut : aucune banque de
+    /// démonstration ne prend la place des annales servies (écart 06#3).
     var entries: [AnnEntry]
 
     @EnvironmentObject private var session: SessionStore
@@ -79,7 +95,7 @@ struct AnnalesView: View {
         subjectId: String = "maths",
         track: String = "ECG",
         specialty: String = "Maths approfondies",
-        entries: [AnnEntry] = AnnEntry.builtInBank
+        entries: [AnnEntry] = []
     ) {
         self.subject = subject
         self.subjectId = subjectId
@@ -94,11 +110,7 @@ struct AnnalesView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                header
                 notices
-                if !monitor.jobs.isEmpty {
-                    correctionsSection
-                }
                 filterBar
                 list
             }
@@ -144,23 +156,6 @@ struct AnnalesView: View {
         }
     }
 
-    // MARK: En-tête
-
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("ANNALES")
-                .font(.system(size: 11, weight: .heavy))
-                .foregroundStyle(Theme.inkSoft)
-            Text(subject)
-                .font(.system(size: 24, weight: .black))
-                .foregroundStyle(Theme.ink)
-            Text("Sujets de concours et devoirs surveillés, corrigés par l’IA.")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Theme.inkFaint)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
     // MARK: Bandeaux de correction prête
 
     @ViewBuilder
@@ -193,24 +188,10 @@ struct AnnalesView: View {
         }
     }
 
-    // MARK: Corrections en cours
-
-    private var correctionsSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            DuelloSectionHeader(title: "Mes corrections", subtitle: "Suivi des copies déposées")
-            ForEach(monitor.jobs) { job in
-                AnnCorrectionRow(job: job) {
-                    openEntry(withId: job.itemId)
-                }
-            }
-        }
-    }
-
     // MARK: Filtres
 
     private var filterBar: some View {
         VStack(alignment: .leading, spacing: 12) {
-            DuelloSectionHeader(title: "Filtrer")
             ForEach(filterGroups) { group in
                 VStack(alignment: .leading, spacing: 6) {
                     Text(group.label)
@@ -295,10 +276,6 @@ struct AnnalesView: View {
 
     private var list: some View {
         LazyVStack(alignment: .leading, spacing: 10) {
-            DuelloSectionHeader(
-                title: "Annales",
-                subtitle: "\(filteredEntries.count) sujet\(filteredEntries.count > 1 ? "s" : "")"
-            )
             if filteredEntries.isEmpty {
                 DuelloEmptyState(
                     icon: "books.vertical",
@@ -367,10 +344,5 @@ struct AnnalesView: View {
             current.insert(id)
         }
         selection[kind] = current
-    }
-
-    private func openEntry(withId itemId: String) {
-        guard let entry = entries.first(where: { $0.id == itemId }) else { return }
-        openedEntry = entry
     }
 }

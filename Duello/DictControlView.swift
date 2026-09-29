@@ -15,6 +15,17 @@
 //
 //  Cible : iOS 16. Aucune dépendance externe.
 //
+//  V2 (29/09/2026, parité RN dev) : la fenêtre de demande de consentement au
+//  partage IA (`requestAiDataSharingConsent`, `useDictation.ts:913-915`) est
+//  portée — `DictControlModel.consentementVisible` et le modificateur
+//  `DictAiConsentAlert(model:)` à poser par l'hôte. Auparavant la garde seule
+//  (`CtdAiConsent.isGranted`) ne demandait jamais rien.
+//
+//  Écarts assumés (hors lot) : `createToggleRequest` doit être appelé par les
+//  hôtes **avant** `ConsentPremiumGate.gate { request() }`
+//  (`SubjectsScreen.tsx:1931`) ; le modificateur de consentement doit être posé
+//  par les mêmes hôtes.
+//
 
 import SwiftUI
 import Combine
@@ -34,6 +45,9 @@ final class DictControlModel: ObservableObject {
     @Published var engine: DictEngineKind?
     @Published var error = ""
     @Published var notice = ""
+    /// Fenêtre de consentement au partage IA ouverte (`requestAiDataSharingConsent`) :
+    /// présentée par l'hôte via `DictAiConsentAlert(model:)`.
+    @Published var consentementVisible = false
 
     /// Invite affichée pendant l'écoute (`useDictation`).
     static let noticeEcoute =
@@ -57,13 +71,17 @@ final class DictControlModel: ObservableObject {
     let permission: () async -> Bool
     let fabriquerMoteur: () -> DictEngine
     let configurationRelais: () -> DictRelayConfig?
-    let consentementPartage: () async -> Bool
+    /// Surcharge du consentement au partage (`requestAiDataSharingConsent`) :
+    /// `nil` laisse le modèle présenter lui-même la fenêtre `CtdAiConsent`.
+    let consentementPartage: (() async -> Bool)?
+    /// Réponse attendue de la fenêtre de consentement au partage.
+    private var consentementEnAttente: CheckedContinuation<Bool, Never>?
 
     init(
         permission: @escaping () async -> Bool = { true },
         fabriquerMoteur: @escaping () -> DictEngine = { DictEngineFactory.moteurParDefaut() },
         configurationRelais: @escaping () -> DictRelayConfig? = { DictRelayConfig.resolve() },
-        consentementPartage: @escaping () async -> Bool = { CtdAiConsent.isGranted }
+        consentementPartage: (() async -> Bool)? = nil
     ) {
         self.permission = permission
         self.fabriquerMoteur = fabriquerMoteur
@@ -113,6 +131,19 @@ final class DictControlModel: ObservableObject {
         }
     }
 
+    /// Réponse à la fenêtre de consentement au partage : l'accord est enregistré
+    /// (ou non), la fenêtre se referme et la dictée en attente reprend.
+    var consentementAccorde: Bool {
+        get { CtdAiConsent.isGranted }
+        set {
+            consentementVisible = false
+            if newValue { CtdAiConsent.grant() }
+            let continuation = consentementEnAttente
+            consentementEnAttente = nil
+            continuation?.resume(returning: newValue)
+        }
+    }
+
     /// Résout l'accès puis lance le moteur (relais premium, sinon appareil).
     func demarrer(permissionMessage: String) async {
         error = ""
@@ -127,7 +158,20 @@ final class DictControlModel: ObservableObject {
         // Mode premium : consentement au partage, puis relais temps réel.
         relaisConfigure = configurationRelais()
         if let relais = relaisConfigure {
-            if await consentementPartage() {
+            let partage: Bool
+            if let consentementPartage {
+                partage = await consentementPartage()
+            } else if CtdAiConsent.isGranted {
+                partage = true
+            } else {
+                // `requestAiDataSharingConsent` : la fenêtre `CtdAiConsent`,
+                // présentée par l'hôte, est attendue avant d'ouvrir le relais.
+                partage = await withCheckedContinuation { continuation in
+                    consentementEnAttente = continuation
+                    consentementVisible = true
+                }
+            }
+            if partage {
                 if await demarrerMoteurRelais(relais) { return }
             } else {
                 // `fallbackToDevice` sans transmission : reconnaissance du téléphone.
@@ -325,5 +369,24 @@ struct DictControlView: View {
             }
         }
         .duelloCard()
+        .modifier(DictAiConsentAlert(model: model))
+    }
+}
+
+// MARK: - Fenêtre de consentement au partage IA
+
+/// Fenêtre `CtdAiConsent` du modèle de dictée (`requestAiDataSharingConsent`) :
+/// à monter par l'hôte qui détient le modèle, comme `PhotoTranscriptionView` ou
+/// `CourseTdView`, pour que la dictée premium n'ouvre le relais qu'après l'accord.
+struct DictAiConsentAlert: ViewModifier {
+    @ObservedObject var model: DictControlModel
+
+    func body(content: Content) -> some View {
+        content.alert(CtdAiConsent.title, isPresented: $model.consentementVisible) {
+            Button(CtdAiConsent.denyLabel, role: .cancel) { model.consentementAccorde = false }
+            Button(CtdAiConsent.allowLabel) { model.consentementAccorde = true }
+        } message: {
+            Text(CtdAiConsent.message)
+        }
     }
 }

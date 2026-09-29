@@ -67,20 +67,22 @@ struct DetailHeader: View {
     }
 }
 
-/// Bouton de retour en pastille, comme le `BackButton` d'Expo.
+/// Bouton de retour : chevron nu, comme le `BackButton` d'Expo. Le composant
+/// RN applique `styles.button` **après** le `style` reçu (`BackButton.tsx:53`),
+/// si bien que `backButton` (`MessagesScreen.tsx:838-847` : bordure 1 px, rayon
+/// 14, fond `surface`) est écrasé par `borderWidth: 0`, `borderRadius: 0`,
+/// `backgroundColor: 'transparent'` (`BackButton.tsx:86-96`). Le bouton rendu
+/// est donc un chevron nu dans une boîte 40×40 transparente, glyphe décalé de
+/// −4 pt (`BackButton.tsx:87,93`).
 struct DetailBackButton: View {
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             IonIcon(name: "chevron-back", size: 20, color: Theme.ink)
-                .frame(width: 38, height: 38)
-                .background(Theme.surface)
-                .clipShape(RoundedRectangle(cornerRadius: 14))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .stroke(Theme.border, lineWidth: 1)
-                )
+                .offset(x: -4)
+                .frame(width: 40, height: 40)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Retour")

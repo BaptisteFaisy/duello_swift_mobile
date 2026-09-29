@@ -22,6 +22,25 @@
 //     geste : le fichier du jeton n'est pas propriété de cette unité, il n'est
 //     donc pas rendu observable ici.
 //
+//  Parité RN↔Swift (vague 2, 2026-09-29) :
+//   • réconciliation d'une animation d'appui interrompue (P2) : un geste qui
+//     reprend le ruban repart de la position **rendue**
+//     (`DuelloTabRenderedPosition`), comme `pagerX.value` de la source
+//     (`BottomTabPager.native.tsx:163-189`), et non de `position` (déjà à la
+//     destination) ;
+//   • ressort de relâchement (P2) : la vitesse du geste est transmise au ressort
+//     (`initialVelocity`, `BottomTabPager.native.tsx:370-372`).
+//
+//  Écarts assumés :
+//   • `withTiming(..., finished)` n'a pas d'équivalent iOS 16 : la réconciliation
+//     explicite `reconcileInterruptedNavigation` (`BottomTabPager.native.tsx:160-189`)
+//     n'est pas transposée telle quelle ; son effet (aucun saut quand un geste
+//     reprend le ruban) est obtenu en repartant de la position rendue.
+//   • `overshootClamping: true` n'a pas d'équivalent SwiftUI ; il est satisfait
+//     par construction — ratio d'amortissement 34/(2·√(300·0.7)) ≈ 1,17 > 1 :
+//     ressort sur-amorti, donc sans dépassement (même note que
+//     `Ui2OrderedTabPager`).
+//
 import SwiftUI
 import UIKit
 
@@ -61,6 +80,38 @@ private func duelloTabSwipeIntent(_ translation: CGSize) -> DuelloTabSwipeIntent
     return .pending
 }
 
+/// Boîte de la position **rendue** du ruban, partagée avec le rapporteur.
+///
+/// Une classe (et non un `@State`) : `effectValue` s'exécute pendant le rendu,
+/// écrire un `@State` y déclencherait un avertissement « Modifying state during
+/// view update ». La boîte est lue au début d'un geste, jamais observée.
+private final class DuelloTabRenderedPositionBox {
+    var value: CGFloat = 0
+}
+
+/// Rapporteur de la position peinte du ruban.
+///
+/// Un `@State` saute immédiatement à sa valeur cible : seule la présentation
+/// s'anime. Quand un geste reprend le ruban au milieu d'une animation d'appui,
+/// repartir de `position` (déjà à la destination) ferait sauter le ruban. Ce
+/// `GeometryEffect` animable est rappelé à chaque image et recopie la position
+/// interpolée, comme `pagerX.value` lu par la source
+/// (`BottomTabPager.native.tsx:163-189`).
+private struct DuelloTabRenderedPosition: GeometryEffect {
+    var position: CGFloat
+    let box: DuelloTabRenderedPositionBox
+
+    var animatableData: CGFloat {
+        get { position }
+        set { position = newValue }
+    }
+
+    func effectValue(size: CGSize) -> ProjectionTransform {
+        box.value = position
+        return ProjectionTransform()
+    }
+}
+
 /// Pager horizontal des trois onglets racine (`BottomTabPager.native.tsx`).
 ///
 /// Trois pages explicites (et non un tableau d'`AnyView`) : l'identité
@@ -93,6 +144,9 @@ struct DuelloBottomTabPager<P0: View, P1: View, P2: View>: View {
     @State private var position: CGFloat
     /// Dernière page validée localement (évite un double traitement).
     @State private var settled: Int
+    /// Position réellement peinte du ruban (voir `DuelloTabRenderedPosition`) :
+    /// source de `dragOriginX`, comme `pagerX.value` de la source.
+    @State private var renderedPosition = DuelloTabRenderedPositionBox()
     /// Position du ruban (points) au moment où le geste a pris la main.
     @State private var dragOriginX: CGFloat = 0
     /// Page visible au début du geste (`gestureStartPage`).
@@ -135,6 +189,9 @@ struct DuelloBottomTabPager<P0: View, P1: View, P2: View>: View {
                 }
                 .frame(width: width * CGFloat(pageCount), alignment: .leading)
                 .offset(x: -position * width)
+                // Rapporteur de la position rendue : alimente `dragOriginX`
+                // quand un geste reprend le ruban en pleine animation.
+                .modifier(DuelloTabRenderedPosition(position: position, box: renderedPosition))
                 // Le contenu cesse d'accepter les appuis pendant la transition
                 // (`contentInteractionActive`, `App.tsx:1589`) ; le geste du
                 // pager, lui, reste actif.
@@ -181,7 +238,10 @@ struct DuelloBottomTabPager<P0: View, P1: View, P2: View>: View {
                         return
                     case .horizontal:
                         isDragging = true
-                        dragOriginX = -position * width
+                        // Repart de la position **rendue** (et non de
+                        // `position`, déjà à la destination si une animation
+                        // d'appui était en cours) : le ruban ne saute plus.
+                        dragOriginX = -renderedPosition.value * width
                         dragStartPage = max(0, min(pageCount - 1, Int(position.rounded())))
                         beginInteraction()
                     }
@@ -200,20 +260,34 @@ struct DuelloBottomTabPager<P0: View, P1: View, P2: View>: View {
                 guard isDragging else { return }
                 isDragging = false
                 let velocity = value.predictedEndTranslation.width - value.translation.width
-                settleGesture(translation: value.translation.width, velocity: velocity)
+                settleGesture(translation: value.translation.width, velocity: velocity, width: width)
             }
     }
 
     /// Relâchement : page finale (`resolveBottomTabGestureTargetIndex`) atteinte
-    /// par le ressort `SPRING_CONFIG`.
-    private func settleGesture(translation: CGFloat, velocity: CGFloat) {
+    /// par le ressort `SPRING_CONFIG`, dont la vitesse initiale prolonge celle du
+    /// doigt (`BottomTabPager.native.tsx:370-372`).
+    private func settleGesture(translation: CGFloat, velocity: CGFloat, width: CGFloat) {
         let target = SwipeBottomTabs.gestureTargetIndex(
             gestureStartIndex: dragStartPage,
             translationX: translation,
             velocityX: velocity
         )
         let clamped = max(0, min(pageCount - 1, target))
-        withAnimation(.interpolatingSpring(mass: 0.7, stiffness: 300, damping: 34)) {
+        // `initialVelocity` de SwiftUI est une fraction de la distance à
+        // parcourir ; la source passe `event.velocityX` (px/s) à Reanimated. On
+        // convertit dans l'espace de `position` (pages) puis en fraction de la
+        // distance restante. Sans distance, la vitesse n'a pas d'effet.
+        let distance = CGFloat(clamped) - position
+        let initialVelocity = (distance == 0 || width <= 0)
+            ? 0
+            : Double(-velocity / (width * distance))
+        withAnimation(.interpolatingSpring(
+            mass: 0.7,
+            stiffness: 300,
+            damping: 34,
+            initialVelocity: initialVelocity
+        )) {
             position = CGFloat(clamped)
             model.progress = CGFloat(clamped)
         }

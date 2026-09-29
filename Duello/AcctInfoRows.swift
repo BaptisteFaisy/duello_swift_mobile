@@ -20,6 +20,13 @@
 //  « Suppression en cours… » et l'alerte « Compte non supprimé » de
 //  `handleDeleteAccount` (`AccountScreen.tsx:861-875`).
 //
+//  V2 (2026-09-29) — écart P2 : la ligne « Duello » retrouve une icône. Le PNG
+//  cube Duello (`DUELLO_CUBE_LOGO_SOURCE`, `AccountScreen.tsx:104,3872`) n'est
+//  pas embarqué dans le bundle Swift et le nom fourni par la page
+//  (`AcctInfoPages.swift:90`, `cube.transparent`) n'est pas un glyphe Ionicons :
+//  `leadingIcon` retombe désormais sur le glyphe Ionicons `cube-outline`, équi-
+//  valent au logo cube. L'embarquement du PNG reste à raccorder (cf. rapport).
+//
 import SwiftUI
 import UIKit
 
@@ -80,14 +87,22 @@ struct AcctInfoCategoryRow: View {
         .accessibilityLabel("Ouvrir \(label)")
     }
 
-    /// Icône de tête : asset si présent dans le bundle, sinon SF Symbol.
+    /// Icône de tête : asset si présent dans le bundle, sinon glyphe Ionicons,
+    /// sinon repli cube (le PNG cube Duello n'est pas embarqué — écart assumé).
     @ViewBuilder private var leadingIcon: some View {
         Group {
             if let assetIcon, UIImage(named: assetIcon) != nil {
                 Image(assetIcon).resizable().scaledToFit()
             } else if let icon {
                 // RN `SettingsCategoryRow` : `<Ionicons name={icon} … color={colors.ink} />`.
-                IonIcon(name: icon, size: iconSize, color: Theme.ink)
+                // Un nom qui n'est pas un glyphe Ionicons (`cube.transparent`,
+                // symbole SF passé par la page « Duello ») retombe sur le glyphe
+                // cube équivalent au logo Duello, faute du PNG cube embarqué.
+                IonIcon(
+                    name: IoniconsGlyphs.character(icon) != nil ? icon : "cube-outline",
+                    size: iconSize,
+                    color: Theme.ink
+                )
             } else {
                 Color.clear
             }

@@ -11,6 +11,10 @@
 //  Fichier source Expo porté : `EventFinishedView` de
 //  `src/components/event/EventWorkspace.tsx`.
 //
+//  Les onglets sont dessinés ici (capsule noire, pastille blanche, texte encre
+//  ou blanc) ; la pastille de statut n'apparaît que pendant l'épreuve
+//  (`status === 'en-cours'`).
+//
 //  Cible : iOS 16.
 //
 import SwiftUI
@@ -44,33 +48,53 @@ struct EvEventFinishedView: View {
         .background(Theme.surface)
     }
 
-    /// Onglets Correction / Classement, reliés dans un fond gris commun
-    /// (`sectionTabs`).
+    /// Onglets Correction / Classement, reliés dans une capsule **noire**
+    /// (`sectionTabs`) : pastille blanche sur l'onglet choisi, texte encre ;
+    /// l'autre onglet reste en blanc.
     private var tabs: some View {
         HStack(spacing: 3) {
-            EvEventSectionTab(label: EvEventSection.correction.label, selected: section == .correction) {
-                section = .correction
-            }
-            EvEventSectionTab(label: EvEventSection.classement.label, selected: section == .classement) {
-                section = .classement
-            }
+            sectionTab(EvEventSection.correction, selected: section == .correction)
+            sectionTab(EvEventSection.classement, selected: section == .classement)
         }
         .padding(2)
-        .background(Theme.surfaceMuted)
+        .background(Color.black)
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .accessibilityElement(children: .contain)
     }
 
-    /// Pastille de statut, alignée à droite sous la barre du haut.
-    private var statusBadgeRow: some View {
-        HStack {
-            Spacer(minLength: 0)
-            if let status = EvEventSchedule.statusBadge(event, now: model.now, results: model.results) {
+    /// Un onglet de section : fond blanc et texte encre quand il est choisi,
+    /// texte blanc sur la capsule noire sinon (`sectionTab` /
+    /// `sectionTabSelected` / `sectionTabText` de `EventWorkspace.tsx:657-693`).
+    private func sectionTab(_ item: EvEventSection, selected: Bool) -> some View {
+        Button {
+            section = item
+        } label: {
+            Text(item.label)
+                .font(.system(size: 12, weight: .heavy))
+                .foregroundStyle(selected ? Theme.ink : Color.white)
+                .frame(minHeight: 30)
+                .padding(.horizontal, 12)
+                .background(selected ? Color.white : Color.clear)
+                .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(selected ? [.isSelected] : [])
+    }
+
+    /// Pastille de statut, alignée à droite sous la barre du haut : affichée
+    /// **seulement pendant l'épreuve** (`status === 'en-cours'`,
+    /// `EventWorkspace.tsx:385`) — sur un événement terminé, elle disparaît.
+    @ViewBuilder private var statusBadgeRow: some View {
+        if let status = EvEventSchedule.statusBadge(event, now: model.now, results: model.results),
+           status == .enCours {
+            HStack {
+                Spacer(minLength: 0)
                 EvEventStatusBadge(status: status)
             }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 10)
         }
-        .padding(.horizontal, 16)
-        .padding(.bottom, 10)
     }
 
     /// Corps de la section choisie : correction, classement ou attente.

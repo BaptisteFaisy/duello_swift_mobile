@@ -23,15 +23,24 @@
 //    - `useWindowDimensions().height` est déduit de la hauteur mesurée du panneau
 //      (`GeometryReader`) : la hauteur pleine se reconstitue par `hauteur / ratio`.
 //
+//  PARITÉ (2026-09-29) — en-tête et fil alignés sur la source : libellé de
+//  contexte `programme · chapitre · exercice · question` (source `student?.program`,
+//  `ProfTutorPanel.tsx:32-41`) ; un fil court s'ancre en bas du panneau
+//  (`flexGrow: 1` + `justifyContent: 'flex-end'`, `:276-285`) — `maxHeight:
+//  .infinity` étant inerte dans un `ScrollView`, l'ancrage passe par un
+//  `GeometryReader` (`minHeight: proxy.size.height, alignment: .bottom`).
+//
 //  Cible : iOS 16. Aucune dépendance externe.
 //
 
 import SwiftUI
 import UIKit
 
-/// `contextLabel` : exercice · question · chapitre · programme, vides omis.
+/// `contextLabel` : programme · chapitre · exercice · question, vides omis.
+/// Ordre et source de la référence (`contextLabel`, `ProfTutorPanel.tsx:32-41` :
+/// `student?.program` puis `chapter`, `exercise`, `question`).
 func profContextLabel(_ context: ProfTutorContext) -> String {
-    [context.exercise, context.question, context.chapter, context.program]
+    [context.student?.program, context.chapter, context.exercise, context.question]
         .compactMap { $0 }
         .filter { !$0.isEmpty }
         .joined(separator: " · ")
@@ -93,25 +102,37 @@ struct ProfTutorPanel: View {
     }
 
     private var messageList: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                VStack(alignment: .leading, spacing: 10) {
-                    if let imageUri, let image = profImageFromDataUrl(imageUri) {
-                        ProfTutorPhotoQuote(image: image)
+        // `scroll: { flex: 1 }` + `body: { flexGrow: 1, justifyContent:
+        // 'flex-end' }` (`ProfTutorPanel.tsx:276-285`) : un fil court s'ancre en
+        // bas du panneau. Dans un `ScrollView`, `maxHeight: .infinity` est sans
+        // effet (proposition nulle sur l'axe défilant) : la hauteur du conteneur
+        // vient du `GeometryReader`, et `minHeight` ancre le fil en bas.
+        GeometryReader { proxy in
+            ScrollViewReader { reader in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 10) {
+                        if let imageUri, let image = profImageFromDataUrl(imageUri) {
+                            ProfTutorPhotoQuote(image: image)
+                        }
+                        messageContent
+                        if !error.isEmpty { ProfTutorErrorBox(text: error) }
+                        Color.clear.frame(height: 1).id(Self.bottomAnchor)
                     }
-                    messageContent
-                    if !error.isEmpty { ProfTutorErrorBox(text: error) }
-                    Color.clear.frame(height: 1).id(Self.bottomAnchor)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding([.horizontal, .top], 14)
+                    .padding(.bottom, 20)
+                    .frame(
+                        maxWidth: .infinity,
+                        minHeight: proxy.size.height,
+                        alignment: .bottom
+                    )
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding([.horizontal, .top], 14)
-                .padding(.bottom, 20)
+                // `keyboardShouldPersistTaps="handled"` / `keyboardDismissMode` de la
+                // source : le clavier reste ouvert quand on tape une relance.
+                .scrollDismissesKeyboard(.never)
+                .onChange(of: messages.count) { _ in scrollToBottom(reader) }
+                .onChange(of: streamingText) { _ in scrollToBottom(reader) }
             }
-            // `keyboardShouldPersistTaps="handled"` / `keyboardDismissMode` de la
-            // source : le clavier reste ouvert quand on tape une relance.
-            .scrollDismissesKeyboard(.never)
-            .onChange(of: messages.count) { _ in scrollToBottom(proxy) }
-            .onChange(of: streamingText) { _ in scrollToBottom(proxy) }
         }
     }
 

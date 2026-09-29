@@ -18,6 +18,28 @@
 //  (`seriesCount == 1`), faute de tirage multi-exercices côté serveur ; la
 //  structure `ChalRunRoundState` reste prête à en enchaîner plusieurs.
 //
+//  V2 (2026-09-29) — écarts de parité U07 :
+//    - P1 « série multi-exercices + alerte Enchaîner » : la série est lue de
+//      `match.exerciseSequence` (`matchmaking.ts:427-446`) ; chaque manche est
+//      chargée dans sa propre banque ; `advanceChallengeExercise` (source
+//      `ChallengesScreen.tsx:1270-1318`) range l'exercice validé et passe au
+//      suivant ; `requestDuelSubmission` (`:1319-1344`) propose « Terminer le
+//      défi » / « Enchaîner » tant qu'il reste un exercice et du temps. La copie
+//      notée réunit les exercices validés (`ChalSeries.buildExercise`).
+//    - P1 « avis exercice déjà commencé » : `startedPenalty` /
+//      `opponentStartedBonus` sont projetés depuis
+//      `match.exercisePreviouslyStarted` / `opponentPreviouslyStarted`
+//      (`matchmaking.ts:485-486,527-528`) vers `ChalRunRounds`.
+//    - P2 « Reprendre / Continuer l'exercice » : `onContinueTraining` est
+//      transmis aux bilans (`ChallengesScreen.tsx:2426-2437,2703`) ; la
+//      navigation vers l'onglet Entraînement est pilotée par la racine.
+//
+//  Écarts assumés (fichiers hors lot → « À raccorder ») :
+//    - `MatchView` doit porter `exerciseSequence`, `exercisePreviouslyStarted`,
+//      `opponentPreviouslyStarted` (`Models.swift`) ;
+//    - `ChalRunRounds` doit arbitrer la remise (`onSubmitRequested`) et noter la
+//      copie de série (`seriesEntries`) — hunks décrits au rapport.
+//
 //  Cible : iOS 16, aucune API iOS 17.
 //
 import SwiftUI
@@ -30,6 +52,10 @@ struct ChalIntDuelFlow: View {
 
     let match: MatchView
     var onFinish: () -> Void
+    /// Reprise de l'exercice dans l'onglet Entraînement, pilotée par la racine
+    /// (`onContinueTraining`, `ChallengesScreen.tsx:2426-2437,2703`). Absent ⇒
+    /// les boutons « Reprendre / Continuer l'exercice » restent masqués.
+    var onContinueTraining: ((ChalRunTrainingTarget) -> Void)? = nil
 
     private enum Phase {
         case loading
@@ -44,6 +70,16 @@ struct ChalIntDuelFlow: View {
     @State private var exerciseTitle = ""
     /// Célébration de promotion de ligue refermée par le joueur.
     @State private var promotionDismissed = false
+    /// Série tirée pour ce défi (`match.exerciseSequence`), dans l'ordre.
+    @State private var series: [DuelExercise] = []
+    /// Titres des exercices de la série, alignés sur `series`.
+    @State private var seriesTitles: [String] = []
+    /// Exercices déjà validés, dans l'ordre (`completedAnswers` de la source).
+    @State private var completedSeries: [ChalCompletedExercise] = []
+    /// Alerte « Enchaîner » d'une fin d'exercice non terminal.
+    @State private var advancePromptVisible = false
+    /// Remise réelle différée, déclenchée par « Terminer le défi ».
+    @State private var pendingProceed: (() -> Void)?
 
     private static let emptyExercise = DuelExercise(
         id: "", subject: "", context: nil, questions: [], solution: nil
@@ -55,6 +91,18 @@ struct ChalIntDuelFlow: View {
             exercise: emptyExercise,
             answers: [:],
             activeQuestionId: "",
+            submittedAt: nil
+        )
+    }
+
+    /// Manche `index` d'une série de `seriesCount` exercices, réponses vierges.
+    static func round(index: Int, seriesCount: Int, exercise: DuelExercise) -> ChalRunRoundState {
+        ChalRunRoundState(
+            seriesCount: seriesCount,
+            exerciseIndex: index,
+            exercise: exercise,
+            answers: Dictionary(uniqueKeysWithValues: exercise.questions.map { ($0.id, "") }),
+            activeQuestionId: exercise.questions.first?.id ?? "",
             submittedAt: nil
         )
     }
@@ -73,6 +121,12 @@ struct ChalIntDuelFlow: View {
                         userId: userId,
                         exerciseTitle: exerciseTitle,
                         state: $round,
+                        startedPenalty: startedPenalty,
+                        opponentStartedBonus: opponentStartedBonus,
+                        completedSeries: completedSeries,
+                        onSubmitRequested: { proceed in
+                            requestDuelSubmission(proceed: proceed)
+                        },
                         onVerdict: { handleVerdict($0) },
                         onAbandon: { abandon() }
                     )
@@ -82,6 +136,14 @@ struct ChalIntDuelFlow: View {
             }
         }
         .task { await loadExercise() }
+        // `requestDuelSubmission` : alerte à deux boutons de fin d'exercice non
+        // terminal (`ChallengesScreen.tsx:1319-1344`).
+        .alert("Exercice \(round.exerciseIndex + 1) terminé", isPresented: $advancePromptVisible) {
+            Button("Terminer le défi") { pendingProceed?(); pendingProceed = nil }
+            Button("Enchaîner") { advanceChallengeExercise() }
+        } message: {
+            Text("Tu peux enchaîner avec un autre exercice. Si tu continues, tu ne pourras plus revenir sur celui-ci.")
+        }
     }
 
     // MARK: Vues
@@ -117,13 +179,17 @@ struct ChalIntDuelFlow: View {
     private func resultView(_ result: ChalRunResult) -> some View {
         ZStack {
             if result.opponentAbandoned {
-                ChalRunAbandonVictoryView(result: result, onBack: onFinish, onContinueTraining: nil)
+                ChalRunAbandonVictoryView(
+                    result: result,
+                    onBack: onFinish,
+                    onContinueTraining: onContinueTraining
+                )
             } else {
                 ChalRunResultView(
                     result: result,
                     myInitial: myInitial,
                     onBack: onFinish,
-                    onContinueTraining: nil
+                    onContinueTraining: onContinueTraining
                 )
             }
             // Célébration de promotion de ligue, superposée au bilan
@@ -146,46 +212,52 @@ struct ChalIntDuelFlow: View {
             phase = .unavailable("Ta session a expiré, reconnecte-toi.")
             return
         }
+        // Série tirée à l'appariement ; repli sur l'exercice seul si le serveur
+        // n'a pas fourni de séquence (`match.exerciseSequence` vide).
+        let refs = match.exerciseSequence.isEmpty
+            ? [ChalExerciseRef(chapterKey: match.chapterKey, exerciseId: match.exerciseId)]
+            : match.exerciseSequence
         do {
             let manifest = try await DuelloAPI.contentManifest()
-            guard let descriptor = descriptor(in: manifest) else {
-                phase = .unavailable("Cet énoncé n'est pas encore servi pour ce parcours.")
-                return
+            var loaded: [DuelExercise] = []
+            var titles: [String] = []
+            for ref in refs {
+                guard let descriptor = descriptor(in: manifest, chapterKey: ref.chapterKey) else { continue }
+                let exercises = try await DuelloAPI.chapterExercises(descriptor)
+                guard let found = exercises.first(where: { $0.key == ref.exerciseId }) else { continue }
+                let item = ChallengeExerciseEntry(
+                    id: found.key,
+                    title: found.title,
+                    statement: found.statement,
+                    solution: found.solution,
+                    questions: nil
+                )
+                loaded.append(chapterItemAsDuelExercise(item, match.subject))
+                titles.append(found.title)
             }
-            let exercises = try await DuelloAPI.chapterExercises(descriptor)
-            guard let found = exercises.first(where: { $0.key == match.exerciseId }) else {
+            guard let first = loaded.first else {
                 phase = .unavailable("Cet énoncé n'est plus disponible dans la banque.")
                 return
             }
-            let item = ChallengeExerciseEntry(
-                id: found.key,
-                title: found.title,
-                statement: found.statement,
-                solution: found.solution,
-                questions: nil
-            )
-            let built = chapterItemAsDuelExercise(item, match.subject)
-            exerciseTitle = found.title
-            round = ChalRunRoundState(
-                seriesCount: 1,
-                exerciseIndex: 0,
-                exercise: built,
-                answers: Dictionary(uniqueKeysWithValues: built.questions.map { ($0.id, "") }),
-                activeQuestionId: built.questions.first?.id ?? "",
-                submittedAt: nil
-            )
+            series = loaded
+            seriesTitles = titles
+            exerciseTitle = titles.first ?? ""
+            round = ChalIntDuelFlow.round(index: 0, seriesCount: loaded.count, exercise: first)
             phase = .running
         } catch {
             phase = .unavailable("Impossible de charger l'énoncé : \(error.localizedDescription)")
         }
     }
 
-    /// Banque servie du chapitre du match, priorisée sur le parcours du joueur
+    /// Banque servie du chapitre demandé, priorisée sur le parcours du joueur
     /// (même résolution que `ChallengePlayerView`).
-    private func descriptor(in manifest: DuelloAPI.ContentManifest) -> DuelloAPI.ContentChapterDescriptor? {
-        let chapterId = match.chapterKey
+    private func descriptor(
+        in manifest: DuelloAPI.ContentManifest,
+        chapterKey: String
+    ) -> DuelloAPI.ContentChapterDescriptor? {
+        let chapterId = chapterKey
             .split(separator: ":", omittingEmptySubsequences: false)
-            .last.map(String.init) ?? match.chapterKey
+            .last.map(String.init) ?? chapterKey
         let candidates = (manifest.chapters ?? []).filter { $0.chapterId == chapterId }
         guard let expected = expectedBundleId() else { return candidates.first }
         return candidates.first(where: { $0.bundleId == expected }) ?? candidates.first
@@ -209,14 +281,72 @@ struct ChalIntDuelFlow: View {
         }
     }
 
+    // MARK: Série multi-exercices
+
+    /// `canContinue` de `requestDuelSubmission` (`ChallengesScreen.tsx:1320-1324`) :
+    /// il reste un exercice dans la série, sous le plafond de trois, et du temps.
+    private var canContinue: Bool {
+        round.exerciseIndex < series.count - 1
+            && round.exerciseIndex + 1 < ChalTrainingMatchFactory.maxChallengeExercises
+            && Date().timeIntervalSince1970 * 1000
+                < match.startedAt + Double(match.durationMinutes * 60) * 1000
+    }
+
+    /// `requestDuelSubmission` (`ChallengesScreen.tsx:1319-1344`) : propose
+    /// d'enchaîner un autre exercice, sinon remet directement la copie.
+    private func requestDuelSubmission(proceed: @escaping () -> Void) {
+        guard canContinue else {
+            proceed()
+            return
+        }
+        pendingProceed = proceed
+        advancePromptVisible = true
+    }
+
+    /// `advanceChallengeExercise` (`ChallengesScreen.tsx:1270-1318`) : range
+    /// l'exercice validé et ouvre le suivant de la série.
+    private func advanceChallengeExercise() {
+        let index = round.exerciseIndex
+        guard index < series.count - 1 else { return }
+        completedSeries.append(
+            ChalCompletedExercise(exercise: round.exercise, answers: round.answers)
+        )
+        let nextIndex = index + 1
+        exerciseTitle = seriesTitles.indices.contains(nextIndex) ? seriesTitles[nextIndex] : ""
+        round = ChalIntDuelFlow.round(
+            index: nextIndex,
+            seriesCount: series.count,
+            exercise: series[nextIndex]
+        )
+    }
+
+    /// Pénalité de revue d'un exercice déjà commencé
+    /// (`STARTED_EXERCISE_SCORE_PENALTY`, `matchmaking.ts:485`).
+    private var startedPenalty: Int {
+        match.exercisePreviouslyStarted ? ChalProgress.startedExerciseScorePenalty : 0
+    }
+
+    /// Bonus quand l'adversaire connaissait déjà l'exercice
+    /// (`STARTED_OPPONENT_SCORE_BONUS`, `matchmaking.ts:486`).
+    private var opponentStartedBonus: Int {
+        match.opponentPreviouslyStarted ? ChalProgress.startedOpponentScoreBonus : 0
+    }
+
     // MARK: Issues
 
     private func handleVerdict(_ verdict: DuelVerdict) {
         promotionDismissed = false
+        // La copie notée réunit les exercices validés (`buildChallengeSeriesExercise`) ;
+        // un défi mono-exercice reste l'exercice courant tel quel.
+        let entries = completedSeries
+            + [ChalCompletedExercise(exercise: round.exercise, answers: round.answers)]
+        let graded = entries.count > 1
+            ? ChalSeries.buildExercise(subject: match.subject, entries: entries)
+            : round.exercise
         phase = .result(ChalIntDuelResult.build(
             verdict: verdict,
             match: match,
-            exercise: round.exercise,
+            exercise: graded,
             state: round,
             profile: session.profile,
             subjectElos: progress.subjectElos

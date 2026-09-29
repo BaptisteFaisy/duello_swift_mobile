@@ -270,6 +270,12 @@ struct QueueRequest: Codable, Equatable {
     var startedExerciseIds: [String]
     var allowStartedExercises: Bool
     var maxExercises: Int?
+    /// Défi planifié visé, quand l'entrée en file vient d'un rendez-vous
+    /// (`request.scheduledChallengeId`, cf. `ChalQueue.enter`). Absent sinon.
+    var scheduledChallengeId: String?
+    /// Départ prévu du défi planifié, en millisecondes
+    /// (`request.scheduledStartAt`). Absent hors défi planifié.
+    var scheduledStartAt: Double?
     var elo: Int
 }
 
@@ -303,9 +309,42 @@ struct MatchView: Codable, Equatable, Identifiable {
     var subject: String
     var chapterKey: String
     var exerciseId: String
+    /// Série commune tirée pour ce défi (`match.exerciseSequence`) ; le premier
+    /// élément reprend `chapterKey` et `exerciseId`. Le serveur peut l'omettre
+    /// (défaut `[]`, cf. `init(from:)` ci-dessous).
+    var exerciseSequence: [ChalExerciseRef] = []
+    /// Vrai si ce joueur avait déjà ouvert l'exercice avant ce défi.
+    var exercisePreviouslyStarted: Bool = false
+    /// Vrai si l'adversaire avait déjà ouvert l'exercice.
+    var opponentPreviouslyStarted: Bool = false
     var durationMinutes: Int
     var startedAt: Double
     var opponent: Opponent
+}
+
+extension MatchView {
+    /// Décodage tolérant : les trois champs de série/avis ci-dessus ne sont pas
+    /// garantis par le payload serveur (le serveur peut les omettre) — on
+    /// retombe alors sur leurs valeurs par défaut. Les autres clés restent
+    /// requises, comme pour la conformance synthétisée. L'initialiseur
+    /// membre-à-membre reste synthétisé (l'extension ne le supprime pas).
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        seed = try container.decode(Int.self, forKey: .seed)
+        subject = try container.decode(String.self, forKey: .subject)
+        chapterKey = try container.decode(String.self, forKey: .chapterKey)
+        exerciseId = try container.decode(String.self, forKey: .exerciseId)
+        exerciseSequence = try container
+            .decodeIfPresent([ChalExerciseRef].self, forKey: .exerciseSequence) ?? []
+        exercisePreviouslyStarted = try container
+            .decodeIfPresent(Bool.self, forKey: .exercisePreviouslyStarted) ?? false
+        opponentPreviouslyStarted = try container
+            .decodeIfPresent(Bool.self, forKey: .opponentPreviouslyStarted) ?? false
+        durationMinutes = try container.decode(Int.self, forKey: .durationMinutes)
+        startedAt = try container.decode(Double.self, forKey: .startedAt)
+        opponent = try container.decode(Opponent.self, forKey: .opponent)
+    }
 }
 
 /// État de la file, tel que le serveur le décrit au téléphone.

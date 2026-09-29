@@ -23,6 +23,17 @@ import SwiftUI
 struct AccountView: View {
     @EnvironmentObject private var session: SessionStore
 
+    /// Publieur du profil public : porte l'état de publication de l'annuaire
+    /// (`publication` d'`AccountScreen.tsx:246`, alimenté par
+    /// `PublicProfilePublisher.onPublication` → `App.tsx:2607`). Le bandeau
+    /// d'état de la recherche lit `lastPublication`.
+    ///
+    /// L'onglet doit recevoir le publieur de `MainTabView` (`@StateObject
+    /// publisher`) : `AccountView(publisher: publisher)`. Le repli par défaut
+    /// (publieur détaché, jamais démarré) laisse le bandeau masqué, soit le
+    /// comportement d'avant ce câblage — jamais un plantage.
+    @ObservedObject var publisher = ReportPublicProfilePublisher()
+
     /// Réglages ouverts. En mode capture, `ScreenshotTour` les fige d'emblée
     /// pour photographier un écran de réglages sans tap.
     @State private var settingsOpen = ScreenshotTour.opensAccountSettings
@@ -37,6 +48,7 @@ struct AccountView: View {
                 VStack(spacing: 0) {
                     AcctIntSearchRow(
                         model: search,
+                        publication: publisher.lastPublication,
                         onOpenNotifications: { notificationsOpen = true },
                         onOpenSettings: { settingsOpen = true }
                     )

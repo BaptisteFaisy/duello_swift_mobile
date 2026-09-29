@@ -35,10 +35,10 @@ private let eloHintHandPositionSegments: [EloHintSegment] = [
 
 /// `demoHandPress` : appui de la main (échelle).
 private let eloHintHandPressSegments: [EloHintSegment] = [
-    EloHintSegment(start: 0.97, duration: 0.13, from: 0, to: 1, ease: LeagueAnimation.quadIn),
-    EloHintSegment(start: 1.10, duration: 0.22, from: 1, to: 0, ease: LeagueAnimation.quadIn),
-    EloHintSegment(start: 3.30, duration: 0.13, from: 0, to: 1, ease: LeagueAnimation.quadIn),
-    EloHintSegment(start: 3.43, duration: 0.22, from: 1, to: 0, ease: LeagueAnimation.quadIn),
+    EloHintSegment(start: 0.97, duration: 0.13, from: 0, to: 1, ease: LeagueAnimation.quadOut),
+    EloHintSegment(start: 1.10, duration: 0.22, from: 1, to: 0, ease: LeagueAnimation.quadOut),
+    EloHintSegment(start: 3.30, duration: 0.13, from: 0, to: 1, ease: LeagueAnimation.quadOut),
+    EloHintSegment(start: 3.43, duration: 0.22, from: 1, to: 0, ease: LeagueAnimation.quadOut),
 ]
 
 /// `demoThresholdOpacity` : apparition puis disparition du seuil affiché.

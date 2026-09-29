@@ -18,6 +18,12 @@
 //  accepté. Les encarts `leading`/`centered`/`trailing` sont acceptés en
 //  `AnyView`. Cible iOS 16.
 //
+//  V2 (2026-09-29, écart 08#N4) : `ChartPerformanceMetricIcon` rend le
+//  pictogramme par `IonIcon` (police Ionicons embarquée) au lieu de
+//  `Image(systemName:)` : les noms fournis par `AcctIntData` sont ceux du RN
+//  (`sparkles-outline`, `trophy-outline`, …), pour lesquels aucun SF Symbol
+//  n'existe — les tuiles sortaient sans icône.
+//
 import SwiftUI
 
 /// `GOOGLE_G_COLORS` de `PerformanceOverviewBar.tsx` : teintes du « G » Google.
@@ -219,13 +225,9 @@ struct ChartPerformanceMetricIcon: View {
             }
             // La source superpose le pictogramme deux fois : le second, décalé de
             // 0,4 pt et à 45 %, épaissit le trait (`metricIconEmphasis`).
-            Image(systemName: name)
-                .font(.system(size: iconSize, weight: .semibold))
-                .foregroundStyle(color)
+            IonIcon(name: name, size: iconSize, color: color)
                 .overlay {
-                    Image(systemName: name)
-                        .font(.system(size: iconSize, weight: .semibold))
-                        .foregroundStyle(color)
+                    IonIcon(name: name, size: iconSize, color: color)
                         .opacity(0.45)
                         .offset(x: 0.4)
                 }

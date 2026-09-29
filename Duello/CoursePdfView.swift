@@ -10,6 +10,14 @@ import UIKit
 /// page par page, ce qui remplace PDF.js sans changer le contrat du lecteur
 /// (`CourseDocumentViewer.native.tsx`) : le repère rouge (`positioning`) suit le
 /// défilement et publie `position` (`courseDocumentPdf.ts:93-140`).
+///
+/// Écart assumé (2026-09-29) — calque de sélection + bouton « Expliquer »
+/// (`courseDocumentPdf.ts:50,83,188-189`) non portés. PDFKit natif les
+/// offrirait (`PDFPage`, `PDFSelection`, `PDFViewSelectionChanged`), mais le
+/// shim PDFKit du contrôle Linux (`scripts/linux-shims/PDFKit.swift`, hors
+/// cible Xcode) n'expose que `PDFView`/`PDFDocument` : aucune de ces API n'est
+/// typable, et les shims sont hors lot. Le contrat visuel (défilement vertical
+/// + repère rouge, `#D32020`) reste fidèle. Cf. « À raccorder » d'IMPL-07.
 struct CtdPdfDocumentView: UIViewRepresentable {
     let data: Data
     var positioning: Bool = false

@@ -11,9 +11,10 @@ import Combine
 /// `prepapp-hec-journey-admission:v1` (admission unique).
 ///
 /// Limite assumée : la source reçoit `registeredAt` du compte (`createdAt`
-/// serveur). `UserProfile` n'a pas d'équivalent ici, donc le jour d'inscription
-/// est la première ouverture du parcours, mémorisée une fois pour toutes
-/// (`resolveRegistrationDate`). Il sert d'origine à toute la frise.
+/// serveur, `App.tsx:2828` → `HecJourney.tsx:153,172`). `UserProfile` ne le
+/// porte pas ; le magasin le résout donc, dans l'ordre : la valeur injectée par
+/// l'appelant, le `createdAt` du compte du registre local (`accountEmail`),
+/// puis — en dernier recours, écart assumé — la première ouverture du parcours.
 final class HecJourneyStore: ObservableObject {
 
     /// Année affichée : 1 ou 2.
@@ -30,14 +31,23 @@ final class HecJourneyStore: ObservableObject {
 
     private static let timelinePrefix = "prepapp-hec-journey-timeline:v2:"
     private static let admissionKey = "prepapp-hec-journey-admission:v1"
-    /// Clé propre à Swift : l'origine de la frise n'est pas encore le
-    /// `createdAt` du compte (voir #2), elle est mémorisée à part.
+    /// Clé propre à Swift, **dernier recours** quand ni l'appelant ni le
+    /// registre ne fournissent le `createdAt` du compte (écart assumé).
     private static let registrationKey = "prepapp-hec-journey-registration-date:v1"
 
-    init(programYear: Int = 1, registeredAt: Date? = nil, defaults: UserDefaults = .standard) {
+    init(
+        programYear: Int = 1,
+        registeredAt: Date? = nil,
+        accountEmail: String? = nil,
+        defaults: UserDefaults = .standard
+    ) {
         self.defaults = defaults
         self.programYear = programYear
-        self.registeredAt = Self.resolveRegistrationDate(explicit: registeredAt, defaults: defaults)
+        self.registeredAt = Self.resolveRegistrationDate(
+            explicit: registeredAt,
+            accountEmail: accountEmail,
+            defaults: defaults
+        )
         self.admission = HecJourneyAdmissionCodec.parse(defaults.string(forKey: Self.admissionKey))
         loadTimeline()
     }
@@ -154,11 +164,19 @@ final class HecJourneyStore: ObservableObject {
         defaults.set(HecJourneyTimelineCodec.serialize(entries), forKey: timelineKey)
     }
 
-    /// Jour d'inscription retenu : celui fourni, sinon celui déjà mémorisé,
-    /// sinon aujourd'hui (mémorisé à son tour).
-    private static func resolveRegistrationDate(explicit: Date?, defaults: UserDefaults) -> Date {
+    /// Jour d'inscription retenu : celui fourni, sinon le `createdAt` du compte
+    /// du registre local (`accountEmail`), sinon celui déjà mémorisé, sinon
+    /// aujourd'hui (mémorisé à son tour) — écart assumé, voir la note de classe.
+    private static func resolveRegistrationDate(
+        explicit: Date?,
+        accountEmail: String?,
+        defaults: UserDefaults
+    ) -> Date {
         if let explicit, HecJourneyDates.isUsable(explicit) {
             return HecJourneyDates.startOfLocalDay(explicit)
+        }
+        if let accountEmail, let created = accountCreatedAt(email: accountEmail) {
+            return HecJourneyDates.startOfLocalDay(created)
         }
         if let stored = defaults.object(forKey: registrationKey) as? Date {
             return HecJourneyDates.startOfLocalDay(stored)
@@ -166,5 +184,14 @@ final class HecJourneyStore: ObservableObject {
         let today = HecJourneyDates.startOfLocalDay(Date())
         defaults.set(today, forKey: registrationKey)
         return today
+    }
+
+    /// `createdAt` du compte du registre local (`AcctStoredAccount.createdAt`,
+    /// instant epoch en millisecondes, `App.tsx:2828`).
+    private static func accountCreatedAt(email: String) -> Date? {
+        let accounts = AcctLocalRegistry.loadAccounts()
+        guard let account = AcctLocalRegistry.findAccountByEmail(accounts, email: email),
+              let createdAt = account.createdAt else { return nil }
+        return Date(timeIntervalSince1970: createdAt / 1000)
     }
 }

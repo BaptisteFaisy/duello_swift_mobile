@@ -16,7 +16,8 @@
 //
 //  Repli `device` : la source ne sert qu'une route vocale (`<endpoint>/asr`) ;
 //  `DictEngineKind.device` n'emprunte donc pas le relais, et si la socket ne
-//  s'ouvre pas (délai, fermeture, erreur), le modèle bascule sur le moteur natif
+//  s'ouvre pas (délai, fermeture, erreur) **ou se ferme en cours de flux**
+//  (erreur de transport pendant l'écoute), le modèle bascule sur le moteur natif
 //  de l'appareil (`DictSpeechEngine`) — `fallbackToDevice`.
 //
 //  Cible : iOS 16. Aucune dépendance externe.
@@ -62,6 +63,10 @@ final class DictAsrRelay: DictEngine {
     static let maxQueuedPcmBytes = 1024 * 1024
     /// `AUDIO_TAIL_CAPTURE_MS` : termine le buffer natif qui contient le dernier mot.
     static let audioTailMs: UInt64 = 150
+    /// Message du repli `device` sur fermeture/erreur de socket mi-flux
+    /// (`socket.onclose` de `useDictation.ts:718-729`).
+    static let interruptionMessage =
+        "La dictée IA a été interrompue : reconnaissance du téléphone utilisée."
 
     private let config: DictRelayConfig
     private let session: URLSession
@@ -194,8 +199,17 @@ final class DictAsrRelay: DictEngine {
                     break
                 }
             } catch {
+                // Échec de transport : pendant l'ouverture il réveille `start()`
+                // (`signalerConnexion`) ; en cours de flux il doit déclencher le
+                // repli `device` (`fallbackToDevice`) — un `done` silencieux
+                // laisserait la dictée sans suite (`socket.onerror` /
+                // `socket.onclose`, `useDictation.ts:708-729`).
+                let pendantConnexion = connexionContinuation != nil
                 signalerConnexion(erreur: DictError.engineUnavailable)
-                fermer(fin: true)
+                if !pendantConnexion, enCours, !cloudStopRequested, !doneEmis {
+                    onEvent?(.error(code: "transport", message: Self.interruptionMessage))
+                }
+                fermer(fin: pendantConnexion)
                 return
             }
         }

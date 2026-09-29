@@ -24,8 +24,9 @@ enum EvEventSection: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    /// Libellé d'onglet, mot pour mot de la source.
-    var label: String { self == .correction ? "Correction" : "Classement" }
+    /// Libellé d'onglet, mot pour mot de la source (`EventWorkspace.tsx:372` :
+    /// la section interne reste `'correction'`, mais l'onglet se nomme « Sujet »).
+    var label: String { self == .correction ? "Sujet" : "Classement" }
 }
 
 struct EvEventWorkspace: View {
@@ -167,8 +168,10 @@ struct EvEventTopBar: View {
 
 // MARK: - Onglet de section
 
-/// Onglet de section (Correction / Classement) d'un événement terminé.
-/// Le fond commun (gris) vit dans le conteneur, comme `sectionTabs`.
+/// Onglet de section (Sujet / Classement) d'un événement terminé.
+/// La capsule noire commune vit dans le conteneur, comme `sectionTabs`
+/// (`EventWorkspace.tsx:657-693` : conteneur `#000000`, pastille sélectionnée
+/// blanche, texte sélectionné `ink` / non sélectionné blanc).
 struct EvEventSectionTab: View {
     let label: String
     let selected: Bool
@@ -178,10 +181,10 @@ struct EvEventSectionTab: View {
         Button(action: onPress) {
             Text(label)
                 .font(.system(size: 12, weight: .heavy))
-                .foregroundStyle(selected ? Color.white : Theme.inkSoft)
+                .foregroundStyle(selected ? Theme.ink : Theme.white)
                 .frame(minHeight: 30)
                 .padding(.horizontal, 12)
-                .background(selected ? Theme.primary : Color.clear)
+                .background(selected ? Theme.white : Color.clear)
                 .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
                 .contentShape(Rectangle())
         }

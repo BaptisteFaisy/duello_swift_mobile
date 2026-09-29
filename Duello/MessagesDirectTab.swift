@@ -1,3 +1,23 @@
+//
+//  MessagesDirectTab.swift
+//  Duello
+//
+//  Port de src/components/ElasticScrollView.tsx (défilement élastique) et de
+//  l'onglet « Direct » de src/screens/MessagesScreen.tsx.
+//
+//  Écarts assumés (2026-09-29)
+//  ---------------------------
+//  La source enveloppe ses pages dans `ElasticScrollView`
+//  (`alwaysBounceVertical` vrai, `overScrollMode: 'always'`) : le contenu
+//  conserve l'élasticité verticale **même trop court pour défiler**. SwiftUI
+//  n'expose pas cet équivalent sur iOS 16 : `scrollBounceBehavior(_:)` est
+//  apparu en iOS 16.4 (`scripts/check-ios16.sh` le refuse, cible 16.x) et un
+//  `UIScrollView` via `UIViewRepresentable` sortirait du périmètre. Le
+//  `ScrollView` garde donc l'élasticité par défaut d'iOS (rebond seulement
+//  quand le contenu dépasse) — impact faible, aucun défilement perdu.
+//
+//  Cible : iOS 16, aucune API iOS 17.
+//
 import SwiftUI
 
 extension MessagesView {

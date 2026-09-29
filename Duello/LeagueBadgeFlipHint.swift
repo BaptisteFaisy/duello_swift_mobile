@@ -2,10 +2,15 @@
 //  LeagueBadgeFlipHint.swift
 //  Duello
 //
-//  Démonstration du retournement de blason (`BadgeFlipHint.tsx`).
+//  Port de src/components/BadgeFlipHint.tsx
 //
 //  Fichiers source Expo portés (libellés et minutages repris mot pour mot) :
 //    - src/components/BadgeFlipHint.tsx
+//
+//  Écarts assumés (2026-09-29) :
+//    - `perspective: 700` (React Native) → `perspective: 0.5` (SwiftUI) :
+//      mêmes proportions visuelles, l'API 3D SwiftUI n'expose pas la distance
+//      de caméra en points.
 //
 //  La boucle `Animated.loop` de la source (position de la main, appui, rotation
 //  `rotateY`) est transposée par `TimelineView(.animation)` : la position de la
@@ -15,7 +20,6 @@
 //  source accepte n'importe quel nœud.
 //  La source ne consulte pas la réduction des mouvements pour cette
 //  démonstration : la boucle tourne donc toujours, comme dans `BadgeFlipHint`.
-//  `perspective: 700` (React Native) est approché par `perspective: 0.5`.
 //
 //  Cible : iOS 16, aucune API iOS 17.
 //
@@ -46,10 +50,10 @@ private let leagueFlipHandPositionSegments: [LeagueFlipSegment] = [
 
 /// `tapPhase` : appui de la main au fil de la boucle.
 private let leagueFlipHandPressSegments: [LeagueFlipSegment] = [
-    LeagueFlipSegment(start: 0.97, duration: 0.13, from: 0, to: 1, ease: LeagueAnimation.quadIn),
-    LeagueFlipSegment(start: 1.10, duration: 0.22, from: 1, to: 0, ease: LeagueAnimation.quadIn),
-    LeagueFlipSegment(start: 3.43, duration: 0.13, from: 0, to: 1, ease: LeagueAnimation.quadIn),
-    LeagueFlipSegment(start: 3.56, duration: 0.22, from: 1, to: 0, ease: LeagueAnimation.quadIn),
+    LeagueFlipSegment(start: 0.97, duration: 0.13, from: 0, to: 1, ease: LeagueAnimation.quadOut),
+    LeagueFlipSegment(start: 1.10, duration: 0.22, from: 1, to: 0, ease: LeagueAnimation.quadOut),
+    LeagueFlipSegment(start: 3.43, duration: 0.13, from: 0, to: 1, ease: LeagueAnimation.quadOut),
+    LeagueFlipSegment(start: 3.56, duration: 0.22, from: 1, to: 0, ease: LeagueAnimation.quadOut),
 ]
 
 /// `flip` : angle de retournement (0 = face avant, 1 = face arrière).

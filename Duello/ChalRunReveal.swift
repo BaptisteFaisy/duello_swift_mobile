@@ -203,9 +203,14 @@ struct ChalRunOpponentCard: View {
         }
     }
 
-    /// Filière, année et prépa de l'adversaire. Le serveur n'envoie que la
-    /// prépa (`MatchView.Opponent` ne porte ni `track` ni `year`) : la source
-    /// joignait ces trois champs, seule la prépa reste affichable ici.
+    /// Filière, année et prépa de l'adversaire, jointes par « · » comme la
+    /// source (`[opponent.track, opponent.year, opponent.prepName]`,
+    /// `ChallengesScreen.tsx:3110-3115`).
+    ///
+    /// V1 (2026-09-29) — écart P2 : `MatchView.Opponent` (`Models.swift`, hors
+    /// lot) ne porte toujours ni `track` ni `year` ; seule la prépa reste
+    /// affichable ici. Le hunk à raccorder (ajout des deux champs optionnels à
+    /// `Opponent`, puis jonction des trois) est décrit dans le rapport IMPL-14.
     private var metaLine: String {
         if isTraining { return "Personne dans la file — même exo, même chrono" }
         return opponent.prepName

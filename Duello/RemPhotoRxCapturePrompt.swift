@@ -1,14 +1,19 @@
 import SwiftUI
 
-// Porté depuis l'application Expo (lot 7-I, photo à distance — côté téléphone
-// récepteur) :
-//   src/components/RemotePhotoCapturePrompt.tsx
-//   src/components/RemotePhotoCaptureCoordinator.tsx
-//   src/components/remotePhotoCapturePromptStyles.ts
-// Invite modale affichée quand le web demande une photo : choix de la source,
-// envoi en cours, refus. La sélection réelle réutilise les sélecteurs du lot 6
+// Port de `src/components/RemotePhotoCapturePrompt.tsx`,
+// `src/components/RemotePhotoCaptureCoordinator.tsx` et
+// `src/components/remotePhotoCapturePromptStyles.ts` (RN) — invite de capture
+// à distance côté téléphone récepteur : choix de la source, envoi en cours,
+// refus. La sélection réelle réutilise les sélecteurs du lot 6
 // (`RemPhotoCameraPicker`, `RemPhotoLibraryPicker`) — AVFoundation reste isolé
 // là-bas — et l'`UIActivityViewController` est piloté par la vue appelante.
+//
+// Écarts assumés (2026-09-29) :
+//   - l'écoute des notifications de demande de capture (`useCaptureNotificationEvents`,
+//     `useRemotePhotoCapturePrompt.ts:28-46`) n'est pas portée : seul le sondage
+//     2 s de `RemPhotoRxCaptureCoordinator` est branché (relève du lot PushNotif) ;
+//   - l'hôte `RemPhotoRxCaptureHost` doit être monté à la racine par `DuelloApp`
+//     (`App.tsx:2603`) — hunk « À raccorder » de ce lot, hors fichier.
 
 /// `RemotePhotoCapturePrompt`.
 struct RemPhotoRxCapturePrompt: View {
@@ -215,5 +220,21 @@ struct RemPhotoRxCaptureHost: View {
                 }
             )
         }
+    }
+}
+
+// MARK: - Montage racine
+
+extension View {
+    /// Monte l'invite de capture à distance au niveau racine, comme
+    /// `RemotePhotoCaptureCoordinator` monté par `App.tsx:2603`. À appliquer
+    /// dans le `ZStack` racine de `DuelloApp` (garde `session.isSignedIn`) :
+    /// l'hôte hérite alors de `SessionStore` et de `scenePhase`.
+    ///
+    /// À raccorder (lot IMPL-09) : `DuelloApp.swift:151-157` doit ajouter
+    /// `RemPhotoRxCaptureHost()` (ou ce modificateur) dans son `ZStack`, sous
+    /// `if session.isSignedIn`.
+    func remPhotoRxCaptureHost() -> some View {
+        overlay { RemPhotoRxCaptureHost() }
     }
 }

@@ -1,3 +1,20 @@
+//
+//  AnnAnnalesModels.swift
+//  Duello
+//
+//  Modèles d'annale du lecteur : difficulté, verdicts, thèmes, statut de
+//  programme, questions et entrée d'annale.
+//
+//  Port de `src/components/AnnaleViewer.tsx` et de `src/data/chapterItems.ts`
+//  (`ChapterItem`, `AnnaleQuestion`, `questionVerdict*`, `annaleThemes`,
+//  `annaleThemes.ts`).
+//
+//  Écarts assumés (2026-09-29, écart 18#3/#4) : les champs de rendu PDF
+//  (`sourceUrl`, `sourceAsset`, `sourcePage`, `sourceRegion`) sont désormais
+//  portés par `AnnEntry`, mais leur **rendu** (page PDF découpée via PDFKit,
+//  remplaçant PDF.js) reste à raccorder au lecteur (`AnnReaderContent.swift`,
+//  hors lot) : le modèle expose la donnée, le lecteur compose encore le texte.
+//
 import SwiftUI
 import Foundation
 
@@ -169,12 +186,21 @@ struct AnnQuestion: Identifiable, Hashable {
 
 // MARK: - Entrée d'annale
 
+/// Bande d'une page PDF à afficher (`ChapterItem.sourceRegion`), exprimée en
+/// fractions de hauteur depuis le haut de la page (`chapterItems.ts:695-701`).
+/// Une feuille d'exercices en aligne plusieurs : sans découpe, ouvrir un exercice
+/// montrerait aussi ses voisins. La page entière est rendue quand la bande est
+/// absente.
+struct AnnSourceRegion: Hashable {
+    var haut: Double
+    var bas: Double
+}
+
 /// Une annale de la banque : sujet, corrigé, barème, commentaires et questions.
 ///
 /// Reprend la forme utile de `ChapterItem` (`chapterItems.ts`) pour une liste
-/// d'annales. Les champs de rendu de PDF (`sourceUrl`, `sourceAsset`,
-/// `sourcePage`, `sourceRegion`) ne sont pas portés : le lecteur SwiftUI affiche
-/// les documents retranscrits en texte.
+/// d'annales, y compris les champs de rendu du document PDF d'énoncé
+/// (`sourceUrl`, `sourceAsset`, `sourcePage`, `sourceRegion`).
 struct AnnEntry: Identifiable, Hashable {
     var id: String
     var title: String
@@ -195,6 +221,16 @@ struct AnnEntry: Identifiable, Hashable {
     var programStatus: AnnProgramStatus? = nil
     /// Avancement des prérequis, tel que le filtre « Prérequis » le lit.
     var prerequisite: String = "Prêt"
+    /// Énoncé original à ouvrir lorsque l'item provient d'une annale
+    /// (`ChapterItem.sourceUrl`).
+    var sourceUrl: String? = nil
+    /// PDF d'énoncé embarqué dans l'application (`ChapterItem.sourceAsset`).
+    var sourceAsset: Int? = nil
+    /// Page du PDF qui contient uniquement l'énoncé annoncé
+    /// (`ChapterItem.sourcePage`).
+    var sourcePage: Int? = nil
+    /// Bande de la page à afficher (`ChapterItem.sourceRegion`).
+    var sourceRegion: AnnSourceRegion? = nil
 
     // MARK: Dérivés
 

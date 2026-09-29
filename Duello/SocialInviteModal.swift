@@ -14,6 +14,18 @@
 //  contenu du volet, présenté par `.sheet`. La présence vient de
 //  `SocialPresenceProvider`, à monter à la racine de l'app.
 //
+//  Écarts assumés (29/09/2026) :
+//    - Enveloppe du volet : la source (`ChallengeInviteModal.tsx:104,174-207,
+//      244-252`) anime un `Modal` transparent — voile en fondu **140 ms**,
+//      panneau `translateY` (hauteur du volet → 0) en **220 ms** `out(cubic)`,
+//      fermeture **180 ms** `out(cubic)`, glisser-pour-fermer `Animated.spring`
+//      (`bounciness: 0`). Ici l'enveloppe est déléguée au `.sheet` natif (voir
+//      ci-dessus) : ses durées ne sont pas réglables depuis le contenu, et la
+//      reproduction (voile + `offset` + `DragGesture`) exigerait de remplacer
+//      le `.sheet` chez l'appelant (`ChalIntChallengesTab.swift:92`), hors lot.
+//      Divergence assumée, comme `PremPaywallSheet`, `ProfTutorSheet` et
+//      `EvEventShareSheet`.
+//
 //  Découpé en quatre modules à responsabilité claire (règle des 500 lignes) :
 //  `SocialInviteSearchResults`, `SocialInviteChapterPicker`,
 //  `SocialInviteActions` — aucun type ni libellé renommé.

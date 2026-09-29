@@ -84,6 +84,9 @@ struct ChalTrainingMatch: Codable, Equatable, Identifiable {
             subject: subject,
             chapterKey: chapterKey,
             exerciseId: exerciseId,
+            exerciseSequence: exerciseSequence,
+            exercisePreviouslyStarted: exercisePreviouslyStarted,
+            opponentPreviouslyStarted: opponentPreviouslyStarted,
             durationMinutes: durationMinutes,
             startedAt: startedAt,
             opponent: MatchView.Opponent(

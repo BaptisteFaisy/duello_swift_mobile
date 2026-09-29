@@ -20,14 +20,26 @@
 //  Découpé de `AcctSearchModel.swift` et `AcctSearchMemberViews.swift` (règle
 //  des 500 lignes) : l'état reste dans le modèle, ces vues ne font que le lire.
 //
+//  Écarts assumés (2026-09-29)
+//  ---------------------------
+//  - Invite du champ : le libellé d'accessibilité est aligné sur la source
+//    (« Rechercher par Elo ou XP », `AccountScreen.tsx:2617`) ; la **chaîne
+//    affichée** vient de `AcctSearchSettings.placeholder`
+//    (`AcctSearchDirectory.swift`, fichier d'un autre lot) — à raccorder.
+//  - Barre en noir absolu : la cloche et la roue de la ligne de recherche
+//    (`AcctIntSearchRow.swift`, autre lot) restent à passer en noir ; ici seule
+//    la barre (`AcctSearchBar`) l'est.
+//
 //  Cible : iOS 16, aucune API iOS 17.
 //
 import SwiftUI
 
 // MARK: - Champ de recherche
 
-/// Champ « Nom, filière, spécialité, Elo ou XP… » (`peopleSearchBar`) : la
-/// loupe, la saisie, et la croix d'effacement.
+/// Champ « Elo ou XP… » (`peopleSearchBar`) : la loupe, la saisie, et la croix
+/// d'effacement. Barre en noir absolu à symboles blancs (`423b1039c` côté dev,
+/// `AccountScreen.tsx:4552-4564,2587,2637`) : fond et bord `#000000`, loupe et
+/// croix `colors.white`, saisie blanche, invite `rgba(255,255,255,0.55)`.
 struct AcctSearchBar: View {
     @Binding var query: String
     /// Appelé au premier focus : ouvre le menu et affiche la première page.
@@ -38,18 +50,18 @@ struct AcctSearchBar: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            IonIcon(name: "search", size: 19, color: Theme.inkSoft)
+            IonIcon(name: "search", size: 19, color: Theme.white)
 
             ZStack(alignment: .leading) {
                 if query.isEmpty {
                     Text(AcctSearchSettings.placeholder)
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Theme.inkFaint)
+                        .foregroundStyle(Theme.white.opacity(0.55))
                         .allowsHitTesting(false)
                 }
                 TextField("", text: $query)
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Theme.ink)
+                    .foregroundStyle(Theme.white)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .submitLabel(.search)
@@ -57,12 +69,12 @@ struct AcctSearchBar: View {
                     .onChange(of: focused) { isFocused in
                         if isFocused { onFocus() }
                     }
-                    .accessibilityLabel("Rechercher par nom, filière, spécialité, Elo ou XP")
+                    .accessibilityLabel("Rechercher par Elo ou XP")
             }
 
             if !query.isEmpty {
                 Button(action: onClear) {
-                    IonIcon(name: "close-circle", size: 19, color: Theme.inkFaint)
+                    IonIcon(name: "close-circle", size: 19, color: Theme.white)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Effacer la recherche")
@@ -70,11 +82,11 @@ struct AcctSearchBar: View {
         }
         .padding(.horizontal, 14)
         .frame(height: 40)
-        .background(Theme.surface)
+        .background(Color.black)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
         .overlay(
             RoundedRectangle(cornerRadius: Theme.radiusMedium)
-                .stroke(Theme.border, lineWidth: 1)
+                .stroke(Color.black, lineWidth: 1)
         )
     }
 }

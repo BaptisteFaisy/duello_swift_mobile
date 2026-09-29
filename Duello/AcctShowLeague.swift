@@ -157,7 +157,9 @@ struct AcctShowLeagueCard: View {
 }
 
 /// Encart « membre Premium » au pied de la carte de ligue
-/// (`leagueProgressInline`) : bandeau gris, texte centré.
+/// (`leagueProgressInline`, `AccountScreen.tsx:4865-4878`) : bandeau **noir**,
+/// texte **blanc** centré — la source pose `backgroundColor: '#000000'` et
+/// `color: colors.white`, pas le gris/encre de surface.
 struct AcctShowLeaguePremiumNotice: View {
     /// Nom du profil consulté (`viewedName`).
     let name: String
@@ -168,12 +170,12 @@ struct AcctShowLeaguePremiumNotice: View {
     var body: some View {
         Text(message)
             .font(.system(size: 11, weight: .heavy))
-            .foregroundStyle(Theme.ink)
+            .foregroundStyle(Theme.white)
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
-            .background(Theme.surfaceMuted)
+            .background(Color.black)
             .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
             .padding(.top, 8)
             .accessibilityLabel(message)

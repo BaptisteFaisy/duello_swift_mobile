@@ -2,13 +2,21 @@ import SwiftUI
 
 // MARK: - Paliers de gains
 //
-// Portage de `src/features/affiliate/AffiliateMilestoneProgress.tsx` et de
+// Port de `src/features/affiliate/AffiliateMilestoneProgress.tsx` et de
 // `src/utils/affiliateMilestones.ts` (calcul) — `AffiliateMilestones`.
 //
-// La source anime la barre sur 700 ms, puis fait apparaître une pastille de
-// célébration par un ressort décalé. Ici la barre est animée en fondu sortant et
-// la pastille apparaît dès que le palier est atteint : `useReducedMotion` n'a
-// pas d'équivalent direct, et la célébration reste purement décorative.
+// La source anime la barre sur 700 ms (`Easing.out(Easing.cubic)`), puis fait
+// « popper » la pastille de célébration via `Animated.spring(friction: 4,
+// tension: 120)` décalé de `order * 90 ms` (échelonné). Ici la barre est animée
+// en sortie douce et la pastille apparaît par
+// `interpolatingSpring(stiffness: 120, damping: 4)` décalée de `order * 0.09 s`.
+//
+// Écarts assumés :
+// - `useReducedMotion` (Reanimated) n'est pas répliqué : la célébration reste
+//   purement décorative.
+// - RN ne démarre le pop qu'à la fin du remplissage (700 ms), le décalage
+//   `order * 90 ms` s'y ajoutant ; ici le pop est lancé à l'apparition, décalé
+//   du seul `order * 0.09 s` (cf. brief ANIM-04).
 
 /// `AffiliateMilestoneProgress` : cumul de gains et cinq paliers séquentiels.
 struct AffiliateMilestoneSection: View {
@@ -40,8 +48,8 @@ struct AffiliateMilestoneSection: View {
                 .padding(.top, 5)
 
             VStack(alignment: .leading, spacing: 12) {
-                ForEach(summary.milestones) { milestone in
-                    AffiliateMilestoneRow(milestone: milestone)
+                ForEach(Array(summary.milestones.enumerated()), id: \.element.id) { order, milestone in
+                    AffiliateMilestoneRow(milestone: milestone, order: order)
                 }
             }
             .padding(.top, 17)
@@ -78,6 +86,10 @@ struct AffiliateMilestoneSection: View {
 /// `AffiliateMilestoneRow` : un palier, sa progression et sa pastille atteinte.
 struct AffiliateMilestoneRow: View {
     let milestone: AffMilestone
+    /// Position dans la liste, source du décalage `order * 90 ms` du pop.
+    let order: Int
+
+    @State private var badgeScale: CGFloat = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -113,6 +125,13 @@ struct AffiliateMilestoneRow: View {
                 Image(systemName: "checkmark")
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(Theme.progress)
+            }
+            .scaleEffect(badgeScale)
+            .onAppear {
+                withAnimation(.interpolatingSpring(stiffness: 120, damping: 4)
+                    .delay(Double(order) * 0.09)) {
+                    badgeScale = 1
+                }
             }
         } else {
             Text(percentText)

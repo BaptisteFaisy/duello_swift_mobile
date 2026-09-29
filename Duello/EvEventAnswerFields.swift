@@ -8,14 +8,15 @@
 //
 //  Fichier source Expo porté : `src/components/event/EventAnswerFields.tsx`.
 //
-//  Hors périmètre, volontairement : la dictée vocale (`useDictation`, relais
-//  temps réel et moteur système) et l'aperçu composé (`AnswerComposition`,
-//  WebView de composition LaTeX) ne sont pas portés — aucune brique native ne
-//  les remplace ici et l'Info.plist n'est pas modifiable dans ce lot. Le champ
-//  garde le texte exact qui partira à la correction.
+//  Réutilisation stricte (aucune brique redéfinie) :
+//    - `DictControlModel` (DictControlView.swift) pour la dictée vocale par
+//      question (`useDictation` : relais temps réel premium, sinon moteur
+//      système), avec le libellé exact « Dicter » / « Écoute… » ;
+//    - `SubjAnswerComposition` (SubjFlashcardAnswerField.swift) pour l'aperçu
+//      composé de la réponse active (`AnswerComposition`, `:58`).
 //
-//  Icône Ionicons : camera-outline (16) pour le bouton photo, comme la source
-//  — plus de substitution SF Symbol.
+//  Icône Ionicons : camera-outline (16) pour le bouton photo, mic-outline/stop
+//  (16) pour la dictée, comme la source — pas de substitution SF Symbol.
 //
 //  Cible : iOS 16.
 //
@@ -55,6 +56,9 @@ struct EvEventAnswerFields: View {
                     onAnswer: { text in onAnswer(question.id, text) }
                 )
             }
+            // `AnswerComposition` (`EventAnswerFields.tsx:58`) : aperçu composé de
+            // la réponse de la question active, sous les champs.
+            SubjAnswerComposition(answer: answers[activeQuestionId] ?? "")
         }
         .padding(.bottom, 24)
     }
@@ -75,12 +79,18 @@ private struct EvEventAnswerField: View {
     @State private var photoBusy = false
     @State private var photoError = ""
     @State private var picking = false
+    @StateObject private var dictation = DictControlModel()
     @FocusState private var focused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             header
             answerEditor
+            if !dictation.error.isEmpty {
+                Text(dictation.error)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Theme.like)
+            }
             if !photoError.isEmpty {
                 Text(photoError)
                     .font(.system(size: 11, weight: .semibold))
@@ -119,6 +129,24 @@ private struct EvEventAnswerField: View {
                 .font(.system(size: 11, weight: .bold))
                 .foregroundStyle(Theme.inkFaint)
             Spacer(minLength: 0)
+            Button(action: toggleDictation) {
+                HStack(spacing: 4) {
+                    IonIcon(
+                        name: dictation.isListening ? "stop" : "mic-outline",
+                        size: 16,
+                        color: dictation.isListening ? Theme.surface : Theme.inkSoft
+                    )
+                    Text(dictation.isListening ? "Écoute…" : "Dicter")
+                        .font(.system(size: 11, weight: .heavy))
+                        .foregroundStyle(dictation.isListening ? Theme.surface : Theme.inkSoft)
+                }
+                .padding(.vertical, 4)
+                .padding(.horizontal, 8)
+                .background(Theme.surfaceMuted)
+                .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(dictation.isListening ? "Arrêter la dictée" : "Dicter la réponse")
             Button { picking = true } label: {
                 HStack(spacing: 4) {
                     if photoBusy {
@@ -162,6 +190,19 @@ private struct EvEventAnswerField: View {
         }
         .onChange(of: focused) { value in
             if value { onFocus() }
+        }
+    }
+
+    /// Dicte la réponse de cette question (`useDictation` de la source) : la
+    /// transcription s'ajoute au champ ciblé, exactement comme le passage dicté.
+    private func toggleDictation() {
+        Task { @MainActor in
+            await dictation.toggle(
+                currentText: answer,
+                math: true,
+                permissionMessage: "Autorise le microphone pour dicter ta réponse à cette question.",
+                apply: { onAnswer($0) }
+            )
         }
     }
 

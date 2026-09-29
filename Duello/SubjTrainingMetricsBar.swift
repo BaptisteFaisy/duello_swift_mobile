@@ -7,13 +7,21 @@
 //  Fichiers source Expo portés :
 //    - `src/screens/SubjectsScreen.tsx` : `trainingMetricsBar` (l. 10664),
 //      `trainingMetricsHeader` (l. 10659) et `trainingProgressControl`
-//      (l. 7474-7490) — la barre grise arrondie qui coiffe la page
+//      (l. 7474-7490) — la barre noire arrondie qui coiffe la page
 //      Mathématiques de l'onglet Entraînement : sélecteur d'année, compteur
 //      « X/Y sujets réussis » avec sa piste, et accès au classement XP ;
 //    - `src/components/ProgramYearTabs.tsx` : le sélecteur d'année (deux puces
-//      `1re` / `2e`, l'année choisie sur fond d'encre).
+//      `1re` / `2e`, l'année choisie sur fond blanc).
 //
 //  Cible : iOS 16, aucune API iOS 17.
+//
+//  V2 (2026-09-29, écart 06#5) : la barre passe en noir comme la source —
+//  `trainingMetricsBar` `backgroundColor: '#000000'` (`SubjectsScreen.tsx:10794-10798`),
+//  compteur `trainingProgressTextOnDark` blanc (`:12150-12152`, `renderTrainingProgressControl(true)`),
+//  pastille de classement `PerformanceMetricIcon` noire cerclée de blanc avec
+//  `sparkles` blanc (`:9803-9808`). Le sélecteur d'année (`ProgramYearTabs`,
+//  `tabs` `#000000` / `tabSelected` blanc / `tabText` blanc) suit la même bascule,
+//  sans quoi la capsule claire resterait visible sur la barre noire.
 //
 import SwiftUI
 
@@ -37,14 +45,16 @@ struct SubjTrainingMetricsBar: View {
         }
         .padding(.horizontal, 4)
         .frame(height: 48)
-        .background(Theme.surfaceMuted)
+        .background(Color.black)
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 
     // MARK: Sélecteur d'année (`ProgramYearTabs.tsx`)
 
-    /// Deux puces `1re` / `2e` dans une capsule grise, l'année choisie sur fond
-    /// d'encre — `compactTabs` + `matchedTabs` de la source.
+    /// Deux puces `1re` / `2e` dans une capsule noire, l'année choisie sur fond
+    /// blanc à libellé encre — `compactTabs` + `matchedTabs` de la source
+    /// (`ProgramYearTabs.tsx:116-160` : `tabs` `#000000`, `tabSelected` blanc,
+    /// `tabText` blanc, `tabTextSelected` encre).
     private var yearTabs: some View {
         HStack(spacing: 2) {
             ForEach([1, 2], id: \.self) { value in
@@ -53,7 +63,7 @@ struct SubjTrainingMetricsBar: View {
         }
         .padding(2)
         .frame(height: 40)
-        .background(Theme.surfaceMuted)
+        .background(Color.black)
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Année du programme")
@@ -67,9 +77,9 @@ struct SubjTrainingMetricsBar: View {
         } label: {
             Text(value == 1 ? "1re" : "2e")
                 .font(.system(size: 11, weight: .black))
-                .foregroundStyle(selected ? Color.white : Theme.inkSoft)
+                .foregroundStyle(selected ? Theme.ink : Color.white)
                 .frame(minWidth: 29, minHeight: 36)
-                .background(selected ? Theme.primary : Color.clear)
+                .background(selected ? Color.white : Color.clear)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
         }
         .buttonStyle(.plain)
@@ -79,14 +89,15 @@ struct SubjTrainingMetricsBar: View {
 
     // MARK: Avancement de la matière (`trainingProgressControl`)
 
-    /// « X/Y sujets réussis » puis la piste d'avancement — texte centré, piste
-    /// de 6 points sur fond blanc, remplissage à l'encre.
+    /// « X/Y sujets réussis » puis la piste d'avancement — texte centré blanc
+    /// (`trainingProgressTextOnDark`), piste de 6 points sur fond blanc,
+    /// remplissage à l'encre.
     private var progress: some View {
         VStack(spacing: 4) {
             Text("\(succeeded)/\(total) sujets réussis")
                 .font(.system(size: 11, weight: .heavy))
                 .monospacedDigit()
-                .foregroundStyle(Theme.inkSoft)
+                .foregroundStyle(Color.white)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity)
 
@@ -114,15 +125,17 @@ struct SubjTrainingMetricsBar: View {
 
     // MARK: Accès au classement XP
 
-    /// Bouton `sparkles` de la barre (`metricRankingButton`) : ouvre le
-    /// classement XP, comme `setRankingOpen(true)` de la source.
+    /// Pastille `sparkles` de la barre (`PerformanceMetricIcon`, `:9803-9808`) :
+    /// cercle 40 pt noir cerclé de blanc (1,5 pt), icône `sparkles` blanche 21 —
+    /// ouvre le classement XP, comme `setRankingOpen(true)` de la source.
     private var rankingButton: some View {
         Button(action: onOpenRanking) {
-            Image(systemName: "sparkles")
-                .font(.system(size: 21, weight: .semibold))
-                .foregroundStyle(Theme.ink)
+            IonIcon(name: "sparkles", size: 21, color: Color.white)
                 .frame(width: 40, height: 40)
-                .contentShape(Rectangle())
+                .background(Color.black)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(Color.white, lineWidth: 1.5))
+                .contentShape(Circle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Ouvrir le classement de Mathématiques")

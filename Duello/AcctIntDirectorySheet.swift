@@ -13,12 +13,19 @@
 //  son initialisation a lieu dans un initialiseur de propriété (non isolé par
 //  défaut). C'est le motif déjà employé par `ChalHome2QueuePanel`.
 //
-//  Replis documentés : la proposition de défi (`canProposeChallenge`) est fixée
-//  à faux — la passerelle vers `ChallengePlayerView` n'est pas reliée ici. Le
-//  blocage (`ReportSafetyAPI.block`) et le signalement (`ReportUserSheet`) sont
-//  portés par `AcctSearchView`, comme `requestBlockMember` / `reportMember` de
-//  la source. La vue reste pleinement fonctionnelle pour la recherche, la fiche
-//  publique et l'abonnement local (`toggleFollow`).
+//  V2 (2026-09-29, écart 07#16) : la proposition de défi n'est plus figée à
+//  faux. `canProposeChallenge` est calculé pour le membre ouvert
+//  (`canProposeChallengeToMember`, `challengeInvites.ts:290`), à partir de la
+//  filière et de l'option académique du compte (`AccountScreen.tsx:1781-1784`).
+//
+//  Le blocage (`ReportSafetyAPI.block`) et le signalement (`ReportUserSheet`)
+//  sont portés par `AcctSearchView`, comme `requestBlockMember` / `reportMember`
+//  de la source. La vue reste pleinement fonctionnelle pour la recherche, la
+//  fiche publique et l'abonnement local (`toggleFollow`).
+//
+//  Écart assumé (2026-09-29) : le geste de proposition (`onProposeChallenge`)
+//  reste inerte — la passerelle vers la préparation de défi n'est pas câblée
+//  dans ce fichier (même limite que `AcctIntSearchRow`).
 //
 //  Cible : iOS 16, aucune API iOS 17.
 //
@@ -28,6 +35,7 @@ import SwiftUI
 @MainActor
 struct AcctIntDirectorySheet: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var session: SessionStore
     @StateObject private var model = AcctSearchModel()
 
     var body: some View {
@@ -35,7 +43,7 @@ struct AcctIntDirectorySheet: View {
             ScrollView {
                 AcctSearchView(
                     model: model,
-                    canProposeChallenge: false,
+                    canProposeChallenge: canProposeChallenge,
                     onProposeChallenge: { _ in }
                 )
                 .padding(.horizontal, 16)
@@ -50,5 +58,35 @@ struct AcctIntDirectorySheet: View {
                 }
             }
         }
+    }
+
+    /// `canProposeChallenge` (`AccountScreen.tsx:1781-1784`) : le membre ouvert
+    /// partage le programme du compte (`!isMemberLocked` reste toujours vrai côté
+    /// natif, cf. `AcctSearchModel.isMemberLocked`). Recalculé à chaque
+    /// changement de membre ouvert, comme la source.
+    private var canProposeChallenge: Bool {
+        guard let member = model.selectedMember else { return false }
+        return SocChallengeInvites.canProposeChallenge(
+            to: member.profile,
+            challengerTrack: session.profile.track,
+            challengerSpecialty: ownSpecialty
+        )
+    }
+
+    /// `ownSpecialty` (`AccountScreen.tsx:1773-1780`) :
+    /// `accountAcademicOptionLabel(track, academicProgramSelection(...).specialty,
+    /// specialty)`. L'option de l'année affichée vient de `academicPath`
+    /// (`firstYearOption` en 1re année, `currentOption` sinon), avec repli sur la
+    /// spécialité du profil pour les comptes anciens sans parcours détaillé.
+    private var ownSpecialty: String {
+        let profile = session.profile
+        let option = profile.academicPath.map {
+            profile.year == "1re année" ? $0.firstYearOption : $0.currentOption
+        } ?? profile.specialty
+        return LoginScrProviderReuse.accountAcademicOptionLabel(
+            track: profile.track,
+            currentOption: option,
+            legacySpecialty: profile.specialty
+        )
     }
 }

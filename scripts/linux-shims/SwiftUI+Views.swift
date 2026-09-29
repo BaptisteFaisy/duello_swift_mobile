@@ -115,6 +115,8 @@ public struct Path: Shape, Equatable {
 
     public mutating func move(to point: CGPoint) {}
     public mutating func addLine(to point: CGPoint) {}
+    /// `Path.addLines(_:)` — iOS 13+ : polyligne depuis des points.
+    public mutating func addLines(_ lines: [CGPoint]) {}
     public mutating func addQuadCurve(to end: CGPoint, control: CGPoint) {}
     public mutating func addCurve(to end: CGPoint, control1: CGPoint, control2: CGPoint) {}
     public mutating func addArc(center: CGPoint, radius: CGFloat, startAngle: Angle, endAngle: Angle, clockwise: Bool) {}

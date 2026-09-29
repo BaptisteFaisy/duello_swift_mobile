@@ -32,6 +32,14 @@
 //  (`ChallengesScreen.tsx:1038-1047`). L'écran signale son occupation à la
 //  racine (`onBusyChange`), qui l'interdit alors à toute nouvelle invitation.
 //
+//  V2 (2026-09-29, écart 10#1) : la feuille de classement Elo reçoit un
+//  `onOpenProfile` qui ouvre la fiche publique du joueur (`ChallengesScreen.tsx`
+//  l. 3023-3025), au lieu de laisser les lignes inertes.
+//
+//  Écart à raccorder (2026-09-29, écart 07#3/D6) : `startedExerciseIds` passe
+//  encore `attemptIds: []` — le magasin d'essais d'annales (`AnnaleAttemptMap`)
+//  n'existe pas côté Swift (cf. `ChalProgress.swift:30`), hors de ce lot.
+//
 //  Réutilise sans les recréer : `ChalHome2Launch`, `ChalMatchmaking`,
 //  `ChalProgress`, `DuelloExerciseCatalog`, `AcctIntData`, `eloLeague`,
 //  `LeagueBadges`, `ChalRunFormat`, `LeaderboardModalView`.
@@ -88,7 +96,17 @@ struct ChalIntChallengesTab: View {
                 // (`ChallengesScreen.tsx`, `ChallengeHomeOverview`). Un titre
                 // « Défis » centré serait un ajout.
         }
-        .sheet(isPresented: $leaderboardOpen) { LeaderboardModalView(eloOnly: true) }
+        .sheet(isPresented: $leaderboardOpen) {
+            // `onOpenProfile` (`ChallengesScreen.tsx:3023-3025`) : le tap d'une
+            // ligne de classement ouvre la fiche publique du membre via le
+            // coordinateur racine — même couture que le tap de notification.
+            LeaderboardModalView(eloOnly: true, onOpenProfile: { memberId in
+                Task { @MainActor in
+                    PushNotifRootCoordinator.shared.pendingMember =
+                        PushNotifPendingMember(id: memberId)
+                }
+            })
+        }
         .sheet(isPresented: inviteOpen) { inviteSheet }
         .onAppear {
             syncSeenEvents(active: true)

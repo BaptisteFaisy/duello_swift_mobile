@@ -15,9 +15,19 @@
 //  libellé « Démonstration du blason retournable ». Le bandeau partage le
 //  gabarit de l'en-tête Entraînement (`ChartPerformanceOverview.barHeight`).
 //
+//  V1 (2026-09-29) — écart P1 : la capsule d'en-tête passe au noir franc
+//  (`headerPill` `#000000`), la valeur ELO et son libellé au blanc
+//  (`eloValue`/`eloLabel` `colors.white`) et la pastille trophée au noir
+//  (`fillColor '#000000'`) avec anneau et pictogramme blancs
+//  (`ChallengeHomeOverview.tsx:243-244,339,356,364`).
+//
 //  Cible : iOS 16, aucune API iOS 17.
 //
 import SwiftUI
+
+/// Noir franc `#000000` de la capsule d'en-tête (`headerPill`), distinct de
+/// l'encre `Theme.ink` (`#0A0D0C`) : la source code la valeur en dur.
+private let chalHomeAbsoluteBlack = Color(hex: 0x000000)
 
 /// Accueil des défis (`ChallengeHomeHeader` + `ChallengeHomeActions`).
 struct ChalHomeOverview: View {
@@ -71,12 +81,12 @@ struct ChalHomeHeader: View {
                         Text(elo)
                             .font(.system(size: 14, weight: .black))
                             .monospacedDigit()
-                            .foregroundStyle(Theme.ink)
+                            .foregroundStyle(Theme.white)
                             .lineLimit(1)
                         Text("ELO")
                             .font(.system(size: 8, weight: .black))
                             .tracking(0.6)
-                            .foregroundStyle(Theme.inkSoft)
+                            .foregroundStyle(Theme.white)
                             .lineLimit(1)
                     }
                     .accessibilityElement(children: .ignore)
@@ -84,11 +94,11 @@ struct ChalHomeHeader: View {
                     Spacer(minLength: 8)
                     Button(action: onOpenLeaderboard) {
                         // `PerformanceMetricIcon` cerclé (`outlined`) : pastille
-                        // grise, pictogramme trophée, anneau d'encre 1,5 px.
-                        IonIcon(name: "trophy", size: 21, color: Theme.ink)
+                        // noire, pictogramme trophée blanc, anneau blanc 1,5 px.
+                        IonIcon(name: "trophy", size: 21, color: Theme.white)
                             .frame(width: 40, height: 40)
-                            .background(Theme.surfaceMuted, in: Circle())
-                            .overlay(Circle().stroke(Theme.ink, lineWidth: 1.5))
+                            .background(chalHomeAbsoluteBlack, in: Circle())
+                            .overlay(Circle().stroke(Theme.white, lineWidth: 1.5))
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("Ouvrir le classement Elo")
@@ -99,7 +109,7 @@ struct ChalHomeHeader: View {
             }
             .padding(.horizontal, 4)
             .frame(height: 48)
-            .background(Theme.surfaceMuted)
+            .background(chalHomeAbsoluteBlack)
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
         .padding(.horizontal, 20)

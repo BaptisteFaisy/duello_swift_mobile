@@ -196,4 +196,47 @@ enum StmtMatrixParse {
         }
         return matrices
     }
+
+    /// Score de proximité d'une matrice à une sélection (`matrixSelectionScore`).
+    ///
+    /// `nil` = hors de portée ; `0` = le curseur est à l'intérieur ou la
+    /// sélection couvre la matrice ; `1`/`2` = le curseur touche un bord. Un
+    /// score plus petit est plus proche.
+    private static func matrixSelectionScore(
+        _ selection: StmtTextSelection,
+        _ range: StmtTextSelection
+    ) -> Int? {
+        let start = min(selection.start, selection.end)
+        let end = max(selection.start, selection.end)
+        if start == end {
+            if start > range.start && start < range.end { return 0 }
+            if start == range.start { return 1 }
+            if start == range.end { return 2 }
+            return nil
+        }
+        if start <= range.start && end >= range.end { return 0 }
+        return start < range.end && end > range.start ? 1 : nil
+    }
+
+    /// Retrouve une matrice rendue par `formatMatrix` autour du curseur
+    /// (`findMatrixAtSelection`) : à score égal, la plus haute l'emporte, puis
+    /// la plus à droite.
+    static func findMatrixAtSelection(
+        _ value: String,
+        _ selection: StmtTextSelection
+    ) -> StmtParsedMatrix? {
+        parseMatrices(value)
+            .compactMap { candidate -> (matrix: StmtParsedMatrix, score: Int)? in
+                guard let score = matrixSelectionScore(selection, candidate.range) else { return nil }
+                return (candidate, score)
+            }
+            .sorted { first, second in
+                if first.score != second.score { return first.score < second.score }
+                if first.matrix.rows.count != second.matrix.rows.count {
+                    return second.matrix.rows.count < first.matrix.rows.count
+                }
+                return second.matrix.range.start < first.matrix.range.start
+            }
+            .first?.matrix
+    }
 }

@@ -13,6 +13,20 @@
 //  `reserveLayout` de la source vaut toujours `false` (`App.tsx:1559`) : la
 //  barre libère donc sa ligne de mise en page une fois sortie, comme ici.
 //
+//  Écarts assumés / à raccorder (2026-09-29)
+//  -----------------------------------------
+//  L'animation ci-dessous est fidèle (`App.tsx:570-583` : opacité `0→1`,
+//  translation `80→0`, échelle `0.96→1`, 320 ms). Il lui manque son
+//  **producteur** : la source masque la barre au défilement des écrans
+//  (`onBottomNavigationVisibilityChange` → `setBottomNavigationHiddenForScreen`,
+//  `App.tsx:707-756,2788+`). Ce câblage est **hors de ce fichier** : il vit dans
+//  `MainTabView.swift` (`bottomBarHidden`, `:74,82`) et dans les écrans hôtes.
+//  Le fichier de la barre n'est donc pas modifié fonctionnellement ici.
+//  À raccorder (lot IMPL-10, propriétaire de `MainTabView.swift`) : faire
+//  remonter la direction de défilement de chaque écran (seuils déjà portés par
+//  `ConsentChromeVisibility`, `swipeThreshold`/`revealThreshold`) vers
+//  `bottomBarHidden`, en conservant la signature `visible:` utilisée ici.
+//
 import SwiftUI
 
 /// Barre basse animée au défilement (`AnimatedBottomNavigation`).

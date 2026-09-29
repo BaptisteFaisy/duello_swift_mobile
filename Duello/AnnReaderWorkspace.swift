@@ -2,15 +2,13 @@ import SwiftUI
 
 // MARK: - Atelier de réponse du lecteur d'annale
 //
-// Port de l'atelier d'`AnnaleViewer.tsx` (unité 18) : le séparateur déplaçable
-// entre l'énoncé et la réponse (`useAnnaleSplit`, `PaneSplitter`,
-// `AnnaleViewer.tsx:657-930`, monté à `:4141-4146`), puis l'atelier lui-même —
-// champ de réponse, tableau blanc (`WhiteboardView`) et console Python
-// (`PythonConsoleView`), montés respectivement à `AnnaleViewer.tsx:1570-1577`
-// / `:4320-4325` et `:1628-1632` / `:4385-4389`.
+// Port de l'atelier d'`AnnaleViewer.tsx` (unité 18) : séparateur énoncé/atelier
+// (`useAnnaleSplit`, `PaneSplitter`) puis atelier — champ de réponse, tableau
+// blanc (`WhiteboardView`) et console Python (`PythonConsoleView`).
 //
-// La dictée, la photo, le clavier mathématique et la composition de réponse
-// (`AnswerComposition`) relèvent d'autres unités et ne sont pas montés ici.
+// V2 (29/09/2026, écarts 18#2/18#6) : outils de réponse montés (dicter, photo,
+// clavier maths) et « Effacer » devenu le menu de suppression à deux entrées
+// (`deleteMenu`, `:4675-4712`). Soumission/correction hors de ce fichier.
 
 /// Outil d'écriture affiché dans l'atelier.
 enum AnnAnswerMode {
@@ -56,7 +54,19 @@ extension AnnReaderView {
                 AnnAnswerWorkspace(
                     draft: $draft,
                     mode: $answerMode,
-                    strokes: $whiteboardStrokes
+                    strokes: $whiteboardStrokes,
+                    // `questionDisplayLabel` de la question ouverte.
+                    questionLabel: activeQuestionId
+                        .flatMap { id in entry.questions.first { $0.id == id } }?
+                        .displayLabel ?? entry.questions.first?.displayLabel ?? "",
+                    subject: subject,
+                    prompt: entry.title,
+                    // `clearAllAnswers` : le lecteur ne tient qu'un brouillon, les
+                    // verdicts reçus sont en lecture seule (voir en-tête).
+                    onClearAll: {
+                        draft = ""
+                        whiteboardStrokes = []
+                    }
                 )
             }
             .padding(.horizontal, 16)
@@ -217,20 +227,53 @@ struct AnnSplitterHandle: View {
 
 // MARK: - Atelier
 
-/// Atelier de réponse : champ de réponse, tableau blanc ou console Python,
-/// avec la barre d'outils de la source (`answerCard` + `answerToolsDock`,
-/// `AnnaleViewer.tsx:4270-4450`).
+/// Atelier de réponse (`answerCard` + `answerToolsDock` + `MoreAnswerTools`,
+/// `:4270-4712`) : dicter, photo, clavier maths, tableau blanc, bloc Python,
+/// menu de suppression à deux entrées.
+///
+/// Écarts assumés (29/09/2026, 18#2/18#6) : soumission/correction non portées
+/// (modèle de tentative + pipeline IA hors fichier) ; le lecteur ne tient qu'un
+/// brouillon, donc « Supprimer toutes les réponses » n'efface que lui ; dictée et
+/// photo insèrent en fin de champ (pas de sélection exposée par SwiftUI).
 struct AnnAnswerWorkspace: View {
     @Binding var draft: String
     @Binding var mode: AnnAnswerMode
     @Binding var strokes: [WbStroke]
+    /// Libellé de la question ouverte, pour « Supprimer réponse X ».
+    var questionLabel: String = ""
+    /// Matière du sujet, transmise à la transcription photo.
+    var subject: String = ""
+    /// Intitulé du sujet, transmis à la transcription photo.
+    var prompt: String = ""
+    /// `clearAllAnswers` : efface la réponse ouverte (et ses tracés).
+    var onClearAll: () -> Void = {}
 
+    @EnvironmentObject private var session: SessionStore
+    @StateObject private var dictation = DictControlModel()
     @State private var whiteboardExpanded = false
+    @State private var photoModalOpen = false
+    @State private var mathKeyboardOpen = false
+    @FocusState private var focused: Bool
+
+    /// Invite de permission de la dictée (`permissionMessage` de la source).
+    private static let dictationPermissionMessage =
+        "Autorise le micro et la reconnaissance vocale pour dicter ta réponse."
+
+    private var accountId: String {
+        ConsentPremiumGate.accountId(email: session.profile.email)
+    }
+
+    /// Vrai dès que la question ouverte porte quelque chose (`currentAnswer`).
+    private var hasCurrentAnswer: Bool {
+        !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !strokes.isEmpty
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             answerCard
+            if mathKeyboardOpen { mathKeyboard }
             tools
+            statusLines
         }
         .background(Theme.surface)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
@@ -238,6 +281,22 @@ struct AnnAnswerWorkspace: View {
             RoundedRectangle(cornerRadius: Theme.radiusMedium)
                 .stroke(Theme.border, lineWidth: 1)
         )
+        .onChange(of: questionLabel) { _ in dictation.annuler() }
+        .sheet(isPresented: $photoModalOpen) {
+            PhotoTranscriptionView(
+                subject: subject,
+                exercisePrompt: prompt.isEmpty ? nil : prompt,
+                onClose: { photoModalOpen = false },
+                // `insertBlockAtSelection` : la transcription s'ajoute en bloc.
+                onInsert: { transcription in
+                    let rendu = LatexToUnicode.toUnicodeMath(transcription)
+                        .trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard !rendu.isEmpty else { return }
+                    let propre = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+                    draft = propre.isEmpty ? rendu : "\(propre)\n\n\(rendu)"
+                }
+            )
+        }
     }
 
     @ViewBuilder
@@ -273,6 +332,7 @@ struct AnnAnswerWorkspace: View {
                 .font(.system(size: 15))
                 .foregroundStyle(Theme.ink)
                 .scrollContentBackground(.hidden)
+                .focused($focused)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 6)
         }
@@ -280,21 +340,37 @@ struct AnnAnswerWorkspace: View {
         .accessibilityLabel("Ma résolution de l’annale")
     }
 
-    /// Barre d'outils : tableau blanc, bloc Python, effacer
-    /// (`MoreAnswerTools`, `AnnaleViewer.tsx:968-1018`).
+    /// Clavier maths (`MathKeyboard`) sous le champ (`SubjFlashcardReviewSession`).
+    private var mathKeyboard: some View {
+        MathKeyboardView(
+            mode: .math,
+            onInsert: { draft = SubjFlashcardMathEditing.insert($0, into: draft) },
+            onBackspace: { draft = SubjFlashcardMathEditing.deleteLast(draft) },
+            onClose: { mathKeyboardOpen = false }
+        )
+    }
+
+    /// Barre d'outils (`answerToolsDock` + `MoreAnswerTools`) : dicter, photo,
+    /// clavier maths, tableau blanc, bloc Python, menu de suppression.
     private var tools: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
+                toolButton(dictationLabel, icon: dictationIcon, active: dictation.isListening) {
+                    toggleDictation()
+                }
+                toolButton("Photo", icon: "camera-outline", active: false) {
+                    openPhotoTranscription()
+                }
+                toolButton("Clavier maths", icon: "calculator-outline", active: mathKeyboardOpen) {
+                    mathKeyboardOpen.toggle()
+                }
                 toolButton("Tableau blanc", icon: "brush-outline", active: mode == .whiteboard) {
                     mode = mode == .whiteboard ? .text : .whiteboard
                 }
                 toolButton("Bloc Python", icon: "logo-python", active: mode == .python) {
                     mode = mode == .python ? .text : .python
                 }
-                toolButton("Effacer la réponse", icon: "trash-outline", active: false) {
-                    draft = ""
-                    strokes = []
-                }
+                deleteMenu
             }
             .padding(.horizontal, 9)
             .padding(.vertical, 8)
@@ -304,26 +380,120 @@ struct AnnAnswerWorkspace: View {
         }
     }
 
+    /// Menu de suppression à deux entrées (`deleteMenu`,
+    /// `AnnaleViewer.tsx:4675-4712`) : la réponse ouverte, ou toutes.
+    private var deleteMenu: some View {
+        Menu {
+            Button(deleteCurrentLabel) {
+                draft = ""
+                strokes = []
+            }
+            .disabled(!hasCurrentAnswer)
+            Button("Supprimer toutes les réponses") { onClearAll() }
+                .disabled(!hasCurrentAnswer)
+        } label: {
+            toolLabel("Effacer", icon: "trash-outline", active: false)
+        }
+        .accessibilityLabel("Supprimer des réponses")
+    }
+
+    /// `deleteCurrentLabel` : « Supprimer réponse X », ou « Supprimer réponse ».
+    private var deleteCurrentLabel: String {
+        questionLabel.isEmpty ? "Supprimer réponse" : "Supprimer réponse \(questionLabel)"
+    }
+
+    /// Lignes d'état de la dictée (`dictationStatus` / `dictationNotice`).
+    @ViewBuilder
+    private var statusLines: some View {
+        if !dictation.error.isEmpty {
+            Text(dictation.error)
+                .font(.system(size: 12))
+                .foregroundStyle(Theme.like)
+                .padding(.horizontal, 12)
+                .padding(.bottom, 8)
+        }
+        if !dictation.notice.isEmpty {
+            Text(dictation.notice)
+                .font(.system(size: 12))
+                .foregroundStyle(Theme.inkSoft)
+                .padding(.horizontal, 12)
+                .padding(.bottom, 8)
+        }
+    }
+
+    private var dictationIcon: String {
+        if dictation.isFormatting { return "sparkles" }
+        return dictation.isListening ? "stop" : "mic-outline"
+    }
+
+    private var dictationLabel: String {
+        if dictation.isFormatting { return "Transcription…" }
+        return dictation.isListening ? "Arrêter" : "Transcrire"
+    }
+
+    // MARK: Outils
+
+    /// Dicte la réponse. Hors écoute, la garde Premium s'applique d'abord
+    /// (`requirePremiumTool('voice-transcription', …)`).
+    private func toggleDictation() {
+        Task { @MainActor in
+            if dictation.isListening {
+                await dictation.toggle(
+                    currentText: draft,
+                    math: true,
+                    permissionMessage: Self.dictationPermissionMessage,
+                    apply: { draft = $0 }
+                )
+                return
+            }
+            _ = await ConsentPremiumGate.gate(tool: .voiceTranscription, accountId: accountId) {
+                await dictation.toggle(
+                    currentText: draft,
+                    math: true,
+                    permissionMessage: Self.dictationPermissionMessage,
+                    apply: { draft = $0 }
+                )
+            }
+        }
+    }
+
+    /// Ouvre la transcription photo, dictée coupée et clavier maths replié
+    /// (`openPhotoTranscription`).
+    private func openPhotoTranscription() {
+        Task { @MainActor in
+            _ = await ConsentPremiumGate.gate(tool: .photoTranscription, accountId: accountId) {
+                dictation.annuler()
+                focused = false
+                if mathKeyboardOpen { mathKeyboardOpen = false }
+                photoModalOpen = true
+            }
+        }
+    }
+
     private func toolButton(
         _ title: String,
         icon: String,
         active: Bool,
         action: @escaping () -> Void
     ) -> some View {
-        Button(action: action) {
-            HStack(spacing: 6) {
-                IonIcon(name: icon, size: 15, color: Theme.primary)
-                Text(title)
-                    .font(.system(size: 12, weight: .heavy))
-                    .foregroundStyle(Theme.primary)
-            }
-            .padding(.horizontal, 11)
-            .padding(.vertical, 8)
-            .background(active ? Theme.primaryLight : Theme.surfaceMuted)
-            .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
+        Button(action: action) { toolLabel(title, icon: icon, active: active) }
+            .buttonStyle(.plain)
+            .accessibilityLabel(title)
+            .accessibilityAddTraits(active ? [.isSelected] : [])
+    }
+
+    /// Étiquette d'outil (`toolButton`) : icône + libellé encre, fond
+    /// `primaryLight` quand l'outil est actif.
+    private func toolLabel(_ title: String, icon: String, active: Bool) -> some View {
+        HStack(spacing: 6) {
+            IonIcon(name: icon, size: 15, color: Theme.primary)
+            Text(title)
+                .font(.system(size: 12, weight: .heavy))
+                .foregroundStyle(Theme.primary)
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel(title)
-        .accessibilityAddTraits(active ? [.isSelected] : [])
+        .padding(.horizontal, 11)
+        .padding(.vertical, 8)
+        .background(active ? Theme.primaryLight : Theme.surfaceMuted)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
     }
 }

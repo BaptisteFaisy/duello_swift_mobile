@@ -73,21 +73,21 @@ enum DictPolicy {
 
     /// Lettre d'un script admis : latin, grec ou commun (lettres mathématiques).
     ///
-    /// La source s'appuie sur les propriétés de script Unicode ; Swift ne les
-    /// expose pas, ces plages couvrent le latin, le grec et les lettres du
-    /// script commun (lettres modificatrices, symboles de type lettre, lettres
-    /// mathématiques alphanumériques). Tout autre script (cyrillique, CJK,
+    /// La source filtre par propriété de **script** Unicode
+    /// (`SUPPORTED_LETTER_SCRIPT`, `dictationLanguage.ts:2-3`).
+    /// `Unicode.Scalar.Properties` n'expose pas le script sur iOS 16, mais
+    /// `NSRegularExpression` (ICU, fourni par Foundation) l'expose via
+    /// `\p{Script=…}` : les mêmes scripts sont donc admis, sans approximation
+    /// par plages de points de code. Tout autre script (cyrillique, CJK,
     /// arabe…) est refusé.
     private static func estLettreSupportee(_ scalaire: Unicode.Scalar) -> Bool {
-        switch scalaire.value {
-        case 0x0041...0x005A, 0x0061...0x007A, 0x00AA...0x00BA,
-             0x00C0...0x00D6, 0x00D8...0x00F6, 0x00F8...0x02FF,
-             0x0370...0x03FF, 0x1D00...0x1D7F, 0x1E00...0x1EFF,
-             0x1F00...0x1FFF, 0x2070...0x209F, 0x2100...0x214F,
-             0x2C60...0x2C7F, 0xA720...0xA7FF, 0x1D400...0x1D7FF:
-            return true
-        default:
-            return false
-        }
+        let texte = String(scalaire)
+        let plage = NSRange(texte.startIndex..<texte.endIndex, in: texte)
+        return scriptRegex?.firstMatch(in: texte, options: [], range: plage) != nil
     }
+
+    /// `SUPPORTED_LETTER_SCRIPT` : latin, grec, commun ou hérité.
+    private static let scriptRegex = try? NSRegularExpression(
+        pattern: "^(?:\\p{Script=Latin}|\\p{Script=Greek}|\\p{Script=Common}|\\p{Script=Inherited})$"
+    )
 }

@@ -18,6 +18,10 @@
 //  la feuille se referme avant l'ouverture et la note d'action s'affiche dans la
 //  barre. Le jeton d'attente reste affiché si le canal se rouvre.
 //
+//  Écart assumé (29/09/2026, audit unité 14 P2) : la source anime un volet
+//  défilant (`EventActionsBar.tsx:112-158,304-395`) là où iOS présente une
+//  feuille native (`presentationDetents`) — adaptation iOS acceptée.
+//
 //  Cible : iOS 16.
 //
 import SwiftUI

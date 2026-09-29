@@ -49,6 +49,10 @@ struct MainTabView: View {
     /// Défis).
     private static let challengesTabIndex = 2
 
+    /// Indice de l'onglet Entraînement : seul onglet dont le clavier de maths
+    /// réserve le geste horizontal (`mathKeyboardClaimsSwipe`, `App.tsx:1572`).
+    static let trainingTabIndex = 1
+
     /// Nombre de non-lues, source de la pastille de la barre
     /// (`NotificationBadgeSync` → `unreadNotificationCount > 0`, `App.tsx:2602`).
     @ObservedObject private var notifications = AcctNotificationsStore.shared
@@ -64,14 +68,13 @@ struct MainTabView: View {
     /// (`DEFAULT_SCREEN`, `App.tsx:374`).
     @State private var selection: Int = ScreenshotTour.tabSelection ?? 1
 
-    /// Verrou du geste d'onglet (`tabSwipeLocked`, `App.tsx:1655`) : les
-    /// producteurs (clavier maths, onglet non posé) sont hors de cette unité.
-    @State private var tabSwipeLocked = false
-
-    /// Barre basse masquée au défilement (`bottomNavigationHidden`,
-    /// `App.tsx:647`) : les producteurs (défilement des écrans) sont hors de
-    /// cette unité.
-    @State private var bottomBarHidden = false
+    /// Chrome racine des onglets : verrou de geste (`tabSwipeLocked`,
+    /// `App.tsx:1655`) et masquage de la barre basse (`bottomNavigationHidden`,
+    /// `App.tsx:647`). Chaque écran déclare son état par `@EnvironmentObject`
+    /// (`setTabSwipeLock`, `setBottomNavigationHidden`) ; la racine en déduit ce
+    /// qu'elle applique (`tabPagerScrollEnabled`, `bottomNavigationAvailable`,
+    /// `App.tsx:1654-1659,1579`).
+    @StateObject private var chrome = RootChromeModel()
 
     /// Inset bas de la fenêtre, pour `max(insets.bottom, 5)` (`:69`).
     @State private var bottomSafeAreaInset: CGFloat = 0
@@ -79,7 +82,7 @@ struct MainTabView: View {
     var body: some View {
         VStack(spacing: 0) {
             tabs
-            DuelloAnimatedBottomBar(visible: !bottomBarHidden) {
+            DuelloAnimatedBottomBar(visible: !chrome.bottomBarHidden(activeTab: selection)) {
                 DuelloBottomBar(
                     selection: $selection,
                     pager: tabPager,
@@ -91,6 +94,7 @@ struct MainTabView: View {
             }
         }
         .ignoresSafeArea(.container, edges: .bottom)
+        .environmentObject(chrome)
         .overlay(invitationOverlay)
         .onAppear(perform: startRootServices)
         .onDisappear { publisher.stop() }
@@ -108,7 +112,7 @@ struct MainTabView: View {
             model: tabPager,
             page: $selection,
             initialPage: selection,
-            scrollEnabled: !tabSwipeLocked,
+            scrollEnabled: chrome.tabPagerScrollEnabled(activeTab: selection),
             onPageSelected: { selection = $0 },
             page0: { AccountView() },
             page1: { TrainingView() },
@@ -220,5 +224,51 @@ struct MainTabView: View {
         let source = firstName.isEmpty ? displayName : firstName
         guard let first = source.first else { return "P" }
         return String(first).uppercased()
+    }
+}
+
+/// Chrome racine des onglets : verrou de geste et masquage de la barre basse.
+///
+/// Port de `tabSwipeLocks` / `mathKeyboardOpen` / `bottomNavigationHiddenByScreen`
+/// de `App.tsx` (`:675-756,1572`) : chaque écran déclare son verrou de geste et
+/// sa visibilité de barre (`onTabSwipeLockChange`,
+/// `onBottomNavigationVisibilityChange`, `onMathKeyboardVisibilityChange`) ; la
+/// racine en déduit ce qu'elle applique (`tabPagerScrollEnabled`,
+/// `bottomNavigationAvailable`, `App.tsx:1654-1659,1579`).
+@MainActor
+final class RootChromeModel: ObservableObject {
+    /// Verrou de geste demandé par un écran (`tabSwipeLocks`, `App.tsx:675`).
+    @Published private var tabSwipeLocks: [Int: Bool] = [:]
+    /// Un clavier de maths visible réserve le geste horizontal
+    /// (`mathKeyboardClaimsSwipe`, `App.tsx:1572`).
+    @Published var mathKeyboardOpen = false
+    /// Barre basse masquée par onglet (`bottomNavigationHiddenByScreen`, `:707`).
+    @Published private var bottomNavigationHiddenByScreen: [Int: Bool] = [:]
+
+    /// `setScreenTabSwipeLock` : un écran (dé)verrouille le geste d'onglet.
+    func setTabSwipeLock(_ locked: Bool, forTab tab: Int) {
+        if tabSwipeLocks[tab] == locked { return }
+        tabSwipeLocks[tab] = locked
+    }
+
+    /// `setBottomNavigationHiddenForScreen` : le défilement d'un écran masque ou
+    /// révèle la barre basse.
+    func setBottomNavigationHidden(_ hidden: Bool, forTab tab: Int) {
+        if bottomNavigationHiddenByScreen[tab] == hidden { return }
+        bottomNavigationHiddenByScreen[tab] = hidden
+    }
+
+    /// `tabPagerScrollEnabled` : le ruban balaye si l'onglet affiché n'a pas
+    /// verrouillé le geste et qu'aucun clavier de maths ne le réserve.
+    func tabPagerScrollEnabled(activeTab tab: Int) -> Bool {
+        let locked = tabSwipeLocks[tab] ?? false
+        let keyboard = tab == MainTabView.trainingTabIndex && mathKeyboardOpen
+        return !locked && !keyboard
+    }
+
+    /// `bottomNavigationAvailable` : la barre est masquée si l'onglet affiché
+    /// l'a demandé au défilement.
+    func bottomBarHidden(activeTab tab: Int) -> Bool {
+        bottomNavigationHiddenByScreen[tab] ?? false
     }
 }

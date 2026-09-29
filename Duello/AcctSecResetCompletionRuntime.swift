@@ -118,3 +118,71 @@ enum AcctSecResetCompletionRuntime {
         )
     }
 }
+
+// MARK: - Backend vivant (câblage app)
+
+extension AcctSecResetCompletionRuntime {
+    /// Backend de session « vivant » branché sur l'application, à passer dans
+    /// `AcctSecResetRuntimeOptions.sessionBackend` (voir `wiring/U6.md`) :
+    /// `saveServerSession` → `SessionStore.installSession` (trousseau + profil),
+    /// `saveAccount` → registre local (`AcctLocalRegistry`), abandon →
+    /// nettoyage de session, révocation → `DuelloAPI.logout`.
+    ///
+    /// À raccorder (lot IMPL-09) : `DuelloApp.swift:80-82` doit remplacer
+    /// `session.installSession(serverSession)` par
+    /// `AcctSecResetCompletionRuntime.completePasswordResetFlow(options:)` en
+    /// construisant les options avec
+    /// `sessionBackend: AcctSecResetCompletionRuntime.liveBackend(session: session)`,
+    /// `accounts`, `recoverAccount`, `isCurrent`, `authenticate` et
+    /// `revokeApplicationAuthentication` (cf. `App.tsx:2194-2223`).
+    static func liveBackend(
+        session store: SessionStore,
+        revokeToken: @escaping (String) async -> Void = { token in
+            await DuelloAPI.logout(token: token)
+        }
+    ) -> AcctSecResetSessionBackend {
+        AcctSecResetSessionBackend(
+            saveServerSession: { session, _ in try store.installSession(session) },
+            saveAccount: { account in
+                AcctSecResetCompletionRuntime.saveLocalAccount(account, profile: store.profile)
+            },
+            clearServerSession: {
+                store.session = nil
+                store.isSignedIn = false
+                Keychain.delete(service: SessionStore.service, account: SessionStore.account)
+            },
+            clearPersistedAuthSession: { try? AcctAuthSession.clearPersistedAuthSession() },
+            currentServerSession: { store.session },
+            invalidateCheckedServerSession: { checked in
+                guard store.session?.token == checked.token else { return false }
+                store.session = nil
+                return true
+            },
+            revokeServerSessionToken: { token in await revokeToken(token) }
+        )
+    }
+
+    /// `saveAccount` du registre local (`LoginScrAccount` → `AcctStoredAccount`),
+    /// comme `LoginIntAssembly.saveLocalAccount` : le profil et le `createdAt`
+    /// de l'enregistrement existant sont conservés.
+    static func saveLocalAccount(_ account: LoginScrAccount, profile: UserProfile) {
+        let existing = AcctLocalRegistry.loadAccounts().first { $0.id == account.id }
+        AcctLocalRegistry.saveAccount(
+            AcctStoredAccount(
+                id: account.id,
+                email: account.email,
+                displayName: account.displayName,
+                role: account.role,
+                passwordHash: account.passwordHash,
+                googleSubject: account.googleSubject,
+                appleSubject: account.appleSubject,
+                biometricEnabled: account.biometricEnabled,
+                requiresPasswordSetup: account.requiresPasswordSetup,
+                recoveryCodeHash: account.recoveryCodeHash,
+                createdAt: existing?.createdAt,
+                guest: account.isGuest,
+                profile: existing?.profile ?? profile
+            )
+        )
+    }
+}

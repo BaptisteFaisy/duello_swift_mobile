@@ -52,10 +52,14 @@ struct HecJourneyCrestShape: Shape {
 /// La source Expo affiche le PNG de `leagueBadgeSourceForLeague` quand il
 /// existe (`assets/league-badges/*.png`) et retombe sinon sur un écusson coloré
 /// portant `crestLabel` (`AdmissionCrest` de `HecJourneyAdmissionScreen.tsx` et
-/// `AdmissionCrestSprite` de `HecJourneyScene.tsx`). Les badges PNG ne sont pas
-/// embarqués dans l'app Swift : le repli de la source est donc le rendu
-/// nominal, avec les couleurs et les libellés exacts du catalogue
-/// (`HecJourneyAdmissionCatalog`).
+/// `AdmissionCrestSprite` de `HecJourneyScene.tsx`).
+///
+/// Écart assumé (2026-09-29) : les PNG ne sont pas embarqués dans l'app Swift
+/// (`LeagueBadges` ne les porte pas en assets) ; le blason officiel est donc
+/// chargé **à distance** par `CachedRemoteImage`, la seule source exploitable du
+/// portage — mêmes fichiers, même rendu. Un identifiant d'école sans blason
+/// (SKEMA, NEOMA, « Autre école »…) retombe sur l'écusson coloré, couleurs et
+/// libellés exacts du catalogue (`HecJourneyAdmissionCatalog`).
 struct HecJourneyCrestView: View {
     let crest: HecJourneyAdmissionCrest
     /// Hauteur de l'écusson ; la largeur suit le rapport 132 × 144 de la source.
@@ -63,8 +67,35 @@ struct HecJourneyCrestView: View {
 
     private var width: CGFloat { height * 132 / 144 }
     private var scale: CGFloat { height / 144 }
+    /// `leagueBadgeSourceForLeague(crest.schoolId)` : PNG officiel du blason,
+    /// quand l'école en a un (`LeagueBadges`, série « laurier »).
+    private var badgeURL: URL? { LeagueBadges.leaderboardBadgeURL(forLeague: crest.schoolId) }
 
     var body: some View {
+        ZStack {
+            if let badgeURL {
+                CachedRemoteImage(url: badgeURL) { image in
+                    image.resizable().scaledToFit()
+                } placeholder: {
+                    Color.clear
+                }
+            } else {
+                fallback
+            }
+        }
+        .frame(width: width, height: height)
+        // L'ombre est rasterisée une seule fois (`drawingGroup`) au lieu d'être
+        // recomposée à chaque image de la scène animée. La marge interne lui
+        // laisse la place ; le cadre final garde la taille d'origine, donc le
+        // centrage par `.position` est inchangé.
+        .padding(Self.shadowMargin * scale)
+        .drawingGroup()
+        .frame(width: width, height: height)
+        .accessibilityLabel(crest.schoolName)
+    }
+
+    /// Repli de la source (`fallbackCrest`) : écusson coloré portant `crestLabel`.
+    private var fallback: some View {
         ZStack {
             HecJourneyCrestShape(topRadius: 26 * scale, bottomRadius: 54 * scale)
                 .fill(Color(hex: crest.colorHex))
@@ -81,15 +112,6 @@ struct HecJourneyCrestView: View {
                 .minimumScaleFactor(0.4)
                 .frame(width: width * 0.82)
         }
-        .frame(width: width, height: height)
-        // L'ombre est rasterisée une seule fois (`drawingGroup`) au lieu d'être
-        // recomposée à chaque image de la scène animée. La marge interne lui
-        // laisse la place ; le cadre final garde la taille d'origine, donc le
-        // centrage par `.position` est inchangé.
-        .padding(Self.shadowMargin * scale)
-        .drawingGroup()
-        .frame(width: width, height: height)
-        .accessibilityLabel(crest.schoolName)
     }
 
     /// Marge (avant mise à l'échelle) réservée à l'ombre : couvre le rayon `12`

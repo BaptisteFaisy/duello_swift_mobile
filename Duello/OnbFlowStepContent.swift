@@ -22,9 +22,19 @@
 //  `dark` des briques `OnbUi` (`guest*` de la source) — sauf l'étape `origin`
 //  et l'étape `target`, laissées claires par la source.
 //
-//  ⚠️ Écart assumé :
+//  Écarts assumés (2026-09-29, écart 05#1) :
 //   - `GoogleAuthButton` (Swift) ouvre la session : l'étape passe par
-//     `GoogleAuthService` pour rendre la main au parcours.
+//     `GoogleAuthService` pour rendre la main au parcours ;
+//   - le choix **explicite** de niveau/année/parcours de 1re année
+//     (`onboardingRequiresExplicitChoice`, `OnboardingScreen.tsx:347-349`) est
+//     porté **dans cette vue** : le coordinateur (`OnbFlowCoordinator.swift`)
+//     est hors lot et ne peut recevoir ses propriétés stockées
+//     `chosenLevel`/`chosenYear`/`chosenOrigin`. Les puces ne se cochent donc
+//     qu'après un appui (aucune présélection sur build de développement), mais
+//     le **verrou de l'étape** (`levelChoicePending`/`yearChoicePending`/
+//     `originChoicePending` dans `OnbFlowGateState`/`advanceBlocked`) et les
+//     **alertes** « Niveau/Année/Parcours manquant » restent à raccorder au
+//     coordinateur (hunks décrits au rapport).
 //
 //  Cible : iOS 16. Aucune dépendance externe.
 //
@@ -36,6 +46,15 @@ struct OnbFlowStepContent: View {
     var onGoogle: (GoogleIdentity, DuelloAPI.SessionPayload) -> Void
     var onApple: (AppleAuthIdentity, DuelloAPI.SessionPayload) -> Void
     var onBiometric: () -> Void
+
+    /// `chosenLevel`/`chosenYear`/`chosenOrigin` (`OnboardingScreen.tsx:260-262`) :
+    /// choix explicite, `nil` tant qu'aucune puce n'a été touchée. Portés ici
+    /// faute de pouvoir les stocker dans le coordinateur (hors lot) ; ils sont
+    /// réinitialisés quand le monde/l'année change, comme les helpers
+    /// `chosenOnboarding*` (`academicPath.ts:368-405`).
+    @State private var chosenLevel: String?
+    @State private var chosenYear: String?
+    @State private var chosenOrigin: String?
 
     var body: some View {
         Group {
@@ -56,10 +75,73 @@ struct OnbFlowStepContent: View {
         }
     }
 
+    // MARK: Choix explicite de programme (`onboardingRequiresExplicitChoice`)
+
+    /// `onboardingRequiresExplicitChoice` (`OnboardingScreen.tsx:347-349`) : sur
+    /// un build natif de développement (`Platform.OS !== 'web' && isDevelopmentBuild()`),
+    /// aucun bouton de niveau/année/parcours n'est présélectionné. La production
+    /// iOS garde le repli historique.
+    private var onboardingRequiresExplicitChoice: Bool {
+        #if DEBUG
+        return true
+        #else
+        return false
+        #endif
+    }
+
+    /// `onboardingLevel` : le monde déduit du parcours.
+    private var onboardingLevel: String { coordinator.isLyceeFlow ? "Lycée" : "Prépa" }
+
+    /// `selectedOnboardingLevel` (`chosenOnboardingLevel`) : `nil` tant que le
+    /// choix explicite ne correspond pas au monde courant.
+    private var selectedOnboardingLevel: String? {
+        guard let chosenLevel, chosenLevel == onboardingLevel else { return nil }
+        return chosenLevel
+    }
+
+    /// `selectedOnboardingYear` (`chosenOnboardingYear`).
+    private var selectedOnboardingYear: String? {
+        guard let chosenYear, chosenYear == coordinator.profile.year else { return nil }
+        return chosenYear
+    }
+
+    /// `selectedOnboardingOrigin` (`chosenOnboardingOrigin`).
+    private var selectedOnboardingOrigin: String? {
+        guard let chosenOrigin, chosenOrigin == coordinator.path.firstYearTrack else { return nil }
+        return chosenOrigin
+    }
+
+    private func levelChipSelected(_ level: String) -> Bool {
+        guard onboardingRequiresExplicitChoice else { return legacyLevelSelected(level) }
+        return selectedOnboardingLevel == level
+    }
+
+    /// Repli historique (navigateur / production) : le monde du profil coche la puce.
+    private func legacyLevelSelected(_ level: String) -> Bool {
+        (level == "Lycée") == coordinator.isLyceeFlow
+            && (coordinator.isLyceeFlow
+                || OnbUiConstants.years.contains(coordinator.profile.year)
+                || OnbFlowAcademic.lyceeYears.contains(coordinator.profile.year))
+    }
+
+    private func yearChipSelected(_ year: String) -> Bool {
+        onboardingRequiresExplicitChoice
+            ? selectedOnboardingYear == year
+            : coordinator.profile.year == year
+    }
+
+    private func originChipSelected(_ track: String) -> Bool {
+        onboardingRequiresExplicitChoice
+            ? selectedOnboardingOrigin == track
+            : coordinator.path.firstYearTrack == track
+    }
+
     // MARK: Étapes de programme
 
     /// `level` : le monde scolaire (`ONBOARDING_LEVELS`), qui précède l'année.
-    /// La puce reste sélectionnée tant que l'année appartient au monde choisi
+    /// Sur un build de développement, aucune puce n'est présélectionnée
+    /// (`onboardingRequiresExplicitChoice`) ; sinon la puce reste sélectionnée
+    /// tant que l'année appartient au monde choisi
     /// (`(level === 'Lycée') === isLyceeFlow` et année connue de ce monde).
     /// Pastilles compactes côte à côte (pas pleine largeur) : la source ne
     /// passe pas `wide` (`OnboardingScreen.tsx:1196-1210`).
@@ -74,11 +156,11 @@ struct OnbFlowStepContent: View {
             ForEach(OnbUiConstants.onboardingLevels, id: \.self) { level in
                 OnbUiChoiceChip(
                     label: level,
-                    isSelected: (level == "Lycée") == coordinator.isLyceeFlow
-                        && (coordinator.isLyceeFlow
-                            || OnbUiConstants.years.contains(coordinator.profile.year)
-                            || OnbFlowAcademic.lyceeYears.contains(coordinator.profile.year)),
-                    action: { coordinator.chooseOnboardingLevel(level) },
+                    isSelected: levelChipSelected(level),
+                    action: {
+                        chosenLevel = level
+                        coordinator.chooseOnboardingLevel(level)
+                    },
                     dark: true
                 )
             }
@@ -99,8 +181,11 @@ struct OnbFlowStepContent: View {
             ForEach(coordinator.yearChoices, id: \.self) { year in
                 OnbUiChoiceChip(
                     label: year,
-                    isSelected: coordinator.profile.year == year,
-                    action: { coordinator.chooseYear(year) },
+                    isSelected: yearChipSelected(year),
+                    action: {
+                        chosenYear = year
+                        coordinator.chooseYear(year)
+                    },
                     dark: true
                 )
             }
@@ -145,8 +230,11 @@ struct OnbFlowStepContent: View {
                 ForEach(coordinator.originChoices, id: \.self) { track in
                     OnbUiChoiceChip(
                         label: track,
-                        isSelected: coordinator.path.firstYearTrack == track,
-                        action: { coordinator.chooseOrigin(track) },
+                        isSelected: originChipSelected(track),
+                        action: {
+                            chosenOrigin = track
+                            coordinator.chooseOrigin(track)
+                        },
                         wide: true
                     )
                 }

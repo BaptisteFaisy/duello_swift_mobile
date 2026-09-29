@@ -44,7 +44,10 @@ struct AdmUsersScreen: View {
 
     private var list: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
+            // Marges par bloc de la source (`AdminUsersScreen.tsx:487-528`) :
+            // `pageHeader` porte `marginBottom: 18`, `searchBar`
+            // `marginBottom: 16` — plus un `spacing` uniforme.
+            VStack(alignment: .leading, spacing: 0) {
                 AdmPageHeader(
                     eyebrow: "ADMINISTRATION",
                     title: "Users",
@@ -52,7 +55,9 @@ struct AdmUsersScreen: View {
                     refreshLabel: "Actualiser les utilisateurs",
                     onRefresh: { reloadKey += 1 }
                 )
+                .padding(.bottom, 18)
                 AdmSearchBar(placeholder: "Nom, prépa, filière…", text: $query)
+                    .padding(.bottom, 16)
                 content
             }
             .padding(.horizontal, 20)

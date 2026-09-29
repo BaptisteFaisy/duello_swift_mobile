@@ -14,6 +14,13 @@
 //  le coordinateur de badge le relit — comme `NotificationBadgeSync` à la
 //  racine d’Expo.
 //
+//  À raccorder (vague 2, 2026-09-29, écart 20#2) : `addCorrectionReady` reste
+//  sans appelant — la source produit la notification « correction prête » à la
+//  transition `ready` de `AnnaleCorrectionMonitor.synchronize`
+//  (`AnnaleCorrectionMonitor.tsx:85-94`). Le raccord se fait dans
+//  `AnnCorrectionMonitor.upsert`, fichier hors de cette unité (voir rapport,
+//  « À raccorder »).
+//
 //  Cible : iOS 16.
 //
 import Foundation

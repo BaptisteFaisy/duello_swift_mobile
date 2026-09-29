@@ -30,10 +30,10 @@ import SwiftUI
 /// État de la recherche d'annuaire et de la fiche ouverte de l'onglet
 /// « Mon compte ». Réutilisable : la vue `AcctSearchView` ne fait que le lire.
 ///
-/// Limite assumée : le graphe social (qui me suit, qui je suis) est publié par
-/// le lot « Social » ; il arrive ici par `socialDirectory`, `followerIds` et
-/// `followedIds`, et `toggleFollow` ne fait que basculer l'état local — la
-/// publication distante (`PUT /follows`) appartient à ce lot-là.
+/// Limite assumée : le graphe social (qui me suit, qui je suis) est alimenté par
+/// `syncSocialGraph(token:)` au montage du compte ; `toggleFollow` ne fait que
+/// basculer l'état local — la publication distante (`PUT /follows`) reste au lot
+/// « Social ».
 @MainActor
 final class AcctSearchModel: ObservableObject {
 
@@ -84,7 +84,7 @@ final class AcctSearchModel: ObservableObject {
     /// que le blocage n'est pas terminé.
     @Published private(set) var blockingMemberId: String?
 
-    // MARK: Graphe social (alimenté par le lot « Social »)
+    // MARK: Graphe social (alimenté au montage du compte)
 
     /// Profils des abonnements et abonnés, relus dans l'annuaire.
     @Published var socialDirectory: [AcctSearchMember] = []
@@ -325,4 +325,60 @@ final class AcctSearchModel: ObservableObject {
     func isFollowed(_ memberId: String) -> Bool {
         followedIds.contains(memberId)
     }
+
+    /// Synchronise le graphe social au montage du compte (`syncSocialState` puis
+    /// `fetchSocialProfilesByIds`, `AccountScreen.tsx:1186-1247`) : les
+    /// abonnements locaux (`prepapp-social-state`), les abonnés relus du serveur
+    /// (`fetchSocialGraph`, `GET /follows?userId=…`), puis les profils des deux
+    /// listes relus dans l'annuaire. Sans cet appel, `followedIds`, `followerIds`
+    /// et `socialDirectory` restent des coquilles vides et les listes
+    /// Amis/Abonnés n'affichent rien.
+    func syncSocialGraph(token: String?) async {
+        // Abonnements : relus du stockage local, jamais du serveur
+        // (`AccountScreen.tsx:973-978`).
+        let accountId = RewStorageScope.userStorageId(ownEmail)
+        if let key = try? RewStorageScope.accountStorageKey(
+            accountId: accountId, logicalKey: "prepapp-social-state"
+        ),
+           let raw = UserDefaults.standard.string(forKey: key),
+           let data = raw.data(using: .utf8),
+           let state = try? JSONDecoder().decode(AcctSearchSocialState.self, from: data) {
+            followedIds = state.followedIds ?? []
+        }
+
+        // Abonnés : relus du serveur (`fetchSocialGraph`).
+        let email = ownEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !email.isEmpty,
+           let data = try? await DuelloAPI.request(
+               "follows",
+               token: token,
+               query: [URLQueryItem(name: "userId", value: DuelloAPI.publicProfileId(email: email))]
+           ),
+           let graph = try? DuelloAPI.decoder.decode(AcctSearchSocialGraph.self, from: data) {
+            followerIds = graph.followerIds ?? []
+        }
+
+        // Profils des abonnés et abonnements relus dans l'annuaire
+        // (`fetchSocialProfilesByIds`, `AccountScreen.tsx:1226-1247`).
+        var seen = Set<String>()
+        let ids = (followerIds + followedIds).filter { seen.insert($0).inserted }
+        guard !ids.isEmpty else {
+            socialDirectory = []
+            return
+        }
+        if let profiles = try? await AcctSearchDirectory.profilesByIds(ids, token: token) {
+            socialDirectory = profiles
+        }
+    }
+}
+
+/// État social persisté localement (`SocialState` d'`AccountScreen.tsx`), rangé
+/// sous la clé logique `prepapp-social-state`.
+private struct AcctSearchSocialState: Decodable {
+    var followedIds: [String]?
+}
+
+/// Graphe social de `GET /follows?userId=…` (`SocialGraph` de `socialApi.ts`).
+private struct AcctSearchSocialGraph: Decodable {
+    var followerIds: [String]?
 }

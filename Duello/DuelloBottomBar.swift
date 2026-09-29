@@ -6,7 +6,7 @@
 //
 //  L'original **dessine** sa barre (React Native) : trois cellules égales, une
 //  icône surmontant son libellé, l'onglet actif marqué par une pastille
-//  `primary` derrière l'icône et un libellé plus gras. La barre native d'iOS
+//  `#000000` derrière l'icône et un libellé plus gras. La barre native d'iOS
 //  (`TabView`/`tabItem`) ne sait rendre ni cette pastille, ni l'avatar du
 //  profil, ni l'ordre exact des libellés : d'où ce composant maison.
 //
@@ -17,7 +17,21 @@
 //  (700 inactif / 900 actif). L'onglet actif **interpole** son opacité et son
 //  échelle avec la progression du pager (`selectedPage`, `:136-148`).
 //
+//  V1 (29/09/2026, écart 23#1) : l'encre de la barre est un noir franc
+//  `#000000` — icône, initiale d'avatar et libellé inactifs, pastille et avatar
+//  actifs (`BottomNavigation.tsx:214,299,331,336-337,356,365`, commit
+//  `423b1039c`) —, au lieu de `inkSoft`/`primary` du thème partagé.
+//
+//  V1 (29/09/2026, écart 23#8) : le filet de séparation du haut de la barre est
+//  retiré (`BottomNavigation.tsx:269-277`, commit `efce77f88` « ligne grise
+//  supprimée »).
+//
 import SwiftUI
+
+/// Encre de la barre d'onglets : noir franc `#000000` de la source Expo, au lieu
+/// de `inkSoft`/`primary` du thème partagé. La couleur reste locale à la barre
+/// (un `Theme.inkBar` global appartiendrait à `Theme.swift`, hors lot).
+private let inkBar = Color(hex: 0x000000)
 
 /// Cellule de la barre (`tab` de `BottomNavigation.tsx:39-52`).
 private struct DuelloBottomTabSpec {
@@ -65,11 +79,6 @@ struct DuelloBottomBar: View {
         .padding(.bottom, max(bottomSafeAreaInset, 5))
         .frame(minHeight: 72)
         .background(Theme.surface, ignoresSafeAreaEdges: .bottom)
-        .overlay(alignment: .top) {
-            Rectangle()
-                .fill(Theme.border)
-                .frame(height: 0.5)
-        }
     }
 }
 
@@ -121,11 +130,11 @@ private struct DuelloBottomTabCell: View {
             ZStack {
                 Text(spec.label)
                     .font(.system(size: 9, weight: .bold))
-                    .foregroundStyle(Theme.inkSoft)
+                    .foregroundStyle(inkBar)
                     .opacity(unselected)
                 Text(spec.label)
                     .font(.system(size: 9, weight: .black))
-                    .foregroundStyle(Theme.primary)
+                    .foregroundStyle(inkBar)
                     .opacity(progress)
             }
             .lineLimit(1)
@@ -153,11 +162,11 @@ private struct DuelloBottomTabCell: View {
         .accessibilityAction { selection = index }
     }
 
-    /// Icône Ionicons, `inkSoft` inactif / `white` sur pastille `primary` actif.
+    /// Icône Ionicons, `#000000` inactif / `white` sur pastille `#000000` actif.
     private func symbol(isActive: Bool) -> some View {
-        IonIcon(name: spec.icon, size: Self.iconSize, color: isActive ? .white : Theme.inkSoft)
+        IonIcon(name: spec.icon, size: Self.iconSize, color: isActive ? .white : inkBar)
             .frame(width: 32, height: 32)
-            .background(isActive ? Theme.primary : Color.clear)
+            .background(isActive ? inkBar : Color.clear)
             .clipShape(
                 RoundedRectangle(cornerRadius: Theme.radiusSmall, style: .continuous)
             )
@@ -177,10 +186,10 @@ private struct DuelloBottomTabCell: View {
             }
         }
         .frame(width: 30, height: 30)
-        .background(isActive ? Theme.primary : Theme.primaryLight)
+        .background(isActive ? inkBar : Theme.primaryLight)
         .clipShape(Circle())
         .overlay(
-            Circle().stroke(isActive ? Theme.primary : Theme.border, lineWidth: 1.5)
+            Circle().stroke(isActive ? inkBar : Theme.border, lineWidth: 1.5)
         )
     }
 
@@ -188,6 +197,6 @@ private struct DuelloBottomTabCell: View {
     private func avatarInitialLabel(isActive: Bool) -> some View {
         Text(avatarInitial)
             .font(.system(size: 13, weight: .black))
-            .foregroundStyle(isActive ? Color.white : Theme.inkSoft)
+            .foregroundStyle(isActive ? Color.white : inkBar)
     }
 }

@@ -24,6 +24,16 @@
 //  sélection d'un champ de saisie ; les touches maths s'ajoutent donc **en fin**
 //  de réponse et l'effacement retire le dernier caractère.
 //
+//  Écarts assumés (2026-09-29)
+//  ---------------------------
+//  Recul de curseur (`back` de `insertAtCaret`, `MathKeyboard.tsx:289-296`) :
+//  la source place le curseur `back` caractères avant la fin après l'insertion
+//  (`()`, `{}`, `√()`…). `insert(_:back:into:)` transporte `back` pour la parité
+//  de signature, mais un champ sans curseur ne peut pas le matérialiser : la
+//  chaîne produite est `réponse + texte`, identique à la source. L'application
+//  effective du recul dépend d'un champ `UIViewRepresentable` (curseur UIKit) —
+//  hors périmètre de ce fichier.
+//
 //  Cible : iOS 16, aucune dépendance externe.
 //
 import Foundation
@@ -32,9 +42,11 @@ import Foundation
 
 /// `insertStructuredTextAtSelection` / `deleteBeforeSelection`, réduits au
 /// contrat disponible : insertion en fin de réponse, effacement du dernier
-/// caractère.
+/// caractère. `back` (recul du curseur demandé par la touche) est transporté
+/// pour la parité de signature — sans curseur, il ne modifie pas la chaîne
+/// (voir « Écarts assumés »).
 enum SubjFlashcardMathEditing {
-    static func insert(_ text: String, into response: String) -> String {
+    static func insert(_ text: String, back: Int = 0, into response: String) -> String {
         response + text
     }
 

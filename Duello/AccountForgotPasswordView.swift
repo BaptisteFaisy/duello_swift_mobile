@@ -26,6 +26,14 @@ struct ForgotPasswordView: View {
     @State private var errorMessage = ""
     @State private var sending = false
     @State private var sent = false
+    /// `suppressEditReset` : neutralise la remise à zéro de `sent`/`errorMessage`
+    /// quand la variation de `email` est **programmatique** (`email = normalized`
+    /// dans `submit()`). La source ne remet à zéro `sent` que dans `onChangeText`
+    /// (`ForgotPasswordScreen.tsx:141-145`), déclenché par la seule frappe : un
+    /// `setEmail` programmatique ne l'active pas, la carte de succès reste donc
+    /// affichée. Sans ce drapeau, `.onChange(of: email)` s'exécuterait après
+    /// `sent = true` et masquerait la carte (`:155-158`, correctif audit 03#1).
+    @State private var suppressEditReset = false
 
     /// Adresse préremplie (normalisée : minuscules, sans espaces).
     init(initialEmail: String = "") {
@@ -153,6 +161,12 @@ struct ForgotPasswordView: View {
             )
         }
         .onChange(of: email) { _ in
+            // Variation programmatique (`email = normalized`) : la source ne
+            // passe pas par `onChangeText`, l'état `sent` reste intact.
+            if suppressEditReset {
+                suppressEditReset = false
+                return
+            }
             errorMessage = ""
             sent = false
         }
@@ -242,6 +256,11 @@ struct ForgotPasswordView: View {
             defer { sending = false }
             do {
                 try await AcctSecForgotPasswordAPI.requestReset(email: normalized)
+                // `setEmail(normalized)` de la source (`:49`) : une variation
+                // programmatique ne remet pas `sent` à zéro. On l'annonce au
+                // `.onChange` seulement si la valeur change réellement (sinon le
+                // drapeau resterait posé et étoufferait la prochaine frappe).
+                if email != normalized { suppressEditReset = true }
                 email = normalized
                 sent = true
             } catch {

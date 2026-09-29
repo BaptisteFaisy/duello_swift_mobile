@@ -17,6 +17,18 @@
 //    - `PROF_HISTORY_MAX_MESSAGES` vaut 8 côté source ; la valeur est reprise
 //      telle quelle (l'historique rejoué reste court).
 //
+//  Écarts assumés (2026-09-29) — fenêtre de contexte v2 (contrat 2) :
+//    - `ProfStudent` / `ProfDocuments` / `ProfTutorContext` v2 et
+//      `profTutorContext` sont portés ici ; en revanche `profStudentContext`
+//      (construction de `student` à partir du profil et du catalogue), le
+//      catalogue `officialMathsPrograms` et l'action relais `read-course-text`
+//      demandent des fichiers neufs (`ProfStudentContext.swift`,
+//      `OfficialMathsPrograms.swift`) : décrits en « À raccorder » du lot
+//      IMPL-09, hors périmètre de ce fichier (ratchet ≤ 10 fonctions).
+//    - `PROF_RELAY_CONTRACT_VERSION = 2` : le champ `program` a disparu du
+//      contexte ; `ProfTutorViews` doit lire `student?.program` (raccord
+//      IMPL-11).
+//
 //  Cible : iOS 16. Aucune dépendance externe.
 //
 
@@ -30,15 +42,58 @@ enum ProfTutorSource: String, Codable, Equatable {
     case corrige
 }
 
+/// `ProfStudent` : identité de l'élève et programme qu'il suit. C'est le socle
+/// de la fenêtre de contexte v2 : présent sur toutes les pages, il permet au
+/// prof de s'adresser à l'élève par son pseudo et de ne jamais sortir du
+/// programme de sa filière et de son année (`profTutor.ts:18-29`).
+struct ProfStudent: Codable, Equatable {
+    /// Pseudo de l'élève.
+    var displayName: String
+    /// Année de classe préparatoire, ou classe du lycée.
+    var year: String
+    /// Filière réellement suivie, parcours de maths compris en ECG.
+    var track: String
+    /// Intitulé du programme officiel de cette filière et de cette année.
+    var program: String
+    /// Adresse du texte officiel, quand elle est connue.
+    var programUrl: String?
+}
+
+/// `ProfDocuments` : documents que l'élève a mis sous les yeux du prof. Ils ne
+/// partent que lorsqu'ils existent (`profTutor.ts:37-46`).
+struct ProfDocuments: Codable, Equatable {
+    /// Énoncé retranscrit de l'exercice, de la colle ou de l'annale.
+    var statement: String?
+    /// Corrigé du même sujet.
+    var solution: String?
+    /// Texte extrait du cours uploadé par l'élève.
+    var course: String?
+    /// Nom du fichier de cours, pour que le prof sache ce qu'il lit.
+    var courseName: String?
+
+    /// Vrai quand aucun document n'est transmis (bloc omis du relais).
+    var isEmpty: Bool {
+        statement == nil && solution == nil && course == nil && courseName == nil
+    }
+}
+
 /// `ProfTutorContext` : repères transmis au relais (jamais affichés en clair).
+///
+/// Contrat **v2** : le champ libre `program` a disparu au profit de
+/// `student.program`, qui porte la même information avec la filière et l'année
+/// de l'élève ; `documents` transporte l'énoncé, le corrigé et le cours
+/// (`profTutor.ts:48-59`).
 struct ProfTutorContext: Codable, Equatable {
     var source: ProfTutorSource
     var subject: String?
-    var program: String?
     var chapter: String?
     var exercise: String?
     var question: String?
     var page: Int?
+    /// Identité de l'élève et programme qu'il suit : jamais omis.
+    var student: ProfStudent?
+    /// Énoncé, corrigé et cours : omis quand l'écran n'a rien à transmettre.
+    var documents: ProfDocuments?
 
     /// Repli de la source : `{ source: 'cours' }` quand aucune demande n'est posée.
     static let fallback = ProfTutorContext(source: .cours)
@@ -98,8 +153,18 @@ let PROF_QUOTE_MAX_CHARS = 2000
 let PROF_QUESTION_MAX_CHARS = 1000
 /// Historique maximal rejoué : les quatre derniers échanges suffisent.
 let PROF_HISTORY_MAX_MESSAGES = 8
+/// Énoncé transmis au prof : un sujet de concours tient largement dedans
+/// (`PROF_STATEMENT_MAX_CHARS`, miroir de `profStudentContext.ts:33`).
+let PROF_STATEMENT_MAX_CHARS = 6000
+/// Corrigé transmis au prof, même ordre de grandeur que l'énoncé.
+let PROF_SOLUTION_MAX_CHARS = 6000
+/// Cours uploadé : le texte entier d'un chapitre, page après page.
+let PROF_COURSE_MAX_CHARS = 60_000
 /// Version du contrat relais, pour faire évoluer le format sans casser.
-let PROF_RELAY_CONTRACT_VERSION = 1
+///
+/// La version 2 ajoute la fenêtre de contexte de l'élève (identité, programme,
+/// documents) et retire le champ libre `program` (`profTutor.ts:77-82`).
+let PROF_RELAY_CONTRACT_VERSION = 2
 
 // MARK: - Erreurs
 
@@ -171,6 +236,52 @@ func clampProfHistory(_ messages: [ProfTutorMessage]) -> [ProfTutorMessage] {
             text: String(text.prefix(PROF_QUESTION_MAX_CHARS))
         )
     }
+}
+
+// MARK: - Fenêtre de contexte (v2)
+
+/// Ce qu'un écran sait de la page où le prof est sollicité (`ProfContextInput`,
+/// `profStudentContext.ts:49-66`). `student` est construit une fois par l'écran
+/// (via `profStudentContext`, à raccorder — voir « Écarts assumés »).
+struct ProfContextInput {
+    var source: ProfTutorSource
+    var student: ProfStudent
+    var subject: String?
+    var chapter: String?
+    var exercise: String?
+    var question: String?
+    var page: Int?
+    /// Énoncé et corrigé retranscrits du sujet ouvert.
+    var item: (statement: String?, solution: String?)?
+    /// Cours uploadé du chapitre, texte déjà extrait.
+    var course: (name: String, text: String?)?
+}
+
+/// `profTutorContext` : contexte transmis au relais. Les champs inconnus de
+/// l'écran sont omis plutôt qu'envoyés vides (`profStudentContext.ts:154-165`).
+func profTutorContext(_ input: ProfContextInput) -> ProfTutorContext {
+    let tronquer: (String?, Int) -> String? = { valeur, max in
+        guard let texte = valeur?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !texte.isEmpty else { return nil }
+        return texte.count > max ? String(texte.prefix(max)) : texte
+    }
+    let cours = tronquer(input.course?.text, PROF_COURSE_MAX_CHARS)
+    let documents = ProfDocuments(
+        statement: tronquer(input.item?.statement, PROF_STATEMENT_MAX_CHARS),
+        solution: tronquer(input.item?.solution, PROF_SOLUTION_MAX_CHARS),
+        course: cours,
+        courseName: cours != nil ? input.course?.name : nil
+    )
+    return ProfTutorContext(
+        source: input.source,
+        subject: input.subject,
+        chapter: input.chapter,
+        exercise: input.exercise,
+        question: input.question,
+        page: input.page,
+        student: input.student,
+        documents: documents.isEmpty ? nil : documents
+    )
 }
 
 // MARK: - Relances

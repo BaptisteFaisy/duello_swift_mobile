@@ -1,3 +1,15 @@
+//
+//  HecJourneyAdmissionView.swift
+//  Duello
+//
+//  Port de `src/components/HecJourneyAdmissionScreen.tsx`.
+//
+//  À raccorder (vague 2, 2026-09-29) : le blason PNG officiel
+//  (`assets/league-badges/*.png`) n'est pas rendu — il doit être embarqué puis
+//  branché dans `HecJourneyCrestView` (`Image(crest.schoolId)`), fichier hors de
+//  cette unité (voir rapport, « À raccorder »). En attendant, le repli coloré du
+//  catalogue reste le rendu nominal (voir `HecJourneyCrestView.swift`).
+//
 import SwiftUI
 
 /// Écran « MON ADMISSION », dernière étape du parcours.

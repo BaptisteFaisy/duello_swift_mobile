@@ -1,3 +1,20 @@
+//
+//  RankingWeeklyXp.swift
+//  Duello
+//
+//  Port de src/screens/WeeklyXpRankingScreen.tsx (classement XP de la semaine).
+//
+//  V2 (2026-09-29, écarts 10#2 et 10#3) :
+//   - le dock « Moi · rang » n'est plus toujours affiché : il n'apparaît que
+//     quand la ligne du joueur a quitté l'écran (`showCurrentUserDock`,
+//     `WeeklyXpRankingScreen.tsx:196-197`), via `SwipeScreenFrameReader` +
+//     `.swipeCurrentRowVisibility`, comme le classement Elo ;
+//   - la liste porte son propre `ScrollView` et sa marge basse de 100
+//     (`scrollContent.paddingBottom`, `:405`).
+//
+//  Écarts assumés : le portage de `weeklyActivityXp` (`utils/activity.ts:534`)
+//  vit dans ce fichier, faute de module d'activité partagé dans le lot.
+//
 import Foundation
 import SwiftUI
 
@@ -30,9 +47,8 @@ struct WeeklyXpRankingView: View {
     /// de `WeeklyXpRankingScreen.tsx`), pour la notice locale d'erreur.
     var weeklyXp: Int = 0
     /// Le total local a fini de charger et peut remplacer la ligne distante
-    /// (`weeklyXpLoaded`). Faute de source locale d'XP de la semaine côté natif,
-    /// l'appelant laisse `false` : la ligne distante du joueur reste intacte,
-    /// comme la source avant la résolution de `loadActivity`.
+    /// (`weeklyXpLoaded`) : transmis à `true` par le ruban dès que
+    /// `weeklyActivityXp` a été relu (`LeaderboardScreen.tsx:261-266`).
     var weeklyXpLoaded: Bool = false
     /// Portée du classement : « Moi » par défaut.
     var scope: LeaderboardScope = .me
@@ -43,12 +59,31 @@ struct WeeklyXpRankingView: View {
     @State private var currentTracks: [String: String] = [:]
     @State private var phase: RankingLoadPhase = .loading
     @State private var errorMessage = ""
+    /// La ligne du joueur connecté est-elle à l'écran ? Mesurée par
+    /// `swipeCurrentRowVisibility` (comme le classement Elo) ; pilote le dock.
+    @State private var currentRowVisible = SwipeRowVisibility.defaultVisible
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            stateContent
+        SwipeScreenFrameReader {
+            ZStack(alignment: .bottom) {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
+                        stateContent
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 8)
+                    // `scrollContent.paddingBottom` de la source (100) : le dock
+                    // ne recouvre pas les dernières lignes.
+                    .padding(.bottom, 100)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .scrollIndicators(.hidden)
+
+                currentUserDock
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 14)
+            }
         }
-        .overlay(alignment: .bottom) { currentUserDock }
         .onAppear { load() }
     }
 
@@ -155,21 +190,49 @@ struct WeeklyXpRankingView: View {
     private func rowsList(_ rows: [RankedLeaderboardRow], featured: Bool) -> some View {
         VStack(spacing: 8) {
             ForEach(rows) { row in
-                LeaderboardRowView(
-                    row: row,
-                    kind: .xp,
-                    featured: featured,
-                    showsPrivateIcon: true,
-                    onOpenProfile: onOpenProfile
-                )
+                if row.isCurrentUser {
+                    LeaderboardRowView(
+                        row: row,
+                        kind: .xp,
+                        featured: featured,
+                        showsPrivateIcon: true,
+                        onOpenProfile: onOpenProfile
+                    )
+                    .swipeCurrentRowVisibility($currentRowVisible)
+                } else {
+                    LeaderboardRowView(
+                        row: row,
+                        kind: .xp,
+                        featured: featured,
+                        showsPrivateIcon: true,
+                        onOpenProfile: onOpenProfile
+                    )
+                }
             }
         }
     }
 
-    /// Dock « Moi · rang » du joueur connecté (`WeeklyXpRankingScreen.tsx:367-390`).
+    /// Ligne du joueur connecté (`currentEntry`).
+    private var currentEntry: RankedLeaderboardRow? {
+        rows.first { $0.isCurrentUser }
+    }
+
+    /// Dock affiché dès que la ligne du joueur connecté quitte l'écran
+    /// (`showCurrentUserDock`, `WeeklyXpRankingScreen.tsx:196-197`).
+    private var dockEntry: RankedLeaderboardRow? {
+        guard SwipeRowVisibility.shouldShowCurrentUserDock(
+            loadStateReady: phase == .ready,
+            hasCurrentEntry: currentEntry != nil,
+            isRowVisible: currentRowVisible
+        ) else { return nil }
+        return currentEntry
+    }
+
+    /// Dock « Moi · rang » du joueur connecté (`WeeklyXpRankingScreen.tsx:367-390`),
+    /// ancré en bas dès que sa ligne quitte l'écran (`dockEntry`).
     @ViewBuilder
     private var currentUserDock: some View {
-        if phase == .ready, let row = rows.first(where: { $0.isCurrentUser }) {
+        if let row = dockEntry {
             HStack(spacing: 10) {
                 SocialAvatarPresence(online: SocPresenceStore.shared.isOnline(row.id)) {
                     LeaderboardAvatar(
@@ -278,4 +341,32 @@ struct WeeklyXpRankingView: View {
             }
         }
     }
+}
+
+// MARK: - XP local de la semaine (utils/activity.ts)
+
+/// `weeklyActivityXp` (`utils/activity.ts:534-548`) : XP réellement gagnés dans
+/// une matière pendant une semaine, lus dans l'historique d'activité du compte.
+func weeklyActivityXp(_ activity: EvRewardActivity, subject: String, week: String) -> Int {
+    let wanted = subject.trimmingCharacters(in: .whitespacesAndNewlines)
+    var total = 0.0
+    for entry in activity.history {
+        guard weeklyActivityEntrySubject(entry) == wanted,
+              WeeklyXP.weekKey(at: Date(timeIntervalSince1970: entry.at / 1000)) == week,
+              entry.xp.isFinite,
+              entry.xp > 0
+        else { continue }
+        total += entry.xp
+    }
+    return Int(total.rounded())
+}
+
+/// `entrySubject` (`utils/activity.ts:525-531`) : matière explicite du gain, ou
+/// segment final du libellé après le dernier « · » quand elle manque.
+private func weeklyActivityEntrySubject(_ entry: EvRewardEntry) -> String {
+    let explicit = entry.subject.trimmingCharacters(in: .whitespacesAndNewlines)
+    if !explicit.isEmpty { return explicit }
+    guard let range = entry.label.range(of: " · ", options: .backwards) else { return "" }
+    return String(entry.label[range.upperBound...])
+        .trimmingCharacters(in: .whitespacesAndNewlines)
 }

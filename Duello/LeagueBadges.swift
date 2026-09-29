@@ -15,10 +15,18 @@
 //  `leagueSearchBadgeSourceForLeague`) sont donc hors périmètre : sans bundle
 //  d'assets, `leagueBadgeUrlForLeague` est la seule source exploitable.
 //
+//  V1 (2026-09-29) — écart P2 : `LeagueBadgeImage` préfère désormais le blason
+//  **embarqué** (`badgeAssetName(forLeague:)`, nom = fichier RN sans extension)
+//  et ne retombe sur l'URL distante que si l'imageset manque. Les 22 imagesets
+//  restent à créer dans `Assets.xcassets` (fichier hors lot, cf. « À raccorder »
+//  du rapport IMPL-14) : tant qu'elles manquent, le rendu distant actuel est
+//  conservé à l'identique.
+//
 //  Cible : iOS 16, aucune API iOS 17.
 //
 import Foundation
 import SwiftUI
+import UIKit
 
 /// Blasons de ligue : identifiants et noms de fichiers servis (`leagueBadges.ts`).
 enum LeagueBadges {
@@ -108,6 +116,16 @@ enum LeagueBadges {
         catalog.first { $0.key == id }
     }
 
+    /// `leagueBadgeSourceForLeague` : nom de l'imageset **embarqué** du blason
+    /// de ligue (le fichier RN sans extension : `league-edhec-laurier-v2`).
+    /// `nil` si la ligue est inconnue. Les imagesets sont à créer dans
+    /// `Assets.xcassets` (cf. en-tête) ; tant qu'elles manquent, `nil` ne
+    /// signifie pas « pas de blason » mais « pas d'asset local ».
+    static func badgeAssetName(forLeague id: String) -> String? {
+        guard let entry = badge(forLeague: id) else { return nil }
+        return (entry.leaderboardFilename as NSString).deletingPathExtension
+    }
+
     /// `leagueBadgeUrlForLeague` : adresse du blason, `nil` si inconnu.
     static func badgeURL(forLeague id: String) -> URL? {
         guard let entry = badge(forLeague: id) else { return nil }
@@ -131,15 +149,16 @@ enum LeagueBadges {
 
 // MARK: - Vue
 
-/// Blason d'une ligue servi à distance (`leagueLeaderboardBadgeSourceForLeague`
-/// de la source Expo, ramené ici à sa seule forme exploitable : l'image
-/// distante). Le classement utilise la série « laurier » (`leaderboardFilename`
+/// Blason d'une ligue (`leagueLeaderboardBadgeSourceForLeague` de la source
+/// Expo). Le classement utilise la série « laurier » (`leaderboardFilename`
 /// : `-v2` commerce, `-v5` écoles d'ingénieurs, `-v1` B/L et BCPST), comme
 /// `leagueBadgeSourceForLeague` côté RN.
 ///
-/// Sans PNG embarqué, le blason passe par `CachedRemoteImage` (`AsyncImage`
-/// remplacé par le cache partagé) ; un identifiant inconnu retombe sur le
-/// symbole bouclier, comme les autres vues de blason de l'application.
+/// L'imageset embarquée (`badgeAssetName(forLeague:)`) est préférée à l'URL
+/// distante ; à défaut d'asset (cf. en-tête), le blason passe par
+/// `CachedRemoteImage` (`AsyncImage` remplacé par le cache partagé) ; un
+/// identifiant inconnu retombe sur le symbole bouclier, comme les autres vues
+/// de blason de l'application.
 struct LeagueBadgeImage: View {
     /// Identifiant de ligue (`EloLeague.id`, `WeeklyXpLeague.id`).
     let leagueId: String
@@ -147,7 +166,13 @@ struct LeagueBadgeImage: View {
     let size: CGFloat
 
     var body: some View {
-        if let url = LeagueBadges.leaderboardBadgeURL(forLeague: leagueId) {
+        if let assetName = LeagueBadges.badgeAssetName(forLeague: leagueId),
+           UIImage(named: assetName) != nil {
+            Image(assetName)
+                .resizable()
+                .scaledToFit()
+                .frame(width: size, height: size)
+        } else if let url = LeagueBadges.leaderboardBadgeURL(forLeague: leagueId) {
             CachedRemoteImage(url: url) { image in
                 image.resizable().scaledToFit()
             } placeholder: {

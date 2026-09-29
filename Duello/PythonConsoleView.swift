@@ -13,14 +13,30 @@
 //  - `expo_ref/src/utils/pythonConsole.ts` — bornes (`PYTHON_TIME_LIMIT_SECONDS`,
 //    `PYTHON_BOOT_TIMEOUT_MS`, `PYTHON_RUN_TIMEOUT_MS`, sortie max 20 000),
 //    statuts, rapport et messages de démarrage ;
-//  - `expo_ref/src/components/PythonSandboxView.tsx` — WebView Pyodide, NON
-//    portable : lue pour comprendre le protocole de messages (`run`/`result`).
+//  - `expo_ref/src/components/PythonSandboxView.native.tsx` — WebView Pyodide,
+//    NON portable dans ce lot : lue pour comprendre le protocole de messages
+//    (`run`/`result`).
 //
-//  CONTRAINTE NATIVE — aucun interpréteur Python n'est embarquable dans ce
-//  portage iOS (pas de Pyodide, pas de WebView, pas de PythonKit). L'exécution
-//  est donc SIMULÉE, de façon déterministe, par `PyConRunner` : seuls les appels
-//  `print(…)` à argument littéral unique sont reconnus. La limite est affichée
-//  dans l'interface (`PyConLimits.simulationNote`).
+//  Écarts assumés (2026-09-29) :
+//  - **P0 — exécution réelle non portée.** La source exécute le programme de
+//    l'élève dans une WebView Pyodide pilotée par injection JS
+//    (`PythonSandboxView.native.tsx:49`, `injectJavaScript`). Le port de ce bac
+//    à sable exige deux raccords **hors lot** (règle 1 : n'écrire que les
+//    fichiers listés) : (1) un fichier dédié `PyConSandbox.swift` — classe
+//    `WKWebView` + `WKScriptMessageHandler`, document HTML et runtime Python
+//    embarqués, ≈ 250 lignes, au-delà du ratchet (≤ 500 lignes/fichier) s'il
+//    reste dans ce fichier ; (2) une méthode `evaluateJavaScript` sur le shim
+//    Linux de `WebKit` (`scripts/linux-shims/WebKit.swift`, hors cible Xcode,
+//    non modifiable) qui manque aujourd'hui. Tant que ces raccords n'existent
+//    pas, l'exécution reste **simulée** de façon déterministe (`PyConRunner` :
+//    lignes vides, commentaires, `break`, `print(<littéral>)`) et la limite est
+//    annoncée à l'écran (`PyConLimits.simulationNote`) — plutôt que de
+//    présenter une fausse console Python ou de casser la vérification.
+//  - **P1 — `firstBlockingQuestion` non appelé.** Le point d'appel de la source
+//    (`AnnaleViewer.tsx:3375`, avant la soumission) vit dans le lecteur
+//    (`AnnReaderWorkspace.swift`), qui n'a pas encore de soumission (écart
+//    U18#2) — hors lot. Le hunk attendu est décrit dans le rapport
+//    d'implémentation.
 //
 
 import Foundation

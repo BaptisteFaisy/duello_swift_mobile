@@ -26,6 +26,7 @@ extension AnnReaderView {
                         .foregroundStyle(Theme.ink)
                 }
                 Spacer(minLength: 0)
+                headerActions
             }
             HStack(spacing: 6) {
                 ForEach(entry.displayedBadges, id: \.self) { badge in
@@ -40,6 +41,12 @@ extension AnnReaderView {
         .padding(.horizontal, 16)
         .padding(.top, 10)
         .padding(.bottom, 10)
+    }
+
+    /// Actions de l'en-tête (`headerActions` du lecteur Expo) : le classement
+    /// du sujet puis le signalement de l'énoncé ou du corrigé.
+    var headerActions: some View {
+        AnnReaderHeaderActions(entry: entry, subject: subject, mode: mode)
     }
 
     // MARK: Onglets de document
@@ -123,5 +130,48 @@ extension AnnReaderView {
             return "Corrigé disponible après avoir indiqué que les \(entry.durationHours) heures sont écoulées"
         }
         return "Corrigé disponible après l’envoi d’une réponse"
+    }
+}
+
+// MARK: - Actions de l'en-tête
+
+/// Classement + signalement de l'en-tête du lecteur (`headerActions`,
+/// `AnnaleViewer.tsx:3802-3824`).
+///
+/// Sous-vue dédiée : elle seule peut lire `SessionStore` (le champ `session` de
+/// `AnnReaderView` est privé à son fichier), et le signalement a besoin du
+/// profil local (`userId` + `displayName`).
+///
+/// Écart assumé : la pastille « nouveau résultat » du trophée
+/// (`hasUnreadResult`/`rankingUnread`) n'est pas rendue — `ExGTrophy` ne porte
+/// pas encore ce champ (à raccorder dans `ExGExerciseLeaderboard.swift`).
+private struct AnnReaderHeaderActions: View {
+    let entry: AnnEntry
+    let subject: String
+    let mode: AnnDocumentMode
+
+    @EnvironmentObject private var session: SessionStore
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ExGTrophyButton(
+                trophy: ExGTrophy(
+                    itemId: entry.id,
+                    subject: subject,
+                    title: entry.title,
+                    activity: .annale,
+                    isAnnale: true
+                )
+            )
+            ReportExerciseButton.make(
+                profile: session.profile,
+                target: mode == .statement ? .statement : .correction,
+                source: .training,
+                exerciseId: entry.id,
+                exerciseTitle: entry.title,
+                subject: subject,
+                compact: true
+            )
+        }
     }
 }

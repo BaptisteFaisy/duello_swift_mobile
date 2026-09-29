@@ -26,6 +26,10 @@
 //     ouvert depuis l'écran de compte. Il lit et écrit la même clé persistée
 //     que `PlanView`, si bien que le programme s'adapte sans autre câblage.
 //
+//  V1 (2026-09-29) — écart P2 : `introCard` de l'écran des horaires remplace le
+//  dernier symbole SF de l'unité (`Image(systemName: "info.circle")`) par le
+//  glyphe Ionicons `information-circle-outline`.
+//
 
 import SwiftUI
 
@@ -326,9 +330,9 @@ struct ExtraScheduleSettingsView: View {
 
     private var introCard: some View {
         HStack(alignment: .top, spacing: 12) {
-            Image(systemName: "info.circle")
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(Theme.ink)
+            // Glyphe Ionicons équivalent au symbole SF `info.circle` : plus aucun
+            // SF Symbol dans l'unité (écart P2 fermé, 2026-09-29).
+            IonIcon(name: "information-circle-outline", size: 18, color: Theme.ink)
             Text("Renseigne tes heures de cours pour que Duello adapte ton programme en fonction de ton emploi du temps réel.")
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(Theme.ink)
