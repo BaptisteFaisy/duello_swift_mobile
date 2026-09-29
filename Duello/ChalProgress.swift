@@ -23,20 +23,19 @@
 //    compte ; elles persistent dans `UserDefaults`, isolées par `accountId`
 //    comme la source isole par compte.
 //
-//  Note datée (29/09/2026) — écart P2 « mergeAttempt sans appelant » : la
-//  fonction est prête mais la source qui l'appelle (`saveChallengeAttempt`,
-//  `challengeExerciseProgress.ts:90-101`, appelée à la remise du défi par
-//  `ChallengesScreen.tsx:1284,1421,1651`) n'est pas portée : elle exige un
-//  magasin d'essais (`AnnaleAttemptMap`) absent côté Swift (cf. adaptations
-//  ci-dessus). Le câblage appartient donc au déroulé du défi
-//  (`ChalRunRounds`/`ChallengePlayerView`, hors lot) → « À raccorder ».
+//  V2 (2026-09-29, écart P2 « mergeAttempt sans appelant ») : le magasin
+//  d'essais (`AnnaleAttemptMap`) est porté par `saveAttempt` — brouillons
+//  persistés en `UserDefaults`, isolés par compte — et relu par `attemptIds` ;
+//  le déroulé du défi (`ChalRunRounds`/`ChallengePlayerView`) appelle
+//  `saveAttempt` à la remise (`saveChallengeAttempt`,
+//  `challengeExerciseProgress.ts:90-101`, `ChallengesScreen.tsx:1284,1421,1651`).
 //
 //  Cible : iOS 16, aucune API iOS 17.
 //
 import Foundation
 
 /// Brouillon de copie de défi, réduit aux champs manipulés par la fusion.
-struct ChalAttemptDraft: Equatable {
+struct ChalAttemptDraft: Codable, Equatable {
     var itemId: String
     var answers: [String: String]
     /// Questions déjà corrigées : leur réponse est immuable, le défi ne l'écrase
@@ -55,6 +54,9 @@ enum ChalProgress {
     /// Clé de persistance (`ACCOUNT_STORAGE_KEYS.challengeAllowStartedExercises`).
     private static let allowStartedStorageKey =
         "prepapp-challenge-allow-started-exercises:v1"
+
+    /// Clé de persistance des brouillons d'essai (`ACCOUNT_STORAGE_KEYS.annaleAttempts`).
+    private static let attemptsStorageKey = "prepapp-annale-attempts:v1"
 
     /// Une ouverture suffit à classer l'exercice comme commencé. Les résultats
     /// historiques restent pris en compte pour les anciennes versions qui
@@ -123,20 +125,63 @@ enum ChalProgress {
 
     /// Lit la préférence d'autorisation du compte (`loadAllowStarted…`).
     static func loadAllowStarted(accountId: String) -> Bool {
-        UserDefaults.standard.string(forKey: allowStartedKey(for: accountId)) == "true"
+        UserDefaults.standard.string(
+            forKey: scopedKey(allowStartedStorageKey, accountId: accountId)
+        ) == "true"
     }
 
     /// Écrit la préférence d'autorisation du compte (`saveAllowStarted…`).
     static func saveAllowStarted(_ allow: Bool, accountId: String) {
         UserDefaults.standard.set(
             allow ? "true" : "false",
-            forKey: allowStartedKey(for: accountId)
+            forKey: scopedKey(allowStartedStorageKey, accountId: accountId)
         )
     }
 
+    /// Identifiants des exercices portant un brouillon d'essai enregistré
+    /// (`Object.keys(attempts)` de `startedChallengeExerciseIds`) : alimente
+    /// `attemptIds` des défis, en plus de la progression d'entraînement.
+    static func attemptIds(accountId: String) -> [String] {
+        attempts(accountId: accountId).keys.sorted()
+    }
+
+    /// Verse la copie rendue dans le brouillon d'entraînement et le persiste
+    /// (`saveChallengeAttempt`, `challengeExerciseProgress.ts:90-101`) : c'est
+    /// le dernier brouillon garanti, même si l'écran est quitté juste après le
+    /// verdict. Une réponse déjà corrigée reste immuable (voir `mergeAttempt`).
+    @discardableResult
+    static func saveAttempt(
+        itemId: String,
+        answers: [String: String],
+        accountId: String
+    ) -> ChalAttemptDraft {
+        var store = attempts(accountId: accountId)
+        let saved = mergeAttempt(current: store[itemId], itemId: itemId, answers: answers)
+        store[itemId] = saved
+        if let raw = try? JSONEncoder().encode(store) {
+            UserDefaults.standard.set(
+                raw,
+                forKey: scopedKey(attemptsStorageKey, accountId: accountId)
+            )
+        }
+        return saved
+    }
+
+    /// Brouillons d'essai du compte, relus du stockage isolé par compte.
+    private static func attempts(accountId: String) -> [String: ChalAttemptDraft] {
+        guard let raw = UserDefaults.standard.data(
+                forKey: scopedKey(attemptsStorageKey, accountId: accountId)
+              ),
+              let store = try? JSONDecoder().decode(
+                [String: ChalAttemptDraft].self, from: raw
+              )
+        else { return [:] }
+        return store
+    }
+
     /// Clé isolée par compte, comme le stockage de compte d'Expo.
-    private static func allowStartedKey(for accountId: String) -> String {
+    private static func scopedKey(_ base: String, accountId: String) -> String {
         let trimmed = accountId.trimmingCharacters(in: .whitespacesAndNewlines)
-        return "\(allowStartedStorageKey):\(trimmed.isEmpty ? "local" : trimmed)"
+        return "\(base):\(trimmed.isEmpty ? "local" : trimmed)"
     }
 }

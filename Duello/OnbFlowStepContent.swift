@@ -36,6 +36,12 @@
 //     **alertes** « Niveau/Année/Parcours manquant » restent à raccorder au
 //     coordinateur (hunks décrits au rapport).
 //
+//  V2 (29/09/2026, parité RN dev) : les champs école/pseudo/e-mail/mot de passe
+//  prennent le focus à l'apparition (`autoFocus` = `onboardingAutofocusFields`,
+//  `OnboardingScreen.tsx:353-354`) ; pseudo et e-mail se rattachent au focus
+//  partagé de `OnbFlowView` (`focus`) pour se recentrer après fermeture d'une
+//  alerte (`focusPseudoInput` / `focusEmailInput`, `:691-696`).
+//
 //  Cible : iOS 16. Aucune dépendance externe.
 //
 import SwiftUI
@@ -43,6 +49,10 @@ import SwiftUI
 /// Contenu de l'étape courante, aiguillé sur `OnbFlowCoordinator.currentStep`.
 struct OnbFlowStepContent: View {
     @ObservedObject var coordinator: OnbFlowCoordinator
+    /// Focus partagé des champs récurrents (`OnbFlowView`) : les champs pseudo et
+    /// e-mail s'y rattachent pour se recentrer après fermeture d'une alerte
+    /// (`focusPseudoInput` / `focusEmailInput`, `OnboardingScreen.tsx:691-696`).
+    var focus: FocusState<OnbFlowAlertAction.FocusTarget?>.Binding
     var onGoogle: (GoogleIdentity, DuelloAPI.SessionPayload) -> Void
     var onApple: (AppleAuthIdentity, DuelloAPI.SessionPayload) -> Void
     var onBiometric: () -> Void
@@ -305,7 +315,8 @@ struct OnbFlowStepContent: View {
                 icon: "school-outline",
                 onFocus: { coordinator.schoolSearchFocused = true },
                 onBlur: { coordinator.schoolSearchFocused = false },
-                dark: false
+                dark: false,
+                autoFocus: true
             ))
             if coordinator.schoolSuggestionsVisible, !coordinator.schoolSuggestions.isEmpty {
                 OnbFlowSchoolSuggestions(schools: coordinator.schoolSuggestions) { school in
@@ -324,18 +335,23 @@ struct OnbFlowStepContent: View {
     /// `identity` : le pseudo (`displayName`), unique dans l'app.
     private var identityStep: some View {
         VStack(alignment: .leading, spacing: 19) {
-            OnbUiField(props: OnbUiFieldProps(
-                label: "PSEUDO",
-                value: coordinator.profile.displayName,
-                onChangeText: { value in
-                    coordinator.profile.displayName = value
-                    coordinator.profile.firstName = value
-                    coordinator.profile.lastName = ""
-                },
-                placeholder: "Ex. Camille75",
-                autoCapitalize: .none,
-                dark: true
-            ))
+            OnbUiField(
+                props: OnbUiFieldProps(
+                    label: "PSEUDO",
+                    value: coordinator.profile.displayName,
+                    onChangeText: { value in
+                        coordinator.profile.displayName = value
+                        coordinator.profile.firstName = value
+                        coordinator.profile.lastName = ""
+                    },
+                    placeholder: "Ex. Camille75",
+                    autoCapitalize: .none,
+                    dark: true,
+                    autoFocus: true
+                ),
+                externalFocus: focus,
+                focusTarget: .pseudo
+            )
             Text("Ton pseudo sera visible dans l’app et doit être unique.")
                 .font(.system(size: 12))
                 .foregroundStyle(OnbFlowPalette.helper)
@@ -354,17 +370,22 @@ struct OnbFlowStepContent: View {
                     dark: true
                 )
             } else {
-                OnbUiField(props: OnbUiFieldProps(
-                    label: "ADRESSE E-MAIL",
-                    value: coordinator.profile.email,
-                    onChangeText: { coordinator.profile.email = $0 },
-                    placeholder: "camille@email.fr",
-                    icon: "mail-outline",
-                    keyboardType: .emailAddress,
-                    autoCapitalize: .none,
-                    dark: true,
-                    whiteBorder: true
-                ))
+                OnbUiField(
+                    props: OnbUiFieldProps(
+                        label: "ADRESSE E-MAIL",
+                        value: coordinator.profile.email,
+                        onChangeText: { coordinator.profile.email = $0 },
+                        placeholder: "camille@email.fr",
+                        icon: "mail-outline",
+                        keyboardType: .emailAddress,
+                        autoCapitalize: .none,
+                        dark: true,
+                        whiteBorder: true,
+                        autoFocus: true
+                    ),
+                    externalFocus: focus,
+                    focusTarget: .email
+                )
             }
             OnbFlowProviderButtons(
                 username: coordinator.usernameHint,
@@ -397,7 +418,8 @@ struct OnbFlowStepContent: View {
                         icon: "key-outline",
                         isSecure: !coordinator.showPassword,
                         dark: true,
-                        whiteBorder: true
+                        whiteBorder: true,
+                        autoFocus: true
                     )
                 ) {
                     Button {

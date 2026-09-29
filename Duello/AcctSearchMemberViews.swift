@@ -16,6 +16,11 @@
 //  Découpé de `AcctSearchView.swift` (règle des 500 lignes) : aucun type ni
 //  libellé renommé.
 //
+//  V5 (2026-09-29, parité RN dev) : le prof IA (`prof-ia`) affiche son rôle et
+//  son périmètre au lieu de la filière et de l'année (`AccountScreen.tsx:2799-2801`
+//  ligne de résultat, `:2964-2974` fiche ouverte) et masque ses boutons sociaux
+//  — suivi de ligne (`:2823`), barre d'actions de la fiche (`:1702,3018`).
+//
 //  Hors périmètre : le détail des performances (XP, Elo, séries, graphiques)
 //  appartient aux lots dédiés ; seule l'identité et les actions sociales sont
 //  portées ici.
@@ -172,7 +177,11 @@ struct AcctSearchMemberShowcase: View {
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(Theme.inkSoft)
             }
-            actions
+            // Le prof IA n'est ni suivi, ni défié, ni bloqué : toute la barre
+            // d'actions sociales est masquée (`AccountScreen.tsx:3018`).
+            if !isProfIaProfileId(member.id) {
+                actions
+            }
         }
         .duelloCard()
     }
@@ -276,9 +285,13 @@ struct AcctSearchMemberShowcase: View {
         }
     }
 
-    /// Filière, année et spécialité publiées, dans l'ordre d'Expo.
+    /// Filière, année et spécialité publiées, dans l'ordre d'Expo — ou, pour le
+    /// prof IA, son rôle et son périmètre (`AccountScreen.tsx:2964-2974`).
     private var pathLines: [String] {
-        [member.track, member.year, member.specialty]
+        if isProfIaProfileId(member.id) {
+            return [PROF_IA_ROLE_LABEL, PROF_IA_SCOPE_LABEL]
+        }
+        return [member.track, member.year, member.specialty]
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
     }
@@ -308,7 +321,7 @@ struct AcctSearchCandidateRow: View {
         HStack(spacing: 7) {
             Button(action: onSelect) {
                 HStack(spacing: 9) {
-                    SocialAvatarPresence(online: online) {
+                    SocialAvatarPresence(online: online || isProfIaProfileId(member.id)) {
                         SocInviteAvatar(member: member.profile, size: 36)
                     }
                     copy
@@ -329,7 +342,11 @@ struct AcctSearchCandidateRow: View {
                 .accessibilityLabel("Ligue \(league.label) de \(member.displayName)")
             }
 
-            followButton
+            // Le prof IA n'est ni suivi ni défié : pas de bouton de suivi
+            // (`AccountScreen.tsx:2823`).
+            if !isProfIaProfileId(member.id) {
+                followButton
+            }
         }
         .padding(.horizontal, 10)
         .frame(height: AcctSearchConstants.resultHeight)
@@ -373,9 +390,13 @@ struct AcctSearchCandidateRow: View {
         }
     }
 
-    /// `[filière, spécialité, « N Elo », « N XP », classe, prépa]` joints par « · ».
+    /// `[filière, spécialité, « N Elo », « N XP », classe, prépa]` joints par « · » —
+    /// ou, pour le prof IA, `rôle · périmètre` (`AccountScreen.tsx:2799-2801`).
     private var metaLine: String {
-        [
+        if isProfIaProfileId(member.id) {
+            return "\(PROF_IA_ROLE_LABEL) · \(PROF_IA_SCOPE_LABEL)"
+        }
+        return [
             member.track,
             member.specialty.trimmingCharacters(in: .whitespacesAndNewlines),
             "\(elo) Elo",

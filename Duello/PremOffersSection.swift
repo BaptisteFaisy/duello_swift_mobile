@@ -16,15 +16,11 @@ import SwiftUI
 /// « Gérer mon abonnement » (`presentCustomerCenter`) n'apparaît que si le
 /// paywall RevenueCat est embarqué (`isRevenueCatPaywallAvailable`) : la sonde
 /// `PremPurchasesModules.nativePurchasesUIModule()` renvoie `nil` dans ce build,
-/// donc la ligne reste absente — l'appel est câblé, il ne s'affiche jamais.
+/// donc la ligne reste absente — l'appel est câblé au service
+/// (`PremRevenueCatService`), il ne s'affiche jamais.
 struct PremOffersSection: View {
     /// Jeton de session, transmis à la carte « code promo ».
     var token: String? = nil
-
-    /// Disponibilité de la facturation native, publiée par l'hôte du paywall
-    /// (`\.premPurchaseAvailable`) ; sans hôte, la valeur par défaut est celle
-    /// de la couture `PremCodePurchases` (voir `PremToolPaywall.swift`).
-    @Environment(\.premPurchaseAvailable) private var purchaseAvailable
 
     @StateObject private var promo = PremPromoCodeController()
     @State private var availableWidth: CGFloat = 0
@@ -162,19 +158,18 @@ struct PremOffersSection: View {
     }
 
     /// `isRevenueCatPaywallAvailable()` : SDK + interface RevenueCat + clé.
-    /// La disponibilité vient de la couture d'achat (publiée par l'hôte du
-    /// paywall ou lue par défaut) ; la sonde de l'interface RevenueCat renvoie
-    /// `nil` dans ce build, donc la ligne reste masquée.
+    /// Le prédicat est porté par le service ; la sonde de l'interface RevenueCat
+    /// renvoie `nil` dans ce build, donc la ligne reste masquée.
     private var manageAvailable: Bool {
-        purchaseAvailable && PremPurchasesModules.nativePurchasesUIModule() != nil
+        PremRevenueCatService.isRevenueCatPaywallAvailable
     }
 
     /// « Gérer mon abonnement » (`presentCustomerCenter`) : même disposition
-    /// qu'une garantie, mais actionnable. Jamais montrée tant que la couture
-    /// d'achat refuse (`purchaseAvailable == false`).
+    /// qu'une garantie, mais actionnable. Jamais montrée tant que le paywall
+    /// RevenueCat n'est pas embarqué (`isRevenueCatPaywallAvailable`).
     private var manageRow: some View {
         Button {
-            Task { try? await PremPurchasesModules.nativePurchasesUIModule()?.presentCustomerCenter() }
+            Task { _ = await PremRevenueCatService.presentCustomerCenter() }
         } label: {
             PremReassuranceRow(label: "Gérer mon abonnement", icon: "settings-outline")
         }

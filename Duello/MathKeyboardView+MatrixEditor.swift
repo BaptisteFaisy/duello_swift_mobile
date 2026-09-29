@@ -161,14 +161,18 @@ extension MathKeyboardView {
         matrixFocus = active
     }
 
+    /// Valide la matrice (`commitMatrix`, `MathKeyboard.tsx:831-846`) : la plage
+    /// visée est transmise à `insertText` pour que l'hôte **remplace** la matrice
+    /// d'origine au lieu d'en insérer une seconde (`replacement`).
     func commitMatrix() {
         guard let draft = matrixDraft, draft.isComplete else { return }
         guard let text = MathKbMatrixFormatter.format(
             rows: draft.grid,
             delimiter: draft.delimiter
         ) else { return }
-        insertText(text, 0)
+        let replacement = draft.replacement
         matrixDraft = nil
+        insertText(text, 0, replacement)
         sectionId = "algebre"
     }
 }

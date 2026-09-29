@@ -1,0 +1,23 @@
+{
+  "images" : [
+    {
+      "filename" : "league-institut-agro-laurier-v1.png",
+      "idiom" : "universal",
+      "scale" : "1x"
+    },
+    {
+      "filename" : "league-institut-agro-laurier-v1@2x.png",
+      "idiom" : "universal",
+      "scale" : "2x"
+    },
+    {
+      "filename" : "league-institut-agro-laurier-v1@3x.png",
+      "idiom" : "universal",
+      "scale" : "3x"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

@@ -5,8 +5,9 @@ import Foundation
 /// Documents HTML autonomes affichés par `CtdHtmlDocumentView`.
 ///
 /// Porté de `courseImageHtml` (`src/utils/courseDocument.ts:117-252`), repère de
-/// progression de classe (`class-progress-marker`) et commande
-/// `duello-course-positioning` compris.
+/// progression de classe (`class-progress-marker`), commande
+/// `duello-course-positioning` et pont « Expliquer cette photo »
+/// (`profExplain`, `profExplainImageScript`) compris.
 ///
 /// Découpé en en-tête, corps et script pour tenir la limite de 50 lignes par
 /// fonction : chaque morceau reprend mot pour mot la chaîne d'origine, la
@@ -15,18 +16,24 @@ enum CtdDocumentHtml {
     /// Photo de cours ou de TD : le document affiche l'image en base64, le
     /// repère de progression quand il est demandé, et prévient le lecteur
     /// (`ready`, `error`, `position`), comme côté Expo.
+    ///
+    /// `profExplain` : le pont du prof IA (`profExplainImageScript`) est injecté
+    /// et le bouton « Expliquer cette photo » est posé à l'affichage
+    /// (`profExplain: onProfExplainImage !== undefined`,
+    /// `CourseDocumentViewer.native.tsx:87-92`).
     static func imageHtml(
         base64: String,
         mimeType: CtdMimeType,
         positioning: Bool = false,
-        initialPosition: Double? = nil
+        initialPosition: Double? = nil,
+        profExplain: Bool = false
     ) -> String {
         let normalized = normalizedPosition(initialPosition)
         let safeInitial = normalized ?? 0
         let initialScript = normalized == nil ? "null" : String(safeInitial)
         let markerVisible = positioning || normalized != nil
         return imageHead(positioning: positioning, markerVisible: markerVisible)
-            + imageBodyOpen(base64: base64, mimeType: mimeType)
+            + imageBodyOpen(base64: base64, mimeType: mimeType, profExplain: profExplain)
             + imageScript(positioning: positioning, initialScript: initialScript)
             + imageClose()
     }
@@ -77,13 +84,15 @@ enum CtdDocumentHtml {
     // MARK: Corps et image
 
     /// Ouverture de `<body>` : état d'attente, image en base64, repère de
-    /// progression et ouverture du `<script>`.
-    private static func imageBodyOpen(base64: String, mimeType: CtdMimeType) -> String {
-        """
+    /// progression, pont du prof IA (photo) et ouverture du `<script>`.
+    private static func imageBodyOpen(base64: String, mimeType: CtdMimeType, profExplain: Bool) -> String {
+        let profBridge = profExplain ? "<script>\(profExplainImageScript())</script>" : ""
+        return """
           <body>
             <div id="status">Préparation du cours…</div>
             <img id="course-image" alt="Photo du cours" src="data:\(mimeType.rawValue);base64,\(base64)" />
             <div id="class-progress-marker" aria-hidden="true"></div>
+            \(profBridge)
             <script>
 
         """
@@ -175,6 +184,11 @@ enum CtdDocumentHtml {
                   contentReady = true;
                   applyPositioning(false);
                   notify('ready', {});
+                  // Bouton « Expliquer cette photo » du pont du prof IA : posé
+                  // seulement quand le pont a été injecté (`profExplain`).
+                  if (window.__duelloProfImage) {
+                    window.__duelloProfImage.photoButton(image);
+                  }
                 };
                 // Une image en base64 peut déjà être décodée quand ce script
                 // s'exécute : son événement de chargement ne serait alors

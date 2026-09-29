@@ -33,6 +33,13 @@ struct DuelExercise {
     var context: String?
     /// Questions de l'exo, dans l'ordre : chacune ouvre son champ de réponse.
     var questions: [Question]
+    /// Réponse simulée de l'adversaire d'entraînement, dévoilée après le défi
+    /// (`opponentProduction`) : absente des énoncés servis, qui n'ont pas de
+    /// copie type.
+    var opponentProduction: String? = nil
+    /// Réponse d'entraînement par question, lorsqu'elle est disponible sous
+    /// cette forme (`opponentAnswers`).
+    var opponentAnswers: [String: String]? = nil
     /// Corrigé de référence, dévoilé aux deux joueurs après le défi.
     var solution: String?
 }

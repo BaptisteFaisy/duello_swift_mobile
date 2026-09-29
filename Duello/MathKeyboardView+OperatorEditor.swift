@@ -8,6 +8,16 @@
 //  Extrait de `MathKeyboardView.swift` : découpage en modules, sans
 //  renommage de type, de membre ni de signature.
 //
+//  PARITÉ (2026-09-29) — « Mettre à jour » (`MathKeyboard.tsx:1404-1424`,
+//  845-858) : quand `MathKbOperatorDraft.replacement` est posé, l'éditeur
+//  remplace la construction visée au lieu d'en insérer une seconde.
+//
+//  Écarts assumés (2026-09-29) — le contrat d'intégration ne transporte pas la
+//  réponse (`MathKeyboardViewCore.swift`, hors lot) : la plage visée étant le
+//  suffixe de la réponse (la saisie s'ajoute toujours en fin de champ, iOS 16
+//  sans curseur), elle est retirée caractère par caractère avant l'insertion.
+//  Une construction en milieu de texte exigerait que le contrat porte la plage.
+//
 
 import SwiftUI
 
@@ -51,7 +61,11 @@ extension MathKeyboardView {
                 Text(definition.hint)
                     .font(.system(size: 8, weight: .semibold))
                     .foregroundStyle(Theme.inkSoft)
-                Text("Champs obligatoires · touche une valeur pour la corriger.")
+                Text(
+                    draft.isReplacing
+                        ? "Modification du symbole sélectionné · touche une valeur à corriger."
+                        : "Champs obligatoires · touche une valeur pour la corriger."
+                )
                     .font(.system(size: 8, weight: .black))
                     .foregroundStyle(Theme.ink)
             }
@@ -93,9 +107,21 @@ extension MathKeyboardView {
             MathKbMiniButton(label: "Annuler") {
                 operatorDraft = nil
             }
-            MathKbMiniButton(label: "Insérer", wide: true, prominent: true, enabled: draft.isComplete) {
+            MathKbMiniButton(
+                label: draft.isReplacing ? "Mettre à jour" : "Insérer",
+                wide: true,
+                prominent: true,
+                enabled: draft.isComplete
+            ) {
                 commitOperator()
             }
+            .accessibilityLabel(
+                draft.isComplete
+                    ? (draft.isReplacing
+                        ? "Mettre à jour \(definition.title.lowercased())"
+                        : "Insérer \(definition.title.lowercased())")
+                    : "Insertion impossible, tous les champs doivent être remplis"
+            )
         }
     }
 
@@ -168,8 +194,17 @@ extension MathKeyboardView {
         guard let text = MathKbOperatorCatalog.format(kind: draft.kind, values: draft.valueMap) else {
             return
         }
-        insertText(text, 0)
+        // `onInsert(text, 0, replacement)` (`MathKeyboard.tsx:845-858`) : une
+        // construction visée est **remplacée**, pas dupliquée. La saisie
+        // s'ajoutant toujours en fin de réponse (iOS 16 sans curseur), la
+        // construction visée en est le suffixe : on retire ses caractères, puis
+        // on insère la version mise à jour.
+        let replacement = draft.replacement
         operatorDraft = nil
+        if let replacement {
+            for _ in 0..<max(0, replacement.end - replacement.start) { handleBackspace() }
+        }
+        insertText(text, 0)
         sectionId = draft.kind == .exponent ? "base" : "analyse"
     }
 }

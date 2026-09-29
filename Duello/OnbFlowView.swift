@@ -14,11 +14,12 @@
 //  dans `OnbFlowCoordinator`, le contenu dans `OnbFlowStepContent`, la passation
 //  dans `OnbFlowHandoff`.
 //
-//  V2 (29/09/2026, parité RN dev) : init enrichi des identités de fournisseur
-//  initiales (`initialGoogleIdentity` / `initialAppleIdentity`). À raccorder
-//  (hors lot) : `OnboardingView` / `SignupFlowView` passent `onProgramSelected`,
-//  `onTrainingSurfaceReady` et ces identités (`App.tsx:2508-2521`). Écart assumé
-//  iOS : l'alerte de notifications omet « Android » (`OnboardingScreen.tsx:945`).
+//  V2 (29/09/2026, parité RN dev) : init enrichi des identités fournisseur
+//  initiales, fournies par `OnboardingView` / `SignupFlowView` avec
+//  `onProgramSelected` et `onTrainingSurfaceReady` (`App.tsx:2508-2521`) ;
+//  recentrage du champ après alerte (`@FocusState` local lu par `perform`,
+//  `OnboardingScreen.tsx:691-696`). Écart assumé iOS : l'alerte de
+//  notifications omet « Android » (`OnboardingScreen.tsx:945`).
 //
 //  Cible : iOS 16. Aucune dépendance externe.
 //
@@ -42,6 +43,10 @@ struct OnbFlowView: View {
     @EnvironmentObject private var session: SessionStore
     @StateObject private var coordinator: OnbFlowCoordinator
     @StateObject private var handoff = OnbFlowHandoffDriver()
+
+    /// Champ à recentrer après fermeture d'une alerte (`focusPseudoInput` /
+    /// `focusEmailInput`) : lu par `perform`, rattaché par `OnbFlowStepContent`.
+    @FocusState private var focusedField: OnbFlowAlertAction.FocusTarget?
 
     /// `requiresRegistrationPreflight` : surcharge du pré-vol d'inscription.
     /// `false` pour un parcours ouvert sur une session déjà ouverte (aucun
@@ -149,6 +154,7 @@ struct OnbFlowView: View {
                         eyebrow
                         OnbFlowStepContent(
                             coordinator: coordinator,
+                            focus: $focusedField,
                             onGoogle: handleGoogle,
                             onApple: handleApple,
                             onBiometric: handleBiometric
@@ -300,6 +306,8 @@ struct OnbFlowView: View {
     /// Exécute l'action choisie puis referme l'alerte.
     private func perform(_ action: OnbFlowAlertAction) {
         coordinator.pendingAlert = nil
+        // Une alerte refermée rend le curseur au champ visé (`focusPseudoInput`).
+        if let focus = action.focus { focusedField = focus }
         switch action.kind {
         case .retry:
             Task { @MainActor in await runPreflight() }

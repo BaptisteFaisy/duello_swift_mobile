@@ -113,6 +113,16 @@ struct TrainingCatalogView: View {
     @State private var chromeVisible = true
     @State private var chromeSession: TrainChromeSession?
 
+    /// Manifeste servi, conservé pour ré-indexer au changement d'onglet sans
+    /// nouvel appel (`chapterCardCatalog` / `colleCardCatalog`).
+    @State var manifest: DuelloAPI.ContentManifest?
+    /// Banque d'annales servie de la matière (`annaleItems`,
+    /// `SubjectsScreen.tsx:4493`), chargée à l'ouverture de l'onglet Annales.
+    @State var annaleItems: [AnnEntry] = []
+    /// Mémoire du défilement du catalogue (`chapterListScrollOffsetRef`) :
+    /// offset publié au défilement, replacement au retour d'un chapitre.
+    @ObservedObject var scrollMemory = TrainCatalogueScrollMemory.shared
+
     var body: some View {
         Group {
             if let openChapter {
@@ -123,53 +133,86 @@ struct TrainingCatalogView: View {
         }
         .background(Theme.background)
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $rankingOpen) { LeaderboardModalView(initialTab: .weeklyXp, xpOnly: true) }
+        // `onOpenProfile` (`SubjectsScreen.tsx:8555-8560`) : le tap d'une ligne
+        // du classement ouvre la fiche publique du membre via le coordinateur
+        // racine — même couture que le tap de notification.
+        .sheet(isPresented: $rankingOpen) {
+            LeaderboardModalView(initialTab: .weeklyXp, xpOnly: true, onOpenProfile: { memberId in
+                Task { @MainActor in
+                    PushNotifRootCoordinator.shared.pendingMember =
+                        PushNotifPendingMember(id: memberId)
+                }
+            })
+        }
         .fullScreenCover(item: $readerEntry) { entry in readerCover(entry) }
         .task { await loadManifest() }
+        // Ré-indexation au changement d'onglet (`colleCardCatalog` /
+        // `chapterCardCatalog`) : la banque servie dépend du mode ouvert.
+        .onChange(of: activeMode) { _ in reindexChapters() }
     }
 
     /// Programme de la matière : le catalogue de chapitres, coiffé du chrome
     /// collant (barre de métriques en maths, barre de retour ailleurs).
     private var cataloguePage: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 0) {
-                resumableExerciseCard
-                // Les onglets d'une matière non-maths restent dans le contenu et
-                // s'affichent dès l'ouverture de la page, avant le chargement du
-                // manifeste (`renderModeTabs`, `SubjectsScreen.tsx:10006`).
-                if subject.id != SubjSubjectRules.mathsSubjectId {
-                    modeTabsRow.padding(.top, 12)
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    resumableExerciseCard
+                    // Les onglets d'une matière non-maths restent dans le contenu et
+                    // s'affichent dès l'ouverture de la page, avant le chargement du
+                    // manifeste (`renderModeTabs`, `SubjectsScreen.tsx:10006`).
+                    if subject.id != SubjSubjectRules.mathsSubjectId {
+                        modeTabsRow.padding(.top, 12)
+                    }
+                    content
                 }
-                content
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+                .padding(.bottom, 40)
+                .background(chromeOffsetReader)
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 16)
-            .padding(.bottom, 40)
-            .background(chromeOffsetReader)
-        }
-        .coordinateSpace(name: Self.scrollSpace)
-        .onPreferenceChange(TrainChromeOffsetKey.self) { offset in
-            handleChromeScroll(offset)
-        }
-        // L'en-tête de la source ne défile pas : la barre de métriques (maths)
-        // et la barre de retour (autres matières) vivent dans le chrome collant,
-        // hors du `ScrollView` (`SubjectsScreen.tsx:9611-9655`). En maths, les
-        // onglets de modes y prennent place sous la barre, `paddingTop: 4`
-        // (`mathsModeTabsRow`, `SubjectsScreen.tsx:9779-9785`).
-        //
-        // U06#A1 : en maths, le chrome se replie au défilement vers le bas et
-        // revient au défilement vers le haut (ressort `friction 26 / tension 60`,
-        // translation `-24`, opacité ; `9648-9823`).
-        .safeAreaInset(edge: .top, spacing: 0) {
-            pinnedHeader
-                .opacity(chromeVisible ? 1 : 0)
-                .offset(y: chromeVisible ? 0 : -24)
-                .animation(.interpolatingSpring(stiffness: 60, damping: 26), value: chromeVisible)
-                .accessibilityHidden(!chromeVisible)
+            .coordinateSpace(name: Self.scrollSpace)
+            .onPreferenceChange(TrainChromeOffsetKey.self) { offset in
+                handleChromeScroll(offset)
+            }
+            // L'en-tête de la source ne défile pas : la barre de métriques (maths)
+            // et la barre de retour (autres matières) vivent dans le chrome collant,
+            // hors du `ScrollView` (`SubjectsScreen.tsx:9611-9655`). En maths, les
+            // onglets de modes y prennent place sous la barre, `paddingTop: 4`
+            // (`mathsModeTabsRow`, `SubjectsScreen.tsx:9779-9785`).
+            //
+            // U06#A1 : en maths, le chrome se replie au défilement vers le bas et
+            // revient au défilement vers le haut (ressort `friction 26 / tension 60`,
+            // translation `-24`, opacité ; `9648-9823`).
+            .safeAreaInset(edge: .top, spacing: 0) {
+                pinnedHeader
+                    .opacity(chromeVisible ? 1 : 0)
+                    .offset(y: chromeVisible ? 0 : -24)
+                    .animation(.interpolatingSpring(stiffness: 60, damping: 26), value: chromeVisible)
+                    .accessibilityHidden(!chromeVisible)
+            }
+            // Replacement au retour d'un chapitre (`recentlyClosedChapter`,
+            // `SubjectsScreen.tsx:4085-4100`) : le catalogue revient sur la ligne
+            // du chapitre quitté, sans animation.
+            .onAppear { applyScrollRestore(proxy) }
+            .onChange(of: scrollMemory.restore) { _ in applyScrollRestore(proxy) }
         }
         // La source n'a pas de titre de navigation : la page d'une matière est
         // coiffée par son propre en-tête (barre de métriques en maths, barre de
         // retour ailleurs).
+    }
+
+    /// Applique le replacement mémorisé au retour d'un chapitre : le catalogue
+    /// revient sur la ligne quittée (`ScrollViewReader.scrollTo`). La mémoire est
+    /// consommée (remise à `nil`) ; un retour pour une autre matière est ignoré.
+    private func applyScrollRestore(_ proxy: ScrollViewProxy) {
+        guard let restore = scrollMemory.restore, restore.subjectId == subject.id else { return }
+        scrollMemory.restore = nil
+        // Laisse la liste se poser avant de viser la ligne : la cible d'un
+        // `LazyVStack` n'existe qu'une fois la mise en page faite.
+        DispatchQueue.main.async {
+            withAnimation(nil) { proxy.scrollTo(restore.chapterId, anchor: .top) }
+        }
     }
 
     /// Espace de coordonnées du défilement, pour mesurer l'offset du contenu.
@@ -189,6 +232,10 @@ struct TrainingCatalogView: View {
     /// (`scrollChromeVisibilitySessionAfterScroll`). Seules les maths replient
     /// leur chrome (`hasCollapsibleTrainingChrome`).
     private func handleChromeScroll(_ offset: CGFloat) {
+        // Publication de l'offset courant (`chapterListScrollOffsetRef`) : figé à
+        // l'ouverture d'un chapitre, rendu au retour. Vaut pour toutes les
+        // matières, seules les maths replient leur chrome.
+        scrollMemory.offset = max(0, offset)
         guard subject.id == SubjSubjectRules.mathsSubjectId else { return }
         let session = chromeSession ?? TrainChromeVisibility.beginSession(
             visible: chromeVisible, offset: offset
@@ -382,6 +429,10 @@ struct TrainingCatalogView: View {
     /// du sujet repris quand il est chargé (`openAnnaleItem`).
     private func resume(_ resumable: TrainResumableExercise) {
         modeOverride = resumable.mode
+        // Le mode repris change la banque servie : ré-indexer tout de suite pour
+        // que le chapitre charge les sujets du bon mode (`chapterCardCatalog` /
+        // `colleCardCatalog`), avant le chargement déclenché ci-dessous.
+        reindexChapters()
         guard let chapterId = resumable.chapterId,
               let chapter = subject.chapters.first(where: { $0.id == chapterId })
         else { return }
@@ -424,62 +475,5 @@ struct TrainingCatalogView: View {
             return progress.items[itemId]?.bestOutcome == .success
         }.count
         return (succeeded, total)
-    }
-}
-
-// MARK: - Chrome repliable
-
-/// Clé de préférence qui publie l'offset du défilement du catalogue.
-struct TrainChromeOffsetKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = nextValue()
-    }
-}
-
-/// Session de défilement du chrome repliable : dernière visibilité demandée et
-/// position d'ancrage (`ScrollChromeVisibilitySession`).
-struct TrainChromeSession {
-    var visible: Bool
-    var anchor: CGFloat
-}
-
-/// Décision de visibilité du chrome pendant un geste vertical
-/// (`utils/trainingChromeVisibility.ts`, seuils et repli au sommet).
-enum TrainChromeVisibility {
-    /// `TRAINING_CHROME_SWIPE_THRESHOLD` : distance vers le bas qui masque.
-    static let swipeThreshold: CGFloat = 24
-    /// `TRAINING_CHROME_REVEAL_THRESHOLD` : distance vers le haut qui révèle.
-    static let revealThreshold: CGFloat = 12
-    /// `TRAINING_CHROME_TOP_EPSILON` : le sommet reste toujours visible.
-    static let topEpsilon: CGFloat = 1
-
-    /// `scrollChromeVisibilityAfterScroll`.
-    static func afterScroll(visible: Bool, from start: CGFloat, to next: CGFloat) -> Bool {
-        let clampedStart = max(0, start)
-        let clampedNext = max(0, next)
-        let distance = clampedNext - clampedStart
-        if !visible && clampedNext <= topEpsilon { return true }
-        if distance >= swipeThreshold { return false }
-        if distance <= -revealThreshold { return true }
-        return visible
-    }
-
-    /// `beginScrollChromeVisibilitySession`.
-    static func beginSession(visible: Bool, offset: CGFloat) -> TrainChromeSession {
-        TrainChromeSession(
-            visible: offset <= topEpsilon ? true : visible,
-            anchor: offset
-        )
-    }
-
-    /// `scrollChromeVisibilitySessionAfterScroll`.
-    static func sessionAfterScroll(_ session: TrainChromeSession, next: CGFloat) -> TrainChromeSession {
-        if (session.visible && next < session.anchor) || (!session.visible && next > session.anchor) {
-            return TrainChromeSession(visible: session.visible, anchor: next)
-        }
-        let visible = afterScroll(visible: session.visible, from: session.anchor, to: next)
-        if visible == session.visible { return session }
-        return TrainChromeSession(visible: visible, anchor: next)
     }
 }

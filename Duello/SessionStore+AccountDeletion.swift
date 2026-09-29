@@ -61,13 +61,27 @@ extension SessionStore {
     }
 
     /// Purge locale d'un compte supprimé : la session, le profil et leurs
-    /// traces persistées (trousseau, préférences) quittent l'appareil.
+    /// traces persistées (trousseau, préférences) quittent l'appareil, ainsi
+    /// que les données cloisonnées par compte.
+    ///
+    /// `removeLocalAccountData` (`App.tsx:2353`, `storage/AccountStorage.tsx:208`)
+    /// efface **toutes** les clés physiques préfixées par
+    /// `RewStorageScope.accountStoragePrefix(accountId:)` (notes, Elo, XP,
+    /// planning…). Sans cette purge, les données scopées survivaient à la
+    /// suppression et restaient lisibles par une reconnexion du même compte.
     @MainActor
     private func purgeLocalAccount() {
+        // L'adresse est relevée avant la remise à zéro du profil.
+        let email = profile.email.isEmpty ? (session?.email ?? "") : profile.email
         session = nil
         isSignedIn = false
         profile = UserProfile()
         Keychain.delete(service: Self.service, account: Self.account)
         UserDefaults.standard.removeObject(forKey: Self.profileKey)
+        if !email.isEmpty {
+            _ = RewLocalAccountData.removeLocalAccountData(
+                accountId: Self.localAccountId(for: email)
+            )
+        }
     }
 }

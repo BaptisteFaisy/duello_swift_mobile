@@ -19,9 +19,17 @@ import SwiftUI
 /// `@MainActor` : la vue possède `AcctSearchModel`, isolé au fil principal, et
 /// l'initialise dans un initialiseur de propriété (non isolé par défaut) —
 /// même motif que `AcctIntDirectorySheet`.
+///
+/// R01 (2026-09-29, raccords d'hôtes) : l'onglet déclare son chrome au
+/// `RootChromeModel` (verrou de geste quand une feuille est ouverte,
+/// `AccountScreen.tsx:717-719`) et **possède** le producteur de masquage de la
+/// barre basse (`DuelloBottomBarChrome`, `AccountScreen.tsx:681-693`), alimenté
+/// par l'offset de son défilement.
 @MainActor
 struct AccountView: View {
     @EnvironmentObject private var session: SessionStore
+    /// Chrome racine des onglets (verrou de geste, barre basse).
+    @EnvironmentObject private var root: RootChromeModel
 
     /// Publieur du profil public : porte l'état de publication de l'annuaire
     /// (`publication` d'`AccountScreen.tsx:246`, alimenté par
@@ -41,6 +49,13 @@ struct AccountView: View {
     /// Annuaire de recherche de la page : la ligne de recherche vit en tête du
     /// profil, comme `searchQuery` / `directoryProfiles` de la source.
     @StateObject private var search = AcctSearchModel()
+
+    /// Producteur de masquage de la barre basse (`useScrollChromeVisibility`) :
+    /// l'offset du profil le fait basculer (`AccountScreen.tsx:681-693`).
+    @StateObject private var bottomBarChrome = DuelloBottomBarChrome()
+
+    /// Espace de coordonnées du défilement du profil, pour mesurer l'offset.
+    private static let scrollSpace = "account-profile-scroll"
 
     var body: some View {
         NavigationStack {
@@ -62,6 +77,11 @@ struct AccountView: View {
                 .padding(.horizontal, 24)
                 .padding(.top, 4)
                 .padding(.bottom, 36)
+                .background(offsetProbe)
+            }
+            .coordinateSpace(name: Self.scrollSpace)
+            .onPreferenceChange(DuelloBottomBarOffsetKey.self) { offset in
+                bottomBarChrome.scroll(offset: Double(offset))
             }
             .background(Theme.background)
             // La source n'a pas d'en-tête de navigation : la page commence par
@@ -93,5 +113,40 @@ struct AccountView: View {
                 AcctIntSettingsSheet(email: session.profile.email, token: session.token)
             }
         }
+        .duelloBottomBarChrome(bottomBarChrome, forTab: 0)
+        .onAppear { declareTabSwipeLock() }
+        .onChange(of: settingsOpen) { _ in declareTabSwipeLock() }
+        .onChange(of: notificationsOpen) { _ in declareTabSwipeLock() }
+        .onDisappear { root.setTabSwipeLock(false, forTab: 0) }
+    }
+
+    /// Sonde d'offset du défilement du profil (fond transparent en tête de
+    /// contenu) : alimente le producteur de masquage de la barre basse.
+    private var offsetProbe: some View {
+        GeometryReader { geometry in
+            Color.clear.preference(
+                key: DuelloBottomBarOffsetKey.self,
+                value: -geometry.frame(in: .named(Self.scrollSpace)).minY
+            )
+        }
+    }
+
+    /// Déclare le verrou de geste d'onglet au chrome racine
+    /// (`onTabSwipeLockChange`, `AccountScreen.tsx:717-719`) : une feuille
+    /// ouverte (réglages, notifications) fige le balayage, et la barre basse
+    /// revient au sommet de liste (`resetProfileChromeVisibility`).
+    private func declareTabSwipeLock() {
+        let locked = settingsOpen || notificationsOpen
+        root.setTabSwipeLock(locked, forTab: 0)
+        if locked { bottomBarChrome.reset() }
+    }
+}
+
+/// Clé de préférence publiant l'offset de défilement d'un écran d'onglet, pour
+/// le producteur de masquage de la barre basse (`DuelloBottomBarChrome`).
+struct DuelloBottomBarOffsetKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
     }
 }

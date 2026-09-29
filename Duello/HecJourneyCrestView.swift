@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// Contour de blason : coins hauts resserrés, coins bas très arrondis, comme le
 /// repli `fallbackCrest` de `src/components/HecJourneyAdmissionScreen.tsx`
@@ -54,12 +55,16 @@ struct HecJourneyCrestShape: Shape {
 /// portant `crestLabel` (`AdmissionCrest` de `HecJourneyAdmissionScreen.tsx` et
 /// `AdmissionCrestSprite` de `HecJourneyScene.tsx`).
 ///
-/// Écart assumé (2026-09-29) : les PNG ne sont pas embarqués dans l'app Swift
-/// (`LeagueBadges` ne les porte pas en assets) ; le blason officiel est donc
-/// chargé **à distance** par `CachedRemoteImage`, la seule source exploitable du
-/// portage — mêmes fichiers, même rendu. Un identifiant d'école sans blason
-/// (SKEMA, NEOMA, « Autre école »…) retombe sur l'écusson coloré, couleurs et
-/// libellés exacts du catalogue (`HecJourneyAdmissionCatalog`).
+/// Rendu du blason officiel, dans l'ordre de la source : l'imageset **embarqué**
+/// `Image(crest.schoolId)` — nommé d'après le PNG de la source
+/// (`LeagueBadges.badgeAssetName`, série « laurier » `league-*-laurier-vN`) —
+/// puis, tant que ces imagesets manquent, le même PNG servi **à distance**
+/// (`CachedRemoteImage`). Un identifiant d'école sans blason (SKEMA, NEOMA,
+/// « Autre école »…) retombe sur l'écusson coloré, couleurs et libellés exacts
+/// du catalogue (`HecJourneyAdmissionCatalog`).
+///
+/// À raccorder (lot W13) : créer les 22 imagesets `league-*-laurier-vN` dans
+/// `Duello/Assets.xcassets` ; le rendu distant assure l'intérim à l'identique.
 struct HecJourneyCrestView: View {
     let crest: HecJourneyAdmissionCrest
     /// Hauteur de l'écusson ; la largeur suit le rapport 132 × 144 de la source.
@@ -67,13 +72,21 @@ struct HecJourneyCrestView: View {
 
     private var width: CGFloat { height * 132 / 144 }
     private var scale: CGFloat { height / 144 }
-    /// `leagueBadgeSourceForLeague(crest.schoolId)` : PNG officiel du blason,
-    /// quand l'école en a un (`LeagueBadges`, série « laurier »).
+    /// `leagueBadgeSourceForLeague(crest.schoolId)` : nom de l'imageset
+    /// embarqué du blason officiel de l'école, quand elle en a un.
+    private var badgeAssetName: String? {
+        LeagueBadges.badgeAssetName(forLeague: crest.schoolId)
+    }
+    /// Repli distant du blason officiel, tant que l'imageset embarqué manque.
     private var badgeURL: URL? { LeagueBadges.leaderboardBadgeURL(forLeague: crest.schoolId) }
 
     var body: some View {
         ZStack {
-            if let badgeURL {
+            if let badgeAssetName, UIImage(named: badgeAssetName) != nil {
+                Image(badgeAssetName)
+                    .resizable()
+                    .scaledToFit()
+            } else if let badgeURL {
                 CachedRemoteImage(url: badgeURL) { image in
                     image.resizable().scaledToFit()
                 } placeholder: {

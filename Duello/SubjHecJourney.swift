@@ -167,6 +167,19 @@ enum SubjHecJourneyEntry {
             && entryPoint == .journey
             && subjectId == SubjHecJourneyConstants.mathsSubjectId
     }
+
+    /// `account.createdAt` du compte local (`App.tsx:2828`), en millisecondes
+    /// dans le registre — converti en date. C'est l'origine de la frise passée
+    /// au montage (`HecJourneySurface registeredAt={registeredAt}`). `nil` si le
+    /// compte est introuvable : `HecJourneyStore` retombe alors sur la première
+    /// ouverture du parcours.
+    static func accountRegistrationDate(forEmail email: String) -> Date? {
+        guard let millis = AcctLocalRegistry.findAccountByEmail(
+            AcctLocalRegistry.loadAccounts(),
+            email: email
+        )?.createdAt, millis > 0 else { return nil }
+        return Date(timeIntervalSince1970: millis / 1000)
+    }
 }
 
 /// Surface du parcours HEC chargée en différé (`lazy()` + `<Suspense>` d'Expo).

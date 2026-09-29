@@ -10,12 +10,21 @@ import UniformTypeIdentifiers
 
 extension TrainCoursePage {
     /// Lecteur + bouton plein écran (`CourseDocumentViewer`, `8346-8360`).
+    ///
+    /// U06#3 (R07) : le lecteur reçoit `positioning` / `initialPosition` /
+    /// `onPositionChange`, comme la source (`SubjectsScreen.tsx:8391-8405`) : le
+    /// repère se pose **en faisant défiler le cours** face à la ligne rouge, et
+    /// chaque mouvement alimente le brouillon (`handleCoursePositionChange`). Le
+    /// repère est relu à l'ouverture du document (`initialPosition`).
     func documentFrame(document: CtdStoredCourseDocument) -> some View {
         ZStack(alignment: .topTrailing) {
             CtdDocumentViewer(
                 uri: document.uri,
                 mimeType: document.mimeType,
-                revision: document.uploadedAt
+                revision: document.uploadedAt,
+                positioning: positioning,
+                initialPosition: document.classProgress?.position,
+                onPositionChange: { positionDraft = $0 }
             )
             CtdFullscreenButton { fullscreenOpen = true }
         }

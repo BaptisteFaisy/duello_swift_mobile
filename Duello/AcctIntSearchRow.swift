@@ -24,10 +24,10 @@
 //  (`settingsIconButton`, `AccountScreen.tsx:4556-4564`) — `Theme.surface`,
 //  `Theme.border` et `Theme.ink` y étaient erronés.
 //
-//  À raccorder (hors lot) : la barre de recherche elle-même vit dans
-//  `AcctSearchView.swift` (`AcctSearchBar:41,47,52,65,73,77`), à repeindre de
-//  la même façon — fond/bord `#000000`, loupe et croix blanches, saisie blanche,
-//  invite `rgba(255,255,255,0.55)`.
+//  V3b (29/09/2026, parité RN dev) : `canProposeChallenge` n'est plus figé à
+//  faux — il est calculé pour le membre ouvert, même formule
+//  qu'`AcctIntDirectorySheet` (`canProposeChallengeToMember`,
+//  `AccountScreen.tsx:1781-1784`).
 //
 //  Cible : iOS 16, aucune API iOS 17.
 //
@@ -40,6 +40,7 @@ private let acctSearchAbsoluteBlack = Color(hex: 0x000000)
 /// Ligne de recherche du profil : champ, cloche des notifications, réglages.
 @MainActor
 struct AcctIntSearchRow: View {
+    @EnvironmentObject private var session: SessionStore
     @ObservedObject var model: AcctSearchModel
     @ObservedObject private var notifications = AcctNotificationsStore.shared
     /// État de publication du profil à l'annuaire (`publication` d'Expo),
@@ -51,10 +52,40 @@ struct AcctIntSearchRow: View {
     var body: some View {
         AcctSearchView(
             model: model,
-            canProposeChallenge: false,
+            canProposeChallenge: canProposeChallenge,
             onProposeChallenge: { _ in },
             publication: publication,
             rowAccessory: AnyView(accessories)
+        )
+    }
+
+    /// `canProposeChallenge` (`AccountScreen.tsx:1781-1784`) : le membre ouvert
+    /// partage le programme du compte (`!isMemberLocked` reste toujours vrai côté
+    /// natif, cf. `AcctSearchModel.isMemberLocked`). Recalculé à chaque
+    /// changement de membre ouvert — même formule qu'`AcctIntDirectorySheet`.
+    private var canProposeChallenge: Bool {
+        guard let member = model.selectedMember else { return false }
+        return SocChallengeInvites.canProposeChallenge(
+            to: member.profile,
+            challengerTrack: session.profile.track,
+            challengerSpecialty: ownSpecialty
+        )
+    }
+
+    /// `ownSpecialty` (`AccountScreen.tsx:1773-1780`) :
+    /// `accountAcademicOptionLabel(track, academicProgramSelection(...).specialty,
+    /// specialty)`. L'option de l'année affichée vient de `academicPath`
+    /// (`firstYearOption` en 1re année, `currentOption` sinon), avec repli sur la
+    /// spécialité du profil pour les comptes anciens sans parcours détaillé.
+    private var ownSpecialty: String {
+        let profile = session.profile
+        let option = profile.academicPath.map {
+            profile.year == "1re année" ? $0.firstYearOption : $0.currentOption
+        } ?? profile.specialty
+        return LoginScrProviderReuse.accountAcademicOptionLabel(
+            track: profile.track,
+            currentOption: option,
+            legacySpecialty: profile.specialty
         )
     }
 

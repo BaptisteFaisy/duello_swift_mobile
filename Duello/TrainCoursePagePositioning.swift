@@ -4,9 +4,13 @@ import SwiftUI
 // Repère de progression de la page « Mon cours » (`placeCourseProgress`,
 // `SubjectsScreen.tsx:8207-8243`). Les membres étaient `private` dans
 // `TrainCoursePage.swift` ; `private` en Swift est limité au FICHIER, ils sont
-// donc élargis à `internal` (corps inchangés). `positionBlock()` dépassait 50
-// lignes à cause de l'étendue physique de l'accolade : le bloc hint (texte +
-// glissière) est extrait dans `positioningHint(document:)`, même rendu.
+// donc élargis à `internal` (corps inchangés).
+//
+// R07 2026-09-29 (U06#3) : le repère se pose désormais **en faisant défiler le
+// cours** face à la ligne rouge du lecteur (`CtdDocumentViewer` reçoit
+// `positioning`/`initialPosition`/`onPositionChange`, cf.
+// `TrainCoursePageDocument.documentFrame`). La glissière de repli est retirée :
+// le lecteur publie la position courante, que `placeProgress()` enregistre.
 
 extension TrainCoursePage {
     /// Bouton de repère + hint d'enregistrement ou position mémorisée
@@ -42,25 +46,20 @@ extension TrainCoursePage {
         positioningHint(document: document)
     }
 
-    /// U06#3 : la source place le repère **en faisant défiler le cours** et en le
-    /// posant face à une ligne rouge (`CourseDocumentViewer` `positioning` +
-    /// `onPositionChange`). Le lecteur partagé (`CtdDocumentViewer`,
-    /// `CourseDocumentView.swift`) n'expose encore ni `positioning` ni
-    /// `onPositionChange` : la glissière ci-dessous est le seul moyen de régler la
-    /// position tant que ce raccordement n'est pas fait (voir le rapport,
-    /// « À raccorder »).
+    /// U06#3 (R07) : la source place le repère **en faisant défiler le cours** et
+    /// en le posant face à une ligne rouge (`CourseDocumentViewer` `positioning`
+    /// + `onPositionChange`, `SubjectsScreen.tsx:8391-8405`). Le lecteur partagé
+    /// (`CtdDocumentViewer`) reçoit désormais ces trois paramètres
+    /// (`documentFrame`) : le geste est le défilement, la glissière de repli est
+    /// retirée. Le hint ci-dessous ne fait plus qu'expliquer le geste ; la
+    /// position courante arrive par `onPositionChange` (`positionDraft`).
     @ViewBuilder
     func positioningHint(document: CtdStoredCourseDocument) -> some View {
         if positioning {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Fais défiler le cours jusqu’au dernier point vu en classe et place-le face au repère rouge. Le bouton ou le retour enregistrera cette position.")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Theme.inkSoft)
-                    .fixedSize(horizontal: false, vertical: true)
-                Slider(value: $positionDraft, in: 0...1)
-                    .tint(Theme.ink)
-                    .accessibilityLabel("Position atteinte dans le cours")
-            }
+            Text("Fais défiler le cours jusqu’au dernier point vu en classe et place-le face au repère rouge. Le bouton ou le retour enregistrera cette position.")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Theme.inkSoft)
+                .fixedSize(horizontal: false, vertical: true)
         } else if let progress = document.classProgress {
             Text("Progression du cours enregistrée à \(Int((progress.position * 100).rounded())) %.")
                 .font(.system(size: 12, weight: .semibold))

@@ -293,6 +293,7 @@ struct ChallengePlayerView: View {
                         .allowsHitTesting(false)
                 }
             }
+            SubjAnswerComposition(answer: answers[question.id] ?? "")
         }
     }
 
@@ -435,6 +436,9 @@ struct ChallengePlayerView: View {
         let production = joinDuelAnswers(exercise, answers)
         let matchRef = match
         let userRef = userId
+        // Dernier brouillon garanti dans Entraînements, même si l'écran est
+        // quitté juste après le verdict (`saveChallengeAttempt`).
+        ChalProgress.saveAttempt(itemId: exercise.id, answers: attempted, accountId: userRef)
         gradeTask = Task {
             do {
                 let verdict = try await judgeDuel(
@@ -445,28 +449,24 @@ struct ChallengePlayerView: View {
                     answers: attempted,
                     userId: userRef,
                     token: token,
+                    scorePenalty: matchRef.exercisePreviouslyStarted ? ChalProgress.startedExerciseScorePenalty : 0,
+                    scoreBonus: matchRef.opponentPreviouslyStarted ? ChalProgress.startedOpponentScoreBonus : 0,
+                    opponentProduction: exercise.opponentProduction,
+                    opponentAnswers: exercise.opponentAnswers,
                     onWaitingForOpponent: { deadline in
                         Task { @MainActor in
                             self.phase = .waitingOpponent(deadline: deadline)
                         }
                     }
                 )
-                await MainActor.run {
-                    self.verdict = verdict
-                    self.phase = .result
-                }
+                await MainActor.run { self.verdict = verdict; self.phase = .result }
             } catch let quota as DuelQuotaError {
                 // Le quota de défis est un refus produit : la copie reste
                 // rédigée, l'élève peut réessayer au prochain créneau.
-                let message = quota.message
-                await MainActor.run {
-                    self.quotaMessage = message
-                    self.phase = .writing
-                }
+                await MainActor.run { self.quotaMessage = quota.message; self.phase = .writing }
             } catch {
-                let message = error.localizedDescription
                 await MainActor.run {
-                    self.quotaMessage = message
+                    self.quotaMessage = error.localizedDescription
                     self.phase = .writing
                 }
             }

@@ -187,8 +187,8 @@ struct SubjFlashcardReviewModal: View {
     private var mathKeyboardBar: some View {
         MathKeyboardView(
             mode: .math,
-            onInsert: { text in
-                response = SubjFlashcardMathEditing.insert(text, into: response)
+            onInsertWithBack: { text, back in
+                response = SubjFlashcardMathEditing.insert(text, back: back, into: response)
             },
             onBackspace: {
                 response = SubjFlashcardMathEditing.deleteLast(response)

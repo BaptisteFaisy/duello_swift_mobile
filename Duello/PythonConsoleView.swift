@@ -13,30 +13,21 @@
 //  - `expo_ref/src/utils/pythonConsole.ts` — bornes (`PYTHON_TIME_LIMIT_SECONDS`,
 //    `PYTHON_BOOT_TIMEOUT_MS`, `PYTHON_RUN_TIMEOUT_MS`, sortie max 20 000),
 //    statuts, rapport et messages de démarrage ;
-//  - `expo_ref/src/components/PythonSandboxView.native.tsx` — WebView Pyodide,
-//    NON portable dans ce lot : lue pour comprendre le protocole de messages
-//    (`run`/`result`).
+//  - `expo_ref/src/components/PythonSandboxView.native.tsx` — WebView Pyodide
+//    hors écran, portée par `PyConSandbox.swift`.
 //
-//  Écarts assumés (2026-09-29) :
-//  - **P0 — exécution réelle non portée.** La source exécute le programme de
-//    l'élève dans une WebView Pyodide pilotée par injection JS
-//    (`PythonSandboxView.native.tsx:49`, `injectJavaScript`). Le port de ce bac
-//    à sable exige deux raccords **hors lot** (règle 1 : n'écrire que les
-//    fichiers listés) : (1) un fichier dédié `PyConSandbox.swift` — classe
-//    `WKWebView` + `WKScriptMessageHandler`, document HTML et runtime Python
-//    embarqués, ≈ 250 lignes, au-delà du ratchet (≤ 500 lignes/fichier) s'il
-//    reste dans ce fichier ; (2) une méthode `evaluateJavaScript` sur le shim
-//    Linux de `WebKit` (`scripts/linux-shims/WebKit.swift`, hors cible Xcode,
-//    non modifiable) qui manque aujourd'hui. Tant que ces raccords n'existent
-//    pas, l'exécution reste **simulée** de façon déterministe (`PyConRunner` :
-//    lignes vides, commentaires, `break`, `print(<littéral>)`) et la limite est
-//    annoncée à l'écran (`PyConLimits.simulationNote`) — plutôt que de
-//    présenter une fausse console Python ou de casser la vérification.
-//  - **P1 — `firstBlockingQuestion` non appelé.** Le point d'appel de la source
-//    (`AnnaleViewer.tsx:3375`, avant la soumission) vit dans le lecteur
-//    (`AnnReaderWorkspace.swift`), qui n'a pas encore de soumission (écart
-//    U18#2) — hors lot. Le hunk attendu est décrit dans le rapport
-//    d'implémentation.
+//  V2 (2026-09-29) — raccord du bac à sable réel (P0 18#1) : `PyConRunner`, qui
+//  simulait les `print(…)` littéraux, est remplacé par le bac à sable Pyodide de
+//  `PyConSandbox.swift`. La console monte `PyConSandboxHost`, garde le
+//  `PyConSandboxHandle`, envoie un ordre `run` par exécution et route chaque
+//  `PyConSandboxMessage` (`loaded`/`ready`/`running`/`result`/`failed`) vers son
+//  état — comme le `handleMessage` de la source Expo. Plus rien n'est simulé :
+//  le programme de l'élève tourne réellement, sur l'appareil.
+//
+//  Écart restant — **P1 `firstBlockingQuestion` non appelé.** Le point d'appel de
+//  la source (`AnnaleViewer.tsx:3375`, avant la soumission) vit dans le lecteur
+//  (`AnnReaderWorkspace.swift`, hors lot) : il instancie encore un modèle sans
+//  bac à sable monté. À raccorder (vague 6).
 //
 
 import Foundation
@@ -64,7 +55,7 @@ enum PyConPhase: Equatable {
 /// Résultat d'une exécution (`PythonRunResult` de la source Expo).
 struct PyConRunResult {
     let status: PyConRunStatus
-    /// Ce que le programme a écrit, `print` confondus.
+    /// Ce que le programme a écrit, `print` et flux d'erreur confondus.
     let output: String
     /// Message de syntaxe, trace ou cause de l'indisponibilité.
     let error: String
@@ -109,22 +100,18 @@ struct PyConReport {
 /// Bornes et libellés nommés : aucune de ces valeurs ne doit apparaître en dur
 /// dans le corps des fonctions ou des vues.
 enum PyConLimits {
-    /// Temps laissé au programme avant d'être déclaré bouclé (`5 s`). La source
-    /// prévoyait en plus un délai de démarrage de 120 s (`PYTHON_BOOT_TIMEOUT_MS`)
-    /// pour télécharger l'interpréteur : sans interpréteur à charger, ce délai n'a
-    /// plus d'objet et n'est pas porté.
+    /// Temps laissé au programme avant d'être déclaré bouclé (`5 s`,
+    /// `PYTHON_TIME_LIMIT_SECONDS`), injecté dans le document par
+    /// `PyConSandbox.html()`.
     static let timeLimitSeconds = 5
-    /// Garde-fou applicatif : une exécution figée ne répondrait plus du tout.
+    /// Téléchargement (~10 Mo) + démarrage de l'interpréteur
+    /// (`PYTHON_BOOT_TIMEOUT_MS`), pour la première exécution.
+    static let bootTimeoutMs = 120_000
+    /// Garde-fou applicatif : une exécution figée ne répondrait plus du tout
+    /// (`PYTHON_RUN_TIMEOUT_MS`).
     static let runTimeoutMs = 20_000
-    /// Longueur maximale de la sortie avant coupure.
-    static let maxOutputLength = 20_000
     /// Hauteur maximale du panneau de sortie (points).
     static let outputMaxHeight: CGFloat = 190
-
-    static let printToken = "print("
-    static let commentPrefix = "#"
-    static let breakLine = "break"
-    static let whileTrueLine = "while True:"
 
     static let runButtonLabel = "Exécuter"
     static let startingLabel = "Démarrage de Python…"
@@ -132,11 +119,8 @@ enum PyConLimits {
     static let deviceHint = "Ton programme tourne sur ton appareil : rien n’est envoyé."
     static let firstRunHint = "Première exécution : Python se télécharge une fois (environ 10 Mo)."
     static let accessibilityRunLabel = "Exécuter mon programme Python"
-    static let simulationNote = "Exécution simulée : la console native ne simule que les print(…) littéraux."
 
     static let emptyProgramMessage = "Écris un programme avant de l’exécuter."
-    static let timeoutMessage = "Ton programme tourne encore après \(timeLimitSeconds) secondes : il boucle sans doute sans fin."
-    static let unsupportedMessage = "La console native n’embarque pas d’interpréteur Python : seuls les print(…) littéraux sont simulés. Cette instruction ne peut pas être exécutée ici."
     static let notRespondingMessage = "La console Python ne répond plus. Réessaie dans un instant."
     static let closedMessage = "Console Python fermée avant la fin."
     static let truncatedNote = "Sortie coupée : ton programme affiche trop de lignes."
@@ -144,111 +128,16 @@ enum PyConLimits {
 
     /// Couleur de l'erreur dans le panneau sombre (`#FF9A9E`).
     static let errorColor = Color(red: 1.0, green: 0.604, blue: 0.62)
-}
 
-// MARK: - Exécuteur simulé
-
-/// Exécuteur **simulé**. Aucun interpréteur Python n'étant embarquable en natif,
-/// `run` reconnaît un sous-ensemble déterministe du langage : lignes vides,
-/// commentaires `#…`, lignes `break`, et `print(…)` à argument littéral unique
-/// (chaîne `"…"` ou `'…'`, entier ou décimal). Toute autre instruction rend la
-/// console indisponible avec un message qui explique la limite.
-enum PyConRunner {
-    static func run(_ source: String) -> PyConRunResult {
-        let trimmed = source.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else {
-            return PyConRunResult(status: .unavailable, output: "", error: PyConLimits.emptyProgramMessage, truncated: false)
-        }
-
-        let lines = source.components(separatedBy: .newlines)
-        let hasEndlessLoop = lines.contains { $0.trimmingCharacters(in: .whitespaces) == PyConLimits.whileTrueLine }
-        let hasBreak = lines.contains { $0.trimmingCharacters(in: .whitespaces) == PyConLimits.breakLine }
-        if hasEndlessLoop && !hasBreak {
-            return PyConRunResult(status: .timeout, output: "", error: PyConLimits.timeoutMessage, truncated: false)
-        }
-
-        var output = ""
-        for rawLine in lines {
-            let line = rawLine.trimmingCharacters(in: .whitespaces)
-            if line.isEmpty || line.hasPrefix(PyConLimits.commentPrefix) { continue }
-            if line == PyConLimits.breakLine { continue }
-            guard let piece = printLiteral(line) else {
-                return PyConRunResult(status: .unavailable, output: "", error: PyConLimits.unsupportedMessage, truncated: false)
-            }
-            output += piece
-        }
-
-        var truncated = false
-        if output.count > PyConLimits.maxOutputLength {
-            truncated = true
-            output = String(output.prefix(PyConLimits.maxOutputLength))
-        }
-        return PyConRunResult(status: .ok, output: output, error: "", truncated: truncated)
+    /// `startupFailureText` de la source : la cause entre parenthèses, suivie du
+    /// rappel que l'interpréteur ne se télécharge qu'une fois.
+    static func startupFailure(_ cause: String) -> String {
+        "Python n’a pas pu démarrer (\(cause)). L’interpréteur se télécharge une seule fois : vérifie ta connexion, puis réessaie."
     }
 
-    /// Rend le texte affiché par un appel `print(<littéral>)`, ou `nil` si la
-    /// ligne n'est pas un tel appel (variable, f-string, concaténation, appel…).
-    private static func printLiteral(_ line: String) -> String? {
-        guard line.hasPrefix(PyConLimits.printToken), line.hasSuffix(")") else { return nil }
-        let inner = String(line.dropFirst(PyConLimits.printToken.count).dropLast())
-            .trimmingCharacters(in: .whitespaces)
-
-        if let quote = inner.first, quote == "\"" || quote == "'", inner.count >= 2, inner.last == quote {
-            let body = String(inner.dropFirst().dropLast())
-            var escaped = false
-            var singleLiteral = true
-            for character in body {
-                if escaped { escaped = false; continue }
-                if character == "\\" { escaped = true; continue }
-                if character == quote { singleLiteral = false; break }
-            }
-            if singleLiteral { return unescape(body) + "\n" }
-        }
-
-        if let number = numberText(inner) { return number + "\n" }
-        return nil
-    }
-
-    /// Interprète les échappements d'une chaîne littérale (`\n`, `\t`, `\\`…).
-    private static func unescape(_ body: String) -> String {
-        var result = ""
-        var pending = false
-        for character in body {
-            if pending {
-                switch character {
-                case "n": result.append("\n")
-                case "t": result.append("\t")
-                case "r": result.append("\r")
-                case "\\": result.append("\\")
-                case "\"": result.append("\"")
-                case "'": result.append("'")
-                default:
-                    result.append("\\")
-                    result.append(character)
-                }
-                pending = false
-            } else if character == "\\" {
-                pending = true
-            } else {
-                result.append(character)
-            }
-        }
-        if pending { result.append("\\") }
-        return result
-    }
-
-    /// Rend la forme affichée d'un littéral numérique, ou `nil` si le texte
-    /// n'est ni un entier ni un décimal.
-    private static func numberText(_ text: String) -> String? {
-        var body = Substring(text)
-        if body.first == "-" || body.first == "+" { body = body.dropFirst() }
-        guard !body.isEmpty, body.filter({ $0 == "." }).count <= 1 else { return nil }
-        let digits = body.filter { $0 != "." }
-        let allowed = CharacterSet(charactersIn: "0123456789")
-        guard !digits.isEmpty, digits.unicodeScalars.allSatisfy({ allowed.contains($0) }) else { return nil }
-        if let value = Int(text) { return String(value) }
-        if let value = Double(text) { return String(value) }
-        return nil
+    /// Résultat servi quand l'exécution n'a pas eu lieu (`unavailablePythonRun`).
+    static func unavailable(_ message: String) -> PyConRunResult {
+        PyConRunResult(status: .unavailable, output: "", error: message, truncated: false)
     }
 }
 
@@ -261,34 +150,61 @@ final class PyConConsoleModel: ObservableObject {
     @Published private(set) var result: PyConRunResult?
     @Published private(set) var phase: PyConPhase = .idle
     @Published private(set) var hasStarted = false
+    /// Change quand le document doit être remonté (`generation` de la source) :
+    /// un document figé ne répondrait plus, seul son remplacement le débloque.
+    @Published private(set) var generation = 0
 
-    /// Jeton de l'exécution en cours : incrémenté à chaque lancement et à
-    /// chaque annulation, ce qui rend caduc tout garde-fou déjà programmé.
-    private var token = 0
+    /// Poignée du bac à sable : l'hôte y pose sa WebView, `run` s'en sert pour
+    /// transmettre l'ordre `run` au document isolé.
+    let sandbox = PyConSandboxHandle()
+
+    /// Le document a répondu `loaded` : il peut recevoir des ordres.
+    private var loaded = false
+    /// L'interpréteur est démarré : les exécutions suivantes sont immédiates.
+    private var ready = false
+    /// Ordres émis avant que le document ne soit prêt, rejoués à `loaded`.
+    private var queued: [String] = []
+    /// Exécutions en attente de résultat, par identifiant (`run-1`, `run-2`…).
+    private var pending: [String: CheckedContinuation<PyConRunResult, Never>] = [:]
+    /// Garde-fous de délai, par identifiant d'exécution.
+    private var timers: [String: DispatchWorkItem] = [:]
+    private var counter = 0
 
     init() {}
 
-    /// Équivalent `async` du handle `run` de la source Expo.
-    func run(_ source: String) async -> PyConRunResult {
-        runSynchronously(source)
+    deinit {
+        // Aucune exécution ne doit rester suspendue à la disparition du modèle.
+        for waiting in pending.values {
+            waiting.resume(returning: PyConLimits.unavailable(PyConLimits.closedMessage))
+        }
     }
 
-    /// Même exécution, sans `async` : un parent peut l'appeler directement et
-    /// lire le résultat qu'elle renvoie.
-    func runSynchronously(_ source: String) -> PyConRunResult {
-        hasStarted = true
-        phase = .starting
-        token += 1
-        let current = token
-        armTimeout(current)
-        phase = .running
-        let value = PyConRunner.run(source)
-        guard current == token else {
-            return PyConRunResult(status: .unavailable, output: "", error: PyConLimits.closedMessage, truncated: false)
+    /// Handle `run` de la source Expo : exécute `source` dans le bac à sable et
+    /// rend son résultat. Un programme vide est refusé sans rien lancer.
+    func run(_ source: String) async -> PyConRunResult {
+        guard !source.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            let value = PyConLimits.unavailable(PyConLimits.emptyProgramMessage)
+            result = value
+            return value
         }
-        result = value
-        phase = .idle
-        return value
+
+        hasStarted = true
+        result = nil
+        phase = ready ? .running : .starting
+        counter += 1
+        let id = "run-\(counter)"
+        let firstStart = !ready
+
+        return await withCheckedContinuation { continuation in
+            pending[id] = continuation
+            armTimeout(id, firstStart: firstStart)
+            let payload = PyConSandbox.runOrder(id: id, code: source)
+            if loaded {
+                sandbox.send(payload)
+            } else {
+                queued.append(payload)
+            }
+        }
     }
 
     /// `checkPythonBeforeCorrection` (`AnnaleViewer.tsx:3261-3275`) : exécute les
@@ -298,35 +214,77 @@ final class PyConConsoleModel: ObservableObject {
     func firstBlockingQuestion(_ sources: [(id: String, source: String)]) async -> String? {
         for entry in sources {
             guard !entry.source.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { continue }
-            if runSynchronously(entry.source).blocksCorrection { return entry.id }
+            if await run(entry.source).blocksCorrection { return entry.id }
         }
         return nil
     }
 
-    /// Annule l'exécution en cours : la console est fermée avant la fin.
-    func cancelPendingRun() {
-        token += 1
-        phase = .idle
-        result = PyConRunResult(status: .unavailable, output: "", error: PyConLimits.closedMessage, truncated: false)
+    /// Route un message du document isolé (`handleMessage` de la source Expo).
+    /// Tout message non reconnu est ignoré : la console partage la fenêtre avec
+    /// d'autres émetteurs.
+    func handleMessage(_ raw: String) {
+        guard let message = PyConSandboxMessage(raw: raw) else { return }
+        switch message {
+        case .loaded:
+            loaded = true
+            let waiting = queued
+            queued = []
+            for payload in waiting { sandbox.send(payload) }
+        case .ready:
+            ready = true
+        case .running:
+            phase = .running
+        case let .result(id, value):
+            settle(id, value)
+        case let .failed(id, cause):
+            ready = false
+            let value = PyConLimits.unavailable(PyConLimits.startupFailure(cause))
+            if let id = id {
+                settle(id, value)
+            } else {
+                for key in Array(pending.keys) { settle(key, value) }
+            }
+        }
     }
 
-    /// Garde-fou : au-delà de `PyConLimits.runTimeoutMs`, si l'exécution n'est
-    /// pas terminée, la console se déclare muette et remet la phase à `idle`.
-    private func armTimeout(_ current: Int) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(PyConLimits.runTimeoutMs)) { [weak self] in
-            guard let self = self, self.token == current, self.phase != .idle else { return }
-            self.token += 1
-            self.result = PyConRunResult(status: .unavailable, output: "", error: PyConLimits.notRespondingMessage, truncated: false)
-            self.phase = .idle
+    /// Rend le résultat attendu à une exécution et remet la console au repos.
+    private func settle(_ id: String, _ value: PyConRunResult) {
+        guard let waiting = pending.removeValue(forKey: id) else { return }
+        timers.removeValue(forKey: id)?.cancel()
+        result = value
+        phase = .idle
+        waiting.resume(returning: value)
+    }
+
+    /// `restart` de la source : remonte le document et rend la main au prochain
+    /// appui, qui retentera le téléchargement.
+    private func restart() {
+        loaded = false
+        ready = false
+        queued = []
+        generation += 1
+    }
+
+    /// Garde-fou applicatif : passé le délai (démarrage 120 s, exécution 20 s),
+    /// le document est tenu pour figé, remonté, et l'exécution close.
+    private func armTimeout(_ id: String, firstStart: Bool) {
+        let delay = firstStart ? PyConLimits.bootTimeoutMs : PyConLimits.runTimeoutMs
+        let item = DispatchWorkItem { [weak self] in
+            guard let self = self, self.pending[id] != nil else { return }
+            self.restart()
+            self.settle(id, PyConLimits.unavailable(PyConLimits.notRespondingMessage))
         }
+        timers[id] = item
+        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(delay), execute: item)
     }
 }
 
 // MARK: - Vue
 
-/// Console Python affichée sous le champ de réponse : un bouton « Exécuter »,
-/// la sortie du programme, ses erreurs et sa note. L'exécution est simulée en
-/// natif (voir `PyConRunner`) ; la limite est annoncée à l'écran.
+/// Console Python affichée sous le champ de réponse : un bouton « Exécuter », la
+/// sortie du programme, ses erreurs et sa trace. Le programme tourne réellement
+/// dans le bac à sable Pyodide (`PyConSandbox.swift`), monté hors écran dès la
+/// première exécution.
 struct PythonConsoleView: View {
     /// Programme actuellement écrit dans le champ de réponse.
     let code: String
@@ -351,37 +309,8 @@ struct PythonConsoleView: View {
     var body: some View {
         VStack(spacing: 0) {
             topBar
-            if let report = model.result?.report {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 7) {
-                        if !report.output.isEmpty {
-                            Text(report.output)
-                                .font(monoFont)
-                                .foregroundStyle(Theme.surface)
-                                .textSelection(.enabled)
-                        }
-                        if !report.error.isEmpty {
-                            Text(report.error)
-                                .font(monoFont)
-                                .foregroundStyle(PyConLimits.errorColor)
-                                .textSelection(.enabled)
-                        }
-                        if !report.note.isEmpty {
-                            Text(report.note)
-                                .font(.system(size: 11))
-                                .foregroundStyle(Theme.inkFaint)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(11)
-                }
-                .frame(maxHeight: PyConLimits.outputMaxHeight)
-                .background(Theme.ink)
-                .clipShape(RoundedRectangle(cornerRadius: 9))
-                .padding(.horizontal, 9)
-                .padding(.bottom, 9)
-            }
-            simulationNotice
+            outputPanel
+            if model.hasStarted { sandboxHost }
         }
         .background(Theme.surface)
         .overlay(alignment: .top) {
@@ -393,8 +322,10 @@ struct PythonConsoleView: View {
     private var topBar: some View {
         HStack(alignment: .center, spacing: 9) {
             Button(action: {
-                let value = model.runSynchronously(code)
-                onResult?(value)
+                Task {
+                    let value = await model.run(code)
+                    onResult?(value)
+                }
             }) {
                 HStack(spacing: 6) {
                     if isBusy {
@@ -426,14 +357,47 @@ struct PythonConsoleView: View {
         .padding(.vertical, 8)
     }
 
-    /// Mention qui documente la simulation, toujours visible.
-    private var simulationNotice: some View {
-        Text(PyConLimits.simulationNote)
-            .font(.system(size: 11))
-            .foregroundStyle(Theme.inkFaint)
-            .frame(maxWidth: .infinity, alignment: .leading)
+    /// Panneau de sortie : la sortie, l'erreur et la note sur fond sombre.
+    @ViewBuilder
+    private var outputPanel: some View {
+        if let report = model.result?.report {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 7) {
+                    if !report.output.isEmpty {
+                        Text(report.output)
+                            .font(monoFont)
+                            .foregroundStyle(Theme.surface)
+                            .textSelection(.enabled)
+                    }
+                    if !report.error.isEmpty {
+                        Text(report.error)
+                            .font(monoFont)
+                            .foregroundStyle(PyConLimits.errorColor)
+                            .textSelection(.enabled)
+                    }
+                    if !report.note.isEmpty {
+                        Text(report.note)
+                            .font(.system(size: 11))
+                            .foregroundStyle(Theme.inkFaint)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(11)
+            }
+            .frame(maxHeight: PyConLimits.outputMaxHeight)
+            .background(Theme.ink)
+            .clipShape(RoundedRectangle(cornerRadius: 9))
             .padding(.horizontal, 9)
             .padding(.bottom, 9)
+        }
+    }
+
+    /// Bac à sable hors écran (`PythonSandboxView.native.tsx`) : monté dès la
+    /// première exécution, remonté quand `generation` change. Une WebView
+    /// démontée rechargerait les dix mégaoctets de l'interpréteur à chaque appui.
+    private var sandboxHost: some View {
+        PyConSandboxHost(handle: model.sandbox, onMessage: model.handleMessage)
+            .id(model.generation)
     }
 
     private var isBusy: Bool { model.phase != .idle }

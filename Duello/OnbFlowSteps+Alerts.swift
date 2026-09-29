@@ -40,7 +40,7 @@ extension OnbFlowSteps {
                     message: "Choisis un pseudo unique de 1 à 24 caractères, sans espace, "
                         + "avec au moins une lettre ou un chiffre. Ponctuation autorisée : "
                         + ". _ - ! ( ) + , ; = ~ ^ $ et apostrophe.",
-                    actions: [OnbFlowAlertAction(title: "Compris")]
+                    actions: [OnbFlowSteps.comprisAction(focus: .pseudo)]
                 )
             }
         case .authMethod:
@@ -70,7 +70,7 @@ extension OnbFlowSteps {
             return OnbFlowAlert(
                 title: "E-mail invalide",
                 message: "Saisis une adresse e-mail valide.",
-                actions: [OnbFlowAlertAction(title: "Compris")]
+                actions: [OnbFlowSteps.comprisAction(focus: .email)]
             )
         }
         if OnbFlowCredentialsBuilder.isReservedEmail(email) {
@@ -78,7 +78,7 @@ extension OnbFlowSteps {
                 title: "Adresse réservée",
                 message: "Cette adresse appartient au compte administrateur. "
                     + "Utilise l’écran de connexion.",
-                actions: [OnbFlowAlertAction(title: "Compris")]
+                actions: [OnbFlowSteps.comprisAction(focus: .email)]
             )
         }
         if let provider = state.providerEmail,
@@ -87,7 +87,7 @@ extension OnbFlowSteps {
                 title: "Compte externe incohérent",
                 message: "Recommence la connexion avec ton fournisseur afin de confirmer "
                     + "ton adresse e-mail.",
-                actions: [OnbFlowAlertAction(title: "Compris")]
+                actions: [OnbFlowSteps.comprisAction(focus: .email)]
             )
         }
         return nil

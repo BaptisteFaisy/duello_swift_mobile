@@ -18,6 +18,12 @@
 //    - `PhotoTranscriptionView` : transcription photo ;
 //    - `Theme`, et les briques d'UI de `SubjFlashcardEditorParts.swift`.
 //
+//  PARITÉ (2026-09-29) — deux câblages d'hôte :
+//    - la garde Premium précède la dictée via
+//      `dictation.createToggleRequest()` (`SubjectsScreen.tsx:1928-1932`) ;
+//    - la fenêtre de consentement au partage IA (`useDictation.ts:913-915`)
+//      est montée par `DictAiConsentAlert(model: dictation)`.
+//
 //  Limites assumées (aucune API iOS 17, aucun compilateur ici) :
 //    - le clavier maths natif (`MathKeyboard`) est **hors de ce lot**. Le bouton
 //      « Clavier maths » ouvre un repli — la palette de symboles
@@ -168,6 +174,7 @@ struct SubjFlashcardEditor: View {
                 onInsert: insertTranscription
             )
         }
+        .modifier(DictAiConsentAlert(model: dictation))
     }
 
     // MARK: Vues internes
@@ -295,7 +302,8 @@ struct SubjFlashcardEditor: View {
     // MARK: Outils
 
     /// Dicte la face active. Hors écoute, la garde Premium s'applique d'abord
-    /// (`requirePremiumTool('voice-transcription', …)`).
+    /// (`requirePremiumTool('voice-transcription', dictation.createToggleRequest())`,
+    /// `SubjectsScreen.tsx:1928-1932`).
     private func toggleDictation() {
         Task { @MainActor in
             if dictation.isListening {
@@ -307,13 +315,14 @@ struct SubjFlashcardEditor: View {
                 )
                 return
             }
+            let request = dictation.createToggleRequest(
+                currentText: activeText,
+                math: true,
+                permissionMessage: SubjFlashcardEditorConfig.dictationPermissionMessage,
+                apply: { value in mutateActiveText { _ in value } }
+            )
             _ = await ConsentPremiumGate.gate(tool: .voiceTranscription, accountId: accountId) {
-                await dictation.toggle(
-                    currentText: activeText,
-                    math: true,
-                    permissionMessage: SubjFlashcardEditorConfig.dictationPermissionMessage,
-                    apply: { value in mutateActiveText { _ in value } }
-                )
+                request()
             }
         }
     }

@@ -2,13 +2,9 @@ import SwiftUI
 
 // MARK: - Atelier de réponse du lecteur d'annale
 //
-// Port de l'atelier d'`AnnaleViewer.tsx` (unité 18) : séparateur énoncé/atelier
-// (`useAnnaleSplit`, `PaneSplitter`) puis atelier — champ de réponse, tableau
-// blanc (`WhiteboardView`) et console Python (`PythonConsoleView`).
-//
-// V2 (29/09/2026, écarts 18#2/18#6) : outils de réponse montés (dicter, photo,
-// clavier maths) et « Effacer » devenu le menu de suppression à deux entrées
-// (`deleteMenu`, `:4675-4712`). Soumission/correction hors de ce fichier.
+// Port de l'atelier d'`AnnaleViewer.tsx` (unité 18) : séparateur, champ de
+// réponse, tableau blanc, console Python et outils (dicter, photo, clavier
+// maths, menu « Effacer » à deux entrées) ; soumission du lecteur hors fichier.
 
 /// Outil d'écriture affiché dans l'atelier.
 enum AnnAnswerMode {
@@ -75,9 +71,8 @@ extension AnnReaderView {
         }
     }
 
-    /// Balayage horizontal sur l'énoncé : vers la gauche, il avance au corrigé
-    /// (quand il est déverrouillé) ; vers la droite, il revient à l'énoncé
-    /// (`documentSwipeGesture`, `AnnaleViewer.tsx:3521-3556`).
+    /// Balayage horizontal sur l'énoncé : gauche → corrigé déverrouillé,
+    /// droite → énoncé (`documentSwipeGesture`, `AnnaleViewer.tsx:3521-3556`).
     var documentSwipeGesture: some Gesture {
         DragGesture(minimumDistance: 0)
             .onChanged { value in swipeTracker.sample(value.translation.width) }
@@ -95,6 +90,14 @@ extension AnnReaderView {
                     mode = target
                 }
             }
+    }
+
+    /// `checkPythonBeforeCorrection` (`AnnaleViewer.tsx:3445`) : exécute le
+    /// programme Python de la question ouverte avant d'engager sa correction ;
+    /// rend la question qui bloque, `nil` si tout tourne. La soumission du
+    /// lecteur n'est pas portée (écart U18#2) : l'hôte appelle cette garde.
+    func firstBlockingPythonQuestion() async -> String? {
+        await PyConConsoleModel().firstBlockingQuestion([(id: activeQuestionId ?? "", source: draft)])
     }
 }
 
@@ -118,8 +121,7 @@ final class AnnSwipeTracker {
     }
 }
 
-/// Direction d'un glissement, résolue à l'axe dominant
-/// (`resolveHorizontalGestureIntent`, `utils/horizontalGesture.ts`).
+/// Direction d'un glissement, résolue à l'axe dominant (`horizontalGesture.ts`).
 enum AnnGestureIntent {
     case pending
     case horizontal
@@ -170,8 +172,7 @@ enum AnnDocumentSwipe {
     }
 }
 
-/// Poignée du séparateur : 24 pt de haut, trait `border` de 2 pt centré
-/// (`paneSplitterRoot` / `paneSplitter` / `paneSplitterLine`, `AnnaleViewer.tsx:900-935`).
+/// Poignée du séparateur : 24 pt de haut, trait `border` 2 pt (`paneSplitter`, `:900-935`).
 struct AnnSplitterHandle: View {
     /// Hauteur de la zone de préhension (`paneSplitterRoot.height`, `:900`).
     static let height: CGFloat = 24
@@ -227,14 +228,11 @@ struct AnnSplitterHandle: View {
 
 // MARK: - Atelier
 
-/// Atelier de réponse (`answerCard` + `answerToolsDock` + `MoreAnswerTools`,
-/// `:4270-4712`) : dicter, photo, clavier maths, tableau blanc, bloc Python,
-/// menu de suppression à deux entrées.
-///
-/// Écarts assumés (29/09/2026, 18#2/18#6) : soumission/correction non portées
-/// (modèle de tentative + pipeline IA hors fichier) ; le lecteur ne tient qu'un
-/// brouillon, donc « Supprimer toutes les réponses » n'efface que lui ; dictée et
-/// photo insèrent en fin de champ (pas de sélection exposée par SwiftUI).
+/// Atelier de réponse (`answerCard` + `answerToolsDock`, `:4270-4712`) : dicter,
+/// photo, clavier maths, tableau blanc, bloc Python, menu de suppression.
+/// Écarts assumés (18#2/18#6) : soumission/correction non portées (hors fichier) ;
+/// « Supprimer toutes les réponses » n'efface que le brouillon ; dictée et photo
+/// insèrent en fin de champ (pas de sélection exposée par SwiftUI).
 struct AnnAnswerWorkspace: View {
     @Binding var draft: String
     @Binding var mode: AnnAnswerMode
@@ -297,6 +295,9 @@ struct AnnAnswerWorkspace: View {
                 }
             )
         }
+        // Consentement au partage IA de la dictée premium
+        // (`requestAiDataSharingConsent`, `useDictation.ts:913-915`).
+        .modifier(DictAiConsentAlert(model: dictation))
     }
 
     @ViewBuilder
@@ -344,7 +345,9 @@ struct AnnAnswerWorkspace: View {
     private var mathKeyboard: some View {
         MathKeyboardView(
             mode: .math,
-            onInsert: { draft = SubjFlashcardMathEditing.insert($0, into: draft) },
+            onInsertWithBack: { text, back in
+                draft = SubjFlashcardMathEditing.insert(text, back: back, into: draft)
+            },
             onBackspace: { draft = SubjFlashcardMathEditing.deleteLast(draft) },
             onClose: { mathKeyboardOpen = false }
         )
@@ -434,7 +437,8 @@ struct AnnAnswerWorkspace: View {
     // MARK: Outils
 
     /// Dicte la réponse. Hors écoute, la garde Premium s'applique d'abord
-    /// (`requirePremiumTool('voice-transcription', …)`).
+    /// (`requirePremiumTool('voice-transcription', dictation.createToggleRequest())`,
+    /// `AnnaleViewer.tsx:2872-2875`).
     private func toggleDictation() {
         Task { @MainActor in
             if dictation.isListening {
@@ -446,14 +450,11 @@ struct AnnAnswerWorkspace: View {
                 )
                 return
             }
-            _ = await ConsentPremiumGate.gate(tool: .voiceTranscription, accountId: accountId) {
-                await dictation.toggle(
-                    currentText: draft,
-                    math: true,
-                    permissionMessage: Self.dictationPermissionMessage,
-                    apply: { draft = $0 }
-                )
-            }
+            let request = dictation.createToggleRequest(
+                currentText: draft, math: true,
+                permissionMessage: Self.dictationPermissionMessage,
+                apply: { draft = $0 })
+            _ = await ConsentPremiumGate.gate(tool: .voiceTranscription, accountId: accountId) { request() }
         }
     }
 

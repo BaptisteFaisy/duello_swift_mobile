@@ -25,14 +25,14 @@ struct AdmAnalyticsScreen: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 16) {
                 header
                 rangeRow
                 content
             }
             .padding(.horizontal, 20)
             .padding(.top, 20)
-            .padding(.bottom, 32)
+            .padding(.bottom, 40)
         }
         .task(id: AdmLoadKey(reload: reloadKey, token: token)) { await load() }
     }

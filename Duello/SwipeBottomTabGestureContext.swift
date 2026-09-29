@@ -21,11 +21,12 @@
 //  gesture-handler (aucune API SwiftUI équivalente sur iOS 16).
 //
 //  V2 (29/09/2026, parité RN dev) : la cession du geste de retour
-//  (`shouldYieldBackSwipeToTabPager`, `orderedTabSwipe.ts:74-83`) est exposée.
-//  À raccorder (hors lot) : `Ui2OrderedTabPager.swipeGesture` appelle
-//  `claimByNestedPager()` sur l'intention `.horizontal`, `releaseNestedPager()`
-//  au relâchement, et consulte `shouldYieldBackSwipeToTabPager` pour rendre le
-//  geste au pager parent depuis la première page.
+//  (`shouldYieldBackSwipeToTabPager`, `orderedTabSwipe.ts:74-83`) est exposée et
+//  **raccordée** par `Ui2OrderedTabPager.swipeGesture` (lot W12) : celui-ci
+//  appelle `claimByNestedPager()` sur l'intention `.horizontal`,
+//  `releaseNestedPager()` au relâchement, et consulte
+//  `shouldYieldBackSwipeToTabPager` pour rendre le geste au pager parent depuis
+//  la première page.
 //
 import SwiftUI
 

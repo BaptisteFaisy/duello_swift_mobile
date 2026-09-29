@@ -6,10 +6,32 @@ import SwiftUI
 struct TrainingView: View {
     @EnvironmentObject private var session: SessionStore
     @EnvironmentObject private var progress: ProgressStore
+    /// Chrome racine des onglets (verrou de geste, barre basse).
+    @EnvironmentObject private var root: RootChromeModel
+
+    /// Reprise d'un exercice de défi (`continuationRequest` d'Expo,
+    /// `SubjectsScreen.tsx:3653,6348`) : remise par la racine (`MainTabView`),
+    /// qui bascule sur l'onglet Entraînement. L'ouverture du lecteur appartient
+    /// à l'en-tête du catalogue (hors lot R01) : ici, seul le positionnement sur
+    /// l'année de l'énoncé est posé (cf. `applyContinuation`).
+    var continuation: ChalRunTrainingTarget? = nil
+
+    /// Producteur de masquage de la barre basse (`useScrollChromeVisibility`) :
+    /// l'offset du catalogue le fait basculer (`SubjectsScreen.tsx:4196-4212`).
+    @StateObject private var bottomBarChrome = DuelloBottomBarChrome()
 
     /// Année du programme choisie dans le sélecteur de l'en-tête. `nil` = celle
     /// du compte, comme `localProgramYear` de la source.
     @State private var programYearOverride: Int?
+
+    /// `developmentMathsPageOpen` (`SubjectsScreen.tsx:3826`) : vrai quand le
+    /// parcours de développement des maths a été ouvert depuis l'en-tête de la
+    /// matière. Le déclencheur (`setDevelopmentMathsPageOpen(true)`,
+    /// `SubjectsScreen.tsx:10078`, bouton « Ouvrir le parcours HEC ») appartient
+    /// à l'en-tête du catalogue (`TrainingCatalogView+Entry.swift`, hors lot R01) :
+    /// à raccorder (vague 6). La **fermeture** du parcours, elle, est câblée ici
+    /// (`onBack` de la surface → `false`, `SubjectsScreen.tsx:7653`).
+    @State private var developmentMathsPageOpen = false
 
     /// Sujets servis par matière (`successSummaries[subject.id].total` de la
     /// source), lus dans le manifeste de contenu.
@@ -22,7 +44,7 @@ struct TrainingView: View {
         NavigationStack {
             Group {
                 if showsHecJourney {
-                    SubjDeferredFeatureFallback(label: "Ouverture du parcours…")
+                    journeySurface
                         .navigationTitle("Entraînement")
                         .navigationBarTitleDisplayMode(.inline)
                 } else if let maths = mathsSubject {
@@ -47,8 +69,16 @@ struct TrainingView: View {
                 }
             }
             .background(Theme.background)
+            .onPreferenceChange(TrainChromeOffsetKey.self) { offset in
+                bottomBarChrome.scroll(offset: Double(offset))
+            }
         }
+        .duelloBottomBarChrome(bottomBarChrome, forTab: MainTabView.trainingTabIndex)
         .task(id: programYear) { await loadSubjectTotals() }
+        .onChange(of: continuation) { applyContinuation($0) }
+        .onChange(of: developmentMathsPageOpen) { locked in declareTabSwipeLock(locked) }
+        .onAppear { declareTabSwipeLock(developmentMathsPageOpen) }
+        .onDisappear { unlockTabSwipe() }
     }
 
     /// La matière ouverte d'office par l'onglet Entraînement (`maths`), ou `nil`
@@ -58,16 +88,69 @@ struct TrainingView: View {
         subjects.first { $0.id == SubjHecJourneyConstants.mathsSubjectId }
     }
 
-    /// L'onglet Parcours ouvre le parcours HEC guidé des maths dans la variante
-    /// de développement seulement (`shouldOpenJourneyOnLaunch`, entrée
-    /// « training »). La surface du parcours est portée par un autre lot : on
-    /// s'arrête ici sur son repli, et la garde reste inerte en production.
+    /// Surface du parcours HEC, montée en différé (`Suspense` + `lazy()` d'Expo,
+    /// portés par `SubjHecJourneySurfaceLoader`). Le montage passe au parcours
+    /// l'identité du compte — `registeredAt` = `account.createdAt` du registre
+    /// local et `accountEmail` = adresse du profil, comme
+    /// `SubjectsScreen registeredAt={account.createdAt}` (`App.tsx:2828`).
+    private var journeySurface: some View {
+        SubjHecJourneySurfaceLoader(load: {}) {
+            HecJourneyView(
+                profile: session.profile,
+                registeredAt: SubjHecJourneyEntry.accountRegistrationDate(
+                    forEmail: session.profile.email
+                ),
+                accountEmail: session.profile.email,
+                // `onBack` de la source quand l'onglet n'est pas « Parcours »
+                // (`SubjectsScreen.tsx:7653`) : referme le parcours de maths.
+                onBack: { developmentMathsPageOpen = false }
+            )
+        }
+    }
+
+    /// `HecJourneySurface` remplace l'écran Entraînement quand l'app est la
+    /// variante de développement, qu'aucun chapitre du parcours n'est ouvert et
+    /// que la page de développement des maths est ouverte
+    /// (`SubjectsScreen.tsx:7628-7632`, `shouldShowSurface`). La surface montée
+    /// est la vue du parcours (`HecJourneyView`), et non plus son repli ; la
+    /// garde reste inerte en production (variante de développement seulement).
+    ///
+    /// `journeyChapterOpen` reste faux ici : un chapitre du parcours n'est
+    /// ouvert que depuis le parcours lui-même, qui n'est affiché que lorsque
+    /// cette garde est vraie.
     private var showsHecJourney: Bool {
-        SubjHecJourneyEntry.shouldOpenJourneyOnLaunch(
-            subjectId: SubjHecJourneyConstants.mathsSubjectId,
-            entryPoint: .training,
-            isDevelopmentApp: SubjAppVariant.isDevelopmentApp
+        SubjHecJourneyEntry.shouldShowSurface(
+            isDevelopmentApp: SubjAppVariant.isDevelopmentApp,
+            journeyChapterOpen: false,
+            developmentMathsPageOpen: developmentMathsPageOpen,
+            entryPoint: .training
         )
+    }
+
+    /// Reprend l'exercice d'un défi dans l'Entraînement : positionne le
+    /// catalogue sur l'année de l'énoncé (`selectProgramYear`,
+    /// `SubjectsScreen.tsx:6350`). L'ouverture du lecteur et du brouillon
+    /// (`setOpenAnnale` / `setOpenChapter`) appartient à l'en-tête du catalogue
+    /// (`TrainingCatalogView+Entry.swift`, hors lot R01) — à raccorder (vague 6).
+    private func applyContinuation(_ target: ChalRunTrainingTarget?) {
+        guard let target else { return }
+        programYearOverride = target.year.lowercased().contains("2") ? 2 : 1
+    }
+
+    /// Déclare le verrou de geste d'onglet au chrome racine
+    /// (`onTabSwipeLockChange`, `SubjectsScreen.tsx:4164-4185`) : le parcours
+    /// HEC ouvert (variante de développement) fige le balayage.
+    private func declareTabSwipeLock(_ locked: Bool) {
+        Task { @MainActor in
+            root.setTabSwipeLock(locked, forTab: MainTabView.trainingTabIndex)
+        }
+    }
+
+    /// Relâche le verrou de geste à la disparition de l'onglet (`cleanup`).
+    private func unlockTabSwipe() {
+        Task { @MainActor in
+            root.setTabSwipeLock(false, forTab: MainTabView.trainingTabIndex)
+        }
     }
 
     /// Année du compte (`toProgramYear` de la source) : « 2 » dans le libellé

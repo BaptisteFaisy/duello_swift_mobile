@@ -108,9 +108,15 @@ struct LoginIntAssembly: View {
             onAppleAuthenticated: { identity, payload in
                 Task { @MainActor in
                     authenticateProvider(
-                        provider: .apple,
-                        subject: identity.subject,
-                        email: identity.email,
+                        signup: LoginIntPendingProviderSignup(
+                            provider: .apple,
+                            subject: identity.subject,
+                            email: identity.email,
+                            displayName: identity.displayName,
+                            firstName: identity.firstName,
+                            lastName: identity.lastName,
+                            session: payload
+                        ),
                         subjectKeyPath: \AcctStoredAccount.appleSubject,
                         proceed: { try LoginIntSession.openAppleSession(session: session, identity: identity, payload: payload) }
                     )
@@ -119,9 +125,15 @@ struct LoginIntAssembly: View {
             onGoogleAuthenticated: { identity, payload in
                 Task { @MainActor in
                     authenticateProvider(
-                        provider: .google,
-                        subject: identity.subject,
-                        email: identity.email,
+                        signup: LoginIntPendingProviderSignup(
+                            provider: .google,
+                            subject: identity.subject,
+                            email: identity.email,
+                            displayName: identity.displayName,
+                            firstName: identity.firstName,
+                            lastName: identity.lastName,
+                            session: payload
+                        ),
                         subjectKeyPath: \AcctStoredAccount.googleSubject,
                         proceed: { try LoginIntSession.openGoogleSession(session: session, identity: identity, payload: payload) }
                     )
@@ -262,9 +274,7 @@ struct LoginIntAssembly: View {
     /// (`ProviderAuthFollowUp.declined`).
     @MainActor
     private func authenticateProvider(
-        provider: LoginScrProviderReuse.Provider,
-        subject: String,
-        email: String,
+        signup: LoginIntPendingProviderSignup,
         subjectKeyPath: WritableKeyPath<AcctStoredAccount, String?>,
         proceed: @escaping @MainActor () throws -> Void
     ) {
@@ -272,15 +282,11 @@ struct LoginIntAssembly: View {
         // pour une identité fournisseur inconnue — elle retient l'identité et
         // route vers l'inscription (`App.tsx:2115-2123`, `:2155-2162`).
         if loginIntResolveProviderAccount(
-            subject: subject,
-            email: email,
+            subject: signup.subject,
+            email: signup.email,
             subjectKeyPath: subjectKeyPath
         ) == nil {
-            LoginIntProviderSignupRouter.shared.pending = LoginIntPendingProviderSignup(
-                provider: provider,
-                subject: subject,
-                email: email
-            )
+            LoginIntProviderSignupRouter.shared.pending = signup
             return
         }
         let open: @MainActor () -> Void = {
@@ -291,9 +297,9 @@ struct LoginIntAssembly: View {
             }
         }
         if let alert = loginIntProviderReuseAlert(
-            provider: provider,
-            subject: subject,
-            email: email,
+            provider: signup.provider,
+            subject: signup.subject,
+            email: signup.email,
             subjectKeyPath: subjectKeyPath,
             authStage: "login",
             upgradingGuest: false,
@@ -346,10 +352,20 @@ struct LoginIntProviderReuseAlert {
 /// `pendingGoogleIdentity` / `pendingAppleIdentity` de la source : identité
 /// fournisseur certifiée pour un compte encore inconnu du registre local, que
 /// l'inscription préremplira (`App.tsx:2115-2123`, `:2155-2162`).
-struct LoginIntPendingProviderSignup: Equatable {
+///
+/// L'identité **entière** est retenue : les libellés du nom amorcent
+/// `OnbFlowView.initial*Identity`, et la session serveur déjà validée par le
+/// fournisseur permet d'ouvrir le compte du parcours `signup`.
+struct LoginIntPendingProviderSignup {
     var provider: LoginScrProviderReuse.Provider
     var subject: String
     var email: String
+    /// `displayName` / `firstName` / `lastName` de l'identité certifiée.
+    var displayName: String
+    var firstName: String
+    var lastName: String
+    /// Session serveur validée par le fournisseur (`on*Authenticated`).
+    var session: DuelloAPI.SessionPayload?
 }
 
 /// Identité fournisseur retenue pour l'inscription (`setPendingGoogleIdentity` /

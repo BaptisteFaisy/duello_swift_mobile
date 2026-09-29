@@ -40,12 +40,7 @@ struct EvEventActionsBar: View {
     @State private var chatVisible = false
     @State private var messageComposerVisible = false
     @State private var shareError: String?
-    @State private var actionNote: String?
     @State private var busyChannel: EvShareChannel?
-    @State private var noteToken = 0
-
-    /// Durée d'affichage d'une note d'action (`setTimeout(…, 4_000)`).
-    private let noteLifetime: UInt64 = 4_000_000_000
 
     var body: some View {
         VStack(spacing: 0) {
@@ -57,9 +52,6 @@ struct EvEventActionsBar: View {
             .padding(.horizontal, 16)
             .padding(.top, 12)
             .padding(.bottom, 4)
-            if let actionNote {
-                note(actionNote, color: Theme.inkFaint)
-            }
             if let shareError {
                 note(shareError, color: Theme.like)
             }
@@ -132,7 +124,7 @@ struct EvEventActionsBar: View {
             icon: "share-social-outline",
             count: (presence.shares ?? counts?.shares).map { "\($0)" },
             disabled: false,
-            action: { actionNote = nil; shareError = nil; shareSheetVisible = true }
+            action: { shareError = nil; shareSheetVisible = true }
         )
         .accessibilityLabel("Partager l'événement")
         .accessibilityHint("Ouvre le menu Message, WhatsApp ou Instagram")
@@ -268,20 +260,6 @@ struct EvEventActionsBar: View {
             counts = EvInteractionCounts(viewers: current.viewers, shares: current.shares + 1)
         }
         Task { await EvEventAPI.recordShare(eventId: event.id, token: token) }
-        showNote("Partage compté. Merci !")
-    }
-
-    /// Affiche une note pendant quatre secondes.
-    private func showNote(_ text: String) {
-        actionNote = text
-        noteToken += 1
-        let token = noteToken
-        Task {
-            try? await Task.sleep(nanoseconds: noteLifetime)
-            await MainActor.run {
-                if noteToken == token { actionNote = nil }
-            }
-        }
     }
 }
 

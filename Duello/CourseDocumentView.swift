@@ -27,8 +27,12 @@ import SwiftUI
 /// dépendance externe — et iOS rend les PDF nativement : `CtdPdfDocumentView`
 /// remplace ce moteur sans changer le contrat du lecteur.
 ///
-/// Le repère de progression de classe (`positioning`) reste hors de ce
-/// lecteur : il appartient à la section « Mon cours » de `SubjectsScreen.tsx`.
+/// Le repère de progression de classe (`positioning`, `initialPosition`,
+/// `onPositionChange`) et le pont du prof IA sont portés par ce lecteur : les
+/// hôtes de la section « Mon cours » les raccordent (`TrainCoursePage`).
+/// Écart assumé : iOS 16 n'a pas d'API d'offset de défilement (`contentOffset`
+/// de RN) ; la position se règle donc par la glissière de `TrainCoursePage`
+/// tant que l'hôte ne pilote pas la ligne rouge par le défilement.
 
 // MARK: - Contenu chargé
 
@@ -187,7 +191,10 @@ struct CtdDocumentViewer: View {
                     base64: base64,
                     mimeType: mimeType,
                     positioning: positioning,
-                    initialPosition: initialPosition
+                    initialPosition: initialPosition,
+                    // Le pont « Expliquer cette photo » est toujours disponible :
+                    // le lecteur relaie `duello-prof-explain-image` au prof IA.
+                    profExplain: true
                 ),
                 selectable: true,
                 onMessage: handleMessage
@@ -199,7 +206,13 @@ struct CtdDocumentViewer: View {
                 initialPosition: initialPosition,
                 onPositionChange: onPositionChange,
                 onReady: onReady,
-                onComplete: onComplete
+                onComplete: onComplete,
+                // « Expliquer ce passage » : la sélection PDFKit part au prof IA
+                // comme une sélection du pont HTML (`courseDocumentPdf.ts:50,83`,
+                // `CoursePdfView`). Même couture que `handleMessage(.explain)`.
+                onExplain: { text, page in
+                    handleProfBridgeEvent(.explain(text: text, page: page))
+                }
             )
         }
     }
@@ -242,7 +255,7 @@ struct CtdDocumentViewer: View {
         case .explain(let passage, let page):
             presentProf(ProfTutorRequest(
                 quote: passage,
-                context: ProfTutorContext(source: .cours, page: page)
+                context: ProfTutorContext(source: .cours, page: page, student: profStudent)
             ))
         case .explainImage(let image, let page):
             // Photo ou page scannée : `quote` est vide, le relais vision lit
@@ -252,7 +265,7 @@ struct CtdDocumentViewer: View {
                 quote: "",
                 image: parsed.base64,
                 mimeType: parsed.mimeType,
-                context: ProfTutorContext(source: .cours, page: page)
+                context: ProfTutorContext(source: .cours, page: page, student: profStudent)
             ))
         case .copyBlocked, .noText:
             break
@@ -276,6 +289,17 @@ struct CtdDocumentViewer: View {
         guard let pending = profPendingRequest else { return }
         profPendingRequest = nil
         profRequest = pending
+    }
+
+    /// Socle v2 de la fenêtre de contexte du prof (`profStudentContext`,
+    /// `profTutor.ts:56`) : identité de l'élève et programme de sa filière et de
+    /// son année, joints à chaque demande du cours (`SubjectsScreen.tsx:4043,
+    /// 4053-4084`). L'année suit `toProgramYear` du profil.
+    private var profStudent: ProfStudent {
+        profStudentContext(
+            profile: session.profile,
+            programYear: HecJourneyProfile.programYear(from: session.profile.year)
+        )
     }
 
     private var loading: some View {

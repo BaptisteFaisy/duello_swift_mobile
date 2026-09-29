@@ -36,6 +36,18 @@
 //     pas transmis au serveur ici : seul le profil local est écrit à la
 //     complétion.
 //
+//  V2 (29/09/2026, parité RN dev) : les deux hôtes fournissent à `OnbFlowView`
+//  `onProgramSelected` (`prepareOnboardingProgram`, `App.tsx:763`),
+//  `onTrainingSurfaceReady` et les identités fournisseur initiales
+//  (`App.tsx:2508-2521`). Écart assumé iOS : `onTrainingSurfaceReady`
+//  (`loadTrainingScreenAfterFirstPaint`) ne fait rien — il ne servait qu'à
+//  charger à la demande le module Entraînement, sans équivalent natif.
+//
+//  R02 (29/09/2026) : l'identité fournisseur retenue par `LoginIntAssembly`
+//  (`LoginIntPendingProviderSignup`) porte désormais ses libellés de nom et la
+//  session serveur — `SignupFlowView` amorce donc de vraies identités et
+//  `OnbFlowCoordinator` sème le profil/l'e-mail du fournisseur au montage.
+//
 //  Cible : iOS 16. Aucune dépendance externe.
 //
 import SwiftUI
@@ -58,14 +70,24 @@ struct OnboardingView: View {
     /// (année, filière, option, prêt), sans détails de compte ni cadeau.
     private let mode: OnbDataSteps.Mode
 
+    /// Identités fournisseur déjà connues à l'ouverture (`initialGoogleIdentity`
+    /// / `initialAppleIdentity`, `OnboardingScreen.tsx:111-112`) : le parcours
+    /// peut démarrer sur une identité certifiée plutôt qu'un formulaire vierge.
+    private let initialGoogleIdentity: GoogleIdentity?
+    private let initialAppleIdentity: AppleAuthIdentity?
+
     @EnvironmentObject private var session: SessionStore
 
     init(
         mode: OnbDataSteps.Mode = .account,
+        initialGoogleIdentity: GoogleIdentity? = nil,
+        initialAppleIdentity: AppleAuthIdentity? = nil,
         onCancel: (() -> Void)? = nil,
         onFinish: @escaping () -> Void
     ) {
         self.mode = mode
+        self.initialGoogleIdentity = initialGoogleIdentity
+        self.initialAppleIdentity = initialAppleIdentity
         self.onCancel = onCancel
         self.onFinish = onFinish
     }
@@ -80,7 +102,11 @@ struct OnboardingView: View {
             // e-mail » sur l'adresse de l'utilisateur, ce qui bloquait l'avance
             // définitivement (« Continuer » désactivé, sans reprise possible).
             requiresRegistrationPreflight: !session.isSignedIn,
+            initialGoogleIdentity: initialGoogleIdentity,
+            initialAppleIdentity: initialAppleIdentity,
             onComplete: { profile, _ in commit(profile) },
+            onProgramSelected: prepareOnboardingProgram,
+            onTrainingSurfaceReady: {},
             onCancel: onCancel
         )
     }
@@ -112,6 +138,10 @@ struct SignupFlowView: View {
     var onFinish: () -> Void
 
     @EnvironmentObject private var session: SessionStore
+    /// Branche `signup` du fournisseur (`App.tsx:2115-2123`) : identité retenue
+    /// par `LoginIntAssembly` quand la connexion ne correspond à aucun compte
+    /// local ; elle amorce le parcours (`initialGoogleIdentity` / `:2155-2162`).
+    @ObservedObject private var providerSignup = LoginIntProviderSignupRouter.shared
     @State private var errorMessage: String?
     /// Réouverture de compte fournisseur en attente de décision (U13 §2).
     @State private var pendingReuse: LoginIntProviderReuseAlert?
@@ -120,9 +150,13 @@ struct SignupFlowView: View {
         OnbFlowView(
             mode: .account,
             initialProfile: session.profile,
+            initialGoogleIdentity: initialGoogleIdentity,
+            initialAppleIdentity: initialAppleIdentity,
             onComplete: { profile, credentials in
                 await openAccount(profile: profile, credentials: credentials)
             },
+            onProgramSelected: prepareOnboardingProgram,
+            onTrainingSurfaceReady: {},
             onCancel: onFinish
         )
         .alert("Création du compte impossible", isPresented: errorPresented) {
@@ -142,6 +176,35 @@ struct SignupFlowView: View {
         }
     }
 
+    /// `initialGoogleIdentity` (`OnboardingScreen.tsx:111-112`) : identité Google
+    /// **complète** retenue par la branche `signup` du fournisseur
+    /// (`LoginIntPendingProviderSignup`), libellés du nom compris — le parcours
+    /// amorce le profil comme la source (`OnboardingScreen.tsx:229-247`).
+    private var initialGoogleIdentity: GoogleIdentity? {
+        guard let pending = providerSignup.pending, pending.provider == .google else { return nil }
+        return GoogleIdentity(
+            subject: pending.subject,
+            email: pending.email,
+            displayName: pending.displayName,
+            firstName: pending.firstName,
+            lastName: pending.lastName,
+            photoUrl: nil
+        )
+    }
+
+    /// `initialAppleIdentity` (`OnboardingScreen.tsx:111-112`) : symétrique de
+    /// `initialGoogleIdentity`.
+    private var initialAppleIdentity: AppleAuthIdentity? {
+        guard let pending = providerSignup.pending, pending.provider == .apple else { return nil }
+        return AppleAuthIdentity(
+            subject: pending.subject,
+            email: pending.email,
+            displayName: pending.displayName,
+            firstName: pending.firstName,
+            lastName: pending.lastName
+        )
+    }
+
     /// `completeOnboarding` : ouvre le compte construit par le parcours.
     ///
     /// Un mot de passe crée le compte serveur (`registerServerPassword`) ; un
@@ -154,9 +217,16 @@ struct SignupFlowView: View {
     /// « Continuer la création » n'ouvre rien : `ProviderAuthFollowUp.declined`.
     /// La confirmation déjà obtenue au bouton Google
     /// (`OnbFlowProviderButtons.signInWithGoogle`) est consommée ici.
+    ///
+    /// La session fournisseur vient du parcours de connexion qui a routé vers
+    /// l'inscription (`LoginIntPendingProviderSignup.session`) : le coordinateur
+    /// ne la porte pas pour une identité **initiale** (seul un appui en cours de
+    /// parcours la lui pose), d'où le repli.
     @MainActor
     private func openAccount(profile: UserProfile, credentials: OnbUiCredentials) async {
-        if let google = credentials.googleIdentity, let payload = credentials.providerSession {
+        let pendingSession = providerSignup.pending?.session
+        if let google = credentials.googleIdentity,
+           let payload = credentials.providerSession ?? pendingSession {
             pendingReuse = loginIntProviderReuseAlert(
                 provider: .google,
                 subject: google.subject,
@@ -168,7 +238,8 @@ struct SignupFlowView: View {
                 consumingConfirmation: true,
                 proceed: { openGoogleAccount(profile: profile, google: google, payload: payload) }
             )
-        } else if let apple = credentials.appleIdentity, let payload = credentials.providerSession {
+        } else if let apple = credentials.appleIdentity,
+                  let payload = credentials.providerSession ?? pendingSession {
             pendingReuse = loginIntProviderReuseAlert(
                 provider: .apple,
                 subject: apple.subject,
@@ -248,4 +319,24 @@ struct SignupFlowView: View {
             set: { presented in if !presented { pendingReuse = nil } }
         )
     }
+}
+
+// MARK: - Préparation du programme (`onProgramSelected`)
+
+/// `prepareOnboardingExerciseContent` (`App.tsx:763`) : dès que les choix de
+/// programme sont figés, la source enfile les énoncés du profil puis démarre le
+/// préchargement reprenable. Le port déclenche la même passe par `OfflBootstrap`
+/// (téléchargement du contenu du profil). Écart assumé : le contrôleur
+/// `OfflExercisePrefetchController` reste hors câblage — son énumération de
+/// **tous** les énoncés publiés (`allExerciseStatementContentBundleIds`,
+/// `contentStartup.ts:215`) n'est pas portée ; seul le périmètre du profil est
+/// préchargé.
+private func prepareOnboardingProgram(_ profile: UserProfile) {
+    let ids = TrainContent.profileBundleIds(
+        track: profile.track,
+        specialty: profile.specialty,
+        year: TrainContent.programYear(from: profile.year)
+    ).compactMap(OfflContentBundleId.init(rawValue:))
+    guard !ids.isEmpty else { return }
+    OfflBootstrap.scheduleContentRefresh(ids: ids)
 }

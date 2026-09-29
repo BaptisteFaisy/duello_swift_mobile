@@ -13,17 +13,20 @@ extension TrainingCatalogView {
     }
 
     /// Manifeste de contenu : un seul appel pour tout le catalogue, puis un
-    /// descripteur par chapitre de la matière.
+    /// descripteur par chapitre de la matière. Le manifeste est conservé pour
+    /// ré-indexer au changement d'onglet sans nouvel appel réseau.
     func loadManifest() async {
         guard case .idle = state else { return }
         state = .loading
         do {
             let manifest = try await DuelloAPI.contentManifest()
+            self.manifest = manifest
             descriptors = TrainContent.chapterIndex(
                 manifest: manifest,
                 track: session.profile.track,
                 specialty: session.profile.specialty,
-                year: session.profile.year
+                year: session.profile.year,
+                mode: activeMode
             )
             // Décompte du catalogue, exercices servis, colles et annales réunis :
             // c'est le dénominateur de l'en-tête de la matière.
@@ -41,6 +44,57 @@ extension TrainingCatalogView {
         }
     }
 
+    /// Ré-indexe les descripteurs de chapitre pour le mode ouvert, au changement
+    /// d'onglet (`colleCardCatalog` / `chapterCardCatalog`, `SubjectsScreen.tsx:4617`) :
+    /// en Colles, les banques `colles-*` passent devant les énoncés, ailleurs les
+    /// énoncés servent. Sans manifeste (avant chargement), rien à ré-indexer. Le
+    /// mode change la banque servie : les sujets déjà chargés appartiennent à
+    /// l'ancien mode, ils sont relus au prochain dépliage.
+    func reindexChapters() {
+        guard let manifest else { return }
+        descriptors = TrainContent.chapterIndex(
+            manifest: manifest,
+            track: session.profile.track,
+            specialty: session.profile.specialty,
+            year: session.profile.year,
+            mode: activeMode
+        )
+        loadedExercises.removeAll()
+        chapterStates.removeAll()
+        chapterErrors.removeAll()
+    }
+
+    /// Banque d'annales servie de la matière (`annaleItems` / `getTrackAnnaleItems`,
+    /// `SubjectsScreen.tsx:4493-4510`) : les annales des banques `*-annales-*`
+    /// du manifeste de l'année, converties en entrées de lecteur. Chargée à la
+    /// première ouverture de l'onglet Annales, puis conservée.
+    func loadAnnaleItems() async {
+        guard annaleItems.isEmpty, let manifest else { return }
+        let year = TrainContent.programYear(from: session.profile.year)
+        let bundles = Set(
+            TrainContent.yearBundleIds(
+                track: session.profile.track,
+                specialty: session.profile.specialty,
+                year: year
+            ).filter { $0.contains("annales") }
+        )
+        guard !bundles.isEmpty else { return }
+        var loaded: [AnnEntry] = []
+        for descriptor in manifest.chapters ?? [] where bundles.contains(descriptor.bundleId) {
+            guard let seeds = try? await DuelloAPI.chapterExercises(descriptor) else { continue }
+            for seed in seeds {
+                loaded.append(
+                    TrainReaderLink.entry(
+                        TrainExercise(seed: seed),
+                        mode: .annales,
+                        chapterName: descriptor.bundleId
+                    )
+                )
+            }
+        }
+        annaleItems = loaded
+    }
+
     /// Ouvre un chapitre en plein écran (`openChapterList` de la source) et
     /// lance le chargement de ses sujets au premier affichage (hors mode Cours,
     /// qui n'affiche pas de liste de sujets).
@@ -55,11 +109,12 @@ extension TrainingCatalogView {
 
     /// Referme la page du chapitre et revient au programme de la matière, à
     /// l'endroit quitté (`recentlyClosedChapter`, `SubjectsScreen.tsx:4085-4100`) :
-    /// la matière et l'offset figé à l'ouverture sont mémorisés pour que le
-    /// catalogue s'y replace.
+    /// la matière, le chapitre et l'offset figé à l'ouverture sont mémorisés
+    /// pour que le catalogue s'y replace.
     func closeChapterDetail() {
         TrainCatalogueScrollMemory.shared.restore = TrainCatalogueScrollRestore(
             subjectId: subject.id,
+            chapterId: openChapter?.id ?? "",
             offset: TrainCatalogueScrollMemory.shared.pendingOpenOffset
         )
         openChapter = nil
@@ -122,9 +177,17 @@ extension TrainingCatalogView {
 
 // MARK: - Mémoire du défilement du catalogue
 
-/// Offset à réappliquer au retour d'un chapitre (`recentlyClosedChapter`).
-struct TrainCatalogueScrollRestore {
+/// Retour attendu au catalogue (`recentlyClosedChapter`).
+///
+/// Écart assumé (iOS 16) : RN restaure l'offset **au pixel**
+/// (`contentOffset={{y: listScrollOffset}}`, `SubjectsScreen.tsx:9912-9920`).
+/// SwiftUI n'a pas d'API d'offset (`scrollPosition` est iOS 17) : le catalogue
+/// se replace sur la **ligne du chapitre** quitté (`ScrollViewReader.scrollTo`,
+/// ancrage haut), l'offset restant publié pour la mémoire de défilement.
+struct TrainCatalogueScrollRestore: Equatable {
     let subjectId: String
+    /// Chapitre quitté : ancre du replacement au retour.
+    let chapterId: String
     let offset: CGFloat
 }
 
@@ -133,11 +196,10 @@ struct TrainCatalogueScrollRestore {
 /// figé à l'ouverture d'un chapitre et rendu au retour, pour que la liste
 /// reprenne là où elle était.
 ///
-/// Raccord à faire dans `TrainingCatalogView` (`TrainingCatalogView+Entry.swift`,
-/// hors lot) : publier l'offset courant (`handleChromeScroll` → `offset`) et
-/// appliquer `restore` à l'apparition de la page du catalogue
-/// (`ScrollViewReader` → `scrollTo`), puis remettre `restore` à `nil`.
-@MainActor
+/// Raccord fait dans `TrainingCatalogView` (`TrainingCatalogView+Entry.swift`) :
+/// l'offset courant est publié au défilement (`handleChromeScroll` → `offset`)
+/// et `restore` est appliqué à l'apparition du catalogue (`ScrollViewReader` →
+/// `scrollTo` du chapitre), puis remis à `nil`.
 final class TrainCatalogueScrollMemory: ObservableObject {
     static let shared = TrainCatalogueScrollMemory()
 
