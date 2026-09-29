@@ -211,16 +211,7 @@ struct PremCodeUnlockCelebration: View {
         .padding(.top, 30)
         .padding(.bottom, 26)
         .frame(maxWidth: .infinity)
-        .background(
-            LinearGradient(
-                stops: [
-                    .init(color: Color(hex: 0x0F2418), location: 0),
-                    .init(color: Color(hex: 0x08130C), location: 0.58),
-                    .init(color: Color(hex: 0x050706), location: 1),
-                ],
-                startPoint: .top,
-                endPoint: .bottom)
-        )
+        .background(cardBackground)
         .clipShape(RoundedRectangle(cornerRadius: 30))
         .overlay(
             RoundedRectangle(cornerRadius: 30)
@@ -233,6 +224,19 @@ struct PremCodeUnlockCelebration: View {
         .scaleEffect(scale)
         .offset(y: translateY)
         .opacity(opacity)
+    }
+
+    /// Dégradé de fond de la carte (`styles.card`) : trois paliers vert sombre
+    /// vers l'encre.
+    private var cardBackground: LinearGradient {
+        LinearGradient(
+            stops: [
+                .init(color: Color(hex: 0x0F2418), location: 0),
+                .init(color: Color(hex: 0x08130C), location: 0.58),
+                .init(color: Color(hex: 0x050706), location: 1),
+            ],
+            startPoint: .top,
+            endPoint: .bottom)
     }
 
     /// Le sceau : anneau vert, disque Premium et diamant blanc (`seal`).

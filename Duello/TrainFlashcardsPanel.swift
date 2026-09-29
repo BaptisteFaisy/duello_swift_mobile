@@ -446,56 +446,7 @@ struct TrainFlashcardsPanel: View {
     }
 }
 
-/// Onglets de la surface « Cartes » : Générer / Créer / Réviser.
-enum TrainFlashcardPanelTab: String, CaseIterable, Identifiable {
-    case generate
-    case create
-    case review
-
-    var id: String { rawValue }
-
-    var label: String {
-        switch self {
-        case .generate: return "Générer"
-        case .create: return "Créer"
-        case .review: return "Réviser"
-        }
-    }
-
-    var ionName: String {
-        switch self {
-        case .generate: return "sparkles-outline"
-        case .create: return "add-outline"
-        case .review: return "play-outline"
-        }
-    }
-
-    var accessibilityLabel: String {
-        switch self {
-        case .generate: return "Générer les flashcards"
-        case .create: return "Créer une flashcard"
-        case .review: return "Réviser mes flashcards"
-        }
-    }
-}
-
-/// Normalisation d'un nom de paquet personnalisé (`custom-…`). Espace de noms
-/// distinct de la vue `TrainFlashcardsPanel` (une seule déclaration de type par
-/// nom).
-enum TrainFlashcardDeckNaming {
-    /// Clé `custom-xxx` ASCII (`normalize('NFD')`, minuscules, tirets).
-    static func customDeckKey(_ label: String, fallback: Double) -> String {
-        let folded = label.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
-        let slug = folded.lowercased()
-            .components(separatedBy: CharacterSet.alphanumerics.inverted)
-            .filter { !$0.isEmpty }
-            .joined(separator: "-")
-        return "custom-\(slug.isEmpty ? String(Int(fallback)) : slug)"
-    }
-
-    /// Suffixe aléatoire d'une carte manuelle (`Math.random().toString(36)`).
-    static func randomSuffix() -> String {
-        let alphabet = Array("0123456789abcdefghijklmnopqrstuvwxyz")
-        return String((0..<6).map { _ in alphabet[Int.random(in: 0..<alphabet.count)] })
-    }
-}
+// V3 2026-09-29 (complexité) : `TrainFlashcardPanelTab` et
+// `TrainFlashcardDeckNaming` déplacés dans `TrainCoursePageChrome.swift` (types
+// auxiliaires du bloc « cours ») — ce fichier dépassait 500 lignes. Corps
+// inchangés.
