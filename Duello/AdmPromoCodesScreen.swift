@@ -239,30 +239,8 @@ struct AdmPromoCodesScreen: View {
 
     private func row(_ entry: AdmPromoCodeStat) -> some View {
         HStack(spacing: 12) {
-            IonIcon(
-                name: entry.disabled ? "close-circle-outline" : "pricetag-outline",
-                size: 18,
-                color: Theme.ink
-            )
-            .frame(width: 40, height: 40)
-            .background(Theme.primaryLight)
-            .clipShape(RoundedRectangle(cornerRadius: 14))
-            VStack(alignment: .leading, spacing: 3) {
-                Text(entry.codeHint)
-                    .font(.system(size: 14, weight: .black))
-                    .foregroundStyle(Theme.ink)
-                    .textSelection(.enabled)
-                    .lineLimit(1)
-                Text("−\(entry.percentOff) % · \(entry.label.isEmpty ? "Campagne" : entry.label)\(entry.disabled ? " · désactivé" : "")")
-                    .font(.system(size: 12, weight: .regular))
-                    .foregroundStyle(Theme.inkSoft)
-                    .lineLimit(1)
-                Text(metaText(entry))
-                    .font(.system(size: 10, weight: .regular))
-                    .foregroundStyle(Theme.inkFaint)
-                    .lineLimit(2)
-                    .padding(.top, 2)
-            }
+            rowIcon(entry)
+            rowDetails(entry)
             Spacer(minLength: 8)
             Button {
                 Task { await toggle(entry) }
@@ -289,6 +267,39 @@ struct AdmPromoCodesScreen: View {
                 .stroke(Theme.border, lineWidth: 1)
         )
         .admCardShadow()
+    }
+
+    /// Icône d'état de la ligne : `close-circle-outline` si le code est
+    /// désactivé, sinon `pricetag-outline` — extrait de `row()`.
+    private func rowIcon(_ entry: AdmPromoCodeStat) -> some View {
+        IonIcon(
+            name: entry.disabled ? "close-circle-outline" : "pricetag-outline",
+            size: 18,
+            color: Theme.ink
+        )
+        .frame(width: 40, height: 40)
+        .background(Theme.primaryLight)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+    }
+
+    /// Code, remise, libellé et méta de la ligne — extrait de `row()`.
+    private func rowDetails(_ entry: AdmPromoCodeStat) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(entry.codeHint)
+                .font(.system(size: 14, weight: .black))
+                .foregroundStyle(Theme.ink)
+                .textSelection(.enabled)
+                .lineLimit(1)
+            Text("−\(entry.percentOff) % · \(entry.label.isEmpty ? "Campagne" : entry.label)\(entry.disabled ? " · désactivé" : "")")
+                .font(.system(size: 12, weight: .regular))
+                .foregroundStyle(Theme.inkSoft)
+                .lineLimit(1)
+            Text(metaText(entry))
+                .font(.system(size: 10, weight: .regular))
+                .foregroundStyle(Theme.inkFaint)
+                .lineLimit(2)
+                .padding(.top, 2)
+        }
     }
 
     /// « 3 personnes · 12/500 · créé 12 sept. 14:30 · expire … ».

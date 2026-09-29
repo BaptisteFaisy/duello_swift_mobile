@@ -817,6 +817,23 @@
 		2E3776DCB763EA5E16E25E33 /* RankingEloThresholdHint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97B203A8853EAD2CA617DB29 /* RankingEloThresholdHint.swift */; };
 		5ACE2B62372718BA23F20321 /* ReportLocalSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25B6232CD02F4C75B6EF4AC8 /* ReportLocalSnapshot.swift */; };
 		4201CBCAE462150980190083 /* IoniconsGlyphs.generated.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1ABB833690D4F7EDD377AA86 /* IoniconsGlyphs.generated.swift */; };
+		97D288A653052F76E65492FC /* AcctNotificationsModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8416EEF5ADB836B1F88F01A /* AcctNotificationsModels.swift */; };
+		AD1BFAF0691F36DDBE1898DF /* CourseDocumentHtml.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBC2F63AC805D0FF29191B77 /* CourseDocumentHtml.swift */; };
+		E53BF67BE2C77E3266920FD8 /* EvEventChatAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 559C44C992FAAC1FEF8DF25B /* EvEventChatAPI.swift */; };
+		E59A16EC96FCDFA222BE8ED1 /* PhotoTranscriptionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BBC22F301EC687B34E9E1C8 /* PhotoTranscriptionModels.swift */; };
+		02CF5ECF15C90C2FDD0841A7 /* PhotoTxCameraPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 183EFF520550EFD7CB9A0D22 /* PhotoTxCameraPicker.swift */; };
+		ABCC64A5C4384D8DF6896556 /* PhotoTxCaptureStage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71BF9BAEA493DD67B37DAF43 /* PhotoTxCaptureStage.swift */; };
+		BF9251765DC312343765D323 /* PhotoTxController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E798CFE9A143992B689D301 /* PhotoTxController.swift */; };
+		7E82EECA8FC1FE8F93D53DB5 /* PhotoTxReviewStages.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C0C3ADD5FD96CF93F5D7BCC /* PhotoTxReviewStages.swift */; };
+		19109D3A766E7B0FDDB8B651 /* RankingWeeklyRows.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEC03256BD355AE8CE936AA8 /* RankingWeeklyRows.swift */; };
+		794A1C871BB9682B4C12FCE4 /* RankingsSnapshotModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60AFD482CBB555A3FD32C45F /* RankingsSnapshotModel.swift */; };
+		AD0893488D85FD22DD6133DB /* RankingsSnapshotModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6CAF0587A27EDE34B997787 /* RankingsSnapshotModule.swift */; };
+		848000133E8A3968A0B5D32B /* RankingsSnapshotStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = B132A1ABDC44C814676F38E5 /* RankingsSnapshotStorage.swift */; };
+		EAD6B74050D785EB5267030E /* TrainCourseKnowledgeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47552A1ED7625A6AAE50E570 /* TrainCourseKnowledgeStore.swift */; };
+		B520A5E8CB8579C48597E012 /* TrainCoursePageChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D6C7213823CFDF9F6F886CD /* TrainCoursePageChrome.swift */; };
+		01BA1D8471C3B42DEBDC6468 /* TrainCoursePageDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7523C819477009E643DC4F28 /* TrainCoursePageDocument.swift */; };
+		553F57F37003CCD1C57FFA37 /* TrainCoursePageKnowledge.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10B708AE4AA9BAC2EA9B64A /* TrainCoursePageKnowledge.swift */; };
+		1C463915236512404280FC86 /* TrainCoursePagePositioning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 081FCE4115CFF9B1A9C274FC /* TrainCoursePagePositioning.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -1631,6 +1648,23 @@
 		97B203A8853EAD2CA617DB29 /* RankingEloThresholdHint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingEloThresholdHint.swift; sourceTree = "<group>"; };
 		25B6232CD02F4C75B6EF4AC8 /* ReportLocalSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportLocalSnapshot.swift; sourceTree = "<group>"; };
 		1ABB833690D4F7EDD377AA86 /* IoniconsGlyphs.generated.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IoniconsGlyphs.generated.swift; sourceTree = "<group>"; };
+		C8416EEF5ADB836B1F88F01A /* AcctNotificationsModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctNotificationsModels.swift; sourceTree = "<group>"; };
+		FBC2F63AC805D0FF29191B77 /* CourseDocumentHtml.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CourseDocumentHtml.swift; sourceTree = "<group>"; };
+		559C44C992FAAC1FEF8DF25B /* EvEventChatAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EvEventChatAPI.swift; sourceTree = "<group>"; };
+		9BBC22F301EC687B34E9E1C8 /* PhotoTranscriptionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoTranscriptionModels.swift; sourceTree = "<group>"; };
+		183EFF520550EFD7CB9A0D22 /* PhotoTxCameraPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoTxCameraPicker.swift; sourceTree = "<group>"; };
+		71BF9BAEA493DD67B37DAF43 /* PhotoTxCaptureStage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoTxCaptureStage.swift; sourceTree = "<group>"; };
+		4E798CFE9A143992B689D301 /* PhotoTxController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoTxController.swift; sourceTree = "<group>"; };
+		5C0C3ADD5FD96CF93F5D7BCC /* PhotoTxReviewStages.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoTxReviewStages.swift; sourceTree = "<group>"; };
+		AEC03256BD355AE8CE936AA8 /* RankingWeeklyRows.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingWeeklyRows.swift; sourceTree = "<group>"; };
+		60AFD482CBB555A3FD32C45F /* RankingsSnapshotModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingsSnapshotModel.swift; sourceTree = "<group>"; };
+		B6CAF0587A27EDE34B997787 /* RankingsSnapshotModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingsSnapshotModule.swift; sourceTree = "<group>"; };
+		B132A1ABDC44C814676F38E5 /* RankingsSnapshotStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingsSnapshotStorage.swift; sourceTree = "<group>"; };
+		47552A1ED7625A6AAE50E570 /* TrainCourseKnowledgeStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainCourseKnowledgeStore.swift; sourceTree = "<group>"; };
+		5D6C7213823CFDF9F6F886CD /* TrainCoursePageChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainCoursePageChrome.swift; sourceTree = "<group>"; };
+		7523C819477009E643DC4F28 /* TrainCoursePageDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainCoursePageDocument.swift; sourceTree = "<group>"; };
+		C10B708AE4AA9BAC2EA9B64A /* TrainCoursePageKnowledge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainCoursePageKnowledge.swift; sourceTree = "<group>"; };
+		081FCE4115CFF9B1A9C274FC /* TrainCoursePagePositioning.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainCoursePagePositioning.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -2466,6 +2500,23 @@
 				97B203A8853EAD2CA617DB29 /* RankingEloThresholdHint.swift */,
 				25B6232CD02F4C75B6EF4AC8 /* ReportLocalSnapshot.swift */,
 				1ABB833690D4F7EDD377AA86 /* IoniconsGlyphs.generated.swift */,
+				C8416EEF5ADB836B1F88F01A /* AcctNotificationsModels.swift */,
+				FBC2F63AC805D0FF29191B77 /* CourseDocumentHtml.swift */,
+				559C44C992FAAC1FEF8DF25B /* EvEventChatAPI.swift */,
+				9BBC22F301EC687B34E9E1C8 /* PhotoTranscriptionModels.swift */,
+				183EFF520550EFD7CB9A0D22 /* PhotoTxCameraPicker.swift */,
+				71BF9BAEA493DD67B37DAF43 /* PhotoTxCaptureStage.swift */,
+				4E798CFE9A143992B689D301 /* PhotoTxController.swift */,
+				5C0C3ADD5FD96CF93F5D7BCC /* PhotoTxReviewStages.swift */,
+				AEC03256BD355AE8CE936AA8 /* RankingWeeklyRows.swift */,
+				60AFD482CBB555A3FD32C45F /* RankingsSnapshotModel.swift */,
+				B6CAF0587A27EDE34B997787 /* RankingsSnapshotModule.swift */,
+				B132A1ABDC44C814676F38E5 /* RankingsSnapshotStorage.swift */,
+				47552A1ED7625A6AAE50E570 /* TrainCourseKnowledgeStore.swift */,
+				5D6C7213823CFDF9F6F886CD /* TrainCoursePageChrome.swift */,
+				7523C819477009E643DC4F28 /* TrainCoursePageDocument.swift */,
+				C10B708AE4AA9BAC2EA9B64A /* TrainCoursePageKnowledge.swift */,
+				081FCE4115CFF9B1A9C274FC /* TrainCoursePagePositioning.swift */,
 			);
 			path = Duello;
 			sourceTree = "<group>";
@@ -3357,6 +3408,23 @@
 				2E3776DCB763EA5E16E25E33 /* RankingEloThresholdHint.swift in Sources */,
 				5ACE2B62372718BA23F20321 /* ReportLocalSnapshot.swift in Sources */,
 				4201CBCAE462150980190083 /* IoniconsGlyphs.generated.swift in Sources */,
+				97D288A653052F76E65492FC /* AcctNotificationsModels.swift in Sources */,
+				AD1BFAF0691F36DDBE1898DF /* CourseDocumentHtml.swift in Sources */,
+				E53BF67BE2C77E3266920FD8 /* EvEventChatAPI.swift in Sources */,
+				E59A16EC96FCDFA222BE8ED1 /* PhotoTranscriptionModels.swift in Sources */,
+				02CF5ECF15C90C2FDD0841A7 /* PhotoTxCameraPicker.swift in Sources */,
+				ABCC64A5C4384D8DF6896556 /* PhotoTxCaptureStage.swift in Sources */,
+				BF9251765DC312343765D323 /* PhotoTxController.swift in Sources */,
+				7E82EECA8FC1FE8F93D53DB5 /* PhotoTxReviewStages.swift in Sources */,
+				19109D3A766E7B0FDDB8B651 /* RankingWeeklyRows.swift in Sources */,
+				794A1C871BB9682B4C12FCE4 /* RankingsSnapshotModel.swift in Sources */,
+				AD0893488D85FD22DD6133DB /* RankingsSnapshotModule.swift in Sources */,
+				848000133E8A3968A0B5D32B /* RankingsSnapshotStorage.swift in Sources */,
+				EAD6B74050D785EB5267030E /* TrainCourseKnowledgeStore.swift in Sources */,
+				B520A5E8CB8579C48597E012 /* TrainCoursePageChrome.swift in Sources */,
+				01BA1D8471C3B42DEBDC6468 /* TrainCoursePageDocument.swift in Sources */,
+				553F57F37003CCD1C57FFA37 /* TrainCoursePageKnowledge.swift in Sources */,
+				1C463915236512404280FC86 /* TrainCoursePagePositioning.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

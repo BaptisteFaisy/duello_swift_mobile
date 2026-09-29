@@ -177,6 +177,39 @@ enum ReportLocalSnapshot {
         local: ReportLocalProgress,
         registeredAt: Double
     ) -> ReportPublicProfileDetails {
+        let xpPoints = ChartXpSeries.build(
+            history: local.xpHistory.map { ChartXpEntry(xp: $0.xp, at: $0.at) },
+            total: local.totalXp,
+            registeredAt: registeredAt
+        ).map { ReportPublicXpPoint(xp: $0.xp, at: $0.at) }
+        return ReportPublicProfileDetails(
+            currentTrack: profile.followedTrack,
+            specialty: LoginScrProviderReuse.accountAcademicOptionLabel(
+                track: profile.track,
+                currentOption: profile.academicPath?.currentOption ?? profile.specialty,
+                legacySpecialty: profile.specialty
+            ),
+            personalGoal: profile.personalGoal,
+            activity: ReportPublicActivity(
+                challengesCompleted: local.challengesCompleted,
+                exercisesCompleted: local.exercisesCompleted,
+                exerciseMinutes: local.exerciseMinutes
+            ),
+            elo: eloDetails(local: local, registeredAt: registeredAt),
+            timeSeries: ReportPublicTimeSeries(day: [], week: [], month: []),
+            subjectSuccesses: [],
+            veryHardExerciseSuccessIds: [],
+            xpSeries: xpPoints
+        )
+    }
+
+    /// Série d'Elo de `details` : série globale (moyenne des matières jouées) et
+    /// série par matière. Extraite de `details()` (52 l. > 50, ratchet de
+    /// complexité) ; calculs inchangés.
+    private static func eloDetails(
+        local: ReportLocalProgress,
+        registeredAt: Double
+    ) -> ReportPublicEloDetails {
         let subjects = historySubjects(local.eloHistory)
         let overallPoints = eloSeries(
             history: local.eloHistory,
@@ -203,30 +236,7 @@ enum ReportLocalSnapshot {
                 )
             )
         }
-        let xpPoints = ChartXpSeries.build(
-            history: local.xpHistory.map { ChartXpEntry(xp: $0.xp, at: $0.at) },
-            total: local.totalXp,
-            registeredAt: registeredAt
-        ).map { ReportPublicXpPoint(xp: $0.xp, at: $0.at) }
-        return ReportPublicProfileDetails(
-            currentTrack: profile.followedTrack,
-            specialty: LoginScrProviderReuse.accountAcademicOptionLabel(
-                track: profile.track,
-                currentOption: profile.academicPath?.currentOption ?? profile.specialty,
-                legacySpecialty: profile.specialty
-            ),
-            personalGoal: profile.personalGoal,
-            activity: ReportPublicActivity(
-                challengesCompleted: local.challengesCompleted,
-                exercisesCompleted: local.exercisesCompleted,
-                exerciseMinutes: local.exerciseMinutes
-            ),
-            elo: ReportPublicEloDetails(overall: overall, subjects: subjectSeries),
-            timeSeries: ReportPublicTimeSeries(day: [], week: [], month: []),
-            subjectSuccesses: [],
-            veryHardExerciseSuccessIds: [],
-            xpSeries: xpPoints
-        )
+        return ReportPublicEloDetails(overall: overall, subjects: subjectSeries)
     }
 
     /// `historySubjects` : matières jouées, dans leur ordre d'apparition.

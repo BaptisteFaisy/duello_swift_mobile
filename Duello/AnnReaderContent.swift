@@ -47,39 +47,15 @@ extension AnnReaderView {
         return Button {
             activeQuestionId = question.id
         } label: {
-            HStack(spacing: 4) {
-                // Pendant la correction : indicateur d'activité ; en échec :
-                // `refresh-circle`. Un verdict « Parfaite » n'affiche pas d'icône
-                // (son contour vert suffit), comme la source.
-                if grading {
-                    ProgressView().tint(Theme.primary)
-                } else if verdict == .perfect {
-                    EmptyView()
-                } else if let verdict {
-                    IonIcon(name: verdict.icon, size: 14, color: verdict.color)
-                } else if gradingFailed {
-                    IonIcon(name: "refresh-circle", size: 14, color: Theme.like)
-                }
-                Text(question.displayLabel)
-                    .font(.system(size: 11, weight: .heavy))
-                    .foregroundStyle(skin.text)
-                if isClassic {
-                    IonIcon(name: "star", size: 11, color: Theme.ink)
-                }
-                if isForLater {
-                    Circle()
-                        .fill(AnnQuestionChipSkin.prerequisiteDot)
-                        .frame(width: 6, height: 6)
-                }
-            }
-            .padding(.horizontal, 10)
-            .frame(minWidth: 52, minHeight: 34)
-            .background(skin.background)
-            .clipShape(Capsule())
-            .overlay(
-                Capsule().stroke(skin.border, lineWidth: skin.borderWidth)
+            questionChipLabel(
+                question,
+                skin: skin,
+                verdict: verdict,
+                isClassic: isClassic,
+                isForLater: isForLater,
+                grading: grading,
+                gradingFailed: gradingFailed
             )
-            .opacity(isForLater ? 0.58 : 1)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(accessibilityLabel(
@@ -90,6 +66,53 @@ extension AnnReaderView {
             grading: grading,
             gradingFailed: gradingFailed
         ))
+    }
+
+    /// Contenu visuel de la puce : icône d'état, libellé, puis marqueurs
+    /// « classique » et « conseillée pour plus tard ».
+    @ViewBuilder
+    private func questionChipLabel(
+        _ question: AnnQuestion,
+        skin: AnnQuestionChipSkin,
+        verdict: AnnVerdict?,
+        isClassic: Bool,
+        isForLater: Bool,
+        grading: Bool,
+        gradingFailed: Bool
+    ) -> some View {
+        HStack(spacing: 4) {
+            // Pendant la correction : indicateur d'activité ; en échec :
+            // `refresh-circle`. Un verdict « Parfaite » n'affiche pas d'icône
+            // (son contour vert suffit), comme la source.
+            if grading {
+                ProgressView().tint(Theme.primary)
+            } else if verdict == .perfect {
+                EmptyView()
+            } else if let verdict {
+                IonIcon(name: verdict.icon, size: 14, color: verdict.color)
+            } else if gradingFailed {
+                IonIcon(name: "refresh-circle", size: 14, color: Theme.like)
+            }
+            Text(question.displayLabel)
+                .font(.system(size: 11, weight: .heavy))
+                .foregroundStyle(skin.text)
+            if isClassic {
+                IonIcon(name: "star", size: 11, color: Theme.ink)
+            }
+            if isForLater {
+                Circle()
+                    .fill(AnnQuestionChipSkin.prerequisiteDot)
+                    .frame(width: 6, height: 6)
+            }
+        }
+        .padding(.horizontal, 10)
+        .frame(minWidth: 52, minHeight: 34)
+        .background(skin.background)
+        .clipShape(Capsule())
+        .overlay(
+            Capsule().stroke(skin.border, lineWidth: skin.borderWidth)
+        )
+        .opacity(isForLater ? 0.58 : 1)
     }
 
     /// Libellé d'accessibilité du bouton de question, mot pour mot du lecteur.

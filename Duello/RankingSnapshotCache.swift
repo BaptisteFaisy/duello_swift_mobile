@@ -23,72 +23,14 @@
 //    autres préférences natives (`OfflUserDefaultsPrefetchStorage`).
 //  - `savedAt` reste un nombre de millisecondes epoch (`Date.now()`).
 //
+//  Découpe (2026-09-29, ratchet Hermes) : le modèle persisté vit dans
+//  `RankingsSnapshotModel.swift`, la couture de stockage dans
+//  `RankingsSnapshotStorage.swift` et l'API de module dans
+//  `RankingsSnapshotModule.swift` — le store seul reste ici.
+//
 //  Cible : iOS 16.
 //
 import Foundation
-
-// MARK: - Modèle persisté
-
-/// Cache de classement persistable (`RANKINGS_SNAPSHOTTED_CACHES`).
-enum RankingsSnapshotCacheName: String, CaseIterable, Codable {
-    case subjectLeaderboard = "subject-leaderboard"
-    case weeklyXpLeaderboard = "weekly-xp-leaderboard"
-}
-
-/// Réponse d'un classement persistée pour un démarrage suivant
-/// (`RankingsSnapshotEntry`).
-struct RankingsSnapshotEntry: Codable, Equatable {
-    let cache: RankingsSnapshotCacheName
-    let key: String
-    /// Millisecondes epoch, comme `Date.now()` côté RN.
-    let savedAt: Double
-    let entries: [LeaderboardEntry]
-
-    /// Date de sauvegarde, pour un éventuel affichage « il y a … ».
-    var savedDate: Date { Date(timeIntervalSince1970: savedAt / 1000) }
-
-    init(
-        cache: RankingsSnapshotCacheName,
-        key: String,
-        savedAt: Double,
-        entries: [LeaderboardEntry]
-    ) {
-        self.cache = cache
-        self.key = key
-        self.savedAt = savedAt
-        self.entries = entries
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case cache, key, savedAt, entries
-    }
-
-    /// Format stocké : rejeter tout ce qui ne respecte pas exactement la v1
-    /// (`parseStoredSnapshots`) — le décodage tolérant laisse `Lenient` écarter
-    /// l'entrée sans faire échouer la relecture entière.
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        let rawCache = try container.decode(String.self, forKey: .cache)
-        guard let cache = RankingsSnapshotCacheName(rawValue: rawCache) else {
-            throw DecodingError.dataCorruptedError(
-                forKey: .cache,
-                in: container,
-                debugDescription: "Cache de classement inconnu : \(rawCache)"
-            )
-        }
-        let key = try container.decode(String.self, forKey: .key)
-        let savedAt = try container.decode(Double.self, forKey: .savedAt)
-        guard savedAt.isFinite else {
-            throw DecodingError.dataCorruptedError(
-                forKey: .savedAt,
-                in: container,
-                debugDescription: "savedAt non fini"
-            )
-        }
-        let entries = try container.decode([LeaderboardEntry].self, forKey: .entries)
-        self.init(cache: cache, key: key, savedAt: savedAt, entries: entries)
-    }
-}
 
 /// Enveloppe de format stocké (`{ version: 1, snapshots: [...] }`).
 private struct StoredRankingsSnapshots: Encodable {
@@ -110,36 +52,6 @@ private struct Lenient<Wrapped: Decodable>: Decodable {
 
     init(from decoder: Decoder) throws {
         value = try? Wrapped(from: decoder)
-    }
-}
-
-// MARK: - Couture de stockage
-
-/// Stockage clé/valeur des instantanés (analogue d'`AsyncStorage`).
-protocol RankingsSnapshotStorage {
-    func getItem(_ key: String) async -> String?
-    func setItem(_ key: String, _ value: String) async
-    func removeItem(_ key: String) async
-}
-
-/// Stockage `UserDefaults`, comme les autres préférences de l'application.
-final class RankingsUserDefaultsSnapshotStorage: RankingsSnapshotStorage {
-    private let defaults: UserDefaults
-
-    init(defaults: UserDefaults = .standard) {
-        self.defaults = defaults
-    }
-
-    func getItem(_ key: String) async -> String? {
-        defaults.string(forKey: key)
-    }
-
-    func setItem(_ key: String, _ value: String) async {
-        defaults.set(value, forKey: key)
-    }
-
-    func removeItem(_ key: String) async {
-        defaults.removeObject(forKey: key)
     }
 }
 
@@ -287,41 +199,4 @@ final class RankingsSnapshotCache {
         else { return nil }
         return wrapped.compactMap(\.value)
     }
-}
-
-// MARK: - Fonctions de module (API de `rankingsCacheStorage.ts`)
-
-/// Persiste la dernière réponse validée d'un classement (échecs ignorés).
-func saveRankingsSnapshot(
-    _ cache: RankingsSnapshotCacheName,
-    key: String,
-    entries: [LeaderboardEntry]
-) {
-    RankingsSnapshotCache.shared.save(cache, key: key, entries: entries)
-}
-
-/// Relit tous les instantanés persistés, ou `nil` si rien d'exploitable.
-func loadRankingsSnapshots() async -> [RankingsSnapshotEntry]? {
-    await RankingsSnapshotCache.shared.load()
-}
-
-/// Dernier classement connu en mémoire, sans attendre le réseau.
-func cachedRankingsSnapshotEntries(
-    _ cache: RankingsSnapshotCacheName,
-    key: String
-) -> [LeaderboardEntry]? {
-    RankingsSnapshotCache.shared.cachedEntries(cache, key: key)
-}
-
-/// Dernier classement connu, mémoire puis disque (relecture d'un démarrage).
-func restoreRankingsSnapshotEntries(
-    _ cache: RankingsSnapshotCacheName,
-    key: String
-) async -> [LeaderboardEntry]? {
-    await RankingsSnapshotCache.shared.restore(cache, key: key)
-}
-
-/// Efface les instantanés : le classement repart d'une copie réseau franche.
-func clearRankingsSnapshots() async {
-    await RankingsSnapshotCache.shared.clear()
 }
