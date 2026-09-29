@@ -46,7 +46,7 @@ enum AnnAttemptStore {
     @discardableResult
     static func updateAnnaleAttempts(
         accountId: String,
-        update: (inout AnnAttemptMap) -> Void
+        update: @escaping (inout AnnAttemptMap) -> Void
     ) async -> AnnAttemptMap {
         let previous = annaleAttemptWrites[accountId]
         let write = Task { () -> AnnAttemptMap in
