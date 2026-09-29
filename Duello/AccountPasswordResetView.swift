@@ -25,12 +25,6 @@ import SwiftUI
 /// partagée par les deux champs (`form.passwordVisible` de la source) : seul le
 /// premier porte le bouton. Pas d'alerte de succès (la source ouvre la session,
 /// `App.tsx:2213`).
-///
-/// PARITÉ (2026-09-29) — métriques secondaires reprises : décalage du chevron
-/// de retour `translateX(-4)` (`BackButton.tsx:93`), interligne du titre
-/// (`lineHeight 35`) et du texte d'erreur (`lineHeight 17`) via `.lineSpacing`,
-/// placeholder teinté `Theme.inkFaint` (`placeholderTextColor`,
-/// `PasswordResetForm.tsx:74`).
 struct PasswordResetView: View {
     /// Adresse du compte concerné, affichée en lecture seule.
     var email: String = ""
@@ -81,8 +75,6 @@ struct PasswordResetView: View {
             dismiss()
         } label: {
             IonIcon(name: "chevron-back", size: 21, color: Theme.ink)
-                // `icon: { transform: [{ translateX: -4 }] }` de `BackButton.tsx:93`.
-                .offset(x: -4)
                 .frame(width: 44, height: 44)
                 .contentShape(Rectangle())
         }
@@ -107,8 +99,6 @@ struct PasswordResetView: View {
                 .foregroundStyle(Theme.ink)
             Text("Choisis ton nouveau mot de passe")
                 .font(.system(size: 30, weight: .black))
-                // `title: { lineHeight: 35 }` de `PasswordResetForm.tsx:135-141`.
-                .lineSpacing(5)
                 .foregroundStyle(Theme.ink)
                 .padding(.top, 10)
             form
@@ -182,12 +172,10 @@ struct PasswordResetView: View {
                 IonIcon(name: "key-outline", size: 20, color: Theme.inkSoft)
 
                 Group {
-                    // `placeholder={label}` + `placeholderTextColor={colors.inkFaint}`
-                    // (`PasswordResetForm.tsx:73-74`) : libellé teinté `inkFaint`.
                     if passwordVisible {
-                        TextField("", text: text, prompt: Text(title).foregroundColor(Theme.inkFaint))
+                        TextField(title, text: text)
                     } else {
-                        SecureField("", text: text, prompt: Text(title).foregroundColor(Theme.inkFaint))
+                        SecureField(title, text: text)
                     }
                 }
                 .textContentType(.newPassword)
@@ -196,7 +184,6 @@ struct PasswordResetView: View {
                 .font(.system(size: 15))
                 .foregroundStyle(Theme.ink)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .accessibilityLabel(title)
 
                 if showToggle { visibilityToggle }
             }
@@ -243,8 +230,6 @@ struct PasswordResetView: View {
             IonIcon(name: "alert-circle-outline", size: 19, color: Theme.ink)
             Text(errorMessage)
                 .font(.system(size: 12, weight: .bold))
-                // `errorText: { lineHeight: 17 }` de `PasswordResetForm.tsx:174-180`.
-                .lineSpacing(5)
                 .foregroundStyle(Theme.ink)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .fixedSize(horizontal: false, vertical: true)
