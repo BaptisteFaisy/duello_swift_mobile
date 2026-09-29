@@ -22,11 +22,27 @@
 //  page et découpe (`clipped()`) le débordement ; le classement Elo y ancre
 //  aussi son dock « Moi · rang ».
 //
+//  V2 (2026-09-29, écarts 10#2 et 10#6) : la page XP est rendue par
+//  `WeeklyXpRankingView` seule (comme la page Elo) — la vue porte désormais son
+//  propre `ScrollView`, son `SwipeScreenFrameReader` et sa marge basse de 100
+//  (`scrollContent.paddingBottom` de `WeeklyXpRankingScreen.tsx:405`), au lieu
+//  d'un `ScrollView` du ruban à marge 28. Le ruban calcule aussi l'XP local de
+//  la semaine (`weeklyActivityXp`, `LeaderboardScreen.tsx:106-142`) et le passe
+//  à la page XP (`weeklyXp` / `weeklyXpLoaded`).
+//
+//  Écart assumé (2026-09-29) : la source recharge l'XP hebdo à chaque écriture
+//  du stockage d'activité (`subscribeToAccountStorage`) ; sans abonnement ici,
+//  le total est relu à l'apparition de l'écran.
+//
 import SwiftUI
 
 /// Ruban « Ligues Elo » / « XP » d'un classement de matière, geste compris
 /// (`LeaderboardScreen.tsx`).
 struct SwipeLeaderboardRibbon: View {
+
+    /// Session ouverte : l'XP local de la semaine est lu dans le stockage
+    /// d'activité du compte (`LeaderboardScreen.tsx:118`).
+    @EnvironmentObject private var session: SessionStore
 
     /// Matière classée, transmise telle quelle aux deux classements
     /// (« Mathématiques »).
@@ -43,6 +59,10 @@ struct SwipeLeaderboardRibbon: View {
     var onBack: (() -> Void)? = nil
 
     @State private var section: SwipeLeaderboardSections.Section
+    /// XP gagnés localement cette semaine dans la matière (`weeklyXp.xp`).
+    @State private var weeklyXp = 0
+    /// Le total local a fini de charger (`weeklyXp.loaded`).
+    @State private var weeklyXpLoaded = false
 
     init(
         subject: String = "Mathématiques",
@@ -91,6 +111,7 @@ struct SwipeLeaderboardRibbon: View {
             }
         }
         .background(Theme.background)
+        .task { await loadWeeklyXp() }
     }
 
     /// Index de la section ouverte dans le ruban.
@@ -192,13 +213,34 @@ struct SwipeLeaderboardRibbon: View {
         case .elo:
             SubjectLeaderboardView(subject: subject, scope: scope, onOpenProfile: onOpenProfile)
         case .xp:
-            ScrollView {
-                WeeklyXpRankingView(subject: subject, scope: scope, onOpenProfile: onOpenProfile)
-                    .padding(.horizontal, 20)
-                    .padding(.top, 8)
-                    .padding(.bottom, 28)
-            }
+            // La vue XP porte son propre défilement, son cadre d'écran et sa
+            // marge basse (100), comme la page Elo.
+            WeeklyXpRankingView(
+                subject: subject,
+                weeklyXp: weeklyXp,
+                weeklyXpLoaded: weeklyXpLoaded,
+                scope: scope,
+                onOpenProfile: onOpenProfile
+            )
         }
+    }
+
+    /// XP réellement gagnés cette semaine dans la matière (`weeklyActivityXp`
+    /// de `LeaderboardScreen.tsx:106-142`) : relus dans l'historique d'activité
+    /// du compte (`prepapp-xp-activity`), puis transmis à la page XP pour que le
+    /// total local remplace la ligne distante du joueur (`weeklyXpLoaded`).
+    private func loadWeeklyXp() async {
+        guard !eloOnly else { return }
+        weeklyXpLoaded = false
+        let email = session.profile.email
+        let accountId = email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? RewStorageScope.onboardingAccountStorageId
+            : RewStorageScope.userStorageId(email)
+        let activity = await EvEventRewardsStore.loadActivity(
+            EvEventRewardsDefaultsStorage(accountId: accountId)
+        )
+        weeklyXp = weeklyActivityXp(activity, subject: subject, week: WeeklyXP.weekKey())
+        weeklyXpLoaded = true
     }
 
     /// Une page du ruban : contenu à la largeur d'une page du pager.

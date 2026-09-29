@@ -1,11 +1,15 @@
 import Foundation
 
 /// Relève les constructions guidées écrites dans un texte — port de
-/// `src/utils/mathOperator.ts` (`parseMathOperators`).
+/// `src/utils/mathOperator.ts` : `parseMathOperators` et
+/// `findMathOperatorAtSelection` (+ `selectionMatchScore`).
 ///
 /// Le parseur inverse les deux formes produites par `formatMathOperator` :
 /// scripts Unicode (`∑ₖ₌₁ⁿ`) et replis explicites (`∑_(k=1)^(n+1)`). Les
 /// réponses enregistrées avant l'ajout de l'édition restent donc lisibles.
+///
+/// PARITÉ (2026-09-29) — `findMathOperatorAtSelection` (curseur/sélection sur
+/// une construction déjà écrite) et son `selectionMatchScore` sont portés.
 enum StmtOperatorParse {
     /// Inverse une table de scripts : caractère scripté → caractère simple.
     static func inverseScript(_ table: [Character: String]) -> [Character: String] {
@@ -61,6 +65,43 @@ enum StmtOperatorParse {
     /// Inclut l'espace généré après un opérateur (`rangeEndWithGeneratedSpace`).
     static func rangeEndWithGeneratedSpace(_ text: [Character], _ end: Int) -> Int {
         end < text.count && text[end] == " " ? end + 1 : end
+    }
+
+    /// Adéquation d'une sélection à la plage d'une construction
+    /// (`selectionMatchScore`) : `nil` quand la sélection est hors de la
+    /// construction. 0 = sélection qui l'englobe ou curseur à l'intérieur,
+    /// 1 = curseur sur le début (ou chevauchement partiel), 2 = curseur sur la fin.
+    static func selectionMatchScore(_ selection: StmtTextSelection, _ range: StmtTextSelection) -> Int? {
+        let start = min(selection.start, selection.end)
+        let end = max(selection.start, selection.end)
+        if start == end {
+            if start > range.start, start < range.end { return 0 }
+            if start == range.start { return 1 }
+            if start == range.end { return 2 }
+            return nil
+        }
+        if start <= range.start, end >= range.end { return 0 }
+        return start < range.end && end > range.start ? 1 : nil
+    }
+
+    /// Retrouve l'opérateur guidé sous le curseur ou dans la sélection
+    /// (`findMathOperatorAtSelection`). À score égal, la construction la plus à
+    /// droite l'emporte (le `range.start` le plus grand).
+    static func findMathOperatorAtSelection(
+        _ text: String,
+        _ selection: StmtTextSelection,
+        _ expectedKind: StmtMathOperatorKind? = nil
+    ) -> StmtParsedMathOperator? {
+        parseMathOperators(text, expectedKind)
+            .compactMap { candidate -> (candidate: StmtParsedMathOperator, score: Int)? in
+                guard let score = selectionMatchScore(selection, candidate.range) else { return nil }
+                return (candidate, score)
+            }
+            .sorted { first, second in
+                if first.score != second.score { return first.score < second.score }
+                return second.candidate.range.start < first.candidate.range.start
+            }
+            .first?.candidate
     }
 
     /// Relève les constructions guidées d'un texte (`parseMathOperators`).

@@ -31,6 +31,16 @@ open class UIWindowScene: UIScene {
     public var keyWindow: UIWindow?
 }
 
+/// `UIScreen.main.bounds` / `.scale` (iOS 16). Shim no-op.
+public enum UIScreen {
+    public static let main = Screen()
+
+    public struct Screen {
+        public var bounds: CGRect { .zero }
+        public var scale: CGFloat { 2 }
+    }
+}
+
 open class UIDevice: NSObject {
     public static let current = UIDevice()
     public var identifierForVendor: UUID?

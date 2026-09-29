@@ -3,9 +3,10 @@ import SwiftUI
 /// Socle embarqué des colles, par parcours puis par chapitre : les clés des
 /// colles retranscrites (`colleBanks.floor.*.generated.ts` d'Expo, `BUNDLE_IDS`
 /// de `colleBanks.ts`). L'app Expo complète ce socle par la banque publiée,
-/// servie séparément ; cette version ne portant pas encore cette banque, le
-/// socle embarqué est le dénominateur des colles — exactement ce qu'Expo compte
-/// sans contenu téléchargé (`servedChapterEntries` retombe alors sur le socle).
+/// servie séparément ; `colleItemIds` réunit donc les deux — le socle embarqué
+/// **et** la banque servie relue dans `OfflContentStore` (`servedChapterEntries`
+/// de `servedBank.ts`), exactement comme `colleCatalogItemIds` / `getChapterItems`
+/// d'Expo sans contenu téléchargé (la banque servie est alors vide).
 ///
 /// Pour `ecg-approfondies-2`, `buildColleBankItems` (`chapterItems.ts:1050-1080`)
 /// ajoute au socle les colles Mansuy (`td-*` du socle d'exercices ECG2,
@@ -121,16 +122,46 @@ extension DuelloProgressView {
     }
 
     /// Items de colle servis pour la matière : le socle embarqué du parcours
-    /// (`getChapterItems(chapitre, 'colle', scope)` d'Expo).
+    /// (`getChapterItems(chapitre, 'colle', scope)` d'Expo) **augmenté de la
+    /// banque publiée** relue dans le magasin de contenu (`colleCatalogItemIds`
+    /// de `colleBanks.ts`, `servedChapterEntries` de `servedBank.ts`) : une
+    /// publication de contenu fait évoluer le décompte sans nouvelle version de
+    /// l'app. La banque servie s'ajoute au socle, elle ne le remplace pas.
     private func colleItemIds(for subject: TrackSubject) -> [String] {
         let socle = ProgressColleSocle.banks[chapterScope] ?? [:]
-        var ids: [String] = []
+        let served = servedColleKeysByChapter()
+        var ids = Set<String>()
         for chapter in subject.chapters {
             for key in socle[chapter.id] ?? [] {
-                ids.append("\(chapter.id)::colle::\(key)")
+                ids.insert("\(chapter.id)::colle::\(key)")
+            }
+            for key in served[chapter.id] ?? [] {
+                ids.insert("\(chapter.id)::colle::\(key)")
             }
         }
-        return ids
+        return ids.sorted()
+    }
+
+    /// Clés de colle de la banque publiée du parcours, rangées par chapitre
+    /// (`contentBundle` de `contentStore.ts` + `servedChapterEntries`). Vide
+    /// tant que le parcours n'a pas de banque servie (`mpsi-1`), tant que le
+    /// contenu n'est pas téléchargé, ou si le magasin est illisible — comme
+    /// `servedChapterEntries` qui retombe alors sur le seul socle.
+    private func servedColleKeysByChapter() -> [String: [String]] {
+        guard let scope = CollColleScope(rawValue: chapterScope),
+              let bundleId = OfflContentBundleId(rawValue: scope.bundleId),
+              let entry = OfflContentStore.shared.readBundle(bundleId),
+              let entries = OfflContentJSON.array(entry.serialized)
+        else { return [:] }
+        var byChapter: [String: [String]] = [:]
+        for case let seed as [String: Any] in entries {
+            guard let chapterId = seed["chapterId"] as? String, !chapterId.isEmpty,
+                  let key = seed["key"] as? String, !key.isEmpty,
+                  ProgressDataServedSeed.isValid(seed)
+            else { continue }
+            byChapter[chapterId, default: []].append(key)
+        }
+        return byChapter
     }
 
     /// Items servis pour une matière et un type d'entraînement.
@@ -161,5 +192,23 @@ extension DuelloProgressView {
     /// (`totalPlayed` d'Expo).
     var visibleDuelPlayed: Int {
         visibleSubjects.reduce(0) { $0 + duelStat(for: $1).played }
+    }
+}
+
+/// `isChapterSeedShape` de `servedBank.ts` : une colle servie n'entre dans la
+/// banque que si elle porte tous les champs attendus. Un enregistrement
+/// incomplet ferait échouer l'affichage longtemps après son téléchargement, là
+/// où l'origine du problème serait invisible ; `source` porte l'attribution
+/// exigée par les conditions de réutilisation du corpus.
+enum ProgressDataServedSeed {
+    static func isValid(_ seed: [String: Any]) -> Bool {
+        guard let key = seed["key"] as? String, !key.isEmpty,
+              let chapterId = seed["chapterId"] as? String, !chapterId.isEmpty,
+              seed["title"] is String,
+              let statement = seed["statement"] as? String, !statement.isEmpty,
+              let source = seed["source"] as? String, !source.isEmpty,
+              let difficulty = seed["difficulty"] as? Int
+        else { return false }
+        return (1...6).contains(difficulty)
     }
 }

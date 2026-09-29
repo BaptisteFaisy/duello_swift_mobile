@@ -52,6 +52,14 @@ enum LeagueAnimation {
         return x * x
     }
 
+    /// `Easing.out(Easing.quad)` (décélération quadratique, `t ↦ 1-(1-t)²`).
+    /// Parité RN `BadgeFlipHint.tsx:40-41,53-54` et `RankingsScreen.tsx:92-107`
+    /// (`Easing.out(Easing.quad)`), là où le port utilisait `quadIn` par erreur.
+    static func quadOut(_ t: Double) -> Double {
+        let x = clamp01(t)
+        return 1 - (1 - x) * (1 - x)
+    }
+
     /// Interpolation linéaire par morceaux, comme `interpolate` de Reanimated.
     static func interpolate(_ value: Double, _ input: [Double], _ output: [Double],
                             clamped: Bool = false) -> Double {

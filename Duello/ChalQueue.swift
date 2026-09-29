@@ -29,8 +29,12 @@
 //  (repli au repos). Un rendez-vous de classe reste une vraie salle multijoueur
 //  et ne se transforme jamais en entraînement.
 //
-//  Le `QueueRequest` actuel ne porte pas de champ de salle planifiée : `Mode`
-//  conserve `.scheduled` pour rester aligné sur la source, sans le produire.
+//  V2 (2026-09-29) — écart U07-D11 « salle planifiée .scheduled jamais produite » :
+//  `enter` choisit le mode d'après `request.scheduledChallengeId`
+//  (`useChallengeQueue.ts:173`) et pose `scheduledStartAt` (`:181`) ; l'horloge
+//  d'attente ne bascule **jamais** en entraînement pour une salle planifiée
+//  (`:193`). Les champs `scheduledChallengeId` / `scheduledStartAt` doivent être
+//  ajoutés à `QueueRequest` (`Models.swift`, hors lot → « À raccorder »).
 //
 //  Cible : iOS 16, aucune API iOS 17.
 //
@@ -93,7 +97,8 @@ final class ChalQueueController: ObservableObject {
         generation += 1
         entry = request
         status = .searching
-        mode = .random
+        // `setMode(request.scheduledChallengeId ? 'scheduled' : 'random')`.
+        mode = request.scheduledChallengeId != nil ? .scheduled : .random
         invitedName = nil
         inviteOutcome = nil
         match = nil
@@ -102,7 +107,8 @@ final class ChalQueueController: ObservableObject {
         offline = false
         serverWindow = nil
         trainingFallbackReached = false
-        scheduledStartAt = nil
+        // `setScheduledStartAt(request.scheduledStartAt ?? null)`.
+        scheduledStartAt = request.scheduledStartAt
         runSearch(request)
     }
 
@@ -196,8 +202,11 @@ final class ChalQueueController: ObservableObject {
                 try? await Task.sleep(nanoseconds: 1_000_000_000)
                 guard let self, gen == self.generation else { return }
                 self.waitedMs = Date().timeIntervalSince(started) * 1000
-                // `QueueRequest` ne porte pas de salle planifiée (cf. en-tête) :
-                // seul le dépassement du délai déclenche le repli entraînement.
+                // Un rendez-vous de classe reste une vraie salle multijoueur : il
+                // ne se transforme jamais en entraînement parce qu'un camarade
+                // est en retard (`useChallengeQueue.ts:193`). Seul le mode
+                // aléatoire bascule après `TRAINING_FALLBACK_MS`.
+                guard request.scheduledChallengeId == nil else { continue }
                 guard self.waitedMs >= ChalMatchmaking.trainingFallbackMs else { continue }
                 self.trainingFallbackReached = true
                 // Fabrique l'entraînement avec la requête courante **avant**

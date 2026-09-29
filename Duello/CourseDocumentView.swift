@@ -1,3 +1,21 @@
+//
+//  CourseDocumentView.swift
+//  Duello
+//
+//  Port de `src/components/CourseDocumentViewer.native.tsx` (+ la section
+//  « Mon cours » de `src/screens/SubjectsScreen.tsx`).
+//
+//  Parité RN↔Swift (vague 2, 2026-09-29) :
+//    - chevron de la fiche du prof IA (P1) : `ProfTutorSheet` reçoit
+//      `onOpenProfile`, qui ouvre la fiche dans l'onglet « Mon compte »
+//      (`SubjectsScreen.tsx:8555-8560`, `openMemberProfile` `App.tsx:1471-1490`) ;
+//      même couture de routage que le tap de notification
+//      (`PushNotifRootCoordinator`, `PushNotifRootMount.swift`).
+//
+//  Écarts assumés :
+//    - PDF.js (~3,3 Mo de JavaScript, `src/utils/courseDocumentPdf.ts`) n'est pas
+//      portable : PDFKit rend les PDF nativement, contrat du lecteur inchangé.
+//
 import SwiftUI
 
 /// Rendu du contenu d'un document de chapitre (cours ou feuille de TD).
@@ -117,7 +135,20 @@ struct CtdDocumentViewer: View {
         // `ProfTutorSheet` : `onDismiss` remet l'item à `nil`, indispensable au
         // glissement vers le bas, qui ne passe pas par `onClose`.
         .sheet(item: $profRequest, onDismiss: { profRequest = nil }) { request in
-            ProfTutorSheet(request: request, token: session.token) { profRequest = nil }
+            ProfTutorSheet(
+                request: request,
+                token: session.token,
+                // `onOpenProfile` : le chevron de l'en-tête ouvre la fiche du
+                // prof IA (`SubjectsScreen.tsx:8555-8560`) dans l'onglet
+                // « Mon compte », via le coordinateur racine — même couture que
+                // le tap de notification (`PushNotifRootMount`).
+                onOpenProfile: { memberId in
+                    Task { @MainActor in
+                        PushNotifRootCoordinator.shared.pendingMember =
+                            PushNotifPendingMember(id: memberId)
+                    }
+                }
+            ) { profRequest = nil }
         }
         // `requireAiDataSharingConsent` : l'explication transmet le passage au
         // relais, donc l'accord de l'élève est demandé d'abord.

@@ -6,9 +6,14 @@
 //  « Paramètres | Premium » et pages du menu) et câble ses sorties aux écrans
 //  déjà portés.
 //
-//  Fichier source Expo porté : `src/screens/AccountScreen.tsx`, page
-//  `'settings'` — le rendu hors `page === 'profile'`, qui empile
-//  `SETTINGS_SWIPE_PAGES` dans un `OrderedTabPager`.
+//  Port de `src/screens/AccountScreen.tsx`, page `'settings'` : le rendu hors
+//  `page === 'profile'` empile `SETTINGS_SWIPE_PAGES` dans un `OrderedTabPager`,
+//  et chaque sous-page (`feedback`, `privacy`, `terms`, `email`, `password`,
+//  `blocked`) **remplace tout l'écran** dans un `SwipeBackScreen`
+//  (`AccountScreen.tsx:2401-2454`). Les six sorties sont donc rendues en plein
+//  écran (`fullScreenCover`) dans `Ui2SwipeBackContainer` — plus de feuille
+//  modale à carte pour les pages non légales (écarts U13#1 plein écran et
+//  U13#2 retour par swipe sur les six sous-pages).
 //
 //  La bascule biométrique (`onBiometricChange`) est branchée sur
 //  `AcctSecBiometricPolicy` et le drapeau `AcctStoredAccount.biometricEnabled`
@@ -29,10 +34,6 @@ enum AcctIntSettingsTarget: String, Identifiable {
     case feedback, privacy, terms, email, password, blocked
 
     var id: String { rawValue }
-
-    /// Pages légales : le RN les empile dans le pager (`SwipeBackScreen`) au
-    /// lieu de les ouvrir en feuille (`AccountScreen.tsx:2397-2407`).
-    var isLegal: Bool { self == .privacy || self == .terms }
 }
 
 /// Feuille de réglages : onglets « Paramètres | Premium », pages du menu et
@@ -46,7 +47,7 @@ struct AcctIntSettingsSheet: View {
     /// lancé ici — la source le fait au niveau de l'application, pas des
     /// réglages.
     @StateObject private var premium: PremCodeSync
-    /// Feuille ouverte par-dessus les réglages. En mode capture,
+    /// Sous-page ouverte par-dessus les réglages. En mode capture,
     /// `ScreenshotTour` la fige d'emblée.
     @State private var presented: AcctIntSettingsTarget? = ScreenshotTour.accountSettings?.leaf
     /// Bascule biométrique : état du compte, relu du registre local et réécrit
@@ -90,32 +91,17 @@ struct AcctIntSettingsSheet: View {
             // Les réglages dessinent leur propre en-tête (retour + onglets) :
             // la barre de navigation ne doit rien ajouter.
             .toolbar(.hidden, for: .navigationBar)
-            // Sorties non légales (feedback, sécurité, comptes bloqués) :
-            // feuille modale, comme avant.
-            .sheet(item: sheetTarget) { target in
-                destination(target)
-            }
-            // Pages légales : le RN ne les ouvre pas en feuille mais les empile
-            // dans le pager (`AccountScreen.tsx:2397-2407`, `SwipeBackScreen`) ;
-            // rendues ici en plein écran recouvrant, fermables par glissement
-            // vers la droite comme par le chevron (`onBack`).
-            .overlay {
-                if let target = presented, target.isLegal {
-                    Ui2SwipeBackContainer(onBack: { presented = nil }) {
-                        destination(target)
-                    }
+            // Sous-pages des réglages : le RN les empile en plein écran dans un
+            // `SwipeBackScreen` (`AccountScreen.tsx:2401-2454`), retour par
+            // glissement vers la droite comme par le chevron. Les six pages
+            // passent donc par le même conteneur plein écran — la page n'est
+            // plus enfermée dans la carte de la feuille Paramètres.
+            .fullScreenCover(item: $presented) { target in
+                Ui2SwipeBackContainer(onBack: { presented = nil }) {
+                    destination(target)
                 }
             }
         }
-    }
-
-    /// Cible de la feuille : les pages légales n'y passent pas (elles sont
-    /// empilées en plein écran), les autres sorties y passent.
-    private var sheetTarget: Binding<AcctIntSettingsTarget?> {
-        Binding(
-            get: { presented?.isLegal == true ? nil : presented },
-            set: { presented = $0 }
-        )
     }
 
     /// `premiumDaysLabel` de la source : `nil` hors abonnement actif, « Premium

@@ -23,6 +23,14 @@
 //    compte ; elles persistent dans `UserDefaults`, isolées par `accountId`
 //    comme la source isole par compte.
 //
+//  Note datée (29/09/2026) — écart P2 « mergeAttempt sans appelant » : la
+//  fonction est prête mais la source qui l'appelle (`saveChallengeAttempt`,
+//  `challengeExerciseProgress.ts:90-101`, appelée à la remise du défi par
+//  `ChallengesScreen.tsx:1284,1421,1651`) n'est pas portée : elle exige un
+//  magasin d'essais (`AnnaleAttemptMap`) absent côté Swift (cf. adaptations
+//  ci-dessus). Le câblage appartient donc au déroulé du défi
+//  (`ChalRunRounds`/`ChallengePlayerView`, hors lot) → « À raccorder ».
+//
 //  Cible : iOS 16, aucune API iOS 17.
 //
 import Foundation

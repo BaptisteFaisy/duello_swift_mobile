@@ -18,6 +18,14 @@
 //
 import Foundation
 
+//  Écart assumé / à raccorder (29/09/2026, écart 05 #4) : le recentrage du
+//  champ après fermeture d'une alerte (`focusPseudoInput` / `focusEmailInput`,
+//  `OnboardingScreen.tsx:691-696,765,773,781,790`). Ce module porte la **cible
+//  de focus** (`OnbFlowAlertAction.FocusTarget`) et le champ `focus` de
+//  `OnbFlowAlertAction` ; le câblage du `@FocusState` (`OnbUiFields.swift`,
+//  `OnbFlowView.perform`) et des alertes (`OnbFlowSteps+Alerts.swift`) reste à
+//  raccorder — ces fichiers sont hors lot (voir rapport).
+
 /// Bouton d'une alerte d'écran (`Alert.alert` de la source). Le titre porte
 /// l'action, le genre dit quoi exécuter.
 struct OnbFlowAlertAction: Identifiable, Equatable {
@@ -32,10 +40,21 @@ struct OnbFlowAlertAction: Identifiable, Equatable {
         case openSettings
     }
 
+    /// Champ à recentrer après la fermeture de l'alerte (`focusPseudoInput` /
+    /// `focusEmailInput`). Lu par `OnbFlowView.perform` une fois le focus
+    /// exposé par `OnbUiFieldProps`.
+    enum FocusTarget: Equatable {
+        case pseudo
+        case email
+    }
+
     let title: String
     var kind: Kind = .dismiss
     /// Bouton de style « annuler » (`style: 'cancel'` de la source).
     var isCancel: Bool = false
+    /// Champ à recentrer à la fermeture (`focusPseudoInput`/`focusEmailInput`) :
+    /// `nil` pour un bouton qui ne touche pas au focus.
+    var focus: FocusTarget? = nil
     var id: String { title }
 }
 
@@ -89,6 +108,13 @@ enum OnbFlowSteps {
         status == 409
             ? "Création du compte impossible"
             : "Vérification de l’inscription impossible"
+    }
+
+    /// Bouton « Compris » d'une alerte qui recentre un champ à sa fermeture
+    /// (`focusPseudoInput` / `focusEmailInput`, `OnboardingScreen.tsx:765,773,
+    /// 781,790`). À raccorder dans `OnbFlowSteps+Alerts.swift`.
+    static func comprisAction(focus: OnbFlowAlertAction.FocusTarget) -> OnbFlowAlertAction {
+        OnbFlowAlertAction(title: "Compris", focus: focus)
     }
 
     /// Surtitre d'étape (`STEP_COPY`), délégué au module d'étapes déjà porté.

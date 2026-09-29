@@ -62,7 +62,7 @@ struct AdmHomeTab: View {
                     .font(.system(size: 24, weight: .black))
                     .foregroundStyle(Theme.ink)
                 Text(account.email)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: 13, weight: .regular))
                     .foregroundStyle(Theme.inkSoft)
             }
             Spacer(minLength: 0)
@@ -82,7 +82,7 @@ struct AdmHomeTab: View {
                     .font(.system(size: 16, weight: .black))
                     .foregroundStyle(Theme.ink)
                 Text("Cet espace ne charge ni le profil, ni la progression, ni le planning d’un compte utilisateur. Sa structure et ses données restent indépendantes de tous les autres comptes.")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: 13, weight: .regular))
                     .foregroundStyle(Theme.inkSoft)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -102,7 +102,7 @@ struct AdmHomeTab: View {
         VStack(alignment: .leading, spacing: 14) {
             AdmCardHeading(icon: "phone-portrait-outline", title: "Comptes multiples sur un même appareil")
             Text("Autorise la création de plusieurs comptes depuis l’adresse réseau de cet appareil : pratique pour installer plusieurs comptes de test sur le même smartphone.")
-                .font(.system(size: 12, weight: .semibold))
+                .font(.system(size: 12, weight: .regular))
                 .foregroundStyle(Theme.inkSoft)
                 .fixedSize(horizontal: false, vertical: true)
             if let ipAccess {

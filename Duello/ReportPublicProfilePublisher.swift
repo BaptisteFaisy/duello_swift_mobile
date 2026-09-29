@@ -28,9 +28,17 @@
 //    - 2026-09-24 — création (vague 2, unité U9).
 //    - 2026-09-24 — limite assumée : la relecture des séries de l'annuaire après
 //      publication (`saveSubjectElos` sur `publication.profile.details.elo`) et
-//      `xpAwards` ne sont pas portées : `ReportSocialProfile` ne décode pas
-//      `details.elo`. `ReportPublicProfile.payload` publie donc l'identité et la
+//      `xpAwards` n'étaient pas portées : `ReportSocialProfile` ne décode pas
+//      `details.elo`. `ReportPublicProfile.payload` publiait donc l'identité et la
 //      performance, pas les séries (cf. ReportAPI.swift:47-57).
+//    - 2026-09-29 — écart U20#2 « instantané public : details/xpAwards construits
+//      mais non transmis » : `payload(...)` reçoit désormais
+//      `details: snapshot.details` et `xpAwards: snapshot.xpAwards`
+//      (`PublicProfilePublisher.tsx` transmet l'instantané complet). Le constructeur
+//      `ReportPublicProfile.payload` les acceptait déjà
+//      (`ReportAPI.swift:168-176`) : seule la projection manquait. La **relecture**
+//      des séries depuis la réponse de l'annuaire reste hors périmètre (elle
+//      dépend de `ReportSocialProfile.details.elo`, non décodé).
 //
 //  Découpage (24/09/2026) : ce fichier porte le coordinateur et sa
 //  programmation. La session invitée vit dans
@@ -189,7 +197,9 @@ extension ReportPublicProfilePublisher {
             let payload = ReportPublicProfile.payload(
                 profile: profile,
                 performance: snapshot.performance,
-                premium: snapshot.premium
+                premium: snapshot.premium,
+                details: snapshot.details,
+                xpAwards: snapshot.xpAwards
             )
             let result = await publisher.publish(payload, token: tokenProvider())
             guard gen == generation, rev == revision else { return }

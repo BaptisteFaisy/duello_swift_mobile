@@ -1,6 +1,10 @@
 // [SubjTrainingMode] Modes d'entraînement, catalogue d'onglets et barre de sélection.
 // Porté de `src/screens/SubjectsScreen.tsx` (lignes 397-421, 570-663) et
 // `src/utils/installedDesktopNavigation.ts` (`InstalledDesktopTrainingSection`).
+//
+// Écarts assumés (29/09/2026) : aucun. Barre d'onglets passée en noir
+// (`modeTabs` `#000000`, pastille choisie blanche à texte/icône encre,
+// non-choisie à texte/icône blancs), comme le delta dev `423b1039c`.
 
 import SwiftUI
 
@@ -167,7 +171,7 @@ struct SubjTrainingModeTabs: View {
         }
         .frame(height: compact ? 42 : 52)
         .padding(compact ? 3 : 4)
-        .background(Theme.surfaceMuted)
+        .background(Color(hex: 0x000000))
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .onChange(of: mode) { newValue in
             if displayedMode != newValue { displayedMode = newValue }
@@ -196,11 +200,12 @@ struct SubjTrainingModeTabs: View {
         return usable * weight(for: option) / sum
     }
 
-    /// Un onglet : `modeTab` de la source — icône + libellé centrés, pastille
-    /// choisie en encre pleine. L'icône est bridée à 18 points (les symboles SF
-    /// sont plus larges que les Ionicons d'origine) et le libellé se réduit
-    /// (`minimumScaleFactor` 0,7) plutôt que d'être coupé, comme
-    /// `adjustsFontSizeToFit` de la source.
+    /// Un onglet : `modeTab` de la source — icône + libellé centrés, capsule
+    /// noire, pastille choisie blanche (`modeTabSelected`) à texte/icône encre,
+    /// non-choisie à texte/icône blancs (`modeTabText`). L'icône est bridée à
+    /// 18 points (les symboles SF sont plus larges que les Ionicons d'origine)
+    /// et le libellé se réduit (`minimumScaleFactor` 0,7) plutôt que d'être
+    /// coupé, comme `adjustsFontSizeToFit` de la source.
     private func tab(_ option: SubjTrainingModeOption, width: CGFloat) -> some View {
         let selected = displayedMode == option.mode
         return Button {
@@ -212,17 +217,17 @@ struct SubjTrainingModeTabs: View {
                 IonIcon(
                     name: option.ionName,
                     size: compact ? 14 : 16,
-                    color: selected ? Color.white : Theme.inkSoft
+                    color: selected ? Theme.ink : Color.white
                 )
                 Text(option.label)
                     .font(.system(size: compact ? 11 : 13, weight: .heavy))
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
-                    .foregroundStyle(selected ? Color.white : Theme.inkSoft)
+                    .foregroundStyle(selected ? Theme.ink : Color.white)
             }
             .padding(.horizontal, compact ? 1 : 4)
             .frame(width: width, height: compact ? 36 : 44)
-            .background(selected ? Theme.primary : Color.clear)
+            .background(selected ? Color.white : Color.clear)
             .clipShape(RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(.plain)

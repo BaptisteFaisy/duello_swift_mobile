@@ -19,6 +19,17 @@
 //  `DuelExercise`, `DuelQuotaError`, `joinDuelAnswers`, `attemptedDuelAnswers`,
 //  `duelQuestionLabel`, `LatexToUnicode`, `DuelloPrimaryButton`.
 //
+//  V2 (29/09/2026, parité RN dev) : la fenêtre Premium reçoit le quota durable
+//  du compte (`useCorrectionQuota`, `ChallengesScreen.tsx:443`) chargé par
+//  `PremQuotaService` — la ligne « défis gratuits » n'était jamais alimentée.
+//
+//  FIX-02 (29/09/2026) : `ChalRunRounds` accepte deux paramètres de plus
+//  (`completedSeries`, `onSubmitRequested`) attendus par l'appel de
+//  `ChalIntDuelFlow`. Ils sont **stockés mais inertes** dans cette vue : la
+//  remise de série et l'alerte « Enchaîner » restent arbitrées par
+//  `ChalIntDuelFlow` (`requestDuelSubmission`), qui les lui transmet pour un
+//  raccord ultérieur. Aucun comportement d'affichage n'est modifié.
+//
 //  Limite assumée : les outils de saisie riches de la source (clavier maths,
 //  dictée, photo de copie, console Python) vivent dans leurs propres lots et ne
 //  sont pas repris ici ; la saisie reste un champ texte multiligne.
@@ -96,6 +107,18 @@ struct ChalRunRounds: View {
     /// Avis d'exercice déjà commencé, affiché en tête de manche.
     var startedPenalty: Int = 0
     var opponentStartedBonus: Int = 0
+    /// Exercices déjà validés de la série, dans l'ordre (voir
+    /// `ChalSeries.buildExercise`, qui réunit la copie notée). Transmis par
+    /// `ChalIntDuelFlow` pour la remise ; **stocké et inerte** dans cette vue
+    /// (aucun affichage ne le consomme encore) — voir en-tête de fichier.
+    var completedSeries: [ChalCompletedExercise] = []
+    /// Demande de remise d'une fin d'exercice non terminale
+    /// (`ChallengesScreen.tsx:1319-1344`) : la vue fournit l'action `proceed`
+    /// (« Enchaîner ») et l'appelant décide de la lancer tout de suite ou de la
+    /// différer (voir `ChalIntDuelFlow.requestDuelSubmission(proceed:)`, qui
+    /// reçoit cette action `@escaping`). **Stocké et inerte** ici : le flux qui
+    /// l'arbitre reste porté par `ChalIntDuelFlow` — voir en-tête de fichier.
+    var onSubmitRequested: (@escaping () -> Void) -> Void = { _ in }
     /// Appelé quand la copie est notée et l'attente adverse résolue.
     var onVerdict: (DuelVerdict) -> Void
     /// Appelé pour abandonner le défi sans gagner d'XP.
@@ -109,6 +132,9 @@ struct ChalRunRounds: View {
     /// Fenêtre Premium ouverte quand le quota de corrections est épuisé
     /// (`paywallVisible` de la source).
     @State private var paywallVisible = false
+    /// Quota de corrections du compte (`useCorrectionQuota`) : `nil` tant que le
+    /// serveur n'a pas répondu, ou quand sa réponse n'est pas exploitable.
+    @State private var quota: PremQuotaSnapshot?
 
     // `let` et non `var` : une propriété stockée `private var` dotée d'une valeur
     // initiale entre dans l'initialiseur membre-à-membre, ce qui rend celui-ci
@@ -167,10 +193,19 @@ struct ChalRunRounds: View {
         .background(Theme.background)
         .onReceive(timer) { _ in tick() }
         .onDisappear { gradeTask?.cancel() }
+        // `useCorrectionQuota` : la ligne d'état de la fenêtre Premium est
+        // alimentée par le quota durable du compte, relu au montage.
+        .task {
+            quota = try? await PremQuotaService.load(token: session.token, userId: userId)
+        }
         // Quota épuisé : la fenêtre Premium s'ouvre par-dessus la copie
         // (`PaywallModal`, `paywallVisible` de la source).
         .sheet(isPresented: $paywallVisible) {
-            PremPaywallSheet(token: session.token, onClose: { paywallVisible = false })
+            PremPaywallSheet(
+                quota: quota,
+                token: session.token,
+                onClose: { paywallVisible = false }
+            )
         }
     }
 
@@ -376,92 +411,5 @@ struct ChalRunRounds: View {
                 }
             }
         }
-    }
-}
-
-/// Chrono du défi (`DuelChrono`) : décompte « m:ss », rouge dans la dernière
-/// minute, rendu depuis un instantané déjà borné par `ChalTimer`.
-struct ChalRunChrono: View {
-    let remainingSeconds: Int
-
-    var body: some View {
-        Text(ChalTimer.clock(remainingSeconds))
-            .font(.system(size: 20, weight: .black).monospacedDigit())
-            .foregroundStyle(remainingSeconds <= 60 ? Theme.like : Theme.ink)
-    }
-}
-
-/// Onglets des questions d'un exercice (`questionTabs`) : disent laquelle est
-/// ouverte et lesquelles portent déjà une réponse. Un exo d'une seule question
-/// n'a pas d'onglets : son champ est la copie.
-struct ChalRunQuestionTabs: View {
-    let questions: [DuelExercise.Question]
-    let activeId: String
-    let answers: [String: String]
-    var disabled: Bool = false
-    var onSelect: (String) -> Void
-
-    var body: some View {
-        if questions.count > 1 {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(Array(questions.enumerated()), id: \.element.id) { index, question in
-                        tab(index: index, question: question)
-                    }
-                }
-            }
-        }
-    }
-
-    private func tab(index: Int, question: DuelExercise.Question) -> some View {
-        let active = question.id == activeId
-        let written = !(answers[question.id] ?? "")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .isEmpty
-        return Button {
-            onSelect(question.id)
-        } label: {
-            HStack(spacing: 5) {
-                Text(duelQuestionLabel(question, index))
-                if written {
-                    Circle()
-                        .fill(active ? Theme.surface : Theme.ink)
-                        .frame(width: 5, height: 5)
-                }
-            }
-            .font(.system(size: 13, weight: .heavy))
-            .foregroundStyle(active ? Theme.surface : Theme.inkSoft)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 7)
-            .background(active ? Theme.ink : Theme.surfaceMuted)
-            .clipShape(Capsule())
-            .overlay(
-                Capsule().stroke(active ? Color.clear : Theme.border, lineWidth: 1)
-            )
-        }
-        .buttonStyle(.plain)
-        .disabled(disabled)
-        .opacity(disabled ? 0.5 : 1)
-        .accessibilityLabel("Question \(duelQuestionLabel(question, index))")
-    }
-}
-
-/// Avis en ligne d'un défi (`successNotice`) : pénalité, bonus ou alerte.
-struct ChalRunNotice: View {
-    let icon: String
-    let text: String
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 8) {
-            IonIcon(name: icon, size: 20, color: Theme.ink)
-            Text(text)
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(Theme.inkSoft)
-                .lineSpacing(2)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background(Theme.primaryLight)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
     }
 }

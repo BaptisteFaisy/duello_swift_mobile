@@ -191,11 +191,124 @@ private func settledVerdict(
     return verdict
 }
 
-/// Rend le verdict d'un défi contre un joueur réel (`judgeDuel`). Seule la
+/// Applique ensemble les deux compensations liées à l'historique de l'exercice
+/// (`applyDuelScoreAdjustments` de `duel.ts`). Les calculer en une fois évite un
+/// effet de bord aux bornes : si les deux joueurs connaissaient déjà l'exercice,
+/// bonus et pénalité s'annulent exactement, même pour une copie notée 0 ou 100.
+private func adjustScore(
+    _ assessment: ProductionAssessment,
+    penalty: Int,
+    bonus: Int
+) -> ProductionAssessment {
+    let penalty = max(0, penalty)
+    let bonus = max(0, bonus)
+    if penalty == 0 && bonus == 0 { return assessment }
+    let trimmed = assessment.note
+        .trimmingCharacters(in: .whitespaces)
+        .replacingOccurrences(of: #"\.*$"#, with: "", options: .regularExpression)
+    var notes = [trimmed]
+    if penalty > 0 { notes.append("Exercice déjà commencé : pénalité de \(penalty) points") }
+    if bonus > 0 { notes.append("Adversaire déjà familiarisé avec l’exercice : bonus de \(bonus) points") }
+    return ProductionAssessment(
+        score: min(100, max(0, assessment.score - penalty + bonus)),
+        note: notes.filter { !$0.isEmpty }.joined(separator: ". ") + "."
+    )
+}
+
+/// `evaluateDuel` : les deux copies sont notées au barème local (l'une des deux
+/// au moins n'a pas été notée par l'IA), départagées avec la zone d'égalité de
+/// quatre points (`DRAW_MARGIN`) — le barème local ne mesure que des indices de
+/// rigueur, deux ou trois points d'écart n'y veulent rien dire.
+private func localTrainingVerdict(
+    rawMine: ProductionAssessment,
+    mine: ProductionAssessment,
+    theirs: ProductionAssessment
+) -> DuelVerdict {
+    let diff = mine.score - theirs.score
+    let outcome: DuelVerdict.Outcome = abs(diff) <= 4 ? .draw : (diff > 0 ? .me : .opponent)
+    let lead: String
+    let justification: String
+    switch outcome {
+    case .draw:
+        lead = "Les deux réponses se valent"
+        justification = "les deux copies sont au même niveau"
+    case .me:
+        lead = "Ta réponse l’emporte"
+        justification = "raisonnement jugé plus complet et mieux justifié"
+    case .opponent:
+        lead = "L’adversaire l’emporte"
+        justification = "sa réponse a été jugée plus rigoureuse"
+    }
+    let scores = outcome == .opponent
+        ? "\(theirs.score) contre \(mine.score)"
+        : "\(mine.score) contre \(theirs.score)"
+    return DuelVerdict(
+        outcome: outcome,
+        won: outcome == .me,
+        summary: "\(lead) (\(scores)) : \(justification).",
+        me: mine,
+        unadjustedMeScore: rawMine.score,
+        opponent: theirs,
+        opponentAnswers: nil,
+        source: .local,
+        ranked: true,
+        elo: nil
+    )
+}
+
+/// Rend le verdict d'un défi contre l'adversaire d'entraînement
+/// (`match.opponent.training`, `duelJudge.ts:385`) : les deux copies sont sur ce
+/// téléphone et partent à la notation côte à côte, puis sont comparées — aucune
+/// copie ne monte au serveur des défis. La copie d'en face vient de
+/// `exercise.opponentProduction` côté RN ; le port la reçoit par paramètre (le
+/// champ n'est pas encore sur `DuelExercise`, cf. « À raccorder »).
+private func judgeTrainingDuel(
+    match: MatchView,
+    subject: String,
+    exercise: DuelExercise,
+    myProduction: String,
+    opponentProduction: String,
+    opponentAnswers: [String: String]?,
+    penalty: Int,
+    bonus: Int,
+    token: String
+) async throws -> DuelVerdict {
+    let operationKey = "duel:\(match.id)"
+    async let mineCopy = gradeCopy(
+        subject: subject, exercise: exercise, production: myProduction,
+        durationMinutes: match.durationMinutes, operationKey: operationKey, token: token
+    )
+    async let theirCopy = gradeCopy(
+        subject: subject, exercise: exercise, production: opponentProduction,
+        durationMinutes: match.durationMinutes, operationKey: operationKey, token: token
+    )
+    let (rawMine, theirs) = try await (mineCopy, theirCopy)
+    let mine = adjustScore(rawMine.assessment, penalty: penalty, bonus: bonus)
+    let trimmedOpponent = opponentProduction.trimmingCharacters(in: .whitespacesAndNewlines)
+    var revealed = opponentAnswers
+    if revealed == nil, exercise.questions.count == 1, !trimmedOpponent.isEmpty,
+       let question = exercise.questions.first {
+        revealed = [question.id: trimmedOpponent]
+    }
+    if rawMine.source == .ai && theirs.source == .ai {
+        var verdict = compareGrades(mine, theirs.assessment)
+        verdict.unadjustedMeScore = rawMine.assessment.score
+        verdict.opponentAnswers = revealed
+        return verdict
+    }
+    var verdict = localTrainingVerdict(
+        rawMine: rawMine.assessment, mine: mine, theirs: theirs.assessment
+    )
+    verdict.opponentAnswers = revealed
+    return verdict
+}
+
+/// Rend le verdict d'un défi (`judgeDuel`). Contre un joueur réel, seule la
 /// copie du joueur est notée ici, et c'est sa note qui va à la rencontre de
-/// l'autre. Lève `DuelQuotaError` lorsque le quota de correction est épuisé.
-/// Les ajustements liés à un exercice déjà commencé ne s'appliquent pas en
-/// v1 : l'app n'envoie pas d'historique d'exercices.
+/// l'autre ; contre l'adversaire d'entraînement, les deux copies partent à la
+/// notation côte à côte (`judgeTrainingDuel`). Lève `DuelQuotaError` lorsque le
+/// quota de correction est épuisé. `scorePenalty`/`scoreBonus` portent les
+/// ajustements d'un exercice déjà commencé (`applyDuelScoreAdjustments`).
 func judgeDuel(
     match: MatchView,
     subject: String,
@@ -204,6 +317,10 @@ func judgeDuel(
     answers: [String: String],
     userId: String,
     token: String,
+    scorePenalty: Int = 0,
+    scoreBonus: Int = 0,
+    opponentProduction: String? = nil,
+    opponentAnswers: [String: String]? = nil,
     onWaitingForOpponent: ((Double) -> Void)? = nil
 ) async throws -> DuelVerdict {
     // Réserve la correction de ce défi **avant** toute notation
@@ -220,21 +337,31 @@ func judgeDuel(
             nextFreeAt: nil
         )
     }
+    // Adversaire d'entraînement : les deux copies partent côte à côte. Le port
+    // n'active la branche que si la copie d'en face est fournie (le champ n'est
+    // pas encore porté) ; sinon il retombe sur le chemin serveur, sans régression.
+    if match.opponent.training == true, let opponentProduction {
+        return try await judgeTrainingDuel(
+            match: match, subject: subject, exercise: exercise,
+            myProduction: myProduction, opponentProduction: opponentProduction,
+            opponentAnswers: opponentAnswers,
+            penalty: scorePenalty, bonus: scoreBonus, token: token
+        )
+    }
     // Les deux copies d'un même défi partagent la même clé de quota.
-    let mine = try await gradeCopy(
-        subject: subject,
-        exercise: exercise,
-        production: myProduction,
-        durationMinutes: match.durationMinutes,
-        operationKey: "duel:\(match.id)",
+    let rawMine = try await gradeCopy(
+        subject: subject, exercise: exercise, production: myProduction,
+        durationMinutes: match.durationMinutes, operationKey: "duel:\(match.id)",
         token: token
     )
-    return await settleAgainstPlayer(
-        match: match,
-        userId: userId,
-        token: token,
-        mine: mine,
-        answers: answers,
-        onWaitingForOpponent: onWaitingForOpponent
+    let mine = (
+        assessment: adjustScore(rawMine.assessment, penalty: scorePenalty, bonus: scoreBonus),
+        source: rawMine.source
     )
+    var verdict = await settleAgainstPlayer(
+        match: match, userId: userId, token: token, mine: mine,
+        answers: answers, onWaitingForOpponent: onWaitingForOpponent
+    )
+    verdict.unadjustedMeScore = rawMine.assessment.score
+    return verdict
 }

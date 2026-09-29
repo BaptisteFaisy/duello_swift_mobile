@@ -23,6 +23,14 @@
 //    - le `Modal animationType="slide"` devient la présentation `.sheet`
 //      (glissement système), la hauteur `%` un `PresentationDetent` fractionnaire.
 //
+//  Discussion libre (2026-09-29) : `syncRequest` branche `openBlank` quand le
+//  passage est vide sans photo, et le panneau reçoit `chatMode` (cf.
+//  `useProfTutor.ts:59-68,156-160`). Ces deux appels dépendent de hunks **hors
+//  lot** — `ProfTutorSession.swift` (`PROF_BLANK_GREETING`, `openBlank`, 3e
+//  branche du rejeu `send`) et `ProfTutorViews.swift` (paramètre `chatMode`,
+//  `locked = streaming || (messages.isEmpty && !chatMode)`) — décrits en
+//  « À raccorder » du rapport IMPL-07.
+//
 //  Cible : iOS 16. Aucune dépendance externe.
 //
 
@@ -79,6 +87,12 @@ struct ProfTutorSheet: View {
     }
 
     /// Le panneau du prof IA, alimenté par la session.
+    ///
+    /// Discussion libre : le paramètre `chatMode` et le branchement de
+    /// `syncRequest` sur `openBlank` (cf. `useProfTutor.ts:59-68`) relèvent de
+    /// fichiers **hors lot** — `ProfTutorSession.swift` et `ProfTutorViews.swift`
+    /// (cf. « À raccorder » du rapport IMPL-07). Tant qu'ils ne sont pas posés,
+    /// le panneau garde son contrat actuel (aucun symbole manquant n'est appelé).
     private var panel: some View {
         ProfTutorPanel(
             imageUri: tutor.request?.imageUri,
@@ -208,6 +222,11 @@ struct ProfTutorSheet: View {
         if let image = request.image, let mimeType = request.mimeType {
             tutor.openImage(image: image, mimeType: mimeType, context: request.context)
         } else {
+            // Discussion libre (`request.quote` vide, sans photo) : la source
+            // appelle `openBlank` (`ProfTutorSheet.tsx:88-92`). La méthode
+            // manque côté `ProfTutorSession.swift` (hors lot) — cf. « À
+            // raccorder » du rapport IMPL-07 ; d'ici là le passage vide suit
+            // `open`, sans symbole manquant.
             tutor.open(quote: request.quote, context: request.context)
         }
     }

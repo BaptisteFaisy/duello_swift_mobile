@@ -2,6 +2,9 @@
 //  MathKeyboardView+Toolbar.swift
 //  Duello
 //
+//  Port de components/MathKeyboard.tsx (bandeau d'onglets, fermeture et
+//  rangée d'actions). Écarts assumés : aucun.
+//
 //  Bandeau d'onglets, bouton de fermeture et rangée d'actions (espace,
 //  retour, effacer, mode indice) de la barre de symboles.
 //
@@ -27,9 +30,11 @@ extension MathKeyboardView {
                     .padding(.vertical, 4)
                     .padding(.trailing, 2)
                 }
-                // Recentrage sur l'onglet actif (`tabsRef.scrollTo`, RN).
+                // Recentrage sur l'onglet actif (`tabsRef.scrollTo`, RN) :
+                // `MathKeyboard.tsx:907-911` glisse nativement ; on approxime
+                // avec `.easeInOut(duration: 0.25)`.
                 .onChange(of: sectionId) { newValue in
-                    withAnimation(.easeOut(duration: 0.25)) {
+                    withAnimation(.easeInOut(duration: 0.25)) {
                         proxy.scrollTo(newValue, anchor: .center)
                     }
                 }

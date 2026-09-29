@@ -14,6 +14,12 @@
 //  dans `OnbFlowCoordinator`, le contenu dans `OnbFlowStepContent`, la passation
 //  dans `OnbFlowHandoff`.
 //
+//  V2 (29/09/2026, parité RN dev) : init enrichi des identités de fournisseur
+//  initiales (`initialGoogleIdentity` / `initialAppleIdentity`). À raccorder
+//  (hors lot) : `OnboardingView` / `SignupFlowView` passent `onProgramSelected`,
+//  `onTrainingSurfaceReady` et ces identités (`App.tsx:2508-2521`). Écart assumé
+//  iOS : l'alerte de notifications omet « Android » (`OnboardingScreen.tsx:945`).
+//
 //  Cible : iOS 16. Aucune dépendance externe.
 //
 import SwiftUI
@@ -44,6 +50,8 @@ struct OnbFlowView: View {
         mode: OnbDataSteps.Mode,
         initialProfile: UserProfile,
         requiresRegistrationPreflight: Bool? = nil,
+        initialGoogleIdentity: GoogleIdentity? = nil,
+        initialAppleIdentity: AppleAuthIdentity? = nil,
         onComplete: @escaping (UserProfile, OnbUiCredentials) async -> Void,
         onProgramSelected: @escaping (UserProfile) -> Void = { _ in },
         onTrainingSurfaceReady: @escaping () -> Void = {},
@@ -54,13 +62,16 @@ struct OnbFlowView: View {
         self.onProgramSelected = onProgramSelected
         self.onTrainingSurfaceReady = onTrainingSurfaceReady
         self.onCancel = onCancel
-        _coordinator = StateObject(
-            wrappedValue: OnbFlowCoordinator(
-                mode: mode,
-                initialProfile: initialProfile,
-                requiresRegistrationPreflight: requiresRegistrationPreflight
-            )
+        // `initialGoogleIdentity` / `initialAppleIdentity` (`OnboardingScreen.tsx:111-112`) :
+        // le parcours peut démarrer avec une identité de fournisseur déjà connue.
+        let coordinator = OnbFlowCoordinator(
+            mode: mode,
+            initialProfile: initialProfile,
+            requiresRegistrationPreflight: requiresRegistrationPreflight
         )
+        coordinator.googleIdentity = initialGoogleIdentity
+        coordinator.appleIdentity = initialAppleIdentity
+        _coordinator = StateObject(wrappedValue: coordinator)
     }
 
     var body: some View {

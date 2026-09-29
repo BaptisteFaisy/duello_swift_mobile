@@ -12,6 +12,11 @@
 //  `UserProfile`, `GoogleIdentity`, `AppleAuthIdentity`, `PlanScheduleSlot`.
 //  Ne redéfinit aucun type existant.
 //
+//  V2 (29/09/2026, parité RN dev) : `OnbUiFieldProps.autoFocus` porte
+//  `onboardingAutofocusFields` (`OnboardingScreen.tsx:353-354`). À raccorder
+//  (hors lot) : les appels école/pseudo/e-mail/mot de passe
+//  (`OnbFlowStepContent.swift:209,239,269,299`) posent `autoFocus: true`.
+//
 
 import SwiftUI
 import UIKit
@@ -112,6 +117,9 @@ struct OnbUiFieldProps {
     var onBlur: (() -> Void)? = nil
     var dark: Bool = false
     var whiteBorder: Bool = false
+    /// `autoFocus` de `Field` : le champ prend le focus à l'apparition
+    /// (`onboardingAutofocusFields`, vrai sur mobile et ordinateur téléchargé).
+    var autoFocus: Bool = false
 }
 
 /// `Field` — champ de formulaire avec légende optionnelle, icône, bordure
@@ -119,6 +127,8 @@ struct OnbUiFieldProps {
 struct OnbUiField<Trailing: View>: View {
     var props: OnbUiFieldProps
     private let trailing: () -> Trailing
+
+    @FocusState private var focused: Bool
 
     init(
         props: OnbUiFieldProps,
@@ -164,6 +174,7 @@ struct OnbUiField<Trailing: View>: View {
                     .stroke(borderColor, lineWidth: 1.5)
             )
         }
+        .onAppear { if props.autoFocus { focused = true } }
     }
 
     /// Couleur de bordure : bord blanc forcé, sinon bord invité, sinon bord
@@ -187,12 +198,14 @@ struct OnbUiField<Trailing: View>: View {
             SecureField(props.placeholder, text: text)
                 .textContentType(.password)
                 .modifier(OnbUiFieldTextStyle(dark: props.dark))
+                .focused($focused)
         } else {
             TextField(props.placeholder, text: text, axis: props.multiline ? .vertical : .horizontal)
                 .keyboardType(props.keyboardType.uiKeyboardType)
                 .textInputAutocapitalization(props.autoCapitalize.textInputAutocapitalization)
                 .autocorrectionDisabled()
                 .modifier(OnbUiFieldTextStyle(dark: props.dark))
+                .focused($focused)
         }
     }
 }

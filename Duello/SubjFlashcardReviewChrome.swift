@@ -20,8 +20,8 @@ import SwiftUI
 // MARK: - Gain XP flottant
 
 /// `+n XP` affiché brièvement au-dessus des compteurs. La source l'anime en
-/// opacité + translation sur 140/280/180 ms ; ici l'apparition/disparition est
-/// animée par l'appelant (`SubjFlashcardReviewHeader`).
+/// opacité + translation via `Animated.sequence` (140/280/180 ms) ; la séquence
+/// complète est portée par `SubjFlashcardReviewHeader.playGainSequence()`.
 struct SubjFlashcardXpGainBadge: View {
     let xp: Double
 
@@ -72,19 +72,41 @@ struct SubjFlashcardReviewHeader: View {
     let counts: CollFlashcardSessionCounts
     let xpGain: Double?
 
+    /// Opacité du gain flottant, pilotée par apparition → tenue → disparition.
+    @State private var gainOpacity: Double = 0
+
     var body: some View {
         VStack(spacing: 0) {
             ZStack {
                 if let xpGain {
                     SubjFlashcardXpGainBadge(xp: xpGain)
-                        .transition(.opacity.combined(with: .offset(y: 5)))
+                        .opacity(gainOpacity)
+                        .offset(y: (1 - gainOpacity) * Self.gainRise)
                 }
             }
             .frame(minHeight: SubjFlashcardReviewMetrics.xpGainSlotMinHeight)
-            .animation(.easeInOut(duration: 0.18), value: xpGain)
             SubjFlashcardCountsRow(counts: counts)
         }
+        .task(id: xpGain) { await playGainSequence() }
     }
+
+    /// `Animated.sequence` de la source : apparition 140 ms, tenue 280 ms,
+    /// disparition 180 ms (opacité 0→1→0, translation 5→0→5). `.task(id:)`
+    /// annule la séquence en cours quand `xpGain` change, comme `animation.stop()`.
+    @MainActor
+    private func playGainSequence() async {
+        guard xpGain != nil else {
+            gainOpacity = 0
+            return
+        }
+        withAnimation(.easeInOut(duration: 0.14)) { gainOpacity = 1 }
+        try? await Task.sleep(nanoseconds: 280_000_000)
+        guard !Task.isCancelled else { return }
+        withAnimation(.easeInOut(duration: 0.18)) { gainOpacity = 0 }
+    }
+
+    /// Décalage vertical initial du gain (`translateY` 5 px RN ≈ 5 pt).
+    private static let gainRise: CGFloat = 5
 }
 
 // MARK: - Sortie

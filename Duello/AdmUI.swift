@@ -19,6 +19,12 @@
 //
 //  Cible : iOS 16. Aucune dépendance externe.
 //
+//  PARITÉ (2026-09-29) — interlettrage repris de la source : en-tête d'écran
+//  `eyebrow` → `letterSpacing 1` (`AdminUsersScreen.tsx:497`), libellé de
+//  section → `letterSpacing 0.9` (`:694`). « Écart assumé » : le libellé de
+//  message (`messageLabel`, `letterSpacing 0.7`) vit dans `AdmReportCards.swift`
+//  (hors lot), non modifié ici.
+//
 
 import SwiftUI
 
@@ -80,6 +86,8 @@ struct AdmPageHeader: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(eyebrow)
                     .font(.system(size: 11, weight: .black))
+                    // `eyebrow: { letterSpacing: 1 }` (`AdminUsersScreen.tsx:497`).
+                    .tracking(1)
                     .textCase(.uppercase)
                     .foregroundStyle(eyebrowColor)
                 Text(title)
@@ -202,6 +210,8 @@ struct AdmSectionLabel: View {
     var body: some View {
         Text(title)
             .font(.system(size: 10, weight: .black))
+            // `sectionLabel: { letterSpacing: 0.9 }` (`AdminUsersScreen.tsx:694`).
+            .tracking(0.9)
             .textCase(.uppercase)
             .foregroundStyle(Theme.inkFaint)
             .frame(maxWidth: .infinity, alignment: .leading)

@@ -26,9 +26,19 @@
 //  `onBack`, à raccorder par la racine (`MainTabView`) au pager d'onglets
 //  (`yieldBackSwipeToTabPager` de `OrderedTabPager`).
 //
+//  V2 (2026-09-29) — écart U07#12 « barre d'onglets non passée au noir » :
+//  la capsule prend le noir franc `#000000` de la source
+//  (`ChallengesScreen.tsx:3315`, `backgroundColor: '#000000'`) ; l'onglet actif
+//  passe au **fond blanc** avec texte et icône en encre, les inactifs restent
+//  blancs, et la pastille « nouveau » devient blanche (`sectionNewDot: colors.white`).
+//
 //  Cible : iOS 16, aucune API iOS 17.
 //
 import SwiftUI
+
+/// Fond de la capsule Défis / Événements : noir franc de la source
+/// (`challengeSectionTabs`, `#000000`), distinct de `Theme.ink` (0x0A0D0C).
+private let chalHome2SectionCapsule = Color(hex: 0x000000)
 
 /// Espaces en tête d'écran des défis (`ChallengeHomeSection`).
 enum ChalHome2Section: String, Equatable, CaseIterable {
@@ -68,7 +78,7 @@ struct ChalHome2SectionTabs: View {
             }
         }
         .padding(2)
-        .background(Theme.surfaceMuted)
+        .background(chalHome2SectionCapsule)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .accessibilityElement(children: .contain)
     }
@@ -81,21 +91,21 @@ struct ChalHome2SectionTabs: View {
             section = item
         } label: {
             HStack(spacing: 4) {
-                IonIcon(name: item.icon, size: 14, color: selected ? Theme.surface : Theme.inkSoft)
+                IonIcon(name: item.icon, size: 14, color: selected ? Theme.ink : Theme.white)
                 Text(item.title)
                     .font(.system(size: 12, weight: .heavy))
                 // Pastille « nouveau » : un événement ajouté au catalogue se
                 // repère depuis l'accueil Défis, hors section seulement.
                 if showsNewDot {
                     Circle()
-                        .fill(Theme.ink)
+                        .fill(Theme.white)
                         .frame(width: 8, height: 8)
                 }
             }
-            .foregroundStyle(selected ? Theme.surface : Theme.inkSoft)
+            .foregroundStyle(selected ? Theme.ink : Theme.white)
             .frame(minHeight: 30)
             .padding(.horizontal, 12)
-            .background(selected ? Theme.ink : Color.clear)
+            .background(selected ? Theme.white : Color.clear)
             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         }
         .buttonStyle(.plain)

@@ -41,11 +41,22 @@
 //    transporte que le texte : les touches qui reculent le curseur après
 //    insertion (`back`, ex. `()`, `{}`, `√()`) perdent ce recul. La variante
 //    `init(mode:onInsertWithBack:onBackspace:onClose:)` le transmet.
-//  - Sans `value` / `selection` dans le contrat d'intégration, l'édition d'une
-//    construction **déjà écrite** dans la réponse (parsing inverse
-//    `findMatrixAtSelection` / `findMathOperatorAtSelection`, raccourci
-//    « Modifier … ») n'est pas portée : les outils guidés composent une
-//    construction neuve.
+//  - Écarts assumés (2026-09-29) — édition d'une construction **déjà écrite**
+//    (« Modifier … », `MathKeyboard.tsx:457-478,498-508,1038-1060`) : non
+//    portée. Deux blocages :
+//      (1) **Plateforme** — iOS 16 n'expose pas la sélection d'un `TextField` ;
+//          `value`/`selection` ne peuvent pas être suivis sans un champ
+//          `UIViewRepresentable` (le contrat `init(mode:…)` reste donc sans
+//          `value`/`selection`) ;
+//      (2) **Hors lot** — le parseur inverse matrice
+//          (`findMatrixAtSelection`, `StmtMatrixParse.swift`), le remplacement
+//          de la construction d'origine (`replacement`, `MathKbDrafts.swift`) et
+//          la validation « Mettre à jour » (`MathKeyboardView+OperatorEditor.swift`,
+//          `commitOperator` qui **insère** au lieu de remplacer) vivent dans
+//          d'autres fichiers.
+//    Le parseur inverse d'opérateur est, lui, porté (`StmtOperatorParse.findMathOperatorAtSelection`).
+//    Rendre le bandeau sans le remplacement produirait une construction en double
+//    à la validation : volontairement non affiché.
 //  - SwiftUI iOS 16 n'expose pas la sélection d'un `TextField`. Là où la source
 //    suivait un curseur par champ (`CaretText` : `insertAtCaret` /
 //    `deleteAtCaret`, §2.1), les touches maths **s'ajoutent en fin** du champ

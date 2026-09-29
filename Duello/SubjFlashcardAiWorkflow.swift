@@ -67,6 +67,9 @@ struct SubjFlashcardAiWorkflow: View {
     @State private var aiGrade: CollMathGrade?
     @State private var aiError = ""
     @State private var transcriptionPending = false
+    /// `requestAiDataSharingConsent` : fenêtre d'accord IA ouverte à la
+    /// soumission quand aucun accord n'est encore enregistré.
+    @State private var consentVisible = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -93,6 +96,19 @@ struct SubjFlashcardAiWorkflow: View {
         }
         .onChange(of: grading) { value in
             if value { mathKeyboardOpen = false }
+        }
+        // Consentement IA demandé à la soumission (`SubjectsScreen.tsx:2575-2580`) :
+        // refus → `declinedLabel`, rien ne part ; accord → `grant` puis envoi.
+        .alert(CtdAiConsent.title, isPresented: $consentVisible) {
+            Button(CtdAiConsent.denyLabel, role: .cancel) {
+                aiError = CtdAiConsent.declinedLabel
+            }
+            Button(CtdAiConsent.allowLabel) {
+                CtdAiConsent.grant()
+                Task { await submitCorrection() }
+            }
+        } message: {
+            Text(CtdAiConsent.message)
         }
     }
 
@@ -211,6 +227,14 @@ struct SubjFlashcardAiWorkflow: View {
         guard !grading, !transcriptionPending else { return }
         guard !submitted.isEmpty else {
             aiError = SubjFlashcardReviewCopy.emptyAnswerError
+            return
+        }
+        // Le consentement se demande ici, sur la page de soumission : sans
+        // autorisation, rien ne part et l'indicateur ne s'allume même pas
+        // (`SubjectsScreen.tsx:2577-2580`). L'accord donné, la fenêtre rappelle
+        // `submitCorrection`, qui passe alors la garde.
+        guard CtdAiConsent.isGranted else {
+            consentVisible = true
             return
         }
         grading = true

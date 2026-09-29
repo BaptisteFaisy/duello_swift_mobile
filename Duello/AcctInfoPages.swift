@@ -22,6 +22,17 @@
 //  V1 (2026-09-26) — écart U08#2 : `AcctInfoAccountPage.onDeleteAccount`
 //  devient asynchrone et faillible (suppression réelle du compte).
 //
+//  V3 (2026-09-29) — écart U08#54 « logo cube Duello » : la source RN affiche
+//  `assets/duello-logo.png` (arêtes noires sur fond blanc, `AccountScreen.tsx:104`)
+//  devant la ligne « Duello ». Ce PNG n'est pas présent dans le bundle Swift
+//  (Assets.xcassets ne porte que `DuelloLogo`, la variante blanche) et l'asset
+//  `DuelloCubeLogo` n'existe pas : `UIImage(named:)` renvoie `nil` et l'ancien
+//  repli `icon: "cube.transparent"` — un nom SF Symbols, pas Ionicons — ne
+//  rendait **rien**. Le repli est désormais le glyphe Ionicons `cube-outline`
+//  (cube isométrique, équivalent visuel) ; si le PNG cube est un jour embarqué
+//  sous `DuelloCubeLogo`, `AcctInfoCategoryRow` le prendra automatiquement.
+//  Écart assumé : le glyphe vectoriel remplace le PNG (aucun asset ajoutable ici).
+//
 //  V2 (2026-09-28) — parité Swift↔RN :
 //    - #17/#18/#27 : le nom et l'année sont liés au profil (persistance) et le
 //      changement d'année recalcule la filière (`changeDraftYear`) ;
@@ -79,15 +90,20 @@ enum AcctInfoNotificationsTabs {
 struct AcctInfoMenuPage: View {
     let onSelect: (AcctInfoPage) -> Void
 
-    /// Asset du logo cube Duello (`DUELLO_CUBE_LOGO_SOURCE`).
+    /// Asset du logo cube Duello (`DUELLO_CUBE_LOGO_SOURCE`, `assets/duello-logo.png`).
     static let duelloLogoAsset = "DuelloCubeLogo"
+
+    /// Repli si l'asset cube n'est pas dans le bundle : glyphe Ionicons
+    /// équivalent (cube isométrique). Un nom SF Symbols ici ne rendrait rien
+    /// (`IonIcon` ne lit que la table Ionicons).
+    static let duelloLogoFallbackIcon = "cube-outline"
 
     var body: some View {
         VStack(spacing: 0) {
             AcctInfoCategoryRow(icon: "person-outline", label: "Mes informations") { onSelect(.personal) }
             AcctInfoCategoryRow(icon: "settings-outline", label: "Mon compte") { onSelect(.account) }
             AcctInfoCategoryRow(
-                icon: "cube.transparent",
+                icon: Self.duelloLogoFallbackIcon,
                 assetIcon: Self.duelloLogoAsset,
                 iconSize: AcctInfoRowMetrics.duelloLogoSize,
                 label: "Duello"

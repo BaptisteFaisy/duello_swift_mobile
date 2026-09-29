@@ -20,6 +20,13 @@
 //  geste partagé ; elle ne remplace pas `requireExternalGestureToFail` de
 //  gesture-handler (aucune API SwiftUI équivalente sur iOS 16).
 //
+//  V2 (29/09/2026, parité RN dev) : la cession du geste de retour
+//  (`shouldYieldBackSwipeToTabPager`, `orderedTabSwipe.ts:74-83`) est exposée.
+//  À raccorder (hors lot) : `Ui2OrderedTabPager.swipeGesture` appelle
+//  `claimByNestedPager()` sur l'intention `.horizontal`, `releaseNestedPager()`
+//  au relâchement, et consulte `shouldYieldBackSwipeToTabPager` pour rendre le
+//  geste au pager parent depuis la première page.
+//
 import SwiftUI
 
 /// Jeton partagé, équivalent de `BottomTabSwipeGestureContext`.
@@ -39,6 +46,18 @@ final class SwipeBottomTabGestureHandle {
     /// Le sous-pager relâche le mouvement (`release()` de la source).
     func releaseNestedPager() {
         isClaimedByNestedPager = false
+    }
+
+    /// `shouldYieldBackSwipeToTabPager` (`orderedTabSwipe.ts:74-83`) : depuis la
+    /// première page d'un sous-pager, un swipe vers la droite appartient au pager
+    /// d'onglets parent. Le sous-pager échoue alors pour lui rendre le geste
+    /// (`yieldBackSwipeToTabPager`, `OrderedTabPager.tsx:215-228`).
+    func shouldYieldBackSwipeToTabPager(
+        gestureStartPage: Int,
+        translationX: CGFloat,
+        yieldEnabled: Bool
+    ) -> Bool {
+        yieldEnabled && gestureStartPage <= 0 && translationX > 0
     }
 }
 

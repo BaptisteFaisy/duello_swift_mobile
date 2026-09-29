@@ -1,3 +1,19 @@
+//
+//  HecJourneyView.swift
+//  Duello
+//
+//  Port de `src/components/HecJourney.tsx` (orchestration) et de
+//  `src/components/HecJourneyScene.tsx` (scène, transposée en 2D).
+//
+//  Écarts assumés (2026-09-29) :
+//    - Origine de la frise : `registeredAt` = `account.createdAt`
+//      (`App.tsx:2828`), résolu depuis le registre local par l'adresse du
+//      profil ; repli sur la première ouverture du parcours
+//      (`HecJourneyStore.resolveRegistrationDate`) si le compte est absent.
+//    - Geste horizontal (`onTabSwipeStart/Move/End/Cancel`) laissé au pager
+//      parent ; `onReady` (création du contexte OpenGL) sans objet en 2D.
+//
+
 import SwiftUI
 
 /// Écran « PARCOURS HEC » : la frise des blocs datés, du chapitre au blason
@@ -74,8 +90,11 @@ struct HecJourneyView: View {
     /// Parcours déduit du profil : filière, année, chapitres de mathématiques.
     ///
     /// `registeredAt` reste l'origine de la frise. La source la reçoit du
-    /// compte (`createdAt` serveur) ; tant que la racine ne la fournit pas, le
-    /// magasin retombe sur la première ouverture du parcours.
+    /// compte (`account.createdAt`, `App.tsx:2828` → `HecJourney.tsx:153,172`) ;
+    /// si l'appelant ne la fournit pas, elle est résolue depuis le registre
+    /// local par l'adresse du profil. Le repli sur la première ouverture du
+    /// parcours (`HecJourneyStore`) ne joue plus que pour un compte absent du
+    /// registre.
     init(
         profile: UserProfile,
         registeredAt: Date? = nil,
@@ -89,11 +108,23 @@ struct HecJourneyView: View {
             admissionTrack: profile.track,
             programYear: year,
             startingProgramYear: year,
-            registeredAt: registeredAt,
+            registeredAt: registeredAt ?? Self.accountRegistrationDate(for: profile),
             onBack: onBack,
             onOpenRanking: onOpenRanking,
             onOpenChapter: onOpenChapter
         )
+    }
+
+    /// `createdAt` du compte (`account.createdAt`, `App.tsx:2828`), en
+    /// millisecondes dans le registre local — converti en date. `nil` si le
+    /// compte est introuvable : `HecJourneyStore` retombe alors sur la première
+    /// ouverture du parcours.
+    private static func accountRegistrationDate(for profile: UserProfile) -> Date? {
+        guard let millis = AcctLocalRegistry.findAccountByEmail(
+            AcctLocalRegistry.loadAccounts(),
+            email: profile.email
+        )?.createdAt, millis > 0 else { return nil }
+        return Date(timeIntervalSince1970: millis / 1000)
     }
 
     // MARK: Corps

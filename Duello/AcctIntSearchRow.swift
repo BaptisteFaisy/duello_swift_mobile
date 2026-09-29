@@ -19,9 +19,23 @@
 //  (`notificationBadge`, « 9+ » au-delà de 9) ; retour d'appui `pressed`
 //  (opacité 0,75) ; icônes rendues par `IonIcon` (noms exacts du RN).
 //
+//  V3 (29/09/2026, parité RN dev) : la cloche et la roue prennent le noir
+//  absolu `#000000` en fond et en bord, et des symboles blancs
+//  (`settingsIconButton`, `AccountScreen.tsx:4556-4564`) — `Theme.surface`,
+//  `Theme.border` et `Theme.ink` y étaient erronés.
+//
+//  À raccorder (hors lot) : la barre de recherche elle-même vit dans
+//  `AcctSearchView.swift` (`AcctSearchBar:41,47,52,65,73,77`), à repeindre de
+//  la même façon — fond/bord `#000000`, loupe et croix blanches, saisie blanche,
+//  invite `rgba(255,255,255,0.55)`.
+//
 //  Cible : iOS 16, aucune API iOS 17.
 //
 import SwiftUI
+
+/// `#000000` des styles `peopleSearchBar` / `settingsIconButton`
+/// (`AccountScreen.tsx:4546-4564`) : noir absolu, distinct de `Theme.ink`.
+private let acctSearchAbsoluteBlack = Color(hex: 0x000000)
 
 /// Ligne de recherche du profil : champ, cloche des notifications, réglages.
 @MainActor
@@ -58,13 +72,13 @@ struct AcctIntSearchRow: View {
             IonIcon(
                 name: unread > 0 ? "notifications" : "notifications-outline",
                 size: 20,
-                color: Theme.ink
+                color: Theme.white
             )
             .frame(width: 40, height: 40)
-            .background(Theme.surface)
+            .background(acctSearchAbsoluteBlack)
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .overlay(
-                RoundedRectangle(cornerRadius: 12).stroke(Theme.border, lineWidth: 1)
+                RoundedRectangle(cornerRadius: 12).stroke(acctSearchAbsoluteBlack, lineWidth: 1)
             )
             .overlay(alignment: .topTrailing) {
                 if unread > 0 { badge }
@@ -104,12 +118,12 @@ struct AcctIntSearchRow: View {
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            IonIcon(name: icon, size: 20, color: Theme.ink)
+            IonIcon(name: icon, size: 20, color: Theme.white)
                 .frame(width: 40, height: 40)
-                .background(Theme.surface)
+                .background(acctSearchAbsoluteBlack)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 12).stroke(Theme.border, lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 12).stroke(acctSearchAbsoluteBlack, lineWidth: 1)
                 )
         }
         .buttonStyle(AcctPressButtonStyle())

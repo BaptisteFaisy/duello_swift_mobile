@@ -7,9 +7,13 @@ import SwiftUI
 ///
 /// Le moniteur relit toutes les 15 s les corrections encore actives et publie
 /// les nouvelles fiches prêtes. Côté Expo, la fin d'une correction déclenche en
-/// plus une notification téléphone et une ligne d'historique de note ; ici les
-/// fiches prêtes sont exposées dans `readyNotices`, que la liste affiche en
-/// bandeau — la notification native est laissée à l'hôte de l'écran.
+/// plus une notification « correction prête » (`withCorrectionReadyNotification`
+/// + `saveNotifications`, `utils/notifications.ts:73-86`) et une ligne
+/// d'historique de note. Ici les fiches prêtes sont exposées dans
+/// `readyNotices`, que la liste affiche en bandeau, **et** la notification est
+/// ajoutée au magasin partagé (`AcctNotificationsStore.addCorrectionReady`,
+/// `AnnaleCorrectionMonitor.tsx:85-94`) — la ligne d'historique de note n'est
+/// pas portée (voir `AnnCopyCorrection…`).
 final class AnnCorrectionMonitor: ObservableObject {
     /// Cadence de re-synchronisation de fond (`AnnaleCorrectionMonitor.tsx`).
     static let backgroundInterval: TimeInterval = 15
@@ -44,6 +48,28 @@ final class AnnCorrectionMonitor: ObservableObject {
         AnnCopyStore.save(jobs)
         if job.status == .ready, previous?.status != .ready {
             readyNotices.insert(job, at: 0)
+            publishCorrectionReady(job)
+        }
+    }
+
+    /// `withCorrectionReadyNotification` + `saveNotifications`
+    /// (`AnnaleCorrectionMonitor.tsx:85-94`) : une fiche prête (et seulement une
+    /// fiche dotée d'un résultat) entre dans le magasin de notifications, une
+    /// seule fois par `jobId`. Le magasin est isolé au fil principal : l'appel
+    /// lui est relayé.
+    private func publishCorrectionReady(_ job: AnnCopyJob) {
+        guard let result = job.result else { return }
+        let jobId = job.jobId
+        let itemId = job.itemId
+        let title = "\(job.title) — \(job.partLabel)"
+        let score = result.score
+        Task { @MainActor in
+            AcctNotificationsStore.shared.addCorrectionReady(
+                jobId: jobId,
+                itemId: itemId,
+                title: title,
+                score: score
+            )
         }
     }
 

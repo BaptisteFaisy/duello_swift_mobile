@@ -15,6 +15,13 @@
 //  du `SocialProfile` de la source : identité (`SocSocialProfile`) + classe,
 //  prépa et XP publiés.
 //
+//  À raccorder (vague 2, 2026-09-29) : ces fonctions et libellés sont portés
+//  mais sans appelant. `withProfIaSearchResults` / `mergeProfIaByIds` /
+//  `withProfIaKnownProfile` et les libellés `PROF_IA_ROLE_LABEL` /
+//  `PROF_IA_SCOPE_LABEL` doivent être câblés dans l'annuaire du compte
+//  (`AcctSearchModel.swift`, `AcctSearchView.swift`…), fichiers hors de cette
+//  unité (voir rapport, « À raccorder »).
+//
 //  Cible : iOS 16. Aucune dépendance externe.
 //
 

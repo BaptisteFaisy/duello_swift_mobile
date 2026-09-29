@@ -173,11 +173,9 @@ struct EvEventActionsBar: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 10)
             .padding(.horizontal, 6)
-            .background(Theme.surface)
-            .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(EvActionCellButtonStyle())
         .disabled(disabled)
         .opacity(disabled ? 0.45 : 1)
     }
@@ -284,5 +282,17 @@ struct EvEventActionsBar: View {
                 if noteToken == token { actionNote = nil }
             }
         }
+    }
+}
+
+/// État d'appui d'une cellule d'action (`actionPressed`,
+/// `EventActionsBar.tsx:418-421`) : fond `surfaceMuted` et opacité 0.72 tant
+/// que le doigt est posé. Hors appui, fond `surface` et rayon `medium`.
+private struct EvActionCellButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(configuration.isPressed ? Theme.surfaceMuted : Theme.surface)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
+            .opacity(configuration.isPressed ? 0.72 : 1)
     }
 }

@@ -99,9 +99,7 @@ struct ScheduleEditorView: View {
     private var header: some View {
         HStack(spacing: 12) {
             Button(action: handleClose) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(Theme.ink)
+                IonIcon(name: "close", size: 24, color: Theme.ink)
                     .frame(width: 40, height: 40)
             }
             .buttonStyle(.plain)
@@ -174,8 +172,7 @@ struct ScheduleEditorView: View {
     private var addButton: some View {
         Button(action: addSlot) {
             HStack(spacing: 6) {
-                Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 18, weight: .semibold))
+                IonIcon(name: "add-circle", size: 20, color: Theme.ink)
                 Text("Ajouter")
                     .font(.system(size: 13, weight: .heavy))
             }
@@ -254,9 +251,7 @@ struct ScheduleEditorView: View {
 private struct ExtraScheduleInfoCard: View {
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            Image(systemName: "info.circle")
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(Theme.ink)
+            IonIcon(name: "information-circle", size: 20, color: Theme.ink)
             Text("Renseigne tes heures de cours pour que Duello adapte ton programme en fonction de ton emploi du temps réel.")
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(Theme.ink)
@@ -283,7 +278,7 @@ private struct ExtraScheduleDayTab: View {
     var body: some View {
         Button(action: action) {
             Text(day)
-                .font(.system(size: 13, weight: .heavy))
+                .font(.system(size: 13, weight: .bold))
                 .foregroundStyle(selected ? Theme.surface : Theme.inkSoft)
                 .padding(.vertical, 10)
                 .padding(.horizontal, 16)
@@ -346,9 +341,7 @@ private struct ExtraScheduleSlotCard: View {
             timeField($slot.endTime, placeholder: "10:00")
             Spacer(minLength: 8)
             Button(action: onDelete) {
-                Image(systemName: "trash")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(Theme.ink)
+                IonIcon(name: "trash-outline", size: 20, color: Theme.ink)
                     .frame(width: 34, height: 34)
             }
             .buttonStyle(.plain)
@@ -378,7 +371,7 @@ private struct ExtraScheduleSlotCard: View {
         VStack(alignment: .leading, spacing: 8) {
             fieldLabel("Salle (optionnel)")
             TextField("Ex: A203", text: roomBinding)
-                .font(.system(size: 14, weight: .semibold))
+                .font(.system(size: 14, weight: .regular))
                 .foregroundStyle(Theme.ink)
                 .padding(.vertical, 10)
                 .padding(.horizontal, 14)
@@ -401,7 +394,7 @@ private struct ExtraScheduleSlotCard: View {
 
     private func fieldLabel(_ text: String) -> some View {
         Text(text)
-            .font(.system(size: 12, weight: .heavy))
+            .font(.system(size: 12, weight: .bold))
             .foregroundStyle(Theme.inkSoft)
     }
 
@@ -411,7 +404,7 @@ private struct ExtraScheduleSlotCard: View {
             .multilineTextAlignment(.center)
             .font(.system(size: 15, weight: .bold))
             .foregroundStyle(Theme.ink)
-            .frame(width: 78)
+            .frame(width: 70)
             .padding(.vertical, 8)
             .background(Theme.background)
             .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
@@ -433,7 +426,7 @@ private struct ExtraScheduleSubjectButton: View {
     var body: some View {
         Button(action: action) {
             Text(subject)
-                .font(.system(size: 12, weight: .heavy))
+                .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(active ? Theme.surface : Theme.inkSoft)
                 .padding(.vertical, 8)
                 .padding(.horizontal, 14)
@@ -450,14 +443,24 @@ private struct ExtraScheduleSubjectButton: View {
 
 // MARK: - État vide
 
-/// `emptyState` : aucun cours le jour sélectionné.
+/// `emptyState` (`ScheduleEditor.tsx:232-241`) : aucun cours le jour
+/// sélectionné — `calendar-outline` 40 `inkFaint`, titre 16/800 `ink` (marge
+/// haute 12), message 12 `inkSoft` (marge haute 6), padding vertical 40.
 private struct ExtraScheduleEmptyState: View {
     var body: some View {
-        DuelloEmptyState(
-            icon: "calendar",
-            title: "Aucun cours ce jour",
-            message: "Appuie sur \"Ajouter\" pour créer un créneau."
-        )
+        VStack(spacing: 0) {
+            IonIcon(name: "calendar-outline", size: 40, color: Theme.inkFaint)
+            Text("Aucun cours ce jour")
+                .font(.system(size: 16, weight: .heavy))
+                .foregroundStyle(Theme.ink)
+                .padding(.top, 12)
+            Text("Appuie sur \"Ajouter\" pour créer un créneau.")
+                .font(.system(size: 12))
+                .foregroundStyle(Theme.inkSoft)
+                .padding(.top, 6)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 40)
         .padding(.horizontal, 20)
     }
 }

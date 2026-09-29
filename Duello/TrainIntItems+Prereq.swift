@@ -18,6 +18,17 @@
 //  « à venir ». Les prérequis **de chapitre** sont vides dans la source RN comme
 //  ici : `chaptersByKey` ne sert qu'aux noms.
 //
+//  Carte de sujet (2026-09-29) : `itemCardModel` ne renseigne encore ni le thème
+//  fiable (`themeLabel`), ni le statut de programme (`programStatus`), ni la
+//  meilleure note (`bestScore`), ni le premier réussisseur (`firstAchiever`) —
+//  métadonnées de `ExerciseItemCard` (`SubjectsScreen.tsx:3185,3313,9362,3138`).
+//  Leurs sources ne sont pas portées : `theme`/`programStatus` absents de
+//  `DuelloAPI.ChapterExercise`, note absente de `ProgressStore.ItemProgress`,
+//  liste des réussites jamais servie. Alimenter le modèle exige d'étendre
+//  `TrainExercise.swift`, `DuelloAPIContent.swift` et `ProgressStore.swift`
+//  (fichiers hors lot) : cf. « À raccorder » du rapport IMPL-07. Aucune donnée
+//  n'est inventée ici.
+//
 //  Cible iOS 16, aucune dépendance externe.
 //
 import SwiftUI

@@ -834,6 +834,8 @@
 		01BA1D8471C3B42DEBDC6468 /* TrainCoursePageDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7523C819477009E643DC4F28 /* TrainCoursePageDocument.swift */; };
 		553F57F37003CCD1C57FFA37 /* TrainCoursePageKnowledge.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10B708AE4AA9BAC2EA9B64A /* TrainCoursePageKnowledge.swift */; };
 		1C463915236512404280FC86 /* TrainCoursePagePositioning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 081FCE4115CFF9B1A9C274FC /* TrainCoursePagePositioning.swift */; };
+		D4B281208229F0842A3356B9 /* ChalRunRoundsChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66E05D9FC6396942B686E896 /* ChalRunRoundsChrome.swift */; };
+		84288D19003FEDC2C63B6FFB /* ExGCorrectionHourglassShapes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B42BE53A4B56353EC582957 /* ExGCorrectionHourglassShapes.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -1665,6 +1667,8 @@
 		7523C819477009E643DC4F28 /* TrainCoursePageDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainCoursePageDocument.swift; sourceTree = "<group>"; };
 		C10B708AE4AA9BAC2EA9B64A /* TrainCoursePageKnowledge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainCoursePageKnowledge.swift; sourceTree = "<group>"; };
 		081FCE4115CFF9B1A9C274FC /* TrainCoursePagePositioning.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainCoursePagePositioning.swift; sourceTree = "<group>"; };
+		66E05D9FC6396942B686E896 /* ChalRunRoundsChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChalRunRoundsChrome.swift; sourceTree = "<group>"; };
+		6B42BE53A4B56353EC582957 /* ExGCorrectionHourglassShapes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExGCorrectionHourglassShapes.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -2517,6 +2521,8 @@
 				7523C819477009E643DC4F28 /* TrainCoursePageDocument.swift */,
 				C10B708AE4AA9BAC2EA9B64A /* TrainCoursePageKnowledge.swift */,
 				081FCE4115CFF9B1A9C274FC /* TrainCoursePagePositioning.swift */,
+				66E05D9FC6396942B686E896 /* ChalRunRoundsChrome.swift */,
+				6B42BE53A4B56353EC582957 /* ExGCorrectionHourglassShapes.swift */,
 			);
 			path = Duello;
 			sourceTree = "<group>";
@@ -3425,6 +3431,8 @@
 				01BA1D8471C3B42DEBDC6468 /* TrainCoursePageDocument.swift in Sources */,
 				553F57F37003CCD1C57FFA37 /* TrainCoursePageKnowledge.swift in Sources */,
 				1C463915236512404280FC86 /* TrainCoursePagePositioning.swift in Sources */,
+				D4B281208229F0842A3356B9 /* ChalRunRoundsChrome.swift in Sources */,
+				84288D19003FEDC2C63B6FFB /* ExGCorrectionHourglassShapes.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

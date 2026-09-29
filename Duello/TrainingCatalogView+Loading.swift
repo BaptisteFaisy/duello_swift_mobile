@@ -45,13 +45,23 @@ extension TrainingCatalogView {
     /// lance le chargement de ses sujets au premier affichage (hors mode Cours,
     /// qui n'affiche pas de liste de sujets).
     func openChapterDetail(_ chapter: TrackChapter) {
+        // L'offset du catalogue est figé à l'ouverture, comme
+        // `openChapter.listScrollOffset` de la source (`SubjectsScreen.tsx:7376`).
+        TrainCatalogueScrollMemory.shared.pendingOpenOffset = TrainCatalogueScrollMemory.shared.offset
         openChapter = chapter
         guard activeMode != .cours else { return }
         Task { await loadExercisesIfNeeded(for: chapter) }
     }
 
-    /// Referme la page du chapitre et revient au programme de la matière.
+    /// Referme la page du chapitre et revient au programme de la matière, à
+    /// l'endroit quitté (`recentlyClosedChapter`, `SubjectsScreen.tsx:4085-4100`) :
+    /// la matière et l'offset figé à l'ouverture sont mémorisés pour que le
+    /// catalogue s'y replace.
     func closeChapterDetail() {
+        TrainCatalogueScrollMemory.shared.restore = TrainCatalogueScrollRestore(
+            subjectId: subject.id,
+            offset: TrainCatalogueScrollMemory.shared.pendingOpenOffset
+        )
         openChapter = nil
     }
 
@@ -108,4 +118,35 @@ extension TrainingCatalogView {
         }
         return TrainExercise.orderedByDifficulty(items)
     }
+}
+
+// MARK: - Mémoire du défilement du catalogue
+
+/// Offset à réappliquer au retour d'un chapitre (`recentlyClosedChapter`).
+struct TrainCatalogueScrollRestore {
+    let subjectId: String
+    let offset: CGFloat
+}
+
+/// Mémoire du défilement du catalogue (`chapterListScrollOffsetRef` +
+/// `recentlyClosedChapter` de `SubjectsScreen.tsx`) : l'offset du programme est
+/// figé à l'ouverture d'un chapitre et rendu au retour, pour que la liste
+/// reprenne là où elle était.
+///
+/// Raccord à faire dans `TrainingCatalogView` (`TrainingCatalogView+Entry.swift`,
+/// hors lot) : publier l'offset courant (`handleChromeScroll` → `offset`) et
+/// appliquer `restore` à l'apparition de la page du catalogue
+/// (`ScrollViewReader` → `scrollTo`), puis remettre `restore` à `nil`.
+@MainActor
+final class TrainCatalogueScrollMemory: ObservableObject {
+    static let shared = TrainCatalogueScrollMemory()
+
+    /// Dernier offset observé du catalogue (publié par le défilement).
+    var offset: CGFloat = 0
+    /// Offset figé à l'ouverture du chapitre courant.
+    var pendingOpenOffset: CGFloat = 0
+    /// Retour attendu : matière et offset à réappliquer, consommé à l'affichage.
+    @Published var restore: TrainCatalogueScrollRestore?
+
+    private init() {}
 }

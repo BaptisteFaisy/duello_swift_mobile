@@ -14,20 +14,34 @@ import SwiftUI
 /// `rgba(15,23,42,0.45)`, carte `justifyContent: 'flex-end'`. Le fondu est porté
 /// par la transition d'opacité posée dans `PlanScreen` ; toucher le fond ferme,
 /// toucher la carte ne fait rien.
+///
+/// Les décalages de la source (`paddingTop: insets.top + 16`,
+/// `paddingBottom: Math.max(insets.bottom, 16) + 12`, `:309`) sont lus dans les
+/// insets de la vue.
+///
+/// Écart assumé (29/09/2026, écart 11#3) : l'overlay est encore posé sur le
+/// `ScrollView` de `PlanView`, pas à la racine (`MainTabView`) : le fond
+/// s'arrête au-dessus de la barre d'onglets, là où la `Modal` transparente
+/// d'Expo couvre tout l'écran. Le montage racine est décrit en « À raccorder »
+/// (rapport IMPL-05) ; les insets lus ici sont ceux du conteneur, nuls tant que
+/// l'overlay n'est pas monté à la racine.
 struct PlanSessionDetailOverlay: View {
     let session: PlanSession
     let onClose: () -> Void
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            Color(hex: 0x0F172A, alpha: 0.45)
-                .ignoresSafeArea()
-                .contentShape(Rectangle())
-                .onTapGesture(perform: onClose)
+        GeometryReader { proxy in
+            ZStack(alignment: .bottom) {
+                Color(hex: 0x0F172A, alpha: 0.45)
+                    .ignoresSafeArea()
+                    .contentShape(Rectangle())
+                    .onTapGesture(perform: onClose)
 
-            PlanSessionDetailCard(session: session, onClose: onClose)
-                .padding(.horizontal, 16)
-                .padding(.bottom, 16)
+                PlanSessionDetailCard(session: session, onClose: onClose)
+                    .padding(.horizontal, 16)
+                    .padding(.top, proxy.safeAreaInsets.top + 16)
+                    .padding(.bottom, max(proxy.safeAreaInsets.bottom, 16) + 12)
+            }
         }
     }
 }

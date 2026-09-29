@@ -10,14 +10,27 @@
 //  de l’Elo » (l. 3027), « Évolution des notes » (l. 3222) et « Évolution du
 //  temps » (l. 3332).
 //
+//  Port de src/screens/AccountScreen.tsx (vitrine du profil, l. 2738-3416).
+//
 //  Composants branchés indirectement : `AcctShowLeagueBadge` (dessiné par
 //  `AcctShowLeagueCard`), `AcctShowGranularityTabs` (dans les sections de
 //  série) et `AcctShowLevelProgress` (dans `AcctShowStatsPanel`).
 //
-//  Repli documenté (voir `AcctIntData`) : les succès par matière dépendent du
-//  catalogue d'exercices, non relié ici. La section correspondante n'est plus
-//  rendue (la source la masque : `AccountScreen.tsx`, l. 3418-3456). Les
-//  courbes des notes et du temps restent vides, faute de store horodaté local.
+//  Écarts assumés (V1, 2026-09-29) — données absentes du portage local, jamais
+//  inventées (cf. `AcctIntData`) :
+//    - Succès par matière : le regroupement item → matière dépend du catalogue
+//      d'exercices, non relié ici ; la section n'est plus rendue (la source la
+//      masque : `AccountScreen.tsx`, l. 3418-3456).
+//    - Courbe « Évolution des notes » (`points: []`) : `correctionGradePeriods`
+//      de la source (l. 1924-1933) vient de `prepapp-correction-grade-history:v1`,
+//      qu'aucun store Swift ne lit ni n'écrit ⇒ série vide. Hunk à raccorder
+//      (`ProgressStore.correctionGrades` + producteur), cf. rapport IMPL-14.
+//    - Courbe « Évolution du temps » (`buckets: []`) : `timeBuckets` de la source
+//      (l. 1905) vient de `activity.sessions`, que `ProgressStore` ne stocke pas
+//      (`exerciseMinutes`/`subjectMinutes` sont des cumuls) ⇒ série vide. Hunk à
+//      raccorder (`ProgressStore.activitySessions` + `ChartTimeSeries.build`),
+//      cf. rapport IMPL-14.
+//
 //  L'abonnement Premium se lit sur le drapeau local (`ConsentPremiumGate`, la
 //  même entrée que `PremCodeSync` écrit). La présence en ligne est lue sur
 //  `SocPresenceStore` (PR #426).
@@ -68,10 +81,14 @@ struct AcctIntShowcase: View {
                 evolutionAbsolute: eloEvolution.absolute
             )
             AcctShowGradeSeriesSection(
+                // Écart assumé : notes de correction non stockées localement
+                // (`prepapp-correction-grade-history:v1`) — cf. en-tête.
                 points: [],
                 granularity: $granularity
             )
             AcctShowTimeSeriesSection(
+                // Écart assumé : `activity.sessions` non stockées par
+                // `ProgressStore` — cf. en-tête.
                 buckets: [],
                 granularity: $granularity,
                 // `hasTrainingTime` = `viewedActivity.exerciseMinutes > 0`

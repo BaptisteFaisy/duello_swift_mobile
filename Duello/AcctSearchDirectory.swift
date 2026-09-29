@@ -53,8 +53,13 @@ enum AcctSearchSettings {
     static let browseRefreshSeconds: TimeInterval = 60
     /// Délai entre deux relectures de la fiche ouverte (`30_000` d'Expo).
     static let selectedProfileRefreshNanoseconds: UInt64 = 30_000_000_000
-    /// Invite du champ (`placeholder` d'Expo).
-    static let placeholder = "Nom, filière, spécialité, Elo ou XP…"
+    /// Invite du champ (`placeholder` d'Expo : « Elo ou XP… », court depuis le
+    /// 2026-09-29 — le libellé long « Nom, filière, spécialité… » n'est plus
+    /// porté par la source `AccountScreen.tsx:2615`).
+    static let placeholder = "Elo ou XP…"
+    /// Libellé d'accessibilité du champ (`accessibilityLabel` d'Expo,
+    /// `AccountScreen.tsx:2617`). Lu par `AcctSearchView` (hors lot).
+    static let searchAccessibilityLabel = "Rechercher par Elo ou XP"
     /// Annuaire injoignable : ce n'est pas la même chose qu'un annuaire vide.
     static let unreachable = "Annuaire injoignable"
 }

@@ -50,9 +50,12 @@ struct PremOffersSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             carousel
+            // `PremiumOffers.tsx:123` : en development (mobile), la carte promo
+            // est repoussée sous la ligne de flottaison (`PROMO_BELOW_FOLD_MARGIN`).
             PremPromoCodeCard(controller: promo) {
                 Task { await promo.submit(token: token) }
             }
+            .padding(.top, PremDevelopmentBuild.isActive ? 160 : 0)
             reassurance
             // `PremiumOffers.tsx:143` : le pied de conformité est **masqué** dans
             // les builds development (mêmes masques que le nom de formule).
@@ -60,6 +63,9 @@ struct PremOffersSection: View {
                 PremSubscriptionLegalFooter()
             }
         }
+        // `PremiumOffers.tsx` (`styles.container`) : la page réserve 8 points
+        // sous ses garanties.
+        .padding(.bottom, 8)
     }
 
     /// Le carrousel, qui s'ouvre sur l'offre annuelle plutôt que sur la carte
@@ -151,6 +157,8 @@ struct PremOffersSection: View {
         .frame(maxWidth: 300, alignment: .leading)
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 8)
+        // `styles.reassurance` : `marginTop: 2` + `paddingTop: 2` = 4 points.
+        .padding(.top, 4)
     }
 
     /// `isRevenueCatPaywallAvailable()` : SDK + interface RevenueCat + clé.
@@ -242,13 +250,54 @@ struct PremSubscriptionLegalFooter: View {
         }
         .padding(.horizontal, 8)
         .sheet(item: $page) { target in
-            switch target {
-            case .terms:
-                TermsOfUseView()
-            case .privacy:
-                PrivacyPolicyView()
+            PremLegalPanel(onClose: { page = nil }) {
+                switch target {
+                case .terms:
+                    TermsOfUseView()
+                case .privacy:
+                    PrivacyPolicyView()
+                }
             }
+            // `LegalPanel` de la source : panneau de 85 % de la hauteur.
+            .presentationDetents([.fraction(0.85)])
+            .presentationDragIndicator(.hidden)
         }
+    }
+}
+
+/// `LegalPanel` de la source (`SubscriptionLegalFooter.tsx:46-63`) : panneau de
+/// 85 % de la hauteur, bouton « Fermer » (`close`, 24, `#000000`) en haut à
+/// droite, au-dessus du document. Même disposition que le panneau d'onboarding
+/// (`OnbGiftLegalPanel`) ; redéfini ici car celui-ci reste privé à son fichier.
+private struct PremLegalPanel<Content: View>: View {
+    let onClose: () -> Void
+    private let content: () -> Content
+
+    init(onClose: @escaping () -> Void, @ViewBuilder content: @escaping () -> Content) {
+        self.onClose = onClose
+        self.content = content
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 0) {
+                Spacer(minLength: 0)
+                Button(action: onClose) {
+                    IonIcon(name: "close", size: 24, color: .black)
+                        .frame(width: 40, height: 40)
+                        .background(Color.white)
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Fermer")
+            }
+            .padding(.trailing, 12)
+            .padding(.top, 4)
+
+            content()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(Color.white)
     }
 }
 

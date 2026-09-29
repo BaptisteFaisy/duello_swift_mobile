@@ -13,13 +13,20 @@
 //  consommés uniquement par ses tests, par aucun composant de l'espace
 //  événement — ne sont pas portés ici.
 //
+//  Écarts assumés (29/09/2026) : aucun.
+//
 //  Cible : iOS 16.
 //
 import Foundation
 
 enum EvEventSchedule {
-    /// Durée par défaut d'un sujet : une heure (`EVENT_DURATION_MS`).
+    /// Durée par défaut d'un sujet : une heure (`EVENT_DURATION_MS`), pour un
+    /// événement sans horaire de fin valable.
     static let defaultDuration: TimeInterval = 60 * 60
+    /// Durée minimale d'un sujet : une minute, plancher du minuteur
+    /// (`EVENT_MIN_DURATION_MS`). Les épreuves courtes (défis de 5 min,
+    /// événements de 10 min) vivent leur vraie durée.
+    static let minDuration: TimeInterval = 60
     /// Ouverture de la salle d'attente : dix minutes avant le début.
     static let waitingRoomLead: TimeInterval = 10 * 60
     /// Fin réelle : la fin affichée moins une seconde.
@@ -35,7 +42,8 @@ enum EvEventSchedule {
     }
 
     /// Durée réelle de l'épreuve : l'écart affiché entre le début et la fin,
-    /// jamais moins d'une heure.
+    /// jamais moins d'une minute (`EVENT_MIN_DURATION_MS`) ; une heure
+    /// (`EVENT_DURATION_MS`) seulement sans horaire de fin valable.
     static func duration(_ event: EvEvent) -> TimeInterval {
         guard let start = startDate(event), let endTime = event.endTime else { return defaultDuration }
         let day = event.date.split(separator: "-").compactMap { Int($0) }
@@ -43,7 +51,7 @@ enum EvEventSchedule {
         guard day.count == 3, time.count == 2,
               let end = date(year: day[0], month: day[1], day: day[2], hour: time[0], minute: time[1])
         else { return defaultDuration }
-        return max(defaultDuration, end.timeIntervalSince(start))
+        return max(minDuration, end.timeIntervalSince(start))
     }
 
     /// Fin réelle de la participation, ou `nil` si l'horaire est illisible.

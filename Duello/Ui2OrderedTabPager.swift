@@ -17,6 +17,13 @@
 //  déjà dans le « ruban » : le voisin apparaît donc sous le doigt, sans attendre
 //  un rendu au relâchement.
 //
+//  Écarts assumés (2026-09-29) :
+//   • `SPRING_CONFIG.overshootClamping` n'a pas d'équivalent SwiftUI direct ;
+//     il est néanmoins satisfait par construction — avec `damping: 34`,
+//     `stiffness: 300`, `mass: 0.7`, le ratio d'amortissement vaut
+//     34 / (2·√(300·0.7)) ≈ 1,17 > 1 : le ressort est sur-amorti, donc sans
+//     dépassement. `energyThreshold` n'est pas transposé (seuil de repos interne).
+//
 //  Approximations SwiftUI (aucun équivalent direct de Reanimated /
 //  gesture-handler) :
 //   • le ruban est un `HStack` décalé ; chaque page doit occuper la largeur
@@ -29,6 +36,19 @@
 //  Cible iOS 16.
 //
 import SwiftUI
+
+/// Ressort de relâchement du pager, aligné sur `SPRING_CONFIG` de la source
+/// (`damping: 34, stiffness: 300, mass: 0.7`). Sur-amorti (ratio ≈ 1,17), il ne
+/// dépasse pas — `overshootClamping: true` est ainsi respecté.
+///
+/// Constante **de fichier** (et non `private static` dans le type) : un membre
+/// statique stocké est interdit dans un type générique
+/// (`Ui2OrderedTabPager<Content: View>`).
+private let ui2OrderedPagerSettleSpring: Animation = .interpolatingSpring(
+    mass: 0.7,
+    stiffness: 300,
+    damping: 34
+)
 
 /// Cible d'un geste de pagination (`OrderedTabSwipeIndexTarget`).
 enum Ui2OrderedTabSwipeTarget: Equatable {
@@ -225,7 +245,7 @@ struct Ui2OrderedTabPager<Content: View>: View {
     /// Fixe la page et le décalage ; `notify` distingue geste et prop contrôlée.
     private func commit(_ index: Int, notify: Bool) {
         if animated {
-            withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
+            withAnimation(ui2OrderedPagerSettleSpring) {
                 settledPage = index
                 dragOffset = 0
             }
@@ -239,7 +259,7 @@ struct Ui2OrderedTabPager<Content: View>: View {
     /// Ramène le ruban à sa position de repos.
     private func resetOffset() {
         if animated {
-            withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
+            withAnimation(ui2OrderedPagerSettleSpring) {
                 dragOffset = 0
             }
         } else {

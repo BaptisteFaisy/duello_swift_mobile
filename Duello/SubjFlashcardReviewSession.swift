@@ -230,7 +230,7 @@ struct SubjFlashcardReviewModal: View {
     }
 
     private func toggleAnswer() {
-        withAnimation(.spring(response: SubjFlashcardReviewMetrics.flipDuration, dampingFraction: 0.82)) {
+        withAnimation(.interpolatingSpring(stiffness: 70, damping: 8)) {
             answerVisible.toggle()
         }
     }

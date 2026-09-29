@@ -1,6 +1,11 @@
 import Foundation
 import SwiftUI
 
+//  V1 (2026-09-29) — écart P2 : la carte d'état porte l'ombre de carte
+//  (`stateCard` : `...cardShadow`, `RankingsScreen.tsx:825-835`). L'ombre des
+//  deux docks (`currentUserDock`, `RankingSubjectLeaderboard.swift` et
+//  `RankingWeeklyXp.swift`) reste hors lot (cf. « À raccorder »).
+
 // MARK: - État de chargement
 
 /// Étapes du chargement d'un classement (voir `LoadState` de
@@ -92,5 +97,8 @@ struct RankingStatusCard: View {
             RoundedRectangle(cornerRadius: Theme.radiusLarge)
                 .stroke(Theme.border, lineWidth: 1)
         )
+        // `stateCard` : `...cardShadow` (`theme.ts`) — même ombre que les cartes
+        // de ligne (`RankingRowViews.swift`).
+        .duelloShadow()
     }
 }
