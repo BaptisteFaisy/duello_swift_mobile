@@ -41,7 +41,7 @@ defaults:
 jobs:
   batterie:
     name: Batterie
-    runs-on: [self-hosted, zenbook]
+    runs-on: [self-hosted, macmini]
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4

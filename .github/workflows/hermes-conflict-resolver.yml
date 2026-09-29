@@ -126,7 +126,7 @@ permissions:
 jobs:
   resolver:
     name: resolver
-    runs-on: [self-hosted, zenbook]
+    runs-on: [self-hosted, macmini]
     timeout-minutes: 60
     steps:
       - name: Rebase + resolution des conflits (sous-agent Hermes)

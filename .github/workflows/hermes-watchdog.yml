@@ -90,7 +90,7 @@ defaults:
 jobs:
   watchdog:
     name: watchdog
-    runs-on: [self-hosted, zenbook]
+    runs-on: [self-hosted, macmini]
     timeout-minutes: 5
     steps:
       - name: Réveiller la veille Hermes (dispatch hermes.yml)
