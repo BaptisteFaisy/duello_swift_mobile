@@ -24,10 +24,20 @@ import SwiftUI
 ///     l'onglet la consomme une seule fois.
 ///   - **routage d'un tap de notification poussée** (`PushNotifRootCoordinator`,
 ///     posé par `PushNotifRootMount` à la racine).
+///   - **moniteur de correction d'annale** (`AnnCorrectionMonitor`, monté à la
+///     racine par `App.tsx:2650`) : il survit à la sortie de l'onglet et publie
+///     les corrections prêtes dans le magasin de notifications (écart 06#9).
+///   - **publieur de profil partagé** : l'onglet « Mon compte » reçoit le
+///     `publisher` racine (`AccountView(publisher:)`, écart IMPL-16) pour lire
+///     l'état de publication de l'annuaire.
 ///
 /// `@MainActor` : la vue possède `ReportPublicProfilePublisher`, isolé au fil
 /// principal, et l'initialise dans un initialiseur de propriété — même motif
 /// que `AccountView` / `AcctIntDirectorySheet`.
+///
+/// R01 (2026-09-29, raccords d'hôtes) : la racine alimente `attemptIds` des
+/// défis (`ChalProgress.attemptIds`, écart 07#3/D6) et relaie la reprise d'un
+/// exercice de défi vers l'onglet Entraînement (`onContinueTraining`).
 @MainActor
 struct MainTabView: View {
     @EnvironmentObject private var session: SessionStore
@@ -35,12 +45,24 @@ struct MainTabView: View {
 
     /// Publieur du profil public, monté tant que l'écran connecté vit.
     @StateObject private var publisher = ReportPublicProfilePublisher()
+    /// Moniteur de correction d'annale monté **à la racine** (`App.tsx:2650`,
+    /// `<AnnaleCorrectionMonitor />`) : il sonde les corrections actives (15 s)
+    /// même une fois l'onglet Entraînement quitté, et publie les fiches prêtes
+    /// dans le magasin de notifications partagé (`AnnCorrectionMonitor.upsert`,
+    /// écart 06#9). Le lecteur d'annale garde encore sa propre instance
+    /// (`TrainingCatalogView+Entry`, `AnnalesScreen`) : le partage d'un
+    /// singleton reste à raccorder, hors de ce fichier.
+    @StateObject private var correctionMonitor = AnnCorrectionMonitor()
     /// Relève racine des invitations de défi (toujours visible, `App.tsx:2628`).
     @StateObject private var challengeInvites = ChalInvitationCoordinator()
     /// L'onglet Défis est occupé par un défi (`challengeBusy`, `App.tsx:665`).
     @State private var challengeBusy = false
     /// Partie servie acceptée à la racine, remise à l'onglet Défis.
     @State private var incomingChallengeMatch: MatchView?
+    /// Reprise d'un exercice de défi remise à l'onglet Entraînement
+    /// (`trainingContinuation`, `App.tsx:683,1505`). L'application dans le
+    /// catalogue (ouverture du lecteur) est à raccorder (vague 6).
+    @State private var trainingContinuation: ChalRunTrainingTarget?
     /// Routage d'un tap sur une bannière (`navigate` de la source) : un onglet
     /// posé par `PushNotifRootCoordinator` est consommé ici.
     @ObservedObject private var pushRoot = PushNotifRootCoordinator.shared
@@ -97,7 +119,10 @@ struct MainTabView: View {
         .environmentObject(chrome)
         .overlay(invitationOverlay)
         .onAppear(perform: startRootServices)
-        .onDisappear { publisher.stop() }
+        .onDisappear {
+            publisher.stop()
+            correctionMonitor.stop()
+        }
         .onChange(of: challengeBusy) { _ in startChallengeInvitations() }
         .onChange(of: pushRoot.pendingTab, perform: consumePendingTab)
         .onChange(of: pushRoot.pendingMember, perform: consumePendingMember)
@@ -114,14 +139,19 @@ struct MainTabView: View {
             initialPage: selection,
             scrollEnabled: chrome.tabPagerScrollEnabled(activeTab: selection),
             onPageSelected: { selection = $0 },
-            page0: { AccountView() },
-            page1: { TrainingView() },
+            page0: { AccountView(publisher: publisher) },
+            page1: { TrainingView(continuation: trainingContinuation) },
             page2: {
                 ChallengesView(
                     invites: challengeInvites,
                     incomingMatch: incomingChallengeMatch,
                     onIncomingMatchHandled: { incomingChallengeMatch = nil },
-                    onBusyChange: { busy in challengeBusy = busy }
+                    onBusyChange: { busy in challengeBusy = busy },
+                    tabIndex: Self.challengesTabIndex,
+                    onContinueTraining: { target in
+                        trainingContinuation = target
+                        selection = Self.trainingTabIndex
+                    }
                 )
             }
         )
@@ -140,6 +170,9 @@ struct MainTabView: View {
             registeredAt: registeredAt
         )
         startChallengeInvitations()
+        correctionMonitor.configure(token: session.token)
+        correctionMonitor.load()
+        correctionMonitor.start()
     }
 
     /// Onglet posé par un tap de notification (`navigate` de la source).
@@ -198,7 +231,9 @@ struct MainTabView: View {
             subjectElo: AcctIntData.overallElo(progress),
             startedExerciseIds: ChalProgress.startedExerciseIds(
                 progress: progress.items,
-                attemptIds: []
+                attemptIds: ChalProgress.attemptIds(
+                    accountId: DuelloAPI.publicProfileId(email: session.profile.email)
+                )
             ),
             onAccepted: { found in
                 incomingChallengeMatch = found

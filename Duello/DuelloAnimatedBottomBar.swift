@@ -13,19 +13,18 @@
 //  `reserveLayout` de la source vaut toujours `false` (`App.tsx:1559`) : la
 //  barre libère donc sa ligne de mise en page une fois sortie, comme ici.
 //
-//  Écarts assumés / à raccorder (2026-09-29)
-//  -----------------------------------------
-//  L'animation ci-dessous est fidèle (`App.tsx:570-583` : opacité `0→1`,
-//  translation `80→0`, échelle `0.96→1`, 320 ms). Il lui manque son
-//  **producteur** : la source masque la barre au défilement des écrans
+//  V2 (29/09/2026, parité RN dev) — le **producteur de masquage** manquait : la
+//  source masque la barre au défilement des écrans
 //  (`onBottomNavigationVisibilityChange` → `setBottomNavigationHiddenForScreen`,
-//  `App.tsx:707-756,2788+`). Ce câblage est **hors de ce fichier** : il vit dans
-//  `MainTabView.swift` (`bottomBarHidden`, `:74,82`) et dans les écrans hôtes.
-//  Le fichier de la barre n'est donc pas modifié fonctionnellement ici.
-//  À raccorder (lot IMPL-10, propriétaire de `MainTabView.swift`) : faire
-//  remonter la direction de défilement de chaque écran (seuils déjà portés par
-//  `ConsentChromeVisibility`, `swipeThreshold`/`revealThreshold`) vers
-//  `bottomBarHidden`, en conservant la signature `visible:` utilisée ici.
+//  `App.tsx:707-756,2788+`, via `useScrollChromeVisibility`). Il est porté
+//  **dans ce fichier** : `DuelloBottomBarChrome` (état réactif du hook, seuils de
+//  `ConsentChromeVisibility`) qu'un écran d'onglet alimente avec l'offset de son
+//  défilement, et `.duelloBottomBarChrome(_:forTab:)` qui déclare la visibilité à
+//  la racine (`RootChromeModel.setBottomNavigationHidden`). La barre garde sa
+//  signature `visible:` : elle consomme `bottomBarHidden` (`MainTabView.swift`).
+//  À raccorder (lot W02, `MainTabView.swift` + écrans hôtes) : chaque écran
+//  d'onglet possède un `DuelloBottomBarChrome`, lui remet `beginDrag`/`scroll`/
+//  `endDrag` depuis sa sonde d'offset et applique `.duelloBottomBarChrome(_:forTab:)`.
 //
 import SwiftUI
 
@@ -69,5 +68,78 @@ struct DuelloAnimatedBottomBar<Content: View>: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - Producteur de masquage
+
+/// Producteur de masquage de la barre basse : équivalent réactif de
+/// `useScrollChromeVisibility` (la logique pure vit dans `ConsentChromeVisibility`).
+/// Un écran d'onglet le possède (`@StateObject`), lui remet l'offset de son
+/// défilement (`beginDrag` / `scroll` / `endDrag`) et applique
+/// `.duelloBottomBarChrome(_:forTab:)` : la racine en déduit la visibilité de
+/// `DuelloAnimatedBottomBar` (`RootChromeModel.bottomBarHidden`).
+final class DuelloBottomBarChrome: ObservableObject {
+    /// `visible` du hook : vrai tant qu'un défilement vers le bas ne l'a pas
+    /// masqué ; le sommet de liste le rétablit toujours.
+    @Published private(set) var visible = true
+
+    /// `ScrollChromeVisibilitySession` en cours, ou `nil` entre deux gestes.
+    private var session: ConsentChromeVisibility.Session?
+
+    /// `handleScrollBeginDrag` : ouvre la session au sommet courant.
+    func beginDrag(offset: Double) {
+        session = ConsentChromeVisibility.beginSession(visible: visible, startOffset: offset)
+    }
+
+    /// `handleScroll` : avance la session et publie toute bascule de visibilité.
+    func scroll(offset: Double) {
+        let current = session
+            ?? ConsentChromeVisibility.beginSession(visible: visible, startOffset: offset)
+        let next = ConsentChromeVisibility.sessionAfterScroll(current, nextOffset: offset)
+        session = next
+        if next.visible != visible { visible = next.visible }
+    }
+
+    /// `handleScrollEndDrag` / `handleScrollMomentumEnd` : ferme la session ; le
+    /// geste suivant ré-ancrera la mesure.
+    func endDrag() {
+        session = nil
+    }
+
+    /// `reset` : revient à visible (écran quitté ou inactif).
+    func reset() {
+        session = nil
+        if !visible { visible = true }
+    }
+}
+
+/// Rapporte la visibilité du producteur à la racine
+/// (`RootChromeModel.setBottomNavigationHidden`), onglet par onglet — équivalent
+/// du `useEffect` d'`AccountScreen.tsx:681-693` qui remonte `!visible` à
+/// `onBottomNavigationVisibilityChange`. Le rappel est posé sur le fil principal
+/// (`Task { @MainActor in … }`), comme `DismissKeyboardOnAppBackground`.
+private struct DuelloBottomBarChromeReporter: ViewModifier {
+    @ObservedObject var chrome: DuelloBottomBarChrome
+    let tab: Int
+    @EnvironmentObject private var root: RootChromeModel
+
+    func body(content: Content) -> some View {
+        content
+            .onAppear { report(hidden: !chrome.visible) }
+            .onChange(of: chrome.visible) { visible in report(hidden: !visible) }
+            .onDisappear { report(hidden: false) }
+    }
+
+    /// Déclare la visibilité courante à la racine, sur le fil principal.
+    private func report(hidden: Bool) {
+        Task { @MainActor in root.setBottomNavigationHidden(hidden, forTab: tab) }
+    }
+}
+
+extension View {
+    /// Branche un producteur de masquage sur la barre basse de la racine.
+    func duelloBottomBarChrome(_ chrome: DuelloBottomBarChrome, forTab tab: Int) -> some View {
+        modifier(DuelloBottomBarChromeReporter(chrome: chrome, tab: tab))
     }
 }

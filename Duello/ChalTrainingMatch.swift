@@ -93,6 +93,8 @@ struct ChalTrainingMatch: Codable, Equatable, Identifiable {
                 userId: nil,
                 displayName: opponent.displayName,
                 prepName: opponent.prepName,
+                track: opponent.track,
+                year: opponent.year,
                 elo: opponent.elo,
                 training: opponent.training
             )

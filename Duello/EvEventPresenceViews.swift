@@ -189,14 +189,16 @@ struct EvEventViewersSheet: View {
         }
     }
 
-    /// Charge la liste des vues (`fetchEventViewers`), à l'ouverture.
+    /// Charge la liste des vues (`fetchEventViewers`), à l'ouverture. Un échec
+    /// réseau rend une liste **vide**, comme la source (`EventViewersSheet.tsx` :
+    /// `catch(() => setViewers([]))`), jamais un état d'erreur.
     private func load() async {
         state = .loading
         do {
             let viewers = try await EvEventPresenceAPI.viewers(eventId: eventId, token: token)
             state = .loaded(viewers)
         } catch {
-            state = .failed("Impossible de charger les vues. Vérifie ta connexion et réessaie.")
+            state = .loaded([])
         }
     }
 

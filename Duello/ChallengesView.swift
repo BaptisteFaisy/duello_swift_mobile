@@ -17,6 +17,10 @@
 //  (`ChalInvitationCoordinator`), la partie acceptée ailleurs (`incomingMatch`)
 //  et les remises de la racine — transit vers `ChalIntChallengesTab`.
 //
+//  R01 (2026-09-29, raccords d'hôtes) : relaie `onContinueTraining` (reprise
+//  d'un exercice de défi dans l'Entraînement) et déclare le chrome de l'onglet
+//  au `RootChromeModel` (`DuelloBottomBarChrome`).
+//
 //  Cible : iOS 16, aucune API iOS 17.
 //
 import SwiftUI
@@ -35,6 +39,19 @@ struct ChallengesView: View {
     /// `OrderedTabPager.yieldBackSwipeToTabPager`) : fourni par la racine, qui
     /// seule pilote le pager d'onglets.
     var onBackToTraining: (() -> Void)? = nil
+    /// Indice de l'onglet dans le pager (`MainTabView.challengesTabIndex`), pour
+    /// la déclaration de chrome au `RootChromeModel`.
+    var tabIndex: Int = 2
+    /// Reprise de l'exercice dans l'onglet Entraînement après un défi
+    /// (`onContinueTraining`, `ChallengesScreen.tsx:2426-2437,2703`) : relayé
+    /// depuis la racine, qui seule bascule d'onglet.
+    var onContinueTraining: ((ChalRunTrainingTarget) -> Void)? = nil
+
+    /// Producteur de masquage de la barre basse (`useScrollChromeVisibility`) :
+    /// l'onglet Défis déclare sa visibilité à la racine. Son alimentation par
+    /// l'offset du défilement vit dans `ChalIntChallengesTab` (hors lot R01) —
+    /// à raccorder (vague 6).
+    @StateObject private var bottomBarChrome = DuelloBottomBarChrome()
 
     var body: some View {
         ChalIntChallengesTab(
@@ -42,8 +59,10 @@ struct ChallengesView: View {
             incomingMatch: incomingMatch,
             onIncomingMatchHandled: onIncomingMatchHandled,
             onBusyChange: onBusyChange,
-            onBackToTraining: onBackToTraining
+            onBackToTraining: onBackToTraining,
+            onContinueTraining: onContinueTraining
         )
+        .duelloBottomBarChrome(bottomBarChrome, forTab: tabIndex)
     }
 }
 

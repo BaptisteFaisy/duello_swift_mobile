@@ -1,7 +1,9 @@
 // Shim de vérification Linux — NE FAIT PAS PARTIE DE L'APP.
 //
 // `PDFKit` n'existe pas sous Linux. Un seul appelant, `CoursePdfView.swift` :
-// `PDFView` (dérivé de `UIView` pour `UIViewRepresentable`) et `PDFDocument`.
+// `PDFView` (dérivé de `UIView` pour `UIViewRepresentable`) et `PDFDocument`,
+// plus le calque de sélection (`PDFPage`, `PDFSelection`,
+// `PDFViewSelectionChanged`).
 import Foundation
 import UIKit
 
@@ -25,6 +27,23 @@ open class PDFDocument: NSObject {
     public var isLocked: Bool { false }
 }
 
+/// `PDFPage` : page du document, porteuse du texte sélectionnable.
+open class PDFPage: NSObject {
+    public override init() { super.init() }
+
+    public var string: String? { nil }
+}
+
+/// `PDFSelection` : sélection de texte, source du « Expliquer ce passage ».
+open class PDFSelection: NSObject {
+    public override init() { super.init() }
+
+    public var string: String? { nil }
+    public var pages: [PDFPage] { [] }
+
+    public func bounds(for page: PDFPage) -> CGRect { .zero }
+}
+
 open class PDFView: UIView {
     public override init() { super.init() }
 
@@ -33,7 +52,16 @@ open class PDFView: UIView {
     public var displayDirection: PDFDisplayDirection = .vertical
     public var displayBox: Int = 0
     public var document: PDFDocument?
+    public var currentSelection: PDFSelection?
 
+    public func index(for page: PDFPage) -> Int { 0 }
+    public func convert(_ rect: CGRect, from page: PDFPage) -> CGRect { .zero }
     public func goToFirstPage(_ sender: Any?) {}
     public func goToLastPage(_ sender: Any?) {}
 }
+
+public extension Notification.Name {
+    /// Émise par `PDFView` quand la sélection courante change.
+    static let PDFViewSelectionChanged = Notification.Name("PDFViewSelectionChanged")
+}
+

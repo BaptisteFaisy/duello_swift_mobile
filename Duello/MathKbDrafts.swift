@@ -8,6 +8,12 @@
 //  Extrait de `MathKeyboardView.swift` : découpage en modules, sans
 //  renommage de type, de membre ni de signature.
 //
+//  PARITÉ (2026-09-29) — `replacement` des brouillons (`MatrixDraft`,
+//  `MathOperatorDraft`, `MathKeyboard.tsx:126,139`) : la plage de la
+//  construction visée dans la réponse, pour l'édition d'un symbole déjà écrit
+//  (« Modifier … »). Posée par l'hôte à l'ouverture de l'éditeur ; `nil` =
+//  l'éditeur insère une construction neuve.
+//
 
 import Foundation
 
@@ -20,6 +26,9 @@ struct MathKbMatrixDraft {
     var cells: [String]
     var active: Int
     var delimiter: MathKbMatrixDelimiter
+    /// Plage de la matrice visée dans la réponse (`MatrixDraft.replacement`).
+    /// `nil` : l'éditeur insère une nouvelle matrice.
+    var replacement: StmtTextSelection? = nil
 
     /// Deux lignes, deux colonnes, délimiteur carré — valeurs par défaut de
     /// `createMatrixDraft` quand aucune matrice n'est sélectionnée.
@@ -82,15 +91,29 @@ struct MathKbOperatorDraft {
     var kind: MathKbOperatorKind
     var values: [String]
     var active: Int
+    /// Plage de l'opérateur visé dans la réponse (`MathOperatorDraft.replacement`).
+    /// `nil` : l'éditeur insère un nouvel opérateur.
+    var replacement: StmtTextSelection?
 
-    init(kind: MathKbOperatorKind) {
+    /// `createMathOperatorDraft` (`MathKeyboard.tsx:195-210`) : les champs sont
+    /// pré-remplis quand l'éditeur rouvre une construction existante, et sa
+    /// plage est mémorisée pour la remplacer à la validation.
+    init(
+        kind: MathKbOperatorKind,
+        values: [String: String] = [:],
+        replacement: StmtTextSelection? = nil
+    ) {
         self.kind = kind
-        self.values = Array(
-            repeating: "",
-            count: MathKbOperatorCatalog.definition(for: kind).fields.count
-        )
+        self.values = MathKbOperatorCatalog.definition(for: kind).fields.map {
+            values[$0.id] ?? ""
+        }
         self.active = 0
+        self.replacement = replacement
     }
+
+    /// Une construction existante est visée : le pied de l'éditeur propose
+    /// « Mettre à jour » au lieu d'« Insérer » (`MathKeyboard.tsx:1424`).
+    var isReplacing: Bool { replacement != nil }
 
     /// Champs nommés, pour le formateur et le test de complétude.
     var valueMap: [String: String] {

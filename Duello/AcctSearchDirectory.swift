@@ -29,6 +29,10 @@
 //  `SEARCH_DEBOUNCE_MS`) sont ceux déjà figés par `AcctSearchConstants.swift`
 //  (lot « annuaire ») : ce fichier ne les redéfinit pas.
 //
+//  V3 (2026-09-29, parité RN dev) : la fiche locale du prof IA rejoint la
+//  recherche (`withProfIaSearchResults`, sur `includeProfIa`) et la relecture par
+//  identifiants (`mergeProfIaByIds`) — comme `socialApi.ts:357-378,807-826`.
+//
 //  Cible : iOS 16, aucune API iOS 17.
 //
 import Foundation
@@ -153,7 +157,8 @@ enum AcctSearchDirectory {
     static func search(
         _ query: String,
         token: String?,
-        limit: Int = AcctSearchSettings.searchMaxResults
+        limit: Int = AcctSearchSettings.searchMaxResults,
+        includeProfIa: Bool = false
     ) async throws -> [AcctSearchMember] {
         let normalized = query.trimmingCharacters(in: .whitespacesAndNewlines)
         // Une seule lettre suffit pour chercher : elle est traitée comme une initiale.
@@ -166,7 +171,12 @@ enum AcctSearchDirectory {
             query: [URLQueryItem(name: "q", value: normalized)]
         )
         let envelope = try DuelloAPI.decoder.decode(AcctSearchProfilesEnvelope.self, from: data)
-        return Array(envelope.published.prefix(max(0, limit)))
+        let found = envelope.published
+        guard includeProfIa else { return Array(found.prefix(max(0, limit))) }
+        // Le prof IA ne rejoint les résultats que sur demande explicite : les
+        // invitations de défi, qui partagent cette recherche, ne doivent jamais
+        // le proposer comme adversaire (`socialApi.ts:374-378`).
+        return withProfIaSearchResults(normalized, serverProfiles: found, maxResults: max(0, limit))
     }
 
     /// `GET /profiles?ids=…` : relit des profils par identifiant
@@ -174,15 +184,19 @@ enum AcctSearchDirectory {
     static func profilesByIds(_ ids: [String], token: String?) async throws -> [AcctSearchMember] {
         let wanted = Array(ids.filter { !$0.isEmpty }.prefix(AcctSearchSettings.maxProfileIds))
         guard !wanted.isEmpty else { return [] }
+        // Le prof IA est servi en local : l'annuaire serveur ne connaît pas son
+        // identifiant, inutile de le lui demander (`socialApi.ts:807-826`).
+        let serverIds = wanted.filter { !isProfIaProfileId($0) }
+        guard !serverIds.isEmpty else { return mergeProfIaByIds(wanted, serverProfiles: []) }
 
         let data = try await DuelloAPI.request(
             "/profiles",
             method: "GET",
             token: token,
-            query: [URLQueryItem(name: "ids", value: wanted.joined(separator: ","))]
+            query: [URLQueryItem(name: "ids", value: serverIds.joined(separator: ","))]
         )
         let envelope = try DuelloAPI.decoder.decode(AcctSearchProfilesEnvelope.self, from: data)
-        return envelope.published
+        return mergeProfIaByIds(wanted, serverProfiles: envelope.published)
     }
 
     /// `GET /profiles?browse=1&offset=…&limit=…` : page alphabétique

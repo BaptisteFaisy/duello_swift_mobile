@@ -4,11 +4,10 @@
 //
 //  Port de `src/components/HecJourneyAdmissionScreen.tsx`.
 //
-//  À raccorder (vague 2, 2026-09-29) : le blason PNG officiel
-//  (`assets/league-badges/*.png`) n'est pas rendu — il doit être embarqué puis
-//  branché dans `HecJourneyCrestView` (`Image(crest.schoolId)`), fichier hors de
-//  cette unité (voir rapport, « À raccorder »). En attendant, le repli coloré du
-//  catalogue reste le rendu nominal (voir `HecJourneyCrestView.swift`).
+//  Vague 3 (2026-09-29) : le blason officiel est désormais rendu par
+//  `HecJourneyCrestView` — imageset embarqué (`Image(crest.schoolId)` via
+//  `LeagueBadges.badgeAssetName`) quand il existe, sinon le même PNG servi à
+//  distance. Les 22 imagesets `league-*-laurier-vN` restent à créer (lot W13).
 //
 import SwiftUI
 

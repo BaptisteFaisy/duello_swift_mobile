@@ -36,9 +36,9 @@
 //  `onOpenProfile` qui ouvre la fiche publique du joueur (`ChallengesScreen.tsx`
 //  l. 3023-3025), au lieu de laisser les lignes inertes.
 //
-//  Écart à raccorder (2026-09-29, écart 07#3/D6) : `startedExerciseIds` passe
-//  encore `attemptIds: []` — le magasin d'essais d'annales (`AnnaleAttemptMap`)
-//  n'existe pas côté Swift (cf. `ChalProgress.swift:30`), hors de ce lot.
+//  V3 (2026-09-29, écart 07#3/D6) : `startedExerciseIds` alimente `attemptIds`
+//  depuis `ChalProgress.attemptIds` (brouillons d'essai persistés) ; le
+//  `onContinueTraining` des bilans est transmis depuis la racine.
 //
 //  Réutilise sans les recréer : `ChalHome2Launch`, `ChalMatchmaking`,
 //  `ChalProgress`, `DuelloExerciseCatalog`, `AcctIntData`, `eloLeague`,
@@ -69,6 +69,11 @@ struct ChalIntChallengesTab: View {
     /// source, `OrderedTabPager.yieldBackSwipeToTabPager`) : à fournir par la
     /// racine (`MainTabView`), qui seule pilote le pager d'onglets.
     var onBackToTraining: (() -> Void)? = nil
+    /// Reprise de l'exercice dans l'onglet Entraînement après un défi
+    /// (`onContinueTraining`, `ChallengesScreen.tsx:2426-2437,2703`) : fourni
+    /// par la racine, qui seule pilote le pager d'onglets. Absent ⇒ les boutons
+    /// « Reprendre / Continuer l'exercice » restent masqués.
+    var onContinueTraining: ((ChalRunTrainingTarget) -> Void)? = nil
 
     @StateObject private var queue = ChalQueueController()
     /// Événements déjà vus du compte : allume la pastille « nouveau » de l'onglet
@@ -129,7 +134,11 @@ struct ChalIntChallengesTab: View {
         if queue.status == .searching {
             searchingScreen
         } else if let duelMatch {
-            ChalIntDuelFlow(match: duelMatch, onFinish: { finishDuel() })
+            ChalIntDuelFlow(
+                match: duelMatch,
+                onFinish: { finishDuel() },
+                onContinueTraining: onContinueTraining
+            )
         } else {
             ChalHome2HomeSurface(
                 elo: eloText,
@@ -404,7 +413,12 @@ struct ChalIntChallengesTab: View {
     private var badgeURL: URL? { LeagueBadges.badgeURL(forLeague: league.id) }
 
     private var startedExerciseIds: [String] {
-        ChalProgress.startedExerciseIds(progress: progress.items, attemptIds: [])
+        ChalProgress.startedExerciseIds(
+            progress: progress.items,
+            attemptIds: ChalProgress.attemptIds(
+                accountId: DuelloAPI.publicProfileId(email: session.profile.email)
+            )
+        )
     }
 
     private var playableNotice: ChalHome2PlayableNotice {

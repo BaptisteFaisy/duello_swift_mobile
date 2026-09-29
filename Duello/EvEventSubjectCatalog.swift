@@ -180,5 +180,5 @@ enum EvEventSubjectCatalog {
                 ),
             ]
         ),
-    ]
+    ] + EvEventSubjectFixtures.all
 }

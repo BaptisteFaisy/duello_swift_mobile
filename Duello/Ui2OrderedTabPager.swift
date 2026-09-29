@@ -33,6 +33,13 @@
 //     gère le relâchement ;
 //   • la vitesse de relâchement est approchée par `predictedEndTranslation` ;
 //   • l'élasticité de bord reprend la résistance `EDGE_RESISTANCE` de la source.
+//
+//  V2 (29/09/2026, parité RN dev) : le geste se raccorde au pager d'onglets
+//  parent via le jeton `SwipeBottomTabGestureHandle` (`#10`) — le sous-pager le
+//  revendique sur l'intention `.horizontal` (`claimByNestedPager()`), le rend au
+//  relâchement (`releaseNestedPager()`), et, depuis la première page, cède un
+//  swipe vers la droite au parent (`shouldYieldBackSwipeToTabPager`, activé par
+//  `yieldBackSwipeToTabPager`). Inerte hors d'un pager parent.
 //  Cible iOS 16.
 //
 import SwiftUI
@@ -138,7 +145,15 @@ struct Ui2OrderedTabPager<Content: View>: View {
     var onBack: (() -> Void)? = nil
     /// Laisse un conteneur parent prendre en charge le geste horizontal.
     var swipeEnabled: Bool = true
+    /// Rend le geste de retour au pager d'onglets parent depuis la première page
+    /// (`yieldBackSwipeToTabPager` d'`OrderedTabPager`). Inerte sans pager parent.
+    var yieldBackSwipeToTabPager: Bool = false
     @ViewBuilder var content: () -> Content
+
+    /// Jeton du pager d'onglets parent (`BottomTabSwipeGestureContext`) : le
+    /// sous-pager le revendique pendant un mouvement horizontal et le lui rend au
+    /// relâchement ; `nil` hors d'un pager parent.
+    @Environment(\.swipeBottomTabGesture) private var nestedGesture: SwipeBottomTabGestureHandle?
 
     @State private var settledPage: Int
     @State private var dragOffset: CGFloat = 0
@@ -152,6 +167,7 @@ struct Ui2OrderedTabPager<Content: View>: View {
         onPageSelected: @escaping (Int) -> Void,
         onBack: (() -> Void)? = nil,
         swipeEnabled: Bool = true,
+        yieldBackSwipeToTabPager: Bool = false,
         @ViewBuilder content: @escaping () -> Content
     ) {
         self.animated = animated
@@ -160,6 +176,7 @@ struct Ui2OrderedTabPager<Content: View>: View {
         self.onPageSelected = onPageSelected
         self.onBack = onBack
         self.swipeEnabled = swipeEnabled
+        self.yieldBackSwipeToTabPager = yieldBackSwipeToTabPager
         self.content = content
         _settledPage = State(initialValue: Ui2OrderedTabPager.clamp(page, pageCount))
     }
@@ -206,8 +223,14 @@ struct Ui2OrderedTabPager<Content: View>: View {
                     switch intent {
                     case .vertical, .pending: return
                     case .horizontal:
+                        // Depuis la première page, un swipe vers la droite
+                        // appartient au pager d'onglets parent : on le lui rend
+                        // au lieu de le revendiquer (`shouldYieldBackSwipe…`).
+                        guard !yieldsBackSwipeToTabPager(translationX: value.translation.width)
+                        else { return }
                         isDragging = true
                         dragStartPage = settledPage
+                        nestedGesture?.claimByNestedPager()
                     }
                 }
                 let position = Ui2OrderedTabSwipe.dragPosition(
@@ -223,23 +246,42 @@ struct Ui2OrderedTabPager<Content: View>: View {
             .onEnded { value in
                 guard isDragging else { return }
                 isDragging = false
-                let velocity = value.predictedEndTranslation.width - value.translation.width
-                let target = Ui2OrderedTabSwipe.target(
-                    pageCount: pageCount,
-                    currentIndex: dragStartPage,
-                    translationX: value.translation.width,
-                    velocityX: velocity
-                )
-                switch target {
-                case .page(let index):
-                    commit(index, notify: true)
-                case .back:
-                    resetOffset()
-                    onBack?()
-                case nil:
-                    resetOffset()
-                }
+                // Rend le mouvement au pager principal (`release()`).
+                nestedGesture?.releaseNestedPager()
+                settle(value: value)
             }
+    }
+
+    /// Relâchement : page visée (`resolveOrderedTabSwipeIndex`) ou retour.
+    private func settle(value: DragGesture.Value) {
+        let velocity = value.predictedEndTranslation.width - value.translation.width
+        let target = Ui2OrderedTabSwipe.target(
+            pageCount: pageCount,
+            currentIndex: dragStartPage,
+            translationX: value.translation.width,
+            velocityX: velocity
+        )
+        switch target {
+        case .page(let index):
+            commit(index, notify: true)
+        case .back:
+            resetOffset()
+            onBack?()
+        case nil:
+            resetOffset()
+        }
+    }
+
+    /// Depuis la première page, un swipe vers la droite appartient au pager
+    /// d'onglets parent : le sous-pager échoue alors pour lui rendre le geste
+    /// (`shouldYieldBackSwipeToTabPager`, `orderedTabSwipe.ts:74-83`).
+    private func yieldsBackSwipeToTabPager(translationX: CGFloat) -> Bool {
+        guard let handle = nestedGesture else { return false }
+        return handle.shouldYieldBackSwipeToTabPager(
+            gestureStartPage: settledPage,
+            translationX: translationX,
+            yieldEnabled: yieldBackSwipeToTabPager
+        )
     }
 
     /// Fixe la page et le décalage ; `notify` distingue geste et prop contrôlée.

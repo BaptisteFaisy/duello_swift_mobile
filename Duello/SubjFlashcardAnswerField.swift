@@ -22,6 +22,12 @@
 //    - `PhotoTranscriptionView`, `SubjFlashcardToolButton`,
 //      `SubjFlashcardEditorConfig` (briques du même lot).
 //
+//  PARITÉ (2026-09-29) — deux câblages d'hôte :
+//    - la garde Premium précède la dictée via
+//      `dictation.createToggleRequest()` (`SubjectsScreen.tsx:2202-2205`) ;
+//    - la fenêtre de consentement au partage IA (`useDictation.ts:913-915`)
+//      est montée par `DictAiConsentAlert(model: dictation)`.
+//
 //  Limites assumées :
 //    - `answerSelection` / `pendingSelection` de la source ne sont pas portés :
 //      SwiftUI n'expose ni caret ni sélection pour un `TextField`. La dictée
@@ -216,6 +222,7 @@ struct SubjFlashcardAnswerField: View {
                 onInsert: insertTranscription
             )
         }
+        .modifier(DictAiConsentAlert(model: dictation))
     }
 
     // MARK: Vues internes
@@ -267,7 +274,8 @@ struct SubjFlashcardAnswerField: View {
     // MARK: Outils
 
     /// Dicte la réponse. Hors écoute, la garde Premium s'applique d'abord
-    /// (`requirePremiumTool('voice-transcription', …)`).
+    /// (`requirePremiumTool('voice-transcription', dictation.createToggleRequest())`,
+    /// `SubjectsScreen.tsx:2202-2205`).
     private func toggleDictation() {
         Task { @MainActor in
             if dictation.isListening {
@@ -279,13 +287,14 @@ struct SubjFlashcardAnswerField: View {
                 )
                 return
             }
+            let request = dictation.createToggleRequest(
+                currentText: answer,
+                math: true,
+                permissionMessage: Self.dictationPermissionMessage,
+                apply: { onChangeAnswer($0) }
+            )
             _ = await ConsentPremiumGate.gate(tool: .voiceTranscription, accountId: accountId) {
-                await dictation.toggle(
-                    currentText: answer,
-                    math: true,
-                    permissionMessage: Self.dictationPermissionMessage,
-                    apply: { onChangeAnswer($0) }
-                )
+                request()
             }
         }
     }

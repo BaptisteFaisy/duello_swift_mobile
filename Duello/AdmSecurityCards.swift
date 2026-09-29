@@ -43,7 +43,7 @@ struct AdmAccessKeyCard: View {
                     .stroke(Theme.border, lineWidth: 1)
             )
             Text("Le serveur de production exige DUELLO_ADMIN_TOKEN. Saisis cette clé ici : elle reste dans le stockage isolé du compte admin et n’est jamais intégrée au bundle de l’application.")
-                .font(.system(size: 12, weight: .semibold))
+                .font(.system(size: 12, weight: .regular))
                 .foregroundStyle(Theme.inkSoft)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -67,7 +67,7 @@ struct AdmAccessKeyCard: View {
                 SecureField("Aucune clé nécessaire", text: $token)
             }
         }
-        .font(.system(size: 15, weight: .semibold))
+        .font(.system(size: 15, weight: .regular))
         .foregroundStyle(Theme.ink)
         .autocorrectionDisabled()
         .textInputAutocapitalization(.never)
@@ -136,7 +136,7 @@ struct AdmPasswordCard: View {
                         SecureField("Nouveau mot de passe", text: $password)
                     }
                 }
-                .font(.system(size: 15, weight: .semibold))
+                .font(.system(size: 15, weight: .regular))
                 .foregroundStyle(Theme.ink)
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
@@ -172,7 +172,7 @@ struct AdmPasswordCard: View {
                 SecureField("Répète le mot de passe", text: $confirmation)
             }
         }
-        .font(.system(size: 15, weight: .semibold))
+        .font(.system(size: 15, weight: .regular))
         .foregroundStyle(Theme.ink)
         .autocorrectionDisabled()
         .textInputAutocapitalization(.never)

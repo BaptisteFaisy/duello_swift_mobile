@@ -72,6 +72,9 @@ struct ProfTutorPanel: View {
     let suggestions: [String]
     let error: String
     let onSend: (String) -> Void
+    /// Discussion libre : la saisie est ouverte sans explication préalable
+    /// (`chatMode`, `ProfTutorPanel.tsx:29`).
+    var chatMode: Bool = false
     /// Fourni : l'avatar et le nom ouvrent la fiche du prof (chevron « › »).
     var onOpenProfile: (() -> Void)? = nil
     let onClose: () -> Void
@@ -81,8 +84,9 @@ struct ProfTutorPanel: View {
     /// Ancre de défilement du bas de fil.
     private static let bottomAnchor = "prof-tutor-bottom"
 
-    /// `locked` : saisie verrouillée pendant le streaming ou sans explication.
-    private var locked: Bool { streaming || messages.isEmpty }
+    /// `locked` : saisie verrouillée pendant le streaming, ou sans explication
+    /// hors discussion libre (`ProfTutorPanel.tsx:63`).
+    private var locked: Bool { streaming || (messages.isEmpty && !chatMode) }
 
     var body: some View {
         VStack(spacing: 0) {

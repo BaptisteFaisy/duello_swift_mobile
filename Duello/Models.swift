@@ -298,6 +298,12 @@ struct MatchView: Codable, Equatable, Identifiable {
         var userId: String?
         var displayName: String
         var prepName: String
+        /// Filière de l'adversaire (`MatchOpponent.track`) ; le serveur ne
+        /// l'envoie pas toujours, d'où l'optionnel.
+        var track: String?
+        /// Année de l'adversaire (`MatchOpponent.year`) ; optionnelle pour la
+        /// même raison.
+        var year: String?
         var elo: Int?
         /// Vrai pour l'adversaire d'entraînement, jamais présenté comme un
         /// joueur réel (`MatchOpponent.training`).

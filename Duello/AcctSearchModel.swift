@@ -23,6 +23,12 @@
 //    - src/utils/socialVisibility.ts    (canViewFullProfile, viewedPremium)
 //    - src/utils/socialApi.ts           (publicProfileId)
 //
+//  V3 (2026-09-29, parité RN dev) : le graphe social est relu au montage de
+//  `AcctSearchView` (`syncSocialGraph`) ; la fiche locale du prof IA rejoint les
+//  profils connus (`withProfIaKnownProfile`), entre dans la recherche
+//  (`includeProfIa`) et reste hors réseau pour la fiche ouverte et le suivi
+//  (`isProfIaProfileId`).
+//
 //  Cible : iOS 16, aucune API iOS 17.
 //
 import SwiftUI
@@ -121,12 +127,14 @@ final class AcctSearchModel: ObservableObject {
     }
 
     /// Profils connus (`knownProfiles`) : l'annuaire des abonnés prime, ses
-    /// ébauches ne doivent jamais écraser une fiche complète déjà connue.
+    /// ébauches ne doivent jamais écraser une fiche complète déjà connue. Le
+    /// prof IA n'est jamais renvoyé par l'annuaire : sa fiche locale reste
+    /// ouvrable même sans passage par la recherche (`withProfIaKnownProfile`).
     var knownProfiles: [AcctSearchMember] {
         var merged: [String: AcctSearchMember] = [:]
         for member in socialDirectory { merged[member.id] = member }
         for member in directoryProfiles where merged[member.id] == nil { merged[member.id] = member }
-        return Array(merged.values)
+        return withProfIaKnownProfile(Array(merged.values))
     }
 
     /// Membre dont la fiche est ouverte. Dernière barrière côté rendu : même une
@@ -208,7 +216,7 @@ final class AcctSearchModel: ObservableObject {
             }
             let found = browsing
                 ? try await AcctSearchBrowseCache.shared.browse(token: token)
-                : try await AcctSearchDirectory.search(wanted, token: token)
+                : try await AcctSearchDirectory.search(wanted, token: token, includeProfIa: true)
             guard !Task.isCancelled else { return }
             directoryProfiles = found
             errorMessage = nil
@@ -292,6 +300,12 @@ final class AcctSearchModel: ObservableObject {
             selectedProfileState = .idle
             return
         }
+        // Le prof IA est une fiche locale, déjà dans les profils connus : ni
+        // réseau ni minutage (`AccountScreen.tsx:1648-1651`).
+        if isProfIaProfileId(memberId) {
+            selectedProfileState = .idle
+            return
+        }
         let initial = selectedMember == nil
         selectedProfileState = initial ? .loading : .refreshing
 
@@ -314,6 +328,9 @@ final class AcctSearchModel: ObservableObject {
     /// retourné tout de suite ; la publication distante appartient au lot
     /// « Social ».
     func toggleFollow(_ memberId: String) {
+        // Le prof IA ne se suit pas : sa fiche n'affiche aucun bouton social
+        // (`AccountScreen.tsx:1479-1483`).
+        if isProfIaProfileId(memberId) { return }
         if let index = followedIds.firstIndex(of: memberId) {
             followedIds.remove(at: index)
         } else {

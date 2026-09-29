@@ -7,8 +7,10 @@
 //
 //  Écarts assumés (2026-09-29) :
 //    - Origine de la frise : `registeredAt` = `account.createdAt`
-//      (`App.tsx:2828`), résolu depuis le registre local par l'adresse du
-//      profil ; repli sur la première ouverture du parcours
+//      (`App.tsx:2828`). L'appelant la fournit (montage `TrainingView` →
+//      `accountRegistrationDate(forEmail:)`) ; à défaut elle est résolue depuis
+//      le registre local par l'adresse du compte (`accountEmail`, posé par
+//      défaut à `profile.email`) ; repli sur la première ouverture du parcours
 //      (`HecJourneyStore.resolveRegistrationDate`) si le compte est absent.
 //    - Geste horizontal (`onTabSwipeStart/Move/End/Cancel`) laissé au pager
 //      parent ; `onReady` (création du contexte OpenGL) sans objet en 2D.
@@ -64,12 +66,17 @@ struct HecJourneyView: View {
     // MARK: Initialisation
 
     /// Initialiseur complet, calqué sur les `HecJourneyProps` d'Expo.
+    ///
+    /// `accountEmail` est l'adresse du compte local : `HecJourneyStore` s'en
+    /// sert pour résoudre `registeredAt` (`account.createdAt`) quand l'appelant
+    /// ne la fournit pas explicitement.
     init(
         chapters: @escaping (Int) -> [HecJourneyChapter] = { _ in [] },
         admissionTrack: String = "",
         programYear: Int = 1,
         startingProgramYear: Int? = nil,
         registeredAt: Date? = nil,
+        accountEmail: String? = nil,
         onBack: (() -> Void)? = nil,
         onOpenRanking: @escaping () -> Void = {},
         onOpenChapter: @escaping (String, String?) -> Void = { _, _ in }
@@ -82,7 +89,11 @@ struct HecJourneyView: View {
         self.onOpenChapter = onOpenChapter
         _programYear = State(initialValue: programYear)
 
-        let store = HecJourneyStore(programYear: programYear, registeredAt: registeredAt)
+        let store = HecJourneyStore(
+            programYear: programYear,
+            registeredAt: registeredAt,
+            accountEmail: accountEmail
+        )
         _store = StateObject(wrappedValue: store)
         _flow = StateObject(wrappedValue: HecJourneyAddFlow(store: store))
     }
@@ -92,12 +103,13 @@ struct HecJourneyView: View {
     /// `registeredAt` reste l'origine de la frise. La source la reçoit du
     /// compte (`account.createdAt`, `App.tsx:2828` → `HecJourney.tsx:153,172`) ;
     /// si l'appelant ne la fournit pas, elle est résolue depuis le registre
-    /// local par l'adresse du profil. Le repli sur la première ouverture du
-    /// parcours (`HecJourneyStore`) ne joue plus que pour un compte absent du
-    /// registre.
+    /// local par l'adresse du profil (`accountEmail`). Le repli sur la première
+    /// ouverture du parcours (`HecJourneyStore`) ne joue plus que pour un compte
+    /// absent du registre.
     init(
         profile: UserProfile,
         registeredAt: Date? = nil,
+        accountEmail: String? = nil,
         onBack: (() -> Void)? = nil,
         onOpenRanking: @escaping () -> Void = {},
         onOpenChapter: @escaping (String, String?) -> Void = { _, _ in }
@@ -108,23 +120,13 @@ struct HecJourneyView: View {
             admissionTrack: profile.track,
             programYear: year,
             startingProgramYear: year,
-            registeredAt: registeredAt ?? Self.accountRegistrationDate(for: profile),
+            registeredAt: registeredAt
+                ?? SubjHecJourneyEntry.accountRegistrationDate(forEmail: profile.email),
+            accountEmail: accountEmail ?? profile.email,
             onBack: onBack,
             onOpenRanking: onOpenRanking,
             onOpenChapter: onOpenChapter
         )
-    }
-
-    /// `createdAt` du compte (`account.createdAt`, `App.tsx:2828`), en
-    /// millisecondes dans le registre local — converti en date. `nil` si le
-    /// compte est introuvable : `HecJourneyStore` retombe alors sur la première
-    /// ouverture du parcours.
-    private static func accountRegistrationDate(for profile: UserProfile) -> Date? {
-        guard let millis = AcctLocalRegistry.findAccountByEmail(
-            AcctLocalRegistry.loadAccounts(),
-            email: profile.email
-        )?.createdAt, millis > 0 else { return nil }
-        return Date(timeIntervalSince1970: millis / 1000)
     }
 
     // MARK: Corps

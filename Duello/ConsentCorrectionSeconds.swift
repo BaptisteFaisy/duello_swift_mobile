@@ -7,17 +7,19 @@
 //
 //  Fichiers source Expo portés :
 //    - `src/hooks/useQuestionCorrectionSeconds.ts` (`useQuestionCorrectionSeconds`) ;
-//    - `src/utils/correctionDurationStats.ts` (fonctions pures utilisées par le
-//      hook : `PRIOR_CORRECTION_DURATION_STATS`, `plannedQuestionSeconds`,
-//      `parseCorrectionDurationStats`, `loadCorrectionDurationStats`).
+//    - `src/utils/correctionDurationStats.ts` (`PRIOR_CORRECTION_DURATION_STATS`,
+//      `withCorrectionDuration`, `plannedQuestionSeconds`,
+//      `parseCorrectionDurationStats`, `serializeCorrectionDurationStats`,
+//      `loadCorrectionDurationStats`, `recordCorrectionDuration`).
 //
 //  Le relais ne fournit pas d'ETA pour `grade-answer` : l'estimation suit une
 //  moyenne mobile des corrections terminées et leur dispersion (principe de
 //  l'estimation du RTT de TCP, RFC 6298). Sans mesure, l'a priori reprend
 //  l'ancienne estimation prudente (moyenne 35 s, écart 10 s).
 //
-//  La source relit l'estimation après chaque correction mesurée ; le portage
-//  expose la lecture pure, la réactivité restant à la charge de la vue hôte.
+//  Le chemin d'écriture (`withCorrectionDuration`, `record`) est porté ici ; la
+//  réactivité de la vue (relecture après chaque correction mesurée) vit dans
+//  `CollCorrectionSecondsStore.swift`.
 //
 //  Cible : iOS 16.
 //
@@ -82,6 +84,45 @@ enum ConsentCorrectionSeconds {
     /// `loadCorrectionDurationStats` : relit les mesures enregistrées.
     static func load() -> Stats {
         parse(UserDefaults.standard.string(forKey: storageKey))
+    }
+
+    /// `STEADY_SAMPLE_WEIGHT` : poids minimal d'une nouvelle mesure une fois
+    /// l'a priori dilué dans les premières.
+    private static let steadySampleWeight = 0.25
+
+    /// `withCorrectionDuration` : intègre une durée mesurée. L'a priori compte
+    /// pour une mesure, puis chaque correction pèse au moins un quart.
+    static func withCorrectionDuration(_ stats: Stats, seconds: Double) -> Stats {
+        let weight = max(steadySampleWeight, 1 / Double(stats.samples + 2))
+        let error = bounded(seconds) - stats.meanSeconds
+        return Stats(
+            meanSeconds: stats.meanSeconds + weight * error,
+            deviationSeconds: stats.deviationSeconds
+                + weight * (abs(error) - stats.deviationSeconds),
+            samples: stats.samples + 1
+        )
+    }
+
+    /// `serializeCorrectionDurationStats` : forme persistée de la source.
+    static func serialize(_ stats: Stats) -> String? {
+        let object: [String: Any] = [
+            "meanSeconds": stats.meanSeconds,
+            "deviationSeconds": stats.deviationSeconds,
+            "samples": stats.samples,
+        ]
+        guard let data = try? JSONSerialization.data(withJSONObject: object) else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+
+    /// `recordCorrectionDuration` : enregistre une correction terminée et
+    /// publie la nouvelle estimation.
+    @discardableResult
+    static func record(seconds: Double) -> Stats {
+        let next = withCorrectionDuration(load(), seconds: seconds)
+        if let raw = serialize(next) {
+            UserDefaults.standard.set(raw, forKey: storageKey)
+        }
+        return next
     }
 
     /// Durée annoncée pour la prochaine correction, en secondes.

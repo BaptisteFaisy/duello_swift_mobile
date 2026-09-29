@@ -204,16 +204,18 @@ struct ChalRunOpponentCard: View {
     }
 
     /// Filière, année et prépa de l'adversaire, jointes par « · » comme la
-    /// source (`[opponent.track, opponent.year, opponent.prepName]`,
+    /// source (`[opponent.track, opponent.year, opponent.prepName].filter(Boolean)`,
     /// `ChallengesScreen.tsx:3110-3115`).
     ///
-    /// V1 (2026-09-29) — écart P2 : `MatchView.Opponent` (`Models.swift`, hors
-    /// lot) ne porte toujours ni `track` ni `year` ; seule la prépa reste
-    /// affichable ici. Le hunk à raccorder (ajout des deux champs optionnels à
-    /// `Opponent`, puis jonction des trois) est décrit dans le rapport IMPL-14.
+    /// V2 (2026-09-29, lot T04) — écart P2 fermé : `MatchView.Opponent` porte
+    /// désormais `track` et `year` (optionnels, cf. `Models.swift`), joints ici
+    /// aux trois comme la source.
     private var metaLine: String {
         if isTraining { return "Personne dans la file — même exo, même chrono" }
-        return opponent.prepName
+        return [opponent.track, opponent.year, opponent.prepName]
+            .compactMap { $0 }
+            .filter { !$0.isEmpty }
+            .joined(separator: " · ")
     }
 
     private func summaryItem(icon: String, text: String) -> some View {

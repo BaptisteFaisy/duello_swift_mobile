@@ -60,8 +60,53 @@ final class OnbFlowCoordinator: ObservableObject {
 
     /// Identité de fournisseur retenue (Google ou Apple), si une connexion a eu
     /// lieu pendant le parcours.
-    @Published var googleIdentity: GoogleIdentity?
-    @Published var appleIdentity: AppleAuthIdentity?
+    ///
+    /// `OnbFlowView` pose l'identité initiale **juste après** `init` : le sème
+    /// du profil (e-mail, nom, visibilité) se joue donc au montage, comme le
+    /// profil de départ de la source (`OnboardingScreen.tsx:229-247`,
+    /// `profileWithGoogleIdentity(initialProfile, …)`).
+    @Published var googleIdentity: GoogleIdentity? {
+        didSet {
+            guard let identity = googleIdentity else { return }
+            let provider = OnbDataProviderAuth.profileWithGoogleIdentity(profile, identity: identity)
+            var seeded = provider
+            if mode == .upgrade {
+                seeded = profile
+                seeded.email = provider.email
+                seeded.photoUri = provider.photoUri
+                seeded.isPublic = true
+            } else {
+                seeded.displayName = profile.displayName
+                seeded.firstName = profile.displayName
+                seeded.lastName = ""
+            }
+            path = OnbFlowAcademic.normalizePath(seeded)
+            profile = OnbFlowAcademic.synchronizedProfile(seeded, path: path)
+            providerEmail = identity.email
+            providerName = "Google"
+        }
+    }
+    @Published var appleIdentity: AppleAuthIdentity? {
+        didSet {
+            guard let identity = appleIdentity else { return }
+            let provider = AppleAuthAccountResolver.profileWithIdentity(profile, identity: identity)
+            var seeded = provider
+            if mode == .upgrade {
+                seeded = profile
+                seeded.email = provider.email
+                seeded.photoUri = provider.photoUri
+                seeded.isPublic = true
+            } else {
+                seeded.displayName = profile.displayName
+                seeded.firstName = profile.displayName
+                seeded.lastName = ""
+            }
+            path = OnbFlowAcademic.normalizePath(seeded)
+            profile = OnbFlowAcademic.synchronizedProfile(seeded, path: path)
+            providerEmail = identity.email
+            providerName = "Apple"
+        }
+    }
     /// E-mail et nom du fournisseur, pour le bandeau de récapitulatif.
     @Published var providerEmail: String?
     @Published var providerName: String?

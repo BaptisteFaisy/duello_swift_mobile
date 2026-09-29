@@ -166,29 +166,3 @@ struct EvEventTopBar: View {
     }
 }
 
-// MARK: - Onglet de section
-
-/// Onglet de section (Sujet / Classement) d'un événement terminé.
-/// La capsule noire commune vit dans le conteneur, comme `sectionTabs`
-/// (`EventWorkspace.tsx:657-693` : conteneur `#000000`, pastille sélectionnée
-/// blanche, texte sélectionné `ink` / non sélectionné blanc).
-struct EvEventSectionTab: View {
-    let label: String
-    let selected: Bool
-    let onPress: () -> Void
-
-    var body: some View {
-        Button(action: onPress) {
-            Text(label)
-                .font(.system(size: 12, weight: .heavy))
-                .foregroundStyle(selected ? Theme.ink : Theme.white)
-                .frame(minHeight: 30)
-                .padding(.horizontal, 12)
-                .background(selected ? Theme.white : Color.clear)
-                .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(selected ? [.isSelected] : [])
-    }
-}

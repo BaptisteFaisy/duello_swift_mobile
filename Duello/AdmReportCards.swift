@@ -153,6 +153,7 @@ struct AdmReportMessage: View {
             Text(label)
                 .font(.system(size: 8, weight: .black))
                 .textCase(.uppercase)
+                .tracking(0.7)
                 .foregroundStyle(Theme.inkFaint)
             Text(message.isEmpty ? "Aucune précision ajoutée." : message)
                 .font(.system(size: 12, weight: .regular))

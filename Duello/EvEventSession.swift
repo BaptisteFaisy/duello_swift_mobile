@@ -11,13 +11,11 @@
 //  automatique de fin repose sur une comparaison d'instants, donc il part même
 //  si l'application a dormi entre-temps.
 //
-//  Limite connue : le crédit local idempotent des XP et du delta Elo est porté
-//  (`EvEventRewards.swift` + `EvEventRewards+Storage.swift`, miroir de
-//  `src/utils/eventRewards.ts`) mais **pas encore câblé ici** : aucune
-//  conformité `EvEventRewardsStorage` n'existe (le stockage de compte partagé
-//  vit dans `RewCompletion`/`RewRemoteAccountData`, non modifiables dans ce
-//  lot). La publication du classement n'alimente donc pas encore les compteurs
-//  locaux d'XP et la courbe Elo — câblage signalé, à raccorder.
+//  Lot T06 (2026-09-29) : le crédit local idempotent des XP et du delta Elo est
+//  porté (`EvEventRewards.swift` + `EvEventRewards+Storage.swift`, miroir de
+//  `src/utils/eventRewards.ts`) et **câblé ici** : dès que l'entrée propre au
+//  classement apparaît (`refreshResults`), `EvEventRewards.record` crédite le
+//  compte une seule fois par événement (`useEventSession.ts:185-196`).
 //
 //  Cible : iOS 16.
 //
@@ -236,9 +234,23 @@ final class EvEventSession: ObservableObject {
         let eventId = event.id
         let token = self.token
         Task {
-            if let state = try? await EvEventAPI.results(eventId: eventId, token: token) {
-                await MainActor.run { self.results = state }
-            }
+            guard let state = try? await EvEventAPI.results(eventId: eventId, token: token) else { return }
+            await MainActor.run { self.results = state }
+            // Publication du classement (`useEventSession.ts:185-196`) : les récompenses
+            // personnelles (XP de participation et delta Elo) entrent **une seule fois**
+            // dans le compte, dès que l'entrée propre au classement apparaît. Le crédit
+            // est idempotent par événement (`rewardedEventIds`).
+            guard let own = state.leaderboard?.first(where: { $0.id == self.accountId }) else { return }
+            let input = EvEventRewardsInput(
+                eventId: self.event.id,
+                subjectTitle: self.event.title,
+                durationMinutes: Double(self.durationMinutes),
+                xpAwarded: Double(own.xpAwarded),
+                eloDelta: own.eloDelta,
+                at: Date().timeIntervalSince1970 * 1000
+            )
+            _ = try? await EvEventRewards.record(email: self.email, input: input)
         }
     }
+
 }

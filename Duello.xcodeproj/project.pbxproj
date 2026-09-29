@@ -836,6 +836,83 @@
 		1C463915236512404280FC86 /* TrainCoursePagePositioning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 081FCE4115CFF9B1A9C274FC /* TrainCoursePagePositioning.swift */; };
 		D4B281208229F0842A3356B9 /* ChalRunRoundsChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66E05D9FC6396942B686E896 /* ChalRunRoundsChrome.swift */; };
 		84288D19003FEDC2C63B6FFB /* ExGCorrectionHourglassShapes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B42BE53A4B56353EC582957 /* ExGCorrectionHourglassShapes.swift */; };
+		0E4CFF5B06311225FDB93FE5 /* AcctIncomingLike.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB417F9D83773DE96CC30019 /* AcctIncomingLike.swift */; };
+		5CA85988A2B3ED2DC6F284F4 /* AcctProfileRanks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61D403D9782BC5584ACB9951 /* AcctProfileRanks.swift */; };
+		5D6AF7D229EFCA28CA43FDA2 /* AnnAttemptCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B2608D37C3FA3C338889B29 /* AnnAttemptCodec.swift */; };
+		6222FE9E052537A17E9347A0 /* AnnAttemptCounts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84BC9A5C7C40BF294427452E /* AnnAttemptCounts.swift */; };
+		8F4880DB9F23D1FDBCD954B4 /* AnnAttemptMigration.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9F6B371C7C9B28B36B4BFCA /* AnnAttemptMigration.swift */; };
+		1E5050661CC42A3E292DC936 /* AnnAttemptModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF4125C1C1EE9CCA07C7D500 /* AnnAttemptModels.swift */; };
+		05D8D5167C31E97BA861A5D3 /* AnnAttemptRecords.swift in Sources */ = {isa = PBXBuildFile; fileRef = E57280D72D5DBDA5C433030F /* AnnAttemptRecords.swift */; };
+		0770550FDDFF45A5BFFC5411 /* AnnAttemptSanitize.swift in Sources */ = {isa = PBXBuildFile; fileRef = 892896A7C9C4C9537610AEE2 /* AnnAttemptSanitize.swift */; };
+		9D4FD6FBC9DD6CE3A31DF2D3 /* AnnAttemptStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56657CDE3D9A49B52C6CD930 /* AnnAttemptStatus.swift */; };
+		A332B6DC24B2554181ECAAFB /* AnnAttemptStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C8E3FA292F975FC7F0A19A6 /* AnnAttemptStore.swift */; };
+		B488C5C6031312D4E3E0D864 /* ChalCorrectionQuota.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAA2C8D3143C40E3EC1F1ECB /* ChalCorrectionQuota.swift */; };
+		9F26EB2B469B3C11C7429364 /* CollCorrectionGrade.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC47EC544662E967417E4457 /* CollCorrectionGrade.swift */; };
+		FDA0CCFF145BE9A3073EC50E /* CollCorrectionGradeParsing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45EB55F557B62C5F4AC0DFEE /* CollCorrectionGradeParsing.swift */; };
+		2AAA6D6CAEC808866B5C6FAA /* CollCorrectionGradeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF49CBD0FC692F3D62C50897 /* CollCorrectionGradeStore.swift */; };
+		2AA400CED1C16F8944E9DF60 /* CollCorrectionQuota.swift in Sources */ = {isa = PBXBuildFile; fileRef = 423F82DE85819311C4832F55 /* CollCorrectionQuota.swift */; };
+		8AA1E2897F3AD4FA2075E4DB /* CollCorrectionQuotaController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65F74811D0C63FE83CB822A9 /* CollCorrectionQuotaController.swift */; };
+		79101D52BA338501AD63E0F6 /* CollCorrectionSecondsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68624F7EE7A1BBDF368A817D /* CollCorrectionSecondsStore.swift */; };
+		8FCC9E852FCDC8F6634CE0CF /* CollExerciseRankingSeen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49DFC52F87294FF8638C256A /* CollExerciseRankingSeen.swift */; };
+		3B90200A540825A2D36F5934 /* CollGradingRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53A35BB0DDCC54BF6DA1CB0F /* CollGradingRequest.swift */; };
+		FB5EEE6189BE1530FE24412A /* CorrectionGradeHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 226CE1626630A643F89D372D /* CorrectionGradeHistory.swift */; };
+		CE94E6F3F412DBCF88B9B946 /* CorrectionGradeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F792EA3F17EA17DE45A4F6A9 /* CorrectionGradeStore.swift */; };
+		D7DEC7CE274CC1267DAEA3F7 /* DevRegBiometricRegister.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27CDC74D927F886B81898698 /* DevRegBiometricRegister.swift */; };
+		97C0886370610459DD7965D1 /* DuelChallengePools.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65AFED1EE0E4D8B0C539BDAB /* DuelChallengePools.swift */; };
+		1F99D7FF60BC4585879065B9 /* DuelClassInvites.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAAACE01892E33651D4789BF /* DuelClassInvites.swift */; };
+		BFC4D7323761892854F31EE0 /* DuelExerciseBank.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8953CA9C97BD9FB76ED82DAD /* DuelExerciseBank.swift */; };
+		FA95C45D2461881BC2AB52E1 /* EvEventAnswerImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00895ACD8B41D84F33E16B4F /* EvEventAnswerImage.swift */; };
+		02922A1BA3EA95DF6386FC1A /* EvEventSubjectFixtures+Part1.swift in Sources */ = {isa = PBXBuildFile; fileRef = C636C452C9ED77F2977740B8 /* EvEventSubjectFixtures+Part1.swift */; };
+		4F2CF99BA27B1843ED8837BC /* EvEventSubjectFixtures+Part2.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFA6B4E905DDAD51165B81DA /* EvEventSubjectFixtures+Part2.swift */; };
+		EFD24CAC1CE951CE3F19D810 /* EvEventSubjectFixtures+Part3.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A3AD2EBEF8620D4E36E7E38 /* EvEventSubjectFixtures+Part3.swift */; };
+		D9AE62C6DCD89B9D86D7B20D /* EvEventSubjectFixtures+Part4.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2A4FBD360947F71262C464 /* EvEventSubjectFixtures+Part4.swift */; };
+		71632E3342691D7FE4DBDADF /* EvEventSubjectFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = E06E27CC8A78A1319F0F477B /* EvEventSubjectFixtures.swift */; };
+		E30B4B5A5F85AF03CDE8C75D /* ExGCorrectionDock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00637610F694B659D5EB7AF3 /* ExGCorrectionDock.swift */; };
+		B1D7E5C76A680BB57BADE9DD /* ExGGradingScore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 764B2E19BE94BACB70C3FB0D /* ExGGradingScore.swift */; };
+		DDE8C8392E1F0675BE304E25 /* ExGLeaderboardStatuses.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15B91D9A1E4D3D07EB00071A /* ExGLeaderboardStatuses.swift */; };
+		FB345A04695E4415B43A4BFD /* MathLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87315B9BFEDB79471593DC27 /* MathLayout.swift */; };
+		9A7A2FF5E78899976701EA86 /* MathLayoutBlocks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1447AF5B78B3A3AE08F2F7F2 /* MathLayoutBlocks.swift */; };
+		F8164962FC2FF7F1CC97C1D9 /* MathLayoutNormalize.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2ACD2A509C6435D84A7590CE /* MathLayoutNormalize.swift */; };
+		57B3B06562782AAD350C8DF8 /* OfficialMathsPrograms.swift in Sources */ = {isa = PBXBuildFile; fileRef = 995935039F5341EBF83D91A1 /* OfficialMathsPrograms.swift */; };
+		842EB1E89B71F00879123CF4 /* OfflContentStartup+Profiles.swift in Sources */ = {isa = PBXBuildFile; fileRef = F64945F5D7E4F03F83E5C00E /* OfflContentStartup+Profiles.swift */; };
+		63859009DE9A1C0F7E63C6B1 /* OfflContentStartup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B805AD06475F266384B9806 /* OfflContentStartup.swift */; };
+		1541D6931439691458671809 /* OfflServedBank+Catalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAC134B4E13326B28E098B08 /* OfflServedBank+Catalog.swift */; };
+		CDDCF4B94002A09C71238463 /* OfflServedBank+Raw.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABE05D52CA30E9DD47D88444 /* OfflServedBank+Raw.swift */; };
+		65FDA893AFB28C12A636523B /* OfflServedBank.swift in Sources */ = {isa = PBXBuildFile; fileRef = A55FF361F4940FD5B4CD5A97 /* OfflServedBank.swift */; };
+		8FF5ACD5740C97F9A5561C7C /* OfflServedSeeds.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3339CC2042166A7966BC5183 /* OfflServedSeeds.swift */; };
+		2526E582EEEA11DE51D94A03 /* PhotoTxPremiumImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DB9A62E020BC163F67F8D79 /* PhotoTxPremiumImage.swift */; };
+		E362E33095E0392A9DCAA9D2 /* PlanOllamaConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6BCACF62673A5F2E4374655 /* PlanOllamaConnection.swift */; };
+		00A52DBA5915DF7D44F5687D /* PremRevenueCatConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 788A7296BDC91155A8AFDD72 /* PremRevenueCatConfig.swift */; };
+		455DA65E6F858C51470FB62E /* PremRevenueCatService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F3FDB2AA1F0B0CA927BD316 /* PremRevenueCatService.swift */; };
+		34D29008435CFBE3EE78A53D /* ProfCourseText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41E3315EF7FBB09E54B2B14B /* ProfCourseText.swift */; };
+		EF4A8196D35C31BC9921CF9F /* ProfCourseTextRelay.swift in Sources */ = {isa = PBXBuildFile; fileRef = F27B78F0C5AA12348865FFC3 /* ProfCourseTextRelay.swift */; };
+		0F06E2F79666FABCE192FAE1 /* ProfCourseTextSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 875BFB9EA6E4B5D62F57A29B /* ProfCourseTextSession.swift */; };
+		0803EB82CFE4E327B7549385 /* ProfStudentContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46A316AC48FEFB77AB05CBB2 /* ProfStudentContext.swift */; };
+		6F188EDCA996D0B5EA876175 /* PushNotifLogout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6705C2FF89E6F33FB48C16F7 /* PushNotifLogout.swift */; };
+		9BE66F65DD0C86F563225905 /* PyConSandbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE1D070422EF5FD8D81EC994 /* PyConSandbox.swift */; };
+		CEBC97FCFFEA2F224752862B /* PythonAnswer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7523043D1F9F81D21BB4CC36 /* PythonAnswer.swift */; };
+		8696200B451E6CD571C7A91A /* RankingCompetitionProgram.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41DCEAA387881C350F6A34DD /* RankingCompetitionProgram.swift */; };
+		5BB96288D06CD59F64EB14F9 /* RankingExerciseSeen.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF36E37C1508F1C4FB3B77B1 /* RankingExerciseSeen.swift */; };
+		5B955049311769E82FEDB5BB /* RankingGradeHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64B07157A4FA5E38559EA822 /* RankingGradeHistory.swift */; };
+		976B6F2E2BD8DE38023E25A8 /* RankingPerformance.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA301F02A6E69320583A7D98 /* RankingPerformance.swift */; };
+		ED5C469A497A60058549582A /* RankingProfileRanks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 129F9CCF97928B8FB556D4FB /* RankingProfileRanks.swift */; };
+		477202BCC400E19E4CC0C473 /* RankingSubjectXp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 990E7E47395339D7F293CD63 /* RankingSubjectXp.swift */; };
+		4A08AE35456DE83E5BEC9811 /* RankingSubjectXpStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2202D641F5757A8B89F1F48D /* RankingSubjectXpStore.swift */; };
+		FDD66A1747157021C1DA9729 /* RankingWeeklyXpEntries.swift in Sources */ = {isa = PBXBuildFile; fileRef = E91BB3C972157FB8076B343A /* RankingWeeklyXpEntries.swift */; };
+		05F07A3797CDD33C451D7EA0 /* ReportSafetyCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = D615DDEBED6A01ED9C84B08A /* ReportSafetyCache.swift */; };
+		35976CF3F2E0084BB4F77B91 /* RewAccountDataMigration.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEF96B5A57A13A064D5FB777 /* RewAccountDataMigration.swift */; };
+		C352BF1BCAE545F3FA174EEF /* RewEcgOptionChange.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4771D33A2C00F88E40AB57B /* RewEcgOptionChange.swift */; };
+		AD329AAF49C1EE83F0D26441 /* RewLocalAccountData.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1F4572FB03361F0A7F502F9 /* RewLocalAccountData.swift */; };
+		8D5B400CCF3BDD46BA8CDEA3 /* RewRawAccountStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1AB4897B707D081BDED7A5E /* RewRawAccountStorage.swift */; };
+		05D69C30AAB66578A1052FCB /* RewRecentCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = E58FC8FE42D50AD9768D5A55 /* RewRecentCache.swift */; };
+		30FC2E02483CDA42138AB966 /* RewStorageKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = B27BB1B11EE736C1EE27A3BB /* RewStorageKeys.swift */; };
+		15676B4AE05945ECDD989B80 /* SocScheduledClassChallenge.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC4C70476F51B3BB724FB1AD /* SocScheduledClassChallenge.swift */; };
+		957CAA6C0B8C8FE7AD4C59A9 /* SocialApiEndpoints.swift in Sources */ = {isa = PBXBuildFile; fileRef = 343AAE1D728F708174811DBC /* SocialApiEndpoints.swift */; };
+		E3A47FB1099701D7EC0969EB /* SocialApiProfileExtras.swift in Sources */ = {isa = PBXBuildFile; fileRef = B855D4B855D78D99D055739C /* SocialApiProfileExtras.swift */; };
+		3E4960DC3BE261B71C15DE18 /* TrainAnnaleExtractionFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = C85B723F085FA4FC307D6054 /* TrainAnnaleExtractionFilter.swift */; };
+		E850B9A592441F0BA43A6F95 /* TrainChapterItemBasics.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7C738B42AA9A5F87AB32237 /* TrainChapterItemBasics.swift */; };
+		1D75DA959658D51D2348A7D9 /* TrainManualOverrides+Apply.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC134905903B46C377774E1F /* TrainManualOverrides+Apply.swift */; };
+		1400CCF749E1C2D568A7799F /* TrainManualOverrides.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBD9F379EA624253E85F21BF /* TrainManualOverrides.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -1669,6 +1746,83 @@
 		081FCE4115CFF9B1A9C274FC /* TrainCoursePagePositioning.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainCoursePagePositioning.swift; sourceTree = "<group>"; };
 		66E05D9FC6396942B686E896 /* ChalRunRoundsChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChalRunRoundsChrome.swift; sourceTree = "<group>"; };
 		6B42BE53A4B56353EC582957 /* ExGCorrectionHourglassShapes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExGCorrectionHourglassShapes.swift; sourceTree = "<group>"; };
+		CB417F9D83773DE96CC30019 /* AcctIncomingLike.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctIncomingLike.swift; sourceTree = "<group>"; };
+		61D403D9782BC5584ACB9951 /* AcctProfileRanks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcctProfileRanks.swift; sourceTree = "<group>"; };
+		8B2608D37C3FA3C338889B29 /* AnnAttemptCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnAttemptCodec.swift; sourceTree = "<group>"; };
+		84BC9A5C7C40BF294427452E /* AnnAttemptCounts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnAttemptCounts.swift; sourceTree = "<group>"; };
+		B9F6B371C7C9B28B36B4BFCA /* AnnAttemptMigration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnAttemptMigration.swift; sourceTree = "<group>"; };
+		AF4125C1C1EE9CCA07C7D500 /* AnnAttemptModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnAttemptModels.swift; sourceTree = "<group>"; };
+		E57280D72D5DBDA5C433030F /* AnnAttemptRecords.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnAttemptRecords.swift; sourceTree = "<group>"; };
+		892896A7C9C4C9537610AEE2 /* AnnAttemptSanitize.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnAttemptSanitize.swift; sourceTree = "<group>"; };
+		56657CDE3D9A49B52C6CD930 /* AnnAttemptStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnAttemptStatus.swift; sourceTree = "<group>"; };
+		9C8E3FA292F975FC7F0A19A6 /* AnnAttemptStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnAttemptStore.swift; sourceTree = "<group>"; };
+		FAA2C8D3143C40E3EC1F1ECB /* ChalCorrectionQuota.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChalCorrectionQuota.swift; sourceTree = "<group>"; };
+		BC47EC544662E967417E4457 /* CollCorrectionGrade.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollCorrectionGrade.swift; sourceTree = "<group>"; };
+		45EB55F557B62C5F4AC0DFEE /* CollCorrectionGradeParsing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollCorrectionGradeParsing.swift; sourceTree = "<group>"; };
+		DF49CBD0FC692F3D62C50897 /* CollCorrectionGradeStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollCorrectionGradeStore.swift; sourceTree = "<group>"; };
+		423F82DE85819311C4832F55 /* CollCorrectionQuota.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollCorrectionQuota.swift; sourceTree = "<group>"; };
+		65F74811D0C63FE83CB822A9 /* CollCorrectionQuotaController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollCorrectionQuotaController.swift; sourceTree = "<group>"; };
+		68624F7EE7A1BBDF368A817D /* CollCorrectionSecondsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollCorrectionSecondsStore.swift; sourceTree = "<group>"; };
+		49DFC52F87294FF8638C256A /* CollExerciseRankingSeen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollExerciseRankingSeen.swift; sourceTree = "<group>"; };
+		53A35BB0DDCC54BF6DA1CB0F /* CollGradingRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollGradingRequest.swift; sourceTree = "<group>"; };
+		226CE1626630A643F89D372D /* CorrectionGradeHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CorrectionGradeHistory.swift; sourceTree = "<group>"; };
+		F792EA3F17EA17DE45A4F6A9 /* CorrectionGradeStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CorrectionGradeStore.swift; sourceTree = "<group>"; };
+		27CDC74D927F886B81898698 /* DevRegBiometricRegister.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DevRegBiometricRegister.swift; sourceTree = "<group>"; };
+		65AFED1EE0E4D8B0C539BDAB /* DuelChallengePools.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuelChallengePools.swift; sourceTree = "<group>"; };
+		DAAACE01892E33651D4789BF /* DuelClassInvites.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuelClassInvites.swift; sourceTree = "<group>"; };
+		8953CA9C97BD9FB76ED82DAD /* DuelExerciseBank.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuelExerciseBank.swift; sourceTree = "<group>"; };
+		00895ACD8B41D84F33E16B4F /* EvEventAnswerImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EvEventAnswerImage.swift; sourceTree = "<group>"; };
+		C636C452C9ED77F2977740B8 /* EvEventSubjectFixtures+Part1.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EvEventSubjectFixtures+Part1.swift"; sourceTree = "<group>"; };
+		EFA6B4E905DDAD51165B81DA /* EvEventSubjectFixtures+Part2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EvEventSubjectFixtures+Part2.swift"; sourceTree = "<group>"; };
+		6A3AD2EBEF8620D4E36E7E38 /* EvEventSubjectFixtures+Part3.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EvEventSubjectFixtures+Part3.swift"; sourceTree = "<group>"; };
+		DA2A4FBD360947F71262C464 /* EvEventSubjectFixtures+Part4.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EvEventSubjectFixtures+Part4.swift"; sourceTree = "<group>"; };
+		E06E27CC8A78A1319F0F477B /* EvEventSubjectFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EvEventSubjectFixtures.swift; sourceTree = "<group>"; };
+		00637610F694B659D5EB7AF3 /* ExGCorrectionDock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExGCorrectionDock.swift; sourceTree = "<group>"; };
+		764B2E19BE94BACB70C3FB0D /* ExGGradingScore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExGGradingScore.swift; sourceTree = "<group>"; };
+		15B91D9A1E4D3D07EB00071A /* ExGLeaderboardStatuses.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExGLeaderboardStatuses.swift; sourceTree = "<group>"; };
+		87315B9BFEDB79471593DC27 /* MathLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathLayout.swift; sourceTree = "<group>"; };
+		1447AF5B78B3A3AE08F2F7F2 /* MathLayoutBlocks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathLayoutBlocks.swift; sourceTree = "<group>"; };
+		2ACD2A509C6435D84A7590CE /* MathLayoutNormalize.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathLayoutNormalize.swift; sourceTree = "<group>"; };
+		995935039F5341EBF83D91A1 /* OfficialMathsPrograms.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfficialMathsPrograms.swift; sourceTree = "<group>"; };
+		F64945F5D7E4F03F83E5C00E /* OfflContentStartup+Profiles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OfflContentStartup+Profiles.swift"; sourceTree = "<group>"; };
+		6B805AD06475F266384B9806 /* OfflContentStartup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflContentStartup.swift; sourceTree = "<group>"; };
+		EAC134B4E13326B28E098B08 /* OfflServedBank+Catalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OfflServedBank+Catalog.swift"; sourceTree = "<group>"; };
+		ABE05D52CA30E9DD47D88444 /* OfflServedBank+Raw.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OfflServedBank+Raw.swift"; sourceTree = "<group>"; };
+		A55FF361F4940FD5B4CD5A97 /* OfflServedBank.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflServedBank.swift; sourceTree = "<group>"; };
+		3339CC2042166A7966BC5183 /* OfflServedSeeds.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflServedSeeds.swift; sourceTree = "<group>"; };
+		4DB9A62E020BC163F67F8D79 /* PhotoTxPremiumImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoTxPremiumImage.swift; sourceTree = "<group>"; };
+		A6BCACF62673A5F2E4374655 /* PlanOllamaConnection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanOllamaConnection.swift; sourceTree = "<group>"; };
+		788A7296BDC91155A8AFDD72 /* PremRevenueCatConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PremRevenueCatConfig.swift; sourceTree = "<group>"; };
+		3F3FDB2AA1F0B0CA927BD316 /* PremRevenueCatService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PremRevenueCatService.swift; sourceTree = "<group>"; };
+		41E3315EF7FBB09E54B2B14B /* ProfCourseText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfCourseText.swift; sourceTree = "<group>"; };
+		F27B78F0C5AA12348865FFC3 /* ProfCourseTextRelay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfCourseTextRelay.swift; sourceTree = "<group>"; };
+		875BFB9EA6E4B5D62F57A29B /* ProfCourseTextSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfCourseTextSession.swift; sourceTree = "<group>"; };
+		46A316AC48FEFB77AB05CBB2 /* ProfStudentContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfStudentContext.swift; sourceTree = "<group>"; };
+		6705C2FF89E6F33FB48C16F7 /* PushNotifLogout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushNotifLogout.swift; sourceTree = "<group>"; };
+		CE1D070422EF5FD8D81EC994 /* PyConSandbox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PyConSandbox.swift; sourceTree = "<group>"; };
+		7523043D1F9F81D21BB4CC36 /* PythonAnswer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PythonAnswer.swift; sourceTree = "<group>"; };
+		41DCEAA387881C350F6A34DD /* RankingCompetitionProgram.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingCompetitionProgram.swift; sourceTree = "<group>"; };
+		CF36E37C1508F1C4FB3B77B1 /* RankingExerciseSeen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingExerciseSeen.swift; sourceTree = "<group>"; };
+		64B07157A4FA5E38559EA822 /* RankingGradeHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingGradeHistory.swift; sourceTree = "<group>"; };
+		FA301F02A6E69320583A7D98 /* RankingPerformance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingPerformance.swift; sourceTree = "<group>"; };
+		129F9CCF97928B8FB556D4FB /* RankingProfileRanks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingProfileRanks.swift; sourceTree = "<group>"; };
+		990E7E47395339D7F293CD63 /* RankingSubjectXp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingSubjectXp.swift; sourceTree = "<group>"; };
+		2202D641F5757A8B89F1F48D /* RankingSubjectXpStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingSubjectXpStore.swift; sourceTree = "<group>"; };
+		E91BB3C972157FB8076B343A /* RankingWeeklyXpEntries.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingWeeklyXpEntries.swift; sourceTree = "<group>"; };
+		D615DDEBED6A01ED9C84B08A /* ReportSafetyCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportSafetyCache.swift; sourceTree = "<group>"; };
+		FEF96B5A57A13A064D5FB777 /* RewAccountDataMigration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RewAccountDataMigration.swift; sourceTree = "<group>"; };
+		F4771D33A2C00F88E40AB57B /* RewEcgOptionChange.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RewEcgOptionChange.swift; sourceTree = "<group>"; };
+		E1F4572FB03361F0A7F502F9 /* RewLocalAccountData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RewLocalAccountData.swift; sourceTree = "<group>"; };
+		F1AB4897B707D081BDED7A5E /* RewRawAccountStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RewRawAccountStorage.swift; sourceTree = "<group>"; };
+		E58FC8FE42D50AD9768D5A55 /* RewRecentCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RewRecentCache.swift; sourceTree = "<group>"; };
+		B27BB1B11EE736C1EE27A3BB /* RewStorageKeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RewStorageKeys.swift; sourceTree = "<group>"; };
+		EC4C70476F51B3BB724FB1AD /* SocScheduledClassChallenge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SocScheduledClassChallenge.swift; sourceTree = "<group>"; };
+		343AAE1D728F708174811DBC /* SocialApiEndpoints.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SocialApiEndpoints.swift; sourceTree = "<group>"; };
+		B855D4B855D78D99D055739C /* SocialApiProfileExtras.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SocialApiProfileExtras.swift; sourceTree = "<group>"; };
+		C85B723F085FA4FC307D6054 /* TrainAnnaleExtractionFilter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainAnnaleExtractionFilter.swift; sourceTree = "<group>"; };
+		A7C738B42AA9A5F87AB32237 /* TrainChapterItemBasics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainChapterItemBasics.swift; sourceTree = "<group>"; };
+		EC134905903B46C377774E1F /* TrainManualOverrides+Apply.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TrainManualOverrides+Apply.swift"; sourceTree = "<group>"; };
+		FBD9F379EA624253E85F21BF /* TrainManualOverrides.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainManualOverrides.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -2523,6 +2677,83 @@
 				081FCE4115CFF9B1A9C274FC /* TrainCoursePagePositioning.swift */,
 				66E05D9FC6396942B686E896 /* ChalRunRoundsChrome.swift */,
 				6B42BE53A4B56353EC582957 /* ExGCorrectionHourglassShapes.swift */,
+				CB417F9D83773DE96CC30019 /* AcctIncomingLike.swift */,
+				61D403D9782BC5584ACB9951 /* AcctProfileRanks.swift */,
+				8B2608D37C3FA3C338889B29 /* AnnAttemptCodec.swift */,
+				84BC9A5C7C40BF294427452E /* AnnAttemptCounts.swift */,
+				B9F6B371C7C9B28B36B4BFCA /* AnnAttemptMigration.swift */,
+				AF4125C1C1EE9CCA07C7D500 /* AnnAttemptModels.swift */,
+				E57280D72D5DBDA5C433030F /* AnnAttemptRecords.swift */,
+				892896A7C9C4C9537610AEE2 /* AnnAttemptSanitize.swift */,
+				56657CDE3D9A49B52C6CD930 /* AnnAttemptStatus.swift */,
+				9C8E3FA292F975FC7F0A19A6 /* AnnAttemptStore.swift */,
+				FAA2C8D3143C40E3EC1F1ECB /* ChalCorrectionQuota.swift */,
+				BC47EC544662E967417E4457 /* CollCorrectionGrade.swift */,
+				45EB55F557B62C5F4AC0DFEE /* CollCorrectionGradeParsing.swift */,
+				DF49CBD0FC692F3D62C50897 /* CollCorrectionGradeStore.swift */,
+				423F82DE85819311C4832F55 /* CollCorrectionQuota.swift */,
+				65F74811D0C63FE83CB822A9 /* CollCorrectionQuotaController.swift */,
+				68624F7EE7A1BBDF368A817D /* CollCorrectionSecondsStore.swift */,
+				49DFC52F87294FF8638C256A /* CollExerciseRankingSeen.swift */,
+				53A35BB0DDCC54BF6DA1CB0F /* CollGradingRequest.swift */,
+				226CE1626630A643F89D372D /* CorrectionGradeHistory.swift */,
+				F792EA3F17EA17DE45A4F6A9 /* CorrectionGradeStore.swift */,
+				27CDC74D927F886B81898698 /* DevRegBiometricRegister.swift */,
+				65AFED1EE0E4D8B0C539BDAB /* DuelChallengePools.swift */,
+				DAAACE01892E33651D4789BF /* DuelClassInvites.swift */,
+				8953CA9C97BD9FB76ED82DAD /* DuelExerciseBank.swift */,
+				00895ACD8B41D84F33E16B4F /* EvEventAnswerImage.swift */,
+				C636C452C9ED77F2977740B8 /* EvEventSubjectFixtures+Part1.swift */,
+				EFA6B4E905DDAD51165B81DA /* EvEventSubjectFixtures+Part2.swift */,
+				6A3AD2EBEF8620D4E36E7E38 /* EvEventSubjectFixtures+Part3.swift */,
+				DA2A4FBD360947F71262C464 /* EvEventSubjectFixtures+Part4.swift */,
+				E06E27CC8A78A1319F0F477B /* EvEventSubjectFixtures.swift */,
+				00637610F694B659D5EB7AF3 /* ExGCorrectionDock.swift */,
+				764B2E19BE94BACB70C3FB0D /* ExGGradingScore.swift */,
+				15B91D9A1E4D3D07EB00071A /* ExGLeaderboardStatuses.swift */,
+				87315B9BFEDB79471593DC27 /* MathLayout.swift */,
+				1447AF5B78B3A3AE08F2F7F2 /* MathLayoutBlocks.swift */,
+				2ACD2A509C6435D84A7590CE /* MathLayoutNormalize.swift */,
+				995935039F5341EBF83D91A1 /* OfficialMathsPrograms.swift */,
+				F64945F5D7E4F03F83E5C00E /* OfflContentStartup+Profiles.swift */,
+				6B805AD06475F266384B9806 /* OfflContentStartup.swift */,
+				EAC134B4E13326B28E098B08 /* OfflServedBank+Catalog.swift */,
+				ABE05D52CA30E9DD47D88444 /* OfflServedBank+Raw.swift */,
+				A55FF361F4940FD5B4CD5A97 /* OfflServedBank.swift */,
+				3339CC2042166A7966BC5183 /* OfflServedSeeds.swift */,
+				4DB9A62E020BC163F67F8D79 /* PhotoTxPremiumImage.swift */,
+				A6BCACF62673A5F2E4374655 /* PlanOllamaConnection.swift */,
+				788A7296BDC91155A8AFDD72 /* PremRevenueCatConfig.swift */,
+				3F3FDB2AA1F0B0CA927BD316 /* PremRevenueCatService.swift */,
+				41E3315EF7FBB09E54B2B14B /* ProfCourseText.swift */,
+				F27B78F0C5AA12348865FFC3 /* ProfCourseTextRelay.swift */,
+				875BFB9EA6E4B5D62F57A29B /* ProfCourseTextSession.swift */,
+				46A316AC48FEFB77AB05CBB2 /* ProfStudentContext.swift */,
+				6705C2FF89E6F33FB48C16F7 /* PushNotifLogout.swift */,
+				CE1D070422EF5FD8D81EC994 /* PyConSandbox.swift */,
+				7523043D1F9F81D21BB4CC36 /* PythonAnswer.swift */,
+				41DCEAA387881C350F6A34DD /* RankingCompetitionProgram.swift */,
+				CF36E37C1508F1C4FB3B77B1 /* RankingExerciseSeen.swift */,
+				64B07157A4FA5E38559EA822 /* RankingGradeHistory.swift */,
+				FA301F02A6E69320583A7D98 /* RankingPerformance.swift */,
+				129F9CCF97928B8FB556D4FB /* RankingProfileRanks.swift */,
+				990E7E47395339D7F293CD63 /* RankingSubjectXp.swift */,
+				2202D641F5757A8B89F1F48D /* RankingSubjectXpStore.swift */,
+				E91BB3C972157FB8076B343A /* RankingWeeklyXpEntries.swift */,
+				D615DDEBED6A01ED9C84B08A /* ReportSafetyCache.swift */,
+				FEF96B5A57A13A064D5FB777 /* RewAccountDataMigration.swift */,
+				F4771D33A2C00F88E40AB57B /* RewEcgOptionChange.swift */,
+				E1F4572FB03361F0A7F502F9 /* RewLocalAccountData.swift */,
+				F1AB4897B707D081BDED7A5E /* RewRawAccountStorage.swift */,
+				E58FC8FE42D50AD9768D5A55 /* RewRecentCache.swift */,
+				B27BB1B11EE736C1EE27A3BB /* RewStorageKeys.swift */,
+				EC4C70476F51B3BB724FB1AD /* SocScheduledClassChallenge.swift */,
+				343AAE1D728F708174811DBC /* SocialApiEndpoints.swift */,
+				B855D4B855D78D99D055739C /* SocialApiProfileExtras.swift */,
+				C85B723F085FA4FC307D6054 /* TrainAnnaleExtractionFilter.swift */,
+				A7C738B42AA9A5F87AB32237 /* TrainChapterItemBasics.swift */,
+				EC134905903B46C377774E1F /* TrainManualOverrides+Apply.swift */,
+				FBD9F379EA624253E85F21BF /* TrainManualOverrides.swift */,
 			);
 			path = Duello;
 			sourceTree = "<group>";
@@ -3433,6 +3664,83 @@
 				1C463915236512404280FC86 /* TrainCoursePagePositioning.swift in Sources */,
 				D4B281208229F0842A3356B9 /* ChalRunRoundsChrome.swift in Sources */,
 				84288D19003FEDC2C63B6FFB /* ExGCorrectionHourglassShapes.swift in Sources */,
+				0E4CFF5B06311225FDB93FE5 /* AcctIncomingLike.swift in Sources */,
+				5CA85988A2B3ED2DC6F284F4 /* AcctProfileRanks.swift in Sources */,
+				5D6AF7D229EFCA28CA43FDA2 /* AnnAttemptCodec.swift in Sources */,
+				6222FE9E052537A17E9347A0 /* AnnAttemptCounts.swift in Sources */,
+				8F4880DB9F23D1FDBCD954B4 /* AnnAttemptMigration.swift in Sources */,
+				1E5050661CC42A3E292DC936 /* AnnAttemptModels.swift in Sources */,
+				05D8D5167C31E97BA861A5D3 /* AnnAttemptRecords.swift in Sources */,
+				0770550FDDFF45A5BFFC5411 /* AnnAttemptSanitize.swift in Sources */,
+				9D4FD6FBC9DD6CE3A31DF2D3 /* AnnAttemptStatus.swift in Sources */,
+				A332B6DC24B2554181ECAAFB /* AnnAttemptStore.swift in Sources */,
+				B488C5C6031312D4E3E0D864 /* ChalCorrectionQuota.swift in Sources */,
+				9F26EB2B469B3C11C7429364 /* CollCorrectionGrade.swift in Sources */,
+				FDA0CCFF145BE9A3073EC50E /* CollCorrectionGradeParsing.swift in Sources */,
+				2AAA6D6CAEC808866B5C6FAA /* CollCorrectionGradeStore.swift in Sources */,
+				2AA400CED1C16F8944E9DF60 /* CollCorrectionQuota.swift in Sources */,
+				8AA1E2897F3AD4FA2075E4DB /* CollCorrectionQuotaController.swift in Sources */,
+				79101D52BA338501AD63E0F6 /* CollCorrectionSecondsStore.swift in Sources */,
+				8FCC9E852FCDC8F6634CE0CF /* CollExerciseRankingSeen.swift in Sources */,
+				3B90200A540825A2D36F5934 /* CollGradingRequest.swift in Sources */,
+				FB5EEE6189BE1530FE24412A /* CorrectionGradeHistory.swift in Sources */,
+				CE94E6F3F412DBCF88B9B946 /* CorrectionGradeStore.swift in Sources */,
+				D7DEC7CE274CC1267DAEA3F7 /* DevRegBiometricRegister.swift in Sources */,
+				97C0886370610459DD7965D1 /* DuelChallengePools.swift in Sources */,
+				1F99D7FF60BC4585879065B9 /* DuelClassInvites.swift in Sources */,
+				BFC4D7323761892854F31EE0 /* DuelExerciseBank.swift in Sources */,
+				FA95C45D2461881BC2AB52E1 /* EvEventAnswerImage.swift in Sources */,
+				02922A1BA3EA95DF6386FC1A /* EvEventSubjectFixtures+Part1.swift in Sources */,
+				4F2CF99BA27B1843ED8837BC /* EvEventSubjectFixtures+Part2.swift in Sources */,
+				EFD24CAC1CE951CE3F19D810 /* EvEventSubjectFixtures+Part3.swift in Sources */,
+				D9AE62C6DCD89B9D86D7B20D /* EvEventSubjectFixtures+Part4.swift in Sources */,
+				71632E3342691D7FE4DBDADF /* EvEventSubjectFixtures.swift in Sources */,
+				E30B4B5A5F85AF03CDE8C75D /* ExGCorrectionDock.swift in Sources */,
+				B1D7E5C76A680BB57BADE9DD /* ExGGradingScore.swift in Sources */,
+				DDE8C8392E1F0675BE304E25 /* ExGLeaderboardStatuses.swift in Sources */,
+				FB345A04695E4415B43A4BFD /* MathLayout.swift in Sources */,
+				9A7A2FF5E78899976701EA86 /* MathLayoutBlocks.swift in Sources */,
+				F8164962FC2FF7F1CC97C1D9 /* MathLayoutNormalize.swift in Sources */,
+				57B3B06562782AAD350C8DF8 /* OfficialMathsPrograms.swift in Sources */,
+				842EB1E89B71F00879123CF4 /* OfflContentStartup+Profiles.swift in Sources */,
+				63859009DE9A1C0F7E63C6B1 /* OfflContentStartup.swift in Sources */,
+				1541D6931439691458671809 /* OfflServedBank+Catalog.swift in Sources */,
+				CDDCF4B94002A09C71238463 /* OfflServedBank+Raw.swift in Sources */,
+				65FDA893AFB28C12A636523B /* OfflServedBank.swift in Sources */,
+				8FF5ACD5740C97F9A5561C7C /* OfflServedSeeds.swift in Sources */,
+				2526E582EEEA11DE51D94A03 /* PhotoTxPremiumImage.swift in Sources */,
+				E362E33095E0392A9DCAA9D2 /* PlanOllamaConnection.swift in Sources */,
+				00A52DBA5915DF7D44F5687D /* PremRevenueCatConfig.swift in Sources */,
+				455DA65E6F858C51470FB62E /* PremRevenueCatService.swift in Sources */,
+				34D29008435CFBE3EE78A53D /* ProfCourseText.swift in Sources */,
+				EF4A8196D35C31BC9921CF9F /* ProfCourseTextRelay.swift in Sources */,
+				0F06E2F79666FABCE192FAE1 /* ProfCourseTextSession.swift in Sources */,
+				0803EB82CFE4E327B7549385 /* ProfStudentContext.swift in Sources */,
+				6F188EDCA996D0B5EA876175 /* PushNotifLogout.swift in Sources */,
+				9BE66F65DD0C86F563225905 /* PyConSandbox.swift in Sources */,
+				CEBC97FCFFEA2F224752862B /* PythonAnswer.swift in Sources */,
+				8696200B451E6CD571C7A91A /* RankingCompetitionProgram.swift in Sources */,
+				5BB96288D06CD59F64EB14F9 /* RankingExerciseSeen.swift in Sources */,
+				5B955049311769E82FEDB5BB /* RankingGradeHistory.swift in Sources */,
+				976B6F2E2BD8DE38023E25A8 /* RankingPerformance.swift in Sources */,
+				ED5C469A497A60058549582A /* RankingProfileRanks.swift in Sources */,
+				477202BCC400E19E4CC0C473 /* RankingSubjectXp.swift in Sources */,
+				4A08AE35456DE83E5BEC9811 /* RankingSubjectXpStore.swift in Sources */,
+				FDD66A1747157021C1DA9729 /* RankingWeeklyXpEntries.swift in Sources */,
+				05F07A3797CDD33C451D7EA0 /* ReportSafetyCache.swift in Sources */,
+				35976CF3F2E0084BB4F77B91 /* RewAccountDataMigration.swift in Sources */,
+				C352BF1BCAE545F3FA174EEF /* RewEcgOptionChange.swift in Sources */,
+				AD329AAF49C1EE83F0D26441 /* RewLocalAccountData.swift in Sources */,
+				8D5B400CCF3BDD46BA8CDEA3 /* RewRawAccountStorage.swift in Sources */,
+				05D69C30AAB66578A1052FCB /* RewRecentCache.swift in Sources */,
+				30FC2E02483CDA42138AB966 /* RewStorageKeys.swift in Sources */,
+				15676B4AE05945ECDD989B80 /* SocScheduledClassChallenge.swift in Sources */,
+				957CAA6C0B8C8FE7AD4C59A9 /* SocialApiEndpoints.swift in Sources */,
+				E3A47FB1099701D7EC0969EB /* SocialApiProfileExtras.swift in Sources */,
+				3E4960DC3BE261B71C15DE18 /* TrainAnnaleExtractionFilter.swift in Sources */,
+				E850B9A592441F0BA43A6F95 /* TrainChapterItemBasics.swift in Sources */,
+				1D75DA959658D51D2348A7D9 /* TrainManualOverrides+Apply.swift in Sources */,
+				1400CCF749E1C2D568A7799F /* TrainManualOverrides.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

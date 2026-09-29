@@ -152,12 +152,36 @@ struct AnnReaderView: View {
             .environmentObject(session)
         }
         .sheet(item: $profRequest) { request in
-            ProfTutorSheet(request: request, token: session.token) { profRequest = nil }
+            ProfTutorSheet(
+                request: request,
+                token: session.token,
+                // `onOpenProfile` : le chevron de l'en-tête ouvre la fiche du
+                // prof IA dans l'onglet « Mon compte », via le coordinateur
+                // racine — même couture que `CourseDocumentView` et le tap de
+                // notification (`PushNotifRootMount`).
+                onOpenProfile: { memberId in
+                    Task { @MainActor in
+                        PushNotifRootCoordinator.shared.pendingMember =
+                            PushNotifPendingMember(id: memberId)
+                    }
+                }
+            ) { profRequest = nil }
         }
     }
 }
 
 extension AnnReaderView {
+    /// Socle v2 de la fenêtre de contexte du prof (`profStudentContext`,
+    /// `profTutor.ts:56`) : identité de l'élève et programme de sa filière et de
+    /// son année, transmis au relais avec le corrigé expliqué
+    /// (`AnnaleViewer.tsx:2020-2035`). L'année suit `toProgramYear` du profil.
+    var profStudent: ProfStudent {
+        profStudentContext(
+            profile: session.profile,
+            programYear: HecJourneyProfile.programYear(from: session.profile.year)
+        )
+    }
+
     /// Ouvre le prof IA sur le corrigé d'une question (`openProfForCorrection`,
     /// `AnnaleViewer.tsx:3558-3569`) : le passage expliqué est le corrigé affiché.
     func explainCorrection(_ text: String, question: String) {
@@ -167,7 +191,8 @@ extension AnnReaderView {
                 source: .corrige,
                 subject: subject,
                 exercise: entry.title,
-                question: "Question \(question)"
+                question: "Question \(question)",
+                student: profStudent
             )
         )
     }

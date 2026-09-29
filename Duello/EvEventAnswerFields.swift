@@ -15,6 +15,10 @@
 //    - `SubjAnswerComposition` (SubjFlashcardAnswerField.swift) pour l'aperçu
 //      composé de la réponse active (`AnswerComposition`, `:58`).
 //
+//  PARITÉ (2026-09-29) — fenêtre de consentement au partage IA
+//  (`requestAiDataSharingConsent`, `useDictation.ts:913-915`) montée par
+//  l'hôte via `DictAiConsentAlert(model:)` (DictControlView.swift).
+//
 //  Icône Ionicons : camera-outline (16) pour le bouton photo, mic-outline/stop
 //  (16) pour la dictée, comme la source — pas de substitution SF Symbol.
 //
@@ -114,6 +118,9 @@ private struct EvEventAnswerField: View {
                 onCancel: { picking = false }
             )
         }
+        // Consentement au partage IA de la dictée : la source le fait dans
+        // `useDictation` (`EventAnswerFields.tsx:81`) — sans garde Premium ici.
+        .modifier(DictAiConsentAlert(model: dictation))
     }
 
     /// Numéro, points et bouton de transcription photo.

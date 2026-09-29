@@ -20,15 +20,10 @@
 //  Découpé de `AcctSearchModel.swift` et `AcctSearchMemberViews.swift` (règle
 //  des 500 lignes) : l'état reste dans le modèle, ces vues ne font que le lire.
 //
-//  Écarts assumés (2026-09-29)
-//  ---------------------------
-//  - Invite du champ : le libellé d'accessibilité est aligné sur la source
-//    (« Rechercher par Elo ou XP », `AccountScreen.tsx:2617`) ; la **chaîne
-//    affichée** vient de `AcctSearchSettings.placeholder`
-//    (`AcctSearchDirectory.swift`, fichier d'un autre lot) — à raccorder.
-//  - Barre en noir absolu : la cloche et la roue de la ligne de recherche
-//    (`AcctIntSearchRow.swift`, autre lot) restent à passer en noir ; ici seule
-//    la barre (`AcctSearchBar`) l'est.
+//  V3 (2026-09-29, parité RN dev) : le graphe social est relu au montage
+//  (`syncSocialGraph`, `AccountScreen.tsx:1183-1247`). À raccorder (hors lot
+//  W03) : `PROF_IA_ROLE_LABEL` / `PROF_IA_SCOPE_LABEL` affichés dans
+//  `AcctSearchMemberViews.swift` (`AccountScreen.tsx:2799-2801,2965-2971`).
 //
 //  Cible : iOS 16, aucune API iOS 17.
 //
@@ -294,6 +289,11 @@ struct AcctSearchView: View {
             model.ownEmail = session.profile.email
             model.authToken = session.token
         }
+        .task(id: model.ownEmail) {
+            // Graphe social relu au montage, `ownEmail` posé (`AccountScreen.tsx:1183-1222`).
+            guard !model.ownEmail.isEmpty else { return }
+            await model.syncSocialGraph(token: session.token)
+        }
         .task(id: model.searchTaskId) {
             await model.runSearch(token: session.token)
         }
@@ -304,6 +304,8 @@ struct AcctSearchView: View {
             // ne compile pas.
             let memberId = await model.selectedMemberId
             guard memberId != nil else { return }
+            // Fiche locale du prof IA : ni réseau ni minutage (`AccountScreen.tsx:1648`).
+            guard !isProfIaProfileId(memberId) else { return }
             await model.refreshSelectedProfile(token: session.token)
             // La fiche reste resynchronisée tant qu'elle est ouverte.
             while !Task.isCancelled {

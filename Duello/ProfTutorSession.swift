@@ -22,6 +22,10 @@
 import Combine
 import Foundation
 
+/// `PROF_BLANK_GREETING` : accueil de la discussion libre, sans passage ni
+/// photo (`profTutor.ts:71`).
+let PROF_BLANK_GREETING = "Salut ! Pose-moi ta question de maths, je t’explique."
+
 /// `ProfTutorStatus` : état de la session.
 enum ProfTutorStatus: Equatable {
     case idle
@@ -84,6 +88,19 @@ final class ProfTutorSession: ObservableObject {
         }
     }
 
+    /// `openBlank` : discussion libre, sans passage ni photo. La session
+    /// s'ouvre sur un message d'accueil et la saisie tout de suite, sans
+    /// relais (`useProfTutor.ts:59-68`).
+    func openBlank(context: ProfTutorContext) {
+        stopStream()
+        runId += 1
+        request = ProfTutorRequest(quote: "", context: context)
+        messages = [ProfTutorMessage(role: .assistant, text: PROF_BLANK_GREETING)]
+        streamingText = ""
+        error = ""
+        status = .ready
+    }
+
     /// `openImage` : pose une photo expliquée (page scannée, photo de cours) et
     /// lance son explication streamée par le relais vision.
     func openImage(image: String, mimeType: String, context: ProfTutorContext) {
@@ -132,14 +149,10 @@ final class ProfTutorSession: ObservableObject {
         streamingText = ""
         error = ""
         status = .streaming
-        // Après une photo, l'explication reçue porte le contexte : l'image,
-        // lourde, ne repart pas à chaque question.
-        let replay = request.image != nil
-            ? "Photo de cours expliquée, en appui de la réponse."
-            : "Passage expliqué : \(request.quote)"
-        let history = [
-            ProfTutorMessage(role: .user, text: replay),
-        ] + nextMessages
+        // Après une photo, l'explication reçue porte le contexte ; sans photo
+        // ni passage (question libre), l'historique commence à la question
+        // (`useProfTutor.ts:152-157`).
+        let history = profReplayPassage(request) + nextMessages
         let token = self.token ?? ""
         let context = request.context
         streamTask = Task { [weak self] in
@@ -200,4 +213,16 @@ func profErrorMessage(_ error: Error) -> String {
     }
     let text = error.localizedDescription.trimmingCharacters(in: .whitespacesAndNewlines)
     return text.isEmpty ? "Le prof IA est indisponible." : text
+}
+
+/// `passage` du rejeu de `send` (`useProfTutor.ts:152-157`) : la photo
+/// expliquée, le passage cité, ou rien pour une question libre.
+func profReplayPassage(_ request: ProfTutorRequest) -> [ProfTutorMessage] {
+    if request.image != nil {
+        return [
+            ProfTutorMessage(role: .user, text: "Photo de cours expliquée, en appui de la réponse."),
+        ]
+    }
+    guard !request.quote.isEmpty else { return [] }
+    return [ProfTutorMessage(role: .user, text: "Passage expliqué : \(request.quote)")]
 }

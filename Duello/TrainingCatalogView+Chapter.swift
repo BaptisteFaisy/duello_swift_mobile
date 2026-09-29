@@ -28,28 +28,37 @@ extension TrainingCatalogView {
             chapter,
             status: courseStatus.status(for: chapter.id)
         )
-        if activeMode == .cours {
-            // Vue Cours : la ligne ouvre la page « Mon cours » du chapitre
-            // (`TrainCoursePage`), qui porte le lecteur, l'import et le repère.
-            SubjCourseChapterRow(
-                chapter: subjChapter,
-                coursePosition: coursePositions[chapter.id],
-                hasCourseDocument: courseDocuments[chapter.id] ?? false,
-                isReturnHighlighted: false,
-                onToggleCourseStatus: { courseStatus.cycle(chapter.id) },
-                onOpen: { openChapterDetail(chapter) }
-            )
-        } else if let chapterMode = activeMode.chapterMode {
-            SubjChapterRow(
-                subjectId: subject.id,
-                chapter: subjChapter,
-                mode: chapterMode,
-                summary: chapterSummary(for: chapter),
-                isReturnHighlighted: false,
-                onToggleCourseStatus: { courseStatus.cycle(chapter.id) },
-                onOpen: { openChapterDetail(chapter) }
-            )
+        // R07 2026-09-29 (U06#10) : identité explicite de la ligne de chapitre.
+        // Le `ForEach(group.chapters)` de `TrainingCatalogView+Content.swift`
+        // donne déjà `chapter.id` comme identité, mais le replacement au retour
+        // d'un chapitre (`ScrollViewReader.scrollTo(restore.chapterId)`,
+        // `TrainingCatalogView+Entry.swift`) exige une cible stable : `.id()`
+        // l'ancre sans dépendre de l'identité implicite du `ForEach`.
+        Group {
+            if activeMode == .cours {
+                // Vue Cours : la ligne ouvre la page « Mon cours » du chapitre
+                // (`TrainCoursePage`), qui porte le lecteur, l'import et le repère.
+                SubjCourseChapterRow(
+                    chapter: subjChapter,
+                    coursePosition: coursePositions[chapter.id],
+                    hasCourseDocument: courseDocuments[chapter.id] ?? false,
+                    isReturnHighlighted: false,
+                    onToggleCourseStatus: { courseStatus.cycle(chapter.id) },
+                    onOpen: { openChapterDetail(chapter) }
+                )
+            } else if let chapterMode = activeMode.chapterMode {
+                SubjChapterRow(
+                    subjectId: subject.id,
+                    chapter: subjChapter,
+                    mode: chapterMode,
+                    summary: chapterSummary(for: chapter),
+                    isReturnHighlighted: false,
+                    onToggleCourseStatus: { courseStatus.cycle(chapter.id) },
+                    onOpen: { openChapterDetail(chapter) }
+                )
+            }
         }
+        .id(chapter.id)
     }
 
     // MARK: Page d'un chapitre (plein écran)

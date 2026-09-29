@@ -1,7 +1,8 @@
 // Shim de vérification Linux — NE FAIT PAS PARTIE DE L'APP.
 //
-// `WebKit` n'existe pas sous Linux. Un seul appelant,
-// `CourseDocumentHtmlView.swift` : `WKWebView` + pont `WKScriptMessageHandler`.
+// `WebKit` n'existe pas sous Linux. Deux appelants :
+// `CourseDocumentHtmlView.swift` (`WKWebView` + pont `WKScriptMessageHandler`)
+// et `PyConSandbox.swift` (bac à sable Pyodide, `evaluateJavaScript`).
 //
 // `WKWebView` et `WKScriptMessage` dérivent de `UIView`/`NSObject` : c'est
 // indispensable pour que `UIViewRepresentable` (`makeUIView(context:) ->
@@ -45,6 +46,13 @@ open class WKWebView: UIView {
 
     @discardableResult
     public func loadHTMLString(_ string: String, baseURL: URL?) -> WKNavigation? { nil }
+
+    /// Évalue du JavaScript dans la page. Utilisé par `PyConSandbox.swift`
+    /// (bac à sable Pyodide) pour transmettre les ordres au document isolé.
+    public func evaluateJavaScript(
+        _ javaScriptString: String,
+        completionHandler: ((Any?, Error?) -> Void)? = nil
+    ) {}
 
     public func stopLoading() {}
     public func reload() {}

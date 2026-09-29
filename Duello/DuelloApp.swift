@@ -2,25 +2,25 @@ import SwiftUI
 
 //  Port de App.tsx (RN) — racine de l'application : accueil tant qu'aucune
 //  session n'est ouverte, onglets principaux ensuite, et hôtes racine (paywall
-//  des outils, célébration de palier, notifications poussées).
+//  des outils, célébration de palier, notifications poussées, invite de capture
+//  photo à distance). Le parcours d'inscription est partagé par l'accueil
+//  (`signupOpen`) et par la branche `signup` du fournisseur
+//  (`LoginIntProviderSignupRouter.shared.pending`).
 //
-//  Écarts assumés (2026-09-29)
-//  ---------------------------
-//  - Complétion de la réinitialisation de mot de passe (écart 04#1) : la source
-//    exécute `completePasswordResetFlow` **dans l'hôte** (transport +
-//    `savePasswordResetSession`), le mot de passe venant du formulaire
-//    (`onSave(password)`, `App.tsx:2194-2223`). Le port Swift fait le transport
-//    dans l'écran (`PasswordResetView.submit`, `AccountPasswordResetView.swift`)
-//    et ne rend que la session : l'hôte ne peut donc pas rejouer le runtime
-//    (qui referait le transport, double appel serveur). La session est confiée
-//    au **backend vivant** de la réinitialisation (`AcctSecResetSessionBackend`)
-//    ; l'empreinte du compte local, qui a besoin du mot de passe en clair,
-//    reste à l'écran — voir « À raccorder » du rapport.
-//  - Entrée de l'écran de réinitialisation (écart 04#3) : la source remplace
-//    l'arbre **instantanément** (`App.tsx:2476`) ; `.fullScreenCover` glisse.
-//    Passer au rendu conditionnel racine exige que l'écran prévienne sa
-//    fermeture (`onClose`) — son bouton retour appelle `dismiss()`, sans effet
-//    hors présentation — ce qui touche `AccountPasswordResetView.swift`.
+//  Raccords 04 (2026-09-29)
+//  ------------------------
+//  - Complétion de la réinitialisation (écart 04#1) : l'écran expose
+//    `onSave(email:token:password:)` ; l'hôte rejoue ici
+//    `AcctSecResetCompletionRuntime.completePasswordResetFlow` avec un backend
+//    vivant (`liveBackend(session:)`). Transport, session **et** empreinte du
+//    nouveau mot de passe (registre local) sont ainsi écrits, comme
+//    `completePasswordReset` de la source (`App.tsx:2194-2223`).
+//  - Entrée de l'écran (écart 04#3) : la source **remplace** l'arbre d'un coup
+//    (`App.tsx:2475-2490`) ; la racine rend l'écran par **rendu conditionnel**,
+//    sans `.fullScreenCover` à glissement.
+//  - Alerte de résultat (écart 04 NEW-N2) : les issues non silencieuses
+//    (`login-required`, `outcome-unknown`) présentent l'alerte de
+//    `AcctSecResetCompletionAlert` (`App.tsx:2232-2237`).
 //
 //  Cible : iOS 16.
 
@@ -48,6 +48,9 @@ struct DuelloApp: App {
     /// écran par le **seul** écran « Nouveau mot de passe » (`PasswordResetView`),
     /// comme `PasswordResetScreen` côté Expo (R1-AUTH, U04#3).
     @State private var passwordResetRequest: AcctSecResetRequest?
+    /// Alerte de résultat de la complétion (écart 04 NEW-N2) : présentée à la
+    /// racine une fois la demande réglée (`AcctSecResetCompletionAlert`).
+    @State private var resetAlert: AcctSecResetAlert?
 
     /// Schéma d'URL de la variante (dev : `duello-dev`, cf. `CFBundleURLTypes`
     /// de `Info.plist` et `DUELLO_PASSWORD_RESET_APP_SCHEME` du backend) : repli
@@ -74,97 +77,177 @@ struct DuelloApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView()
-                // Hôte racine de la fenêtre de paiement des outils Premium
-                // (`PremiumToolPaywallHost` de la source, `App.tsx:2587`) : une
-                // seule fenêtre suffit pour tous les outils Premium.
-                .premToolPaywallHost(token: session.token)
-                .environmentObject(session)
-                .environmentObject(progress)
-                // Retrait du focus clavier quand l'app quitte le premier plan
-                // (`useDismissKeyboardOnAppBackground` du hook Expo) : les
-                // écrans restent montés, seul le premier répondant est retiré.
-                .dismissKeyboardOnAppBackground()
-                // Démarre l'observation de la source XP **une fois** : la
-                // première émission est le chargement initial (non célébré),
-                // les écritures suivantes alimentent la file.
-                .task { levelUpQueue.start(observing: progress) }
-                // Célébration présentée par-dessus toute la hiérarchie (onglets
-                // compris), comme le `Modal` transparent `overFullScreen` de la
-                // source. File vide → le coordinateur ne rend rien.
-                .overlay { LevelUpCelebrationCoordinator(queue: levelUpQueue) }
-                // Retour du navigateur Google vers l'app (schéma du client
-                // iOS inversé), comme le handle de lien profond Expo.
-                .onOpenURL { url in
-                    GoogleAuthService.shared.handle(url)
-                    // Lien de réinitialisation servi par le backend : App Link
-                    // HTTPS (branche `app`) ou schéma personnalisé en repli.
-                    if let request = AcctSecResetLink.request(
-                        from: url.absoluteString,
-                        context: Self.resetContext
-                    ) {
-                        passwordResetRequest = request
-                    }
-                }
-                .fullScreenCover(item: $passwordResetRequest) { request in
+            Group {
+                if let request = passwordResetRequest {
+                    // Écart 04#3 : la source **remplace** l'arbre
+                    // (`App.tsx:2475-2490`) au lieu de présenter une modale à
+                    // glissement — l'écran prend toute la fenêtre, sans
+                    // animation. Il prévient sa fermeture par `onClose`
+                    // (`dismiss()` n'aurait plus d'effet ici).
                     PasswordResetView(
                         email: request.email,
                         token: request.token,
-                        onAuthenticated: { serverSession in
-                            completePasswordReset(serverSession: serverSession)
-                        }
+                        onSave: { email, token, password in
+                            try await completePasswordReset(
+                                email: email,
+                                token: token,
+                                password: password
+                            )
+                        },
+                        onClose: { _ = clearPasswordResetRequestIfCurrent(token: request.token) }
                     )
+                } else {
+                    RootView()
+                        // Hôte racine de la fenêtre de paiement des outils Premium
+                        // (`PremiumToolPaywallHost` de la source, `App.tsx:2587`) : une
+                        // seule fenêtre suffit pour tous les outils Premium.
+                        .premToolPaywallHost(token: session.token)
+                        .environmentObject(session)
+                        .environmentObject(progress)
+                        // Retrait du focus clavier quand l'app quitte le premier plan
+                        // (`useDismissKeyboardOnAppBackground` du hook Expo) : les
+                        // écrans restent montés, seul le premier répondant est retiré.
+                        .dismissKeyboardOnAppBackground()
+                        // Célébration présentée par-dessus toute la hiérarchie (onglets
+                        // compris), comme le `Modal` transparent `overFullScreen` de la
+                        // source. File vide → le coordinateur ne rend rien.
+                        .overlay { LevelUpCelebrationCoordinator(queue: levelUpQueue) }
                 }
+            }
+            // Démarre l'observation de la source XP **une fois** : la
+            // première émission est le chargement initial (non célébré),
+            // les écritures suivantes alimentent la file.
+            .task { levelUpQueue.start(observing: progress) }
+            // Retour du navigateur Google vers l'app (schéma du client
+            // iOS inversé), comme le handle de lien profond Expo.
+            .onOpenURL { url in
+                GoogleAuthService.shared.handle(url)
+                // Lien de réinitialisation servi par le backend : App Link
+                // HTTPS (branche `app`) ou schéma personnalisé en repli.
+                if let request = AcctSecResetLink.request(
+                    from: url.absoluteString,
+                    context: Self.resetContext
+                ) {
+                    passwordResetRequest = request
+                }
+            }
+            // Alerte de résultat de la complétion (écart 04 NEW-N2), comme
+            // `AppAlert.alert` de la source (`App.tsx:2232-2237`).
+            .alert(resetAlert?.title ?? "", isPresented: isResetAlertPresented) {
+                Button("OK", role: .cancel) { resetAlert = nil }
+            } message: {
+                Text(resetAlert?.message ?? "")
+            }
         }
     }
 
-    /// `completePasswordReset` (`App.tsx:2194-2223`) : la session rendue par
-    /// l'écran de réinitialisation est confiée au **backend vivant** de la
-    /// réinitialisation (`AcctSecResetSessionBackend`) — la couture de session
-    /// que `AcctSecResetCompletionRuntime.completePasswordResetFlow` attend.
-    ///
-    /// Écart assumé : le mot de passe en clair n'existe que dans l'écran ; le
-    /// runtime, qui referait le transport, ne peut donc pas être rappelé ici
-    /// (voir l'en-tête).
-    private func completePasswordReset(serverSession: ServerSession) {
-        Task {
-            try? await AcctSecResetSession.savePasswordResetSession(
-                session: serverSession,
-                account: resetLocalAccount(email: serverSession.email),
-                backend: resetSessionBackend
+    /// `completePasswordReset` (`App.tsx:2194-2223`) : la complétion est exécutée
+    /// **dans l'hôte**, avec le mot de passe venu de l'écran (`onSave`).
+    /// `completePasswordResetFlow` compose le transport, la session et l'écriture
+    /// du registre local — dont l'empreinte du nouveau mot de passe (écart 04#1).
+    /// La demande n'est effacée que si elle est encore courante
+    /// (`settlePasswordResetRequest`, `passwordResetGeneration.ts`) ; une issue
+    /// non silencieuse est montrée par une alerte (écart 04 NEW-N2).
+    private func completePasswordReset(
+        email: String,
+        token: String,
+        password: String
+    ) async throws {
+        let result = try await AcctSecResetCompletionRuntime.completePasswordResetFlow(
+            options: resetRuntimeOptions(email: email, token: token, password: password)
+        )
+        guard clearPasswordResetRequestIfCurrent(token: token) else { return }
+        resetAlert = AcctSecResetCompletionAlert.alert(for: result)
+    }
+
+    /// Options de la complétion (`PasswordResetRuntimeOptions` de
+    /// `passwordResetCompletionRuntime.ts:26-33`) : registre local, reconstruction
+    /// du compte récupéré, garde de génération, ouverture de session et
+    /// révocation, adossées au backend vivant de la réinitialisation.
+    private func resetRuntimeOptions(
+        email: String,
+        token: String,
+        password: String
+    ) -> AcctSecResetRuntimeOptions {
+        AcctSecResetRuntimeOptions(
+            email: email,
+            token: token,
+            password: password,
+            accounts: Self.localResetAccounts(),
+            recoverAccount: { recovered in
+                // `accountFromServerRecovery` (`App.tsx:330-347`) : le compte
+                // reconstruit n'a pas d'empreinte — `updatedPasswordResetAccount`
+                // y pose celle du nouveau mot de passe.
+                LoginScrAccount(
+                    id: SessionStore.localAccountId(for: recovered.email),
+                    email: LoginScrCredential.normalize(recovered.email),
+                    displayName: recovered.displayName,
+                    role: .user,
+                    passwordHash: nil,
+                    googleSubject: recovered.googleSubject,
+                    appleSubject: recovered.appleSubject,
+                    biometricEnabled: false,
+                    requiresPasswordSetup: false,
+                    recoveryCodeHash: nil,
+                    isGuest: false
+                )
+            },
+            isCurrent: { isCurrentResetRequest(token: token) },
+            authenticate: { _, isCurrent in
+                // `login(resetAccount, undefined, isCurrent)` : la session et le
+                // profil ont déjà été posés par `saveServerSession`
+                // (`SessionStore.installSession`) — rien d'autre à committer ici.
+                _ = isCurrent
+            },
+            revokeApplicationAuthentication: {
+                guard isCurrentResetRequest(token: token) else { return }
+                Task { await session.signOut() }
+            },
+            sessionBackend: AcctSecResetCompletionRuntime.liveBackend(session: session)
+        )
+    }
+
+    /// `accounts` : projection du registre local (`AcctLocalRegistry`) vers
+    /// l'instantané lu par la complétion (`LoginScrAccount`), comme
+    /// `LoginIntAssembly.localAccounts`.
+    private static func localResetAccounts() -> [LoginScrAccount] {
+        AcctLocalRegistry.loadAccounts().map { stored in
+            LoginScrAccount(
+                id: stored.id,
+                email: stored.email,
+                displayName: stored.displayName,
+                role: stored.role,
+                passwordHash: stored.passwordHash,
+                googleSubject: stored.googleSubject,
+                appleSubject: stored.appleSubject,
+                biometricEnabled: stored.biometricEnabled,
+                requiresPasswordSetup: stored.requiresPasswordSetup,
+                recoveryCodeHash: stored.recoveryCodeHash,
+                isGuest: stored.guest
             )
         }
     }
 
-    /// Fiche locale du compte réinitialisé, lue du registre
-    /// (`AcctLocalRegistry`) — même identité que `SessionStore.installSession`.
-    private func resetLocalAccount(email: String) -> LoginScrAccount {
-        let stored = AcctLocalRegistry.findAccountByEmail(
-            AcctLocalRegistry.loadAccounts(),
-            email: email
-        )
-        return LoginScrAccount(
-            id: stored?.id ?? SessionStore.localAccountId(for: email),
-            email: email,
-            displayName: stored?.displayName ?? email,
-            role: stored?.role ?? .user,
-            passwordHash: stored?.passwordHash
-        )
+    /// La demande de réinitialisation `token` est-elle encore la courante ?
+    private func isCurrentResetRequest(token: String) -> Bool {
+        passwordResetRequest?.token == token
     }
 
-    /// Backend vivant de la réinitialisation (`AcctSecResetSessionBackend`) : la
-    /// session est persistée par `SessionStore`, le compte local est déjà
-    /// réécrit par `installSession`/`persistProfile` (registre
-    /// `AcctLocalRegistry`) — d'où le `saveAccount` sans effet.
-    private var resetSessionBackend: AcctSecResetSessionBackend {
-        AcctSecResetSessionBackend(
-            saveServerSession: { serverSession, _ in try session.installSession(serverSession) },
-            saveAccount: { _ in },
-            clearServerSession: { await session.signOut() },
-            clearPersistedAuthSession: { try? AcctAuthSession.clearPersistedAuthSession() },
-            currentServerSession: { session.session },
-            invalidateCheckedServerSession: { _ in false },
-            revokeServerSessionToken: { token in await DuelloAPI.logout(token: token) }
+    /// `clearPasswordResetRequest(token)` : efface la demande **courante** ;
+    /// renvoie faux si une demande plus récente l'a remplacée (une demande
+    /// périmée ne doit jamais effacer la suivante).
+    @discardableResult
+    private func clearPasswordResetRequestIfCurrent(token: String) -> Bool {
+        guard isCurrentResetRequest(token: token) else { return false }
+        passwordResetRequest = nil
+        return true
+    }
+
+    /// `resetAlert != nil` ⇔ alerte de résultat présentée.
+    private var isResetAlertPresented: Binding<Bool> {
+        Binding(
+            get: { resetAlert != nil },
+            set: { presented in if !presented { resetAlert = nil } }
         )
     }
 }
@@ -179,6 +262,15 @@ struct RootView: View {
     /// source) : elle se joue **avant** toute session, et prend donc la main
     /// sur la racine tant qu'elle n'est pas terminée.
     @State private var signupOpen = false
+
+    /// Branche `signup` du fournisseur (`App.tsx:2115-2123`, `:2155-2162`) :
+    /// quand une connexion Google/Apple ne correspond à **aucun** compte du
+    /// registre local, `LoginIntAssembly` retient l'identité ici
+    /// (`LoginIntProviderSignupRouter.shared.pending`) au lieu d'ouvrir une
+    /// session ; la racine bascule alors sur le parcours d'inscription, comme
+    /// `setAuthStage('signup')`. Le préremplissage de l'identité par le
+    /// parcours est « À raccorder » (lot W04).
+    @ObservedObject private var providerSignup = LoginIntProviderSignupRouter.shared
 
     /// Vrai quand le stockage local et le lien entrant sont résolus
     /// (`hasLoadedStorage` / `hasResolvedInitialLink` d'Expo). `SessionStore`
@@ -209,8 +301,16 @@ struct RootView: View {
             // `register` — la feuille d'authentification s'ouvre d'elle-même).
             } else if ScreenshotTour.welcomeDestination != nil {
                 WelcomeView(onCreateAccount: { signupOpen = true })
-            } else if signupOpen {
-                SignupFlowView { signupOpen = false }
+            } else if signupOpen || providerSignup.pending != nil {
+                // Inscription : ouverte depuis l'accueil (`signupOpen`) **ou**
+                // par la branche `signup` du fournisseur (`pending`) — les deux
+                // se rejoignent sur le même parcours, comme `authStage ===
+                // 'signup'` de la source. À la sortie, l'identité fournisseur
+                // en attente est consommée (jamais rejouée au prochain tour).
+                SignupFlowView {
+                    signupOpen = false
+                    providerSignup.pending = nil
+                }
             } else if session.isSignedIn {
                 if needsOnboarding {
                     // Complète le **programme** manquant (appareil neuf,
@@ -241,9 +341,10 @@ struct RootView: View {
         .task { rootReady = true }
         // Services racine montés dès qu'une session est ouverte (R7, U19#3 /
         // U20#1) : synchronisation d'abonnement (`SubscriptionPaymentSync`,
-        // `App.tsx:2599`) et inscription aux notifications poussées
-        // (`PushNotificationCoordinator`, `App.tsx:2636`). Vues sans rendu
-        // (0 × 0) ; l'abonnement est recréé par compte (`.id`).
+        // `App.tsx:2599`), inscription aux notifications poussées
+        // (`PushNotificationCoordinator`, `App.tsx:2636`) et **invite de capture
+        // photo à distance** (`RemotePhotoCaptureCoordinator`, `App.tsx:2603`).
+        // Vues sans rendu (0 × 0) ; l'abonnement est recréé par compte (`.id`).
         .overlay {
             if session.isSignedIn {
                 ZStack {
@@ -253,6 +354,10 @@ struct RootView: View {
                     )
                     .id(session.profile.email)
                     PushNotifRootMount()
+                    // Écart 21#1 : la source ne monte le coordinateur que pour un
+                    // compte **non invité** (`!isGuestAccount(account)`), sans
+                    // équivalent direct de `guest` ici → garde `isSignedIn`.
+                    RemPhotoRxCaptureHost()
                 }
             }
         }

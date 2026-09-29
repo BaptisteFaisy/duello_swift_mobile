@@ -7,8 +7,8 @@
 //  Fichier source Expo porté (libellés repris mot pour mot) :
 //    - src/components/GradeEvolutionBadge.tsx (`GradeEvolutionBadge`)
 //
-//  Verte si la note progresse, rouge sinon ; la teinte vient de `Theme`
-//  (`colors.progress` / `colors.like`, fonds clairs équivalents). Cible iOS 16.
+//  Verte si la note progresse, grise si elle stagne, rouge sinon : la teinte
+//  suit `gradeEvolutionTone` (`EVOLUTION_TONE_COLORS`). Cible iOS 16.
 //
 import SwiftUI
 
@@ -17,8 +17,8 @@ import SwiftUI
 struct ChartGradeEvolutionBadge: View {
     let percentage: Double
 
-    private var rising: Bool { percentage > 0 }
-    private var label: String { "\(rising ? "+" : "")\(formatted) %" }
+    private var tone: ExGGradeEvolutionTone { exgGradeEvolutionTone(percentage) }
+    private var label: String { "\(percentage > 0 ? "+" : "")\(formatted) %" }
 
     /// Nombre affiché sans décimale inutile, séparateur décimal français.
     private var formatted: String {
@@ -27,14 +27,31 @@ struct ChartGradeEvolutionBadge: View {
             : ExGFormat.xp(percentage)
     }
 
+    /// `EVOLUTION_TONE_COLORS` : encre grise à zéro, comme la source.
+    private var foreground: Color {
+        switch tone {
+        case .rising: return Theme.progress
+        case .steady: return Theme.inkSoft
+        case .falling: return Theme.like
+        }
+    }
+
+    private var background: Color {
+        switch tone {
+        case .rising: return Theme.progressLight
+        case .steady: return Theme.surfaceMuted
+        case .falling: return exgLikeLight
+        }
+    }
+
     var body: some View {
         Text(label)
             .font(.system(size: 13, weight: .bold))
             .tracking(0.4)
-            .foregroundStyle(rising ? Theme.progress : Theme.like)
+            .foregroundStyle(foreground)
             .padding(.horizontal, 10)
             .padding(.vertical, 3)
-            .background(rising ? Theme.progressLight : exgLikeLight)
+            .background(background)
             .clipShape(Capsule())
             .accessibilityLabel("Évolution : \(label)")
     }

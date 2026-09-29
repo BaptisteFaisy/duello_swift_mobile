@@ -39,24 +39,23 @@
 //    placement (les trois schémas sont décrits au §1.4 de la spécification).
 //  - La signature d'intégration `init(mode:onInsert:onBackspace:onClose:)` ne
 //    transporte que le texte : les touches qui reculent le curseur après
-//    insertion (`back`, ex. `()`, `{}`, `√()`) perdent ce recul. La variante
-//    `init(mode:onInsertWithBack:onBackspace:onClose:)` le transmet.
-//  - Écarts assumés (2026-09-29) — édition d'une construction **déjà écrite**
-//    (« Modifier … », `MathKeyboard.tsx:457-478,498-508,1038-1060`) : non
-//    portée. Deux blocages :
-//      (1) **Plateforme** — iOS 16 n'expose pas la sélection d'un `TextField` ;
-//          `value`/`selection` ne peuvent pas être suivis sans un champ
-//          `UIViewRepresentable` (le contrat `init(mode:…)` reste donc sans
-//          `value`/`selection`) ;
-//      (2) **Hors lot** — le parseur inverse matrice
-//          (`findMatrixAtSelection`, `StmtMatrixParse.swift`), le remplacement
-//          de la construction d'origine (`replacement`, `MathKbDrafts.swift`) et
-//          la validation « Mettre à jour » (`MathKeyboardView+OperatorEditor.swift`,
-//          `commitOperator` qui **insère** au lieu de remplacer) vivent dans
-//          d'autres fichiers.
-//    Le parseur inverse d'opérateur est, lui, porté (`StmtOperatorParse.findMathOperatorAtSelection`).
-//    Rendre le bandeau sans le remplacement produirait une construction en double
-//    à la validation : volontairement non affiché.
+//    insertion (`back`, ex. `()`, `{}`, `√()`) perdent ce recul. Les variantes
+//    `init(mode:onInsertWithBack:…)` (recul) et
+//    `init(mode:answer:onInsertWithRange:…)` (recul + plage visée) le
+//    transmettent.
+//  - Édition d'une construction **déjà écrite** (« Modifier … »,
+//    `MathKeyboard.tsx:457-478,498-508,1038-1060`) : `startTool` relit la
+//    réponse (`findMatrixAtSelection` / `findMathOperatorAtSelection`) et rouvre
+//    l'éditeur avec la construction visée (`replacement`) ; à la validation,
+//    `insertText` porte la plage pour la **remplacer** au lieu d'en insérer une
+//    seconde (`commitMatrix`, `commitOperator`). Le contrat complet est
+//    `init(mode:answer:onInsertWithRange:onBackspace:onClose:suggestions:)`.
+//  - Écart assumé (2026-09-29) — **Plateforme** : iOS 16 n'expose pas la
+//    sélection d'un `TextField` ; le curseur n'est pas suivi sans un champ
+//    `UIViewRepresentable`. Le contrat ne transporte donc que la réponse
+//    (`answer`), pas la sélection : le curseur est réputé **en fin** de champ
+//    (la saisie s'ajoute toujours en fin de réponse), et une construction en
+//    **milieu** de texte n'est pas rouverte.
 //  - SwiftUI iOS 16 n'expose pas la sélection d'un `TextField`. Là où la source
 //    suivait un curseur par champ (`CaretText` : `insertAtCaret` /
 //    `deleteAtCaret`, §2.1), les touches maths **s'ajoutent en fin** du champ
@@ -91,7 +90,13 @@ struct MathKeyboardView: View {
     // MARK: Contrat d'intégration
 
     private let mode: MathKbMode
-    let insertText: (String, Int) -> Void
+    /// Réponse courante, relue à l'ouverture d'un outil pour rouvrir une
+    /// construction déjà écrite (`MathKeyboard.tsx:457-478`). Vide : les outils
+    /// insèrent toujours une construction neuve.
+    let answer: String
+    /// Insère `text`, recule le curseur de `back` et remplace la plage
+    /// `replacement` (`onInsert(text, back, replacement)`).
+    private let insertRange: (String, Int, StmtTextSelection?) -> Void
     private let backspace: () -> Void
     let close: () -> Void
 
@@ -111,7 +116,8 @@ struct MathKeyboardView: View {
         suggestions: [MathKbKey] = []
     ) {
         self.mode = mode
-        self.insertText = { text, _ in onInsert(text) }
+        self.answer = ""
+        self.insertRange = { text, _, _ in onInsert(text) }
         self.backspace = onBackspace
         self.close = onClose
         self.suggestions = suggestions
@@ -128,7 +134,28 @@ struct MathKeyboardView: View {
         suggestions: [MathKbKey] = []
     ) {
         self.mode = mode
-        self.insertText = onInsertWithBack
+        self.answer = ""
+        self.insertRange = { text, back, _ in onInsertWithBack(text, back) }
+        self.backspace = onBackspace
+        self.close = onClose
+        self.suggestions = suggestions
+        _sectionId = State(initialValue: MathKbLayout.initialSectionId(for: mode))
+    }
+
+    /// Signature complète : `answer` est la réponse courante (pour rouvrir une
+    /// construction écrite) et `onInsert` reçoit la plage visée (`replacement`)
+    /// que l'appelant applique pour **remplacer** au lieu de dupliquer.
+    init(
+        mode: MathKbMode,
+        answer: String,
+        onInsertWithRange: @escaping (String, Int, StmtTextSelection?) -> Void,
+        onBackspace: @escaping () -> Void,
+        onClose: @escaping () -> Void,
+        suggestions: [MathKbKey] = []
+    ) {
+        self.mode = mode
+        self.answer = answer
+        self.insertRange = onInsertWithRange
         self.backspace = onBackspace
         self.close = onClose
         self.suggestions = suggestions
@@ -164,6 +191,13 @@ struct MathKeyboardView: View {
     /// Le mode indice n'existe que là où les caractères ont une forme basse.
     var lowering: Bool {
         subscriptMode && currentSection.id == MathKbLayout.subscriptSectionId
+    }
+
+    /// Curseur de la réponse. iOS 16 n'expose pas la sélection d'un `TextField` :
+    /// la saisie s'ajoutant toujours en fin de champ, le curseur est réputé à la
+    /// fin de la réponse (`MathKeyboard.tsx:457-478`).
+    var answerSelection: StmtTextSelection {
+        StmtTextSelection(start: answer.count, end: answer.count)
     }
 
     // MARK: Corps
@@ -209,8 +243,18 @@ struct MathKeyboardView: View {
 
     // MARK: Frappe
 
+    /// Insère `text` dans la réponse ; `back` recule le curseur d'autant et
+    /// `replacement` désigne la construction à remplacer (`nil` = insertion
+    /// neuve). Les appels qui ne visent aucune plage gardent la forme à deux
+    /// arguments (`insertText(text, back)`).
+    func insertText(_ text: String, _ back: Int, _ replacement: StmtTextSelection? = nil) {
+        insertRange(text, back, replacement)
+    }
+
     /// Ouvre un outil guidé — un seul à la fois, sinon deux panneaux se
-    /// disputeraient les touches (`startTool`).
+    /// disputeraient les touches (`startTool`). La réponse est relue pour
+    /// rouvrir une construction déjà écrite (`findMatrixAtSelection` /
+    /// `findMathOperatorAtSelection`) et poser sa plage (`replacement`).
     func startTool(_ action: MathKbAction) {
         matrixDraft = nil
         operatorDraft = nil
@@ -218,16 +262,59 @@ struct MathKeyboardView: View {
 
         switch action {
         case .matrix:
-            matrixDraft = MathKbMatrixDraft.initial()
+            matrixDraft = matrixDraft(from: StmtMatrixParse.findMatrixAtSelection(answer, answerSelection))
             matrixFocus = 0
         case .interval:
             intervalDraft = MathKbIntervalDraft.initial()
             intervalFocus = 0
         case .exponent, .limit, .integral, .sum, .product:
             guard let kind = operatorKind(for: action) else { return }
-            operatorDraft = MathKbOperatorDraft(kind: kind)
+            operatorDraft = operatorDraft(from: kind)
             operatorFocus = 0
         }
+    }
+
+    /// Brouillon de matrice pour l'outil ouvert (`createMatrixDraft`,
+    /// `MathKeyboard.tsx:161-189`) : une matrice écrite sous le curseur est
+    /// rouverte avec ses cases, son délimiteur et sa plage ; sinon une grille
+    /// 2 × 2 vide.
+    func matrixDraft(from parsed: StmtParsedMatrix?) -> MathKbMatrixDraft {
+        guard
+            let parsed,
+            (MathKbLayout.matrixMinSize...MathKbLayout.matrixMaxSize).contains(parsed.rows.count),
+            let firstRow = parsed.rows.first,
+            (MathKbLayout.matrixMinSize...MathKbLayout.matrixMaxSize).contains(firstRow.count)
+        else { return MathKbMatrixDraft.initial() }
+
+        let delimiter: MathKbMatrixDelimiter
+        switch parsed.delimiter {
+        case .square: delimiter = .square
+        case .round: delimiter = .round
+        case .braces: delimiter = .braces
+        case .leftBrace: delimiter = .leftBrace
+        case .bars: delimiter = .bars
+        case .doubleBars: delimiter = .doubleBars
+        case .none: delimiter = .none
+        }
+        return MathKbMatrixDraft(
+            rows: parsed.rows.count,
+            columns: firstRow.count,
+            cells: parsed.rows.flatMap { $0 },
+            active: 0,
+            delimiter: delimiter,
+            replacement: parsed.range
+        )
+    }
+
+    /// Brouillon d'opérateur pour l'outil ouvert (`createMathOperatorDraft`,
+    /// `MathKeyboard.tsx:191-210`) : une construction écrite sous le curseur est
+    /// rouverte avec ses champs et sa plage ; sinon les champs sont vides.
+    func operatorDraft(from kind: MathKbOperatorKind) -> MathKbOperatorDraft {
+        guard
+            let expected = StmtMathOperatorKind(rawValue: kind.rawValue),
+            let parsed = StmtOperatorParse.findMathOperatorAtSelection(answer, answerSelection, expected)
+        else { return MathKbOperatorDraft(kind: kind) }
+        return MathKbOperatorDraft(kind: kind, values: parsed.values, replacement: parsed.range)
     }
 
     /// Une touche pressée alors qu'un outil est ouvert écrit dans son champ

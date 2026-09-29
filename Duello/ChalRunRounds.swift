@@ -260,6 +260,7 @@ struct ChalRunRounds: View {
                     .lineSpacing(3)
             }
             answerEditor
+            SubjAnswerComposition(answer: state.answers[state.activeQuestionId] ?? "")
             if let notice {
                 Text(notice)
                     .font(.system(size: 13, weight: .semibold))
@@ -371,10 +372,23 @@ struct ChalRunRounds: View {
         state.submittedAt = Date().timeIntervalSince1970 * 1000
         isSubmitting = true
         notice = nil
+        let attempted = attemptedDuelAnswers(state.exercise, state.answers)
+        // La copie rendue est aussi le dernier brouillon garanti dans
+        // Entraînements, même si l'écran est quitté juste après le verdict
+        // (`saveChallengeAttempt`, `ChallengesScreen.tsx:1421`).
+        ChalProgress.saveAttempt(
+            itemId: state.exercise.id, answers: attempted, accountId: userId
+        )
+        grade(token: token, attempted: attempted, production: state.submittedCopy)
+    }
+
+    /// Note la copie rendue et remet le verdict (`judgeDuel`). `scorePenalty` /
+    /// `scoreBonus` portent l'avis d'exercice déjà commencé ; `opponentProduction`
+    /// / `opponentAnswers` la copie de l'adversaire d'entraînement, quand elle
+    /// est embarquée.
+    private func grade(token: String, attempted: [String: String], production: String) {
         let matchRef = match
         let exerciseRef = state.exercise
-        let production = state.submittedCopy
-        let attempted = attemptedDuelAnswers(state.exercise, state.answers)
         let userRef = userId
         gradeTask = Task {
             do {
@@ -386,6 +400,10 @@ struct ChalRunRounds: View {
                     answers: attempted,
                     userId: userRef,
                     token: token,
+                    scorePenalty: startedPenalty,
+                    scoreBonus: opponentStartedBonus,
+                    opponentProduction: exerciseRef.opponentProduction,
+                    opponentAnswers: exerciseRef.opponentAnswers,
                     onWaitingForOpponent: { deadline in
                         Task { @MainActor in waitingDeadline = deadline }
                     }

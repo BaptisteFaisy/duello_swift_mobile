@@ -7,13 +7,18 @@
 //
 //  Fichiers source Expo portés (libellés repris mot pour mot) :
 //    - src/utils/mathAnswerGrading.ts
-//        action `grade-answer`, clés du corps, lecture de la réponse et messages
-//        d'erreur (`CorrectionAuthenticationError`, correcteur indisponible).
+//        action `grade-answer`, clés du corps (dont `statementImage`,
+//        `correctionImage`, `correction`, `gradingGuidance`), lecture de la
+//        réponse et messages d'erreur (`CorrectionAuthenticationError`,
+//        correcteur indisponible).
 //    - src/utils/gradingScore.ts
 //        `calculateColleScore`, `GradingScore`, `positivePoints`, `roundScore`.
 //
 //  Le client partagé `DuelloAPI` n'est pas modifié : la requête reprend
 //  `DuelloAPI.baseURL` et le délai de la source (95 s), comme `CtdAnalysisService`.
+//  Le corps d'une notation (`grade-answer`) est assemblé ici ; la boucle de
+//  retentative, la garde de consentement IA, l'annulation et l'enregistrement de
+//  la durée vivent dans `CollGradingRequest.swift`.
 //  Cible : iOS 16, aucune dépendance externe.
 //
 import Foundation
@@ -81,8 +86,14 @@ struct CollGradingScore: Equatable {
 enum CollGradingError: LocalizedError {
     /// Session Duello expirée : l'écran doit redemander une connexion.
     case authentication
-    /// Refus ou panne du relais, message déjà rédigé par le serveur.
-    case relay(String)
+    /// Accord de partage avec les prestataires d'IA absent
+    /// (`AiDataSharingConsentRequiredError`).
+    case consent
+    /// Notation arrêtée par l'appelant (`AbortSignal` de la source).
+    case cancelled
+    /// Refus ou panne du relais, message déjà rédigé par le serveur, et statut
+    /// HTTP quand il est connu (502/503 sont retentés).
+    case relay(String, status: Int?)
     /// Délai du correcteur dépassé.
     case timeout
     /// Correcteur injoignable.
@@ -92,7 +103,11 @@ enum CollGradingError: LocalizedError {
         switch self {
         case .authentication:
             return "Ta session Duello a expiré. Reconnecte-toi pour utiliser le correcteur."
-        case .relay(let message):
+        case .consent:
+            return CtdAiConsent.declinedLabel
+        case .cancelled:
+            return "Correction arrêtée"
+        case .relay(let message, _):
             return message
         case .timeout:
             return "Le correcteur a mis trop de temps à répondre"
@@ -115,14 +130,14 @@ enum CollGradingService {
         program: String,
         token: String?
     ) async throws -> CollMathGrade {
-        let body = try requestBody(
+        let input = CollGradeAnswerInput(
             exercise: "Colle — \(chapterName)",
             question: question.prompt,
             answer: question.answer,
-            program: program
+            program: program,
+            statement: question.prompt
         )
-        let data = try await post(body: body, token: token)
-        return try readResponse(data)
+        return try await CollGradingRequest.gradeAnswer(input: input, token: token)
     }
 
     /// `gradeRequestBody` : mêmes clés et même échelle que la source.
@@ -132,20 +147,38 @@ enum CollGradingService {
         answer: String,
         program: String
     ) throws -> Data {
-        let payload: [String: Any] = [
+        try requestBody(CollGradeAnswerInput(
+            exercise: exercise,
+            question: question,
+            answer: answer,
+            program: program,
+            statement: question
+        ))
+    }
+
+    /// `gradeRequestBody` : corps complet, les champs facultatifs absents ne sont
+    /// pas sérialisés (comme `JSON.stringify` d'`undefined`).
+    static func requestBody(_ input: CollGradeAnswerInput) throws -> Data {
+        var payload: [String: Any] = [
             "action": "grade-answer",
             "gradingScaleVersion": 2,
-            "exercise": exercise,
-            "question": question,
-            "statement": question,
-            "answer": answer,
-            "program": program,
+            "exercise": input.exercise,
+            "question": input.question,
+            "answer": input.answer,
             "mimeType": "image/jpeg",
         ]
+        if let program = input.program { payload["program"] = program }
+        if let statement = input.statement { payload["statement"] = statement }
+        if let image = input.statementImage { payload["statementImage"] = image }
+        if let image = input.correctionImage { payload["correctionImage"] = image }
+        if let correction = input.correction { payload["correction"] = correction }
+        if let guidance = input.gradingGuidance { payload["gradingGuidance"] = guidance.jsonObject }
         do {
             return try JSONSerialization.data(withJSONObject: payload, options: [])
         } catch {
-            throw CollGradingError.relay("Correction automatique indisponible. Réessaie.")
+            throw CollGradingError.relay(
+                "Correction automatique indisponible. Réessaie.", status: nil
+            )
         }
     }
 
@@ -181,11 +214,11 @@ enum CollGradingService {
     static func readResponse(_ data: Data) throws -> CollMathGrade {
         guard let object = try? JSONSerialization.jsonObject(with: data),
               let payload = object as? [String: Any]
-        else { throw CollGradingError.relay("Réponse illisible du correcteur") }
+        else { throw CollGradingError.relay("Réponse illisible du correcteur", status: nil) }
 
         guard let rawVerdict = payload["verdict"] as? String,
               let verdict = CollVerdict(rawValue: rawVerdict)
-        else { throw CollGradingError.relay("Réponse inattendue du correcteur") }
+        else { throw CollGradingError.relay("Réponse inattendue du correcteur", status: nil) }
 
         let feedback = (payload["feedback"] as? String)?
             .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
@@ -200,7 +233,7 @@ enum CollGradingService {
     }
 
     /// Statuts et verdict : 401/403 sortent l'élève de session, tout autre non-2xx
-    /// est une panne du service.
+    /// est une panne du service, 502/503 seront retentés (`isTransientCorrectionError`).
     private static func validate(data: Data, status: Int) throws -> Data {
         if status == 401 || status == 403 { throw CollGradingError.authentication }
         guard (200..<300).contains(status) else {
@@ -211,7 +244,8 @@ enum CollGradingService {
                 message = raw.trimmingCharacters(in: .whitespacesAndNewlines)
             }
             throw CollGradingError.relay(
-                message.isEmpty ? "Correcteur indisponible (\(status))" : message
+                message.isEmpty ? "Correcteur indisponible (\(status))" : message,
+                status: status
             )
         }
         return data

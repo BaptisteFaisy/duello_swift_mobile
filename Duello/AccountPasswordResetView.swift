@@ -1,16 +1,22 @@
 import SwiftUI
 
 /// Écran « Nouveau mot de passe » (voir `PasswordResetScreen.tsx` et
-/// `PasswordResetForm.tsx`) : nouveau mot de passe + confirmation. Le mot de
-/// passe est envoyé au serveur (`AcctSecResetTransport.resetServerPassword`,
-/// port de `resetServerPassword` de `passwordResetApi.ts`) et la session
-/// ouverte est remise à l'appelant.
+/// `PasswordResetForm.tsx`) : nouveau mot de passe + confirmation.
 ///
 /// R1-AUTH (U04#1, U04#2) — 2026-09-27 : c'est le **seul** écran de
 /// réinitialisation, ouvert par le lien entrant (`DuelloApp.onOpenURL` →
 /// `PasswordResetView(email:token:)`, `App.tsx:2460-2478`). Le jeton du lien
 /// (`token`) et l'appel serveur étaient absents ; l'état « enregistrement » du
 /// bouton est porté (`saving`).
+///
+/// RACCORD (U04#1, U04#3, U04 NEW-N2) — 2026-09-29 : la complétion n'est plus
+/// jouée dans l'écran. Comme `PasswordResetScreen`, la vue expose
+/// `onSave(email:token:password:)` — l'hôte exécute `completePasswordResetFlow`
+/// (transport, session et registre local, dont l'empreinte du nouveau mot de
+/// passe) — et `onClose` (chevron de retour). L'écran est présenté par **rendu
+/// conditionnel racine** (`App.tsx:2475-2490`) : `dismiss()` n'y a plus d'effet,
+/// l'hôte est prévenu. `submit` ne fait plus que la validation locale puis
+/// `onSave` ; l'erreur remontée par l'hôte s'affiche dans la carte d'erreur.
 ///
 /// PARITÉ (U04#4..#13) — 2026-09-28 : chrome aligné sur la source — plus de
 /// barre de navigation ni de « Fermer », mais le `BackButton` de la source
@@ -31,9 +37,15 @@ struct PasswordResetView: View {
     /// Jeton du lien de réinitialisation (`App.tsx:2464-2470`), transmis **brut**
     /// à `POST /auth/password/reset`.
     var token: String = ""
-    /// Session serveur ouverte après le changement de mot de passe, remise à
-    /// l'appelant pour qu'il la confie à `SessionStore` (`App.tsx:2213`).
-    var onAuthenticated: ((ServerSession) -> Void)? = nil
+    /// `onSave` de `PasswordResetScreen` (`PasswordResetScreen.tsx:19`) : l'hôte
+    /// exécute la complétion (`completePasswordResetFlow`, `App.tsx:2194-2223`).
+    /// La source ne remet que le mot de passe ; le port repasse aussi l'adresse
+    /// et le jeton (détenus par la vue) pour garder la couture complète.
+    var onSave: ((String, String, String) async throws -> Void)? = nil
+    /// `onCancel` de la source (`PasswordResetScreen.tsx:20`) : fermeture
+    /// demandée par le chevron de retour. Le rendu conditionnel racine (écart
+    /// 04#3) retire `dismiss()` du chemin : la vue prévient l'hôte.
+    var onClose: (() -> Void)? = nil
 
     @Environment(\.dismiss) private var dismiss
 
@@ -72,7 +84,7 @@ struct PasswordResetView: View {
     /// marges 22/8/6, désactivé pendant l'enregistrement (`opacity 0.45`).
     private var backButton: some View {
         Button {
-            dismiss()
+            if let onClose { onClose() } else { dismiss() }
         } label: {
             IonIcon(name: "chevron-back", size: 21, color: Theme.ink)
                 .frame(width: 44, height: 44)
@@ -255,9 +267,9 @@ struct PasswordResetView: View {
     }
 
     /// `submit` de `usePasswordResetForm.ts:39-59` : validation locale, puis
-    /// enregistrement serveur ; la session ouverte est remise à l'appelant.
-    /// La source n'affiche aucun message de succès : la session ouverte suffit
-    /// (`App.tsx:2213`) ; l'écran se ferme.
+    /// `onSave` — l'hôte exécute la complétion et ouvre la session ; l'écran se
+    /// ferme par le rendu conditionnel racine (`App.tsx:2475-2490`). Une erreur
+    /// de l'hôte est affichée telle quelle (`usePasswordResetForm.ts:52-55`).
     private func submit() {
         guard isValidNewPassword(password) else {
             errorMessage = newPasswordPolicyMessage
@@ -272,13 +284,7 @@ struct PasswordResetView: View {
         Task {
             defer { saving = false }
             do {
-                let authentication = try await AcctSecResetTransport.resetServerPassword(
-                    email: email,
-                    token: token,
-                    password: password
-                )
-                onAuthenticated?(authentication.session)
-                dismiss()
+                try await onSave?(email, token, password)
             } catch {
                 errorMessage = Self.message(for: error)
             }

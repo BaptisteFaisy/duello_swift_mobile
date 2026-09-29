@@ -5,6 +5,12 @@
 //  Écran « Plan » — carte de saisie rapide flottante (TaskCaptureCard.tsx) :
 //  panneau conditionnel, dictée vocale avec garde Premium, micro toujours ancré.
 //
+//  PARITÉ (2026-09-29) — deux câblages d'hôte :
+//    - la garde Premium précède la dictée via
+//      `dictation.createToggleRequest()` (`TaskCaptureCard.tsx:40-49`) ;
+//    - la fenêtre de consentement au partage IA (`useDictation.ts:913-915`)
+//      est montée par `DictAiConsentAlert(model: dictation)`.
+//
 import Foundation
 import SwiftUI
 
@@ -51,6 +57,7 @@ struct PlanTaskComposerCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.bottom, 12)
+        .modifier(DictAiConsentAlert(model: dictation))
     }
 
     // MARK: Panneau (wrapper, lignes 196-206)
@@ -249,7 +256,8 @@ struct PlanTaskComposerCard: View {
     }
 
     /// `requestDictationToggle` (lignes 40-49) : arrêter est direct, démarrer
-    /// passe d'abord par la garde Premium (`voice-transcription`).
+    /// passe d'abord par la garde Premium (`voice-transcription`) —
+    /// `requirePremiumTool('voice-transcription', dictation.createToggleRequest())`.
     private func requestDictationToggle() {
         Task { @MainActor in
             if dictation.isListening {
@@ -261,13 +269,14 @@ struct PlanTaskComposerCard: View {
                 )
                 return
             }
+            let request = dictation.createToggleRequest(
+                currentText: text,
+                math: false,
+                permissionMessage: Self.permissionMessage,
+                apply: { text = $0 }
+            )
             _ = await ConsentPremiumGate.gate(tool: .voiceTranscription, accountId: accountId) {
-                await dictation.toggle(
-                    currentText: text,
-                    math: false,
-                    permissionMessage: Self.permissionMessage,
-                    apply: { text = $0 }
-                )
+                request()
             }
         }
     }

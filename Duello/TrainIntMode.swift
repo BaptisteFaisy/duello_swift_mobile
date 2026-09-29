@@ -103,12 +103,15 @@ extension TrainingCatalogView {
 
     /// Section Annales (`10084-10183`) : la liste filtrable des annales de la
     /// matière, avec son lecteur et sa correction de copie (`AnnalesView`). La
-    /// banque réelle est un catalogue généré côté Expo, non porté : la banque
-    /// embarquée sert de démonstration et de forme d'échange.
+    /// banque servie (`annaleItems`, `SubjectsScreen.tsx:4493`) est chargée par
+    /// `loadAnnaleItems()` à l'ouverture de l'onglet.
     ///
     /// V2 2026-09-28 (U06#13) : la carte « prochainement » des annales MPSI/MP
     /// (`annaleItems.length === 0 && userTrack === 'MPSI'`, `10171`) remplace la
     /// banque de démonstration, faute d'annales servies pour cette filière.
+    ///
+    /// V3 2026-09-29 (W05) : les annales servies du manifeste sont passées à
+    /// `AnnalesView(entries:)` (fin de la banque de démonstration, écart 06#3).
     @ViewBuilder
     var annalesSection: some View {
         if TrainContent.normalize(session.profile.track) == "mpsi" {
@@ -118,11 +121,13 @@ extension TrainingCatalogView {
                 subject: subject.name,
                 subjectId: subject.id,
                 track: session.profile.track,
-                specialty: session.profile.specialty
+                specialty: session.profile.specialty,
+                entries: annaleItems
             )
             .environmentObject(session)
             .environmentObject(progress)
             .padding(.top, 8)
+            .task { await loadAnnaleItems() }
         }
     }
 
@@ -253,5 +258,66 @@ struct TrainResumeCard: View {
         )
         .padding(.top, 7)
         .padding(.bottom, 12)
+    }
+}
+
+// MARK: - Chrome repliable du catalogue
+//
+// V3 2026-09-29 (W05, ratchet) : types extraits de
+// `TrainingCatalogView+Entry.swift` (corps inchangés) pour tenir la limite de
+// 500 lignes du fichier d'état du catalogue.
+
+/// Clé de préférence qui publie l'offset du défilement du catalogue.
+struct TrainChromeOffsetKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
+/// Session de défilement du chrome repliable : dernière visibilité demandée et
+/// position d'ancrage (`ScrollChromeVisibilitySession`).
+struct TrainChromeSession {
+    var visible: Bool
+    var anchor: CGFloat
+}
+
+/// Décision de visibilité du chrome pendant un geste vertical
+/// (`utils/trainingChromeVisibility.ts`, seuils et repli au sommet).
+enum TrainChromeVisibility {
+    /// `TRAINING_CHROME_SWIPE_THRESHOLD` : distance vers le bas qui masque.
+    static let swipeThreshold: CGFloat = 24
+    /// `TRAINING_CHROME_REVEAL_THRESHOLD` : distance vers le haut qui révèle.
+    static let revealThreshold: CGFloat = 12
+    /// `TRAINING_CHROME_TOP_EPSILON` : le sommet reste toujours visible.
+    static let topEpsilon: CGFloat = 1
+
+    /// `scrollChromeVisibilityAfterScroll`.
+    static func afterScroll(visible: Bool, from start: CGFloat, to next: CGFloat) -> Bool {
+        let clampedStart = max(0, start)
+        let clampedNext = max(0, next)
+        let distance = clampedNext - clampedStart
+        if !visible && clampedNext <= topEpsilon { return true }
+        if distance >= swipeThreshold { return false }
+        if distance <= -revealThreshold { return true }
+        return visible
+    }
+
+    /// `beginScrollChromeVisibilitySession`.
+    static func beginSession(visible: Bool, offset: CGFloat) -> TrainChromeSession {
+        TrainChromeSession(
+            visible: offset <= topEpsilon ? true : visible,
+            anchor: offset
+        )
+    }
+
+    /// `scrollChromeVisibilitySessionAfterScroll`.
+    static func sessionAfterScroll(_ session: TrainChromeSession, next: CGFloat) -> TrainChromeSession {
+        if (session.visible && next < session.anchor) || (!session.visible && next > session.anchor) {
+            return TrainChromeSession(visible: session.visible, anchor: next)
+        }
+        let visible = afterScroll(visible: session.visible, from: session.anchor, to: next)
+        if visible == session.visible { return session }
+        return TrainChromeSession(visible: visible, anchor: next)
     }
 }

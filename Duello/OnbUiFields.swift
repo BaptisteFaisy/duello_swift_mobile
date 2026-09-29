@@ -13,9 +13,12 @@
 //  Ne redéfinit aucun type existant.
 //
 //  V2 (29/09/2026, parité RN dev) : `OnbUiFieldProps.autoFocus` porte
-//  `onboardingAutofocusFields` (`OnboardingScreen.tsx:353-354`). À raccorder
-//  (hors lot) : les appels école/pseudo/e-mail/mot de passe
-//  (`OnbFlowStepContent.swift:209,239,269,299`) posent `autoFocus: true`.
+//  `onboardingAutofocusFields` (`OnboardingScreen.tsx:353-354`) ; les appels
+//  école/pseudo/e-mail/mot de passe (`OnbFlowStepContent.swift`) posent
+//  `autoFocus: true`. `OnbUiField` accepte en outre un focus **externe**
+//  (`externalFocus` / `focusTarget`) pour le recentrage du champ pseudo/e-mail
+//  après fermeture d'une alerte (`focusPseudoInput` / `focusEmailInput`,
+//  `OnboardingScreen.tsx:691-696`) ; le `@FocusState` vit dans `OnbFlowView`.
 //
 
 import SwiftUI
@@ -126,15 +129,27 @@ struct OnbUiFieldProps {
 /// blanche et variante multiligne.
 struct OnbUiField<Trailing: View>: View {
     var props: OnbUiFieldProps
+    /// Focus externe partagé (`OnbFlowView`) : quand il est fourni, le champ s'y
+    /// rattache pour se recentrer après fermeture d'une alerte
+    /// (`focusPseudoInput` / `focusEmailInput`, `OnboardingScreen.tsx:691-696`).
+    /// `nil` sur les champs sans recentrage (école, mot de passe) : ils gardent
+    /// leur focus interne (`autoFocus`).
+    var externalFocus: FocusState<OnbFlowAlertAction.FocusTarget?>.Binding? = nil
+    /// Cible portée par `externalFocus` (`pseudo` / `email`).
+    var focusTarget: OnbFlowAlertAction.FocusTarget? = nil
     private let trailing: () -> Trailing
 
     @FocusState private var focused: Bool
 
     init(
         props: OnbUiFieldProps,
+        externalFocus: FocusState<OnbFlowAlertAction.FocusTarget?>.Binding? = nil,
+        focusTarget: OnbFlowAlertAction.FocusTarget? = nil,
         @ViewBuilder trailing: @escaping () -> Trailing = { EmptyView() }
     ) {
         self.props = props
+        self.externalFocus = externalFocus
+        self.focusTarget = focusTarget
         self.trailing = trailing
     }
 
@@ -174,7 +189,17 @@ struct OnbUiField<Trailing: View>: View {
                     .stroke(borderColor, lineWidth: 1.5)
             )
         }
-        .onAppear { if props.autoFocus { focused = true } }
+        .onAppear { if props.autoFocus { requestFocus() } }
+    }
+
+    /// Donne le focus à l'apparition : au champ externe s'il est partagé
+    /// (recentrage), sinon au focus interne (`autoFocus`).
+    private func requestFocus() {
+        if let externalFocus, let focusTarget {
+            externalFocus.wrappedValue = focusTarget
+        } else {
+            focused = true
+        }
     }
 
     /// Couleur de bordure : bord blanc forcé, sinon bord invité, sinon bord
@@ -195,17 +220,30 @@ struct OnbUiField<Trailing: View>: View {
     private var inputField: some View {
         let text = Binding(get: { props.value }, set: props.onChangeText)
         if props.isSecure {
-            SecureField(props.placeholder, text: text)
-                .textContentType(.password)
-                .modifier(OnbUiFieldTextStyle(dark: props.dark))
-                .focused($focused)
+            applyFocus(
+                SecureField(props.placeholder, text: text)
+                    .textContentType(.password)
+                    .modifier(OnbUiFieldTextStyle(dark: props.dark))
+            )
         } else {
-            TextField(props.placeholder, text: text, axis: props.multiline ? .vertical : .horizontal)
-                .keyboardType(props.keyboardType.uiKeyboardType)
-                .textInputAutocapitalization(props.autoCapitalize.textInputAutocapitalization)
-                .autocorrectionDisabled()
-                .modifier(OnbUiFieldTextStyle(dark: props.dark))
-                .focused($focused)
+            applyFocus(
+                TextField(props.placeholder, text: text, axis: props.multiline ? .vertical : .horizontal)
+                    .keyboardType(props.keyboardType.uiKeyboardType)
+                    .textInputAutocapitalization(props.autoCapitalize.textInputAutocapitalization)
+                    .autocorrectionDisabled()
+                    .modifier(OnbUiFieldTextStyle(dark: props.dark))
+            )
+        }
+    }
+
+    /// Rattache la saisie au focus externe (recentrage) quand il est fourni,
+    /// sinon au focus interne (`autoFocus`).
+    @ViewBuilder
+    private func applyFocus<Content: View>(_ content: Content) -> some View {
+        if let externalFocus, let focusTarget {
+            content.focused(externalFocus, equals: focusTarget)
+        } else {
+            content.focused($focused)
         }
     }
 }
