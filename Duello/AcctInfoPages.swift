@@ -142,6 +142,9 @@ struct AcctInfoDuelloPage: View {
                 accessibilityLabel: "Consulter les conditions d’utilisation",
                 action: onOpenTerms
             )
+            // Ligne « Version X.Y.Z » (`AccountScreen.tsx:4090-4112`) : bloc
+            // non cliquable, sans chevron, sous les deux liens légaux.
+            AcctInfoDuelloVersionRow()
         }
         .background(Theme.surface)
     }

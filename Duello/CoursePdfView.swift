@@ -40,6 +40,10 @@ struct CtdPdfDocumentView: View {
     var onComplete: (() -> Void)? = nil
     /// Fourni : la sélection courante ouvre le prof IA (`duello-prof-explain`).
     var onExplain: ((String, Int?) -> Void)? = nil
+    /// Fourni : le document n'a pas pu être ouvert (`PDFDocument(data:)` nul,
+    /// PDF corrompu) → le lecteur bascule en échec + « Réessayer »
+    /// (`CourseDocumentViewer.native.tsx:152-165`).
+    var onError: (() -> Void)? = nil
 
     /// Sélection courante, alimentée par `PDFViewSelectionChanged`.
     @State private var selection: ProfPdfSelection?
@@ -53,6 +57,7 @@ struct CtdPdfDocumentView: View {
                 onPositionChange: onPositionChange,
                 onReady: onReady,
                 onComplete: onComplete,
+                onError: onError,
                 selection: $selection
             )
             if onExplain != nil { explainButton }
@@ -96,6 +101,7 @@ private struct CtdPdfKitView: UIViewRepresentable {
     var onPositionChange: ((Double) -> Void)? = nil
     var onReady: (() -> Void)? = nil
     var onComplete: (() -> Void)? = nil
+    var onError: (() -> Void)? = nil
     @Binding var selection: ProfPdfSelection?
 
     func makeUIView(context: Context) -> PDFView {
@@ -103,7 +109,11 @@ private struct CtdPdfKitView: UIViewRepresentable {
         view.autoScales = true
         view.displayMode = .singlePageContinuous
         view.displayDirection = .vertical
-        view.document = PDFDocument(data: data)
+        // Un PDF corrompu fait rendre `PDFDocument(data:)` nul : sans ce
+        // contrôle, la zone restait vide, sans erreur ni essai
+        // (`courseDocumentPdf.ts:219-230`).
+        let document = PDFDocument(data: data)
+        view.document = document
         context.coordinator.positioning = positioning
         context.coordinator.onPositionChange = onPositionChange
         context.coordinator.onReady = onReady
@@ -113,6 +123,10 @@ private struct CtdPdfKitView: UIViewRepresentable {
         // on l'observe au tour suivant de la boucle principale.
         let coordinator = context.coordinator
         DispatchQueue.main.async {
+            guard document != nil else {
+                onError?()
+                return
+            }
             coordinator.attach(to: view, initialPosition: initialPosition)
             onReady?()
             onComplete?()

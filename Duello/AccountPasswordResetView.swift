@@ -81,13 +81,15 @@ struct PasswordResetView: View {
     /// `BackButton` de `PasswordResetScreen.tsx:28-34` : chevron `chevron-back`
     /// 21 `ink` dans une boîte 44×44 transparente (le style du composant impose
     /// `borderWidth 0` / `borderRadius 0` / fond transparent, `BackButton.tsx:76-95`),
-    /// marges 22/8/6, désactivé pendant l'enregistrement (`opacity 0.45`).
+    /// décalé de `translateX: -4` (`BackButton.tsx:93`), marges 22/8/6, désactivé
+    /// pendant l'enregistrement (`opacity 0.45`).
     private var backButton: some View {
         Button {
             if let onClose { onClose() } else { dismiss() }
         } label: {
             IonIcon(name: "chevron-back", size: 21, color: Theme.ink)
                 .frame(width: 44, height: 44)
+                .offset(x: -4)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -111,6 +113,7 @@ struct PasswordResetView: View {
                 .foregroundStyle(Theme.ink)
             Text("Choisis ton nouveau mot de passe")
                 .font(.system(size: 30, weight: .black))
+                .lineSpacing(5)
                 .foregroundStyle(Theme.ink)
                 .padding(.top, 10)
             form
@@ -166,10 +169,11 @@ struct PasswordResetView: View {
     }
 
     /// Champ local (`PasswordResetForm.tsx:57-101`) : légende 13/800 `ink`,
-    /// icône `key-outline` 20 `inkSoft`, placeholder = libellé, bordure 1.5
-    /// `border`, fond `surface`, hauteur 55. Bascule œil
-    /// `eye-outline`/`eye-off-outline` 21 `inkSoft` dans un bouton 36×36 rayon
-    /// 12 fond `primaryLight` (`:82-97`, `:158-165`).
+    /// icône `key-outline` 20 `inkSoft`, placeholder = libellé coloré en
+    /// `inkFaint` (`placeholderTextColor`, `:74`), bordure 1.5 `border`, fond
+    /// `surface`, hauteur 55. Bascule œil `eye-outline`/`eye-off-outline` 21
+    /// `inkSoft` dans un bouton 36×36 rayon 12 fond `primaryLight` (`:82-97`,
+    /// `:158-165`).
     private func passwordField(
         title: String,
         text: Binding<String>,
@@ -185,11 +189,12 @@ struct PasswordResetView: View {
 
                 Group {
                     if passwordVisible {
-                        TextField(title, text: text)
+                        TextField("", text: text, prompt: placeholder(title))
                     } else {
-                        SecureField(title, text: text)
+                        SecureField("", text: text, prompt: placeholder(title))
                     }
                 }
+                .accessibilityLabel(title)
                 .textContentType(.newPassword)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
@@ -208,6 +213,13 @@ struct PasswordResetView: View {
                     .stroke(Theme.border, lineWidth: 1.5)
             )
         }
+    }
+
+    /// Texte d'invite coloré comme `placeholderTextColor` de la source
+    /// (`colors.inkFaint`, `PasswordResetForm.tsx:74`) : `TextField(_:text:prompt:)`
+    /// porte la couleur, contrairement à `TextField(_:text:)`.
+    private func placeholder(_ title: String) -> Text {
+        Text(title).foregroundColor(Theme.inkFaint)
     }
 
     /// Bascule œil `eye-outline`/`eye-off-outline` 21 `inkSoft` dans un bouton
@@ -252,8 +264,8 @@ struct PasswordResetView: View {
     }
 
     /// Bouton enregistrer (`PasswordResetForm.tsx:112-125, 181-189`) : hauteur
-    /// 54, rayon 18, fond `primary`, texte 15/900 blanc ; désactivé
-    /// `opacity 0.55`.
+    /// 54, rayon 18, fond `primary`, texte 15/900 blanc (`.black` — la source
+    /// porte `fontWeight: '900'`, `:188`) ; désactivé `opacity 0.55`.
     private var saveButton: some View {
         Button {
             submit()
@@ -261,7 +273,7 @@ struct PasswordResetView: View {
             Text(saving ? "Enregistrement…" : "Enregistrer")
                 .frame(maxWidth: .infinity, minHeight: 54)
         }
-        .buttonStyle(DuelloPrimaryButton())
+        .buttonStyle(DuelloPrimaryButton(labelWeight: .black))
         .disabled(saving)
         .opacity(saving ? 0.55 : 1)
     }

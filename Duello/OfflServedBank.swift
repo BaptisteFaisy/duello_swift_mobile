@@ -45,7 +45,7 @@ enum OfflServedBank {
     ) -> () -> [T] {
         var memo: (revision: Int, entries: [T])?
         return {
-            let revision = OfflSync.contentRevision
+            let revision = OfflSync.servedBanksRevision
             if let memo, memo.revision == revision { return memo.entries }
             let served = bundleRaw(id)?.compactMap(isEntry)
             let partial = partialRaw(id).compactMap(isEntry)
@@ -72,7 +72,7 @@ enum OfflServedBank {
         let entries = servedList(id, embedded: embedded, isEntry: isEntry, identity: identity)
         var memo: (revision: Int, bank: [String: [T]])?
         return {
-            let revision = OfflSync.contentRevision
+            let revision = OfflSync.servedBanksRevision
             if let memo, memo.revision == revision { return memo.bank }
             let bank = groupByChapter(entries(), chapterId: chapterId)
             memo = (revision, bank)
@@ -91,7 +91,7 @@ enum OfflServedBank {
     ) -> (String) -> [T] {
         var memo: (revision: Int, served: [String: [T]]?, partial: [String: [T]])?
         return { requested in
-            let revision = OfflSync.contentRevision
+            let revision = OfflSync.servedBanksRevision
             if memo?.revision != revision {
                 let servedEntries = bundleRaw(id)?.compactMap(isEntry)
                 let served = (servedEntries?.isEmpty == false)
@@ -115,7 +115,7 @@ enum OfflServedBank {
     ) -> () -> [String: T] {
         var memo: (revision: Int, record: [String: T])?
         return {
-            let revision = OfflSync.contentRevision
+            let revision = OfflSync.servedBanksRevision
             if let memo, memo.revision == revision { return memo.record }
             let served = recordPairs(bundleRaw(id), isValue: isValue)
             let partial = recordPairs(partialRaw(id), isValue: isValue) ?? [:]
@@ -152,7 +152,7 @@ enum OfflServedBank {
         )
         var memo: (revision: Int, bank: [String: [OfflExerciseSeed]])?
         return {
-            let revision = OfflSync.contentRevision
+            let revision = OfflSync.servedBanksRevision
             if let memo, memo.revision == revision { return memo.bank }
             let bank = groupByChapter(entries()) { $0.chapterId }
             memo = (revision, bank)

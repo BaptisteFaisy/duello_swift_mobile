@@ -50,47 +50,10 @@ enum CtdDocumentPayload {
     case pdf(Data)
 }
 
-/// Erreur de lecture d'un document local.
-enum CtdDocumentError: LocalizedError {
-    case unreadable
-
-    var errorDescription: String? { "Le cours n’a pas pu être ouvert." }
-}
-
-/// Lecture d'un document local (`readCourseDocumentBase64` de
-/// `CourseDocumentViewer.native.tsx`).
-enum CtdDocumentLoader {
-    /// Charge le document : base64 pour une photo, octets pour un PDF.
-    static func load(uri: String, mimeType: CtdMimeType) throws -> CtdDocumentPayload {
-        let data = try data(uri: uri)
-        guard mimeType.isImage else { return .pdf(data) }
-        return .image(base64: data.base64EncodedString(), mimeType: mimeType)
-    }
-
-    /// Octets du document : fichier local, ou contenu d'une URI `data:`
-    /// héritée du web.
-    static func data(uri: String) throws -> Data {
-        if uri.hasPrefix("data:"), let comma = uri.firstIndex(of: ",") {
-            let encoded = String(uri[uri.index(after: comma)...])
-            guard let decoded = Data(base64Encoded: encoded, options: .ignoreUnknownCharacters) else {
-                throw CtdDocumentError.unreadable
-            }
-            return decoded
-        }
-        guard let url = fileURL(uri), let data = try? Data(contentsOf: url) else {
-            throw CtdDocumentError.unreadable
-        }
-        return data
-    }
-
-    /// `data:` ou `file://` acceptés ; un chemin nu devient une URL de
-    /// fichier.
-    static func fileURL(_ uri: String) -> URL? {
-        if uri.hasPrefix("data:") { return nil }
-        if uri.contains("://") { return URL(string: uri) }
-        return URL(fileURLWithPath: uri)
-    }
-}
+/// Erreur de lecture d'un document local, motif d'échec (`missing` /
+/// `unreadable`) et lecture des octets : portés par
+/// `CtdDocumentReadSupport.swift` (`courseDocumentData.ts`,
+/// `courseDocumentFile.ts`).
 
 // MARK: - Lecteur
 
@@ -119,13 +82,23 @@ struct CtdDocumentViewer: View {
     /// `ProfDocuments.course`). `nil` pour un énoncé de colle ou une feuille de
     /// TD, qui ne sont pas le cours du chapitre (`storedCourseDocument`).
     var courseDocument: CtdStoredCourseDocument? = nil
+    /// `onReimport` : réimporte le cours quand son fichier a disparu de
+    /// l'appareil (`CourseDocumentViewer.native.tsx:54-55,136-151`). `nil` →
+    /// le lecteur retombe sur « Réessayer ».
+    var onReimport: (() -> Void)? = nil
 
     /// Session Duello (injectée à la racine) : fournit le jeton du prof IA.
     @EnvironmentObject private var session: SessionStore
 
     @State private var payload: CtdDocumentPayload?
-    @State private var failed = false
+    /// Motif d'échec : `missing` → « Réimporter », `unreadable` → « Réessayer ».
+    @State private var failure: CtdDocumentReadFailure?
     @State private var retryRevision = 0
+    /// Mots exposés par le document et mots placés (`wordsRef`,
+    /// `useCourseDocumentMessages`) : `items > 0 & spans == 0` = cours muet pour
+    /// le prof IA, signalé par le bandeau.
+    @State private var profWords = CtdProfWordTally()
+    @State private var profUnreadable = false
     /// Texte du cours du chapitre, prêt pour le prof IA (`useProfCourseText`) :
     /// relu dès qu'un cours est montré, jamais à la première question.
     @StateObject private var courseText = ProfCourseTextSession()
@@ -136,18 +109,16 @@ struct CtdDocumentViewer: View {
     @State private var profConsentVisible = false
 
     var body: some View {
-        Group {
-            if failed {
-                failure
-            } else if let payload {
-                content(payload)
-            } else {
-                loading
-            }
+        VStack(spacing: 0) {
+            documentArea
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // `CourseUnreadableNotice` : bandeau sous un cours que le prof IA ne
+            // peut pas lire (`profUnreadable`).
+            if profUnreadable { CtdCourseUnreadableNotice() }
         }
         .frame(maxWidth: .infinity)
         .frame(height: height)
-        .background(Theme.surfaceMuted)
+        .background(CtdDocumentStyle.readerBackground)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
         .task(id: loadKey) { load() }
         // `useProfCourseText` : le texte du cours est demandé dès que le
@@ -187,15 +158,39 @@ struct CtdDocumentViewer: View {
     /// Clé de rechargement : document, révision et essai manuel.
     private var loadKey: String { "\(uri)#\(revision)#\(retryRevision)" }
 
-    /// `readCourseDocumentBase64` : relit le document, et bascule sur l'échec
-    /// si le fichier ne peut plus être ouvert.
+    /// `command` du lecteur (`HtmlDocumentView.native.tsx:64-74`) : message
+    /// `duello-course-positioning` réinjecté quand le mode repère bascule.
+    private var positioningCommand: String {
+        let position = initialPosition.flatMap { $0.isFinite ? String($0) : nil } ?? "null"
+        let enabled = positioning ? "true" : "false"
+        return "{\"type\":\"duello-course-positioning\",\"positioning\":\(enabled),\"position\":\(position)}"
+    }
+
+    /// Contenu du lecteur : échec, document prêt ou préparation.
+    @ViewBuilder private var documentArea: some View {
+        if let failure {
+            failureView(failure)
+        } else if let payload {
+            content(payload)
+        } else {
+            loading
+        }
+    }
+
+    /// `readCourseDocumentBase64` : relit le document ; l'échec est journalisé
+    /// (`logCourseReadFailure`) et distingué — fichier manquant (à réimporter)
+    /// ou contenu illisible (à réessayer).
     private func load() {
-        failed = false
+        failure = nil
         payload = nil
+        profWords = CtdProfWordTally()
+        profUnreadable = false
         do {
             payload = try CtdDocumentLoader.load(uri: uri, mimeType: mimeType)
         } catch {
-            failed = true
+            let kind = (error as? CtdDocumentError)?.failure ?? .unreadable
+            logCourseReadFailure(kind, detail: error.localizedDescription)
+            failure = kind
         }
     }
 
@@ -217,6 +212,7 @@ struct CtdDocumentViewer: View {
                     profExplain: true
                 ),
                 selectable: true,
+                command: positioningCommand,
                 onMessage: handleMessage
             )
         case .pdf(let data):
@@ -232,6 +228,12 @@ struct CtdDocumentViewer: View {
                 // `CoursePdfView`). Même couture que `handleMessage(.explain)`.
                 onExplain: { text, page in
                     handleProfBridgeEvent(.explain(text: text, page: page))
+                },
+                // PDF corrompu (`PDFDocument(data:)` nul) : le lecteur bascule
+                // en échec + « Réessayer », comme le repli d'Expo.
+                onError: {
+                    logCourseReadFailure(.unreadable, detail: nil)
+                    failure = .unreadable
                 }
             )
         }
@@ -253,12 +255,18 @@ struct CtdDocumentViewer: View {
         else { return }
         switch type {
         case "error":
-            failed = true
+            // `fail('unreadable', event.message)` : le motif exact (ex.
+            // « image ») est journalisé, l'écran reste générique.
+            logCourseReadFailure(.unreadable, detail: event["message"] as? String)
+            failure = .unreadable
         case "ready":
             onReady?()
             // Une photo est complète dès qu'elle est affichée ; un PDF, non.
             if mimeType.isImage { onComplete?() }
         case "complete":
+            // Document entièrement rendu : un cours qui expose du texte sans
+            // qu'un seul mot soit sélectionnable est muet pour le prof IA.
+            if profWords.items > 0 && profWords.spans == 0 { profUnreadable = true }
             onComplete?()
         case "position":
             if let position = event["position"] as? Double { onPositionChange?(position) }
@@ -299,6 +307,11 @@ struct CtdDocumentViewer: View {
             ))
         case .copyBlocked, .noText:
             break
+        case .textLayer(_, let items, let spans, _):
+            // `useCourseDocumentMessages` : les mots exposés et placés
+            // s'accumulent ; le verdict tombe à `complete`.
+            profWords.items += items
+            profWords.spans += spans
         }
     }
 
@@ -359,24 +372,28 @@ struct CtdDocumentViewer: View {
         }
     }
 
-    private var failure: some View {
+    /// `CourseDocumentViewer.native.tsx:136-166` : fichier introuvable →
+    /// « Réimporter » (message dédié) ; contenu illisible → « Réessayer ».
+    @ViewBuilder
+    private func failureView(_ failure: CtdDocumentReadFailure) -> some View {
         VStack(spacing: 10) {
-            Text("Le cours n’a pas pu être ouvert.")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(Theme.inkSoft)
-                .multilineTextAlignment(.center)
-            Button { retryRevision += 1 } label: {
-                Text("Réessayer")
-                    .font(.system(size: 13, weight: .heavy))
-                    .foregroundStyle(Theme.surface)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .background(Theme.ink)
-                    .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
+            if case .missing = failure, let reimport = onReimport {
+                Text("Le fichier de ce cours est introuvable sur cet appareil. Réimporte-le pour le relire.")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Theme.inkSoft)
+                    .multilineTextAlignment(.center)
+                CtdRetryButton(title: "Réimporter", label: "Réimporter le cours", action: reimport)
+            } else {
+                Text("Le cours n’a pas pu être ouvert.")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Theme.inkSoft)
+                    .multilineTextAlignment(.center)
+                CtdRetryButton(title: "Réessayer", label: "Réessayer d’ouvrir le cours") {
+                    retryRevision += 1
+                }
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Réessayer d’ouvrir le cours")
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(24)
     }
 }

@@ -72,6 +72,7 @@ struct PremOfferCard: View {
                     label: label,
                     available: purchase.available,
                     busy: purchase.busy,
+                    unavailableReason: purchase.unavailableReason,
                     onPurchase: { Task { await purchase.launch(offerId: offer.id) } }
                 )
             }
@@ -170,11 +171,20 @@ struct PremOfferFeatures: View {
 /// que la facturation native n'est pas configurée, `available` reste vrai (le
 /// bouton répond) mais `beginPurchase` refuse clairement par alerte — jamais un
 /// bouton mort. `busy` affiche « Ouverture… », comme la source.
+///
+/// V2 (30/09/2026, A7-05 #2) : le libellé d'accessibilité suffixe **par cause**
+/// (`purchaseUnavailableLabel`) au lieu d'être figé sur « bientôt disponible ».
 struct PremOfferCallToAction: View {
     let label: String
     let available: Bool
     var busy: Bool = false
+    var unavailableReason: PremPurchaseUnavailableReason = .available
     var onPurchase: (() -> Void)? = nil
+
+    /// `purchaseUnavailableLabel(unavailableReason) ?? 'bientôt disponible'`.
+    private var unavailableSuffix: String {
+        unavailableReason.accessibilityLabelSuffix ?? "bientôt disponible"
+    }
 
     var body: some View {
         Button { onPurchase?() } label: {
@@ -188,7 +198,7 @@ struct PremOfferCallToAction: View {
         }
         .buttonStyle(.plain)
         .disabled(!available || busy)
-        .accessibilityLabel(available ? label : "\(label), bientôt disponible")
+        .accessibilityLabel(available ? label : "\(label), \(unavailableSuffix)")
         .accessibilityAddTraits(.isButton)
     }
 }

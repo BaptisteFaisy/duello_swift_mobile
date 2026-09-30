@@ -13,6 +13,10 @@ struct CtdHtmlDocumentView: UIViewRepresentable {
     /// `selectable` : sans sélection, le document interdit aussi le menu
     /// contextuel (`withSelectionPolicy`).
     var selectable: Bool = true
+    /// `command` (`HtmlDocumentView.native.tsx:64-74`) : message JSON
+    /// `duello-course-positioning` réinjecté dans le document à chaque
+    /// changement, sans recharger le HTML.
+    var command: String? = nil
     /// Messages du document, en JSON, comme `onMessage` côté Expo.
     var onMessage: ((String) -> Void)? = nil
 
@@ -25,12 +29,26 @@ struct CtdHtmlDocumentView: UIViewRepresentable {
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.isOpaque = false
         webView.scrollView.contentInsetAdjustmentBehavior = .never
+        context.coordinator.loadedHTML = html
+        context.coordinator.command = command
         webView.loadHTMLString(Self.document(html, selectable: selectable), baseURL: nil)
         return webView
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {
         context.coordinator.onMessage = onMessage
+        // `useEffect(() => dispatchCommand(), [dispatchCommand])` : la bascule du
+        // mode repère repart au document sans recharger le HTML.
+        if context.coordinator.command != command {
+            context.coordinator.command = command
+            context.coordinator.dispatchCommand(in: webView)
+        }
+        // `source={{ html }}` : un nouveau document (import, révision) recharge
+        // la WebView, comme le natif RN.
+        if context.coordinator.loadedHTML != html {
+            context.coordinator.loadedHTML = html
+            webView.loadHTMLString(Self.document(html, selectable: selectable), baseURL: nil)
+        }
     }
 
     func makeCoordinator() -> Coordinator {
@@ -45,9 +63,22 @@ struct CtdHtmlDocumentView: UIViewRepresentable {
     /// Reçoit les messages du document et les rend au lecteur.
     final class Coordinator: NSObject, WKScriptMessageHandler {
         var onMessage: ((String) -> Void)?
+        /// Dernier HTML chargé : un nouveau document recharge la WebView.
+        var loadedHTML: String?
+        /// Commande `duello-course-positioning` courante, réinjectée à la bascule.
+        var command: String?
 
         init(onMessage: ((String) -> Void)?) {
             self.onMessage = onMessage
+        }
+
+        /// `dispatchCommand` (`HtmlDocumentView.native.tsx:65-70`) : republie la
+        /// commande dans le document via un `MessageEvent`, sans recharger le
+        /// HTML — c'est le canal qu'écoute le script de position.
+        func dispatchCommand(in webView: WKWebView) {
+            guard let command else { return }
+            let script = "window.dispatchEvent(new MessageEvent('message', { data: \(command) })); true;"
+            webView.evaluateJavaScript(script, completionHandler: nil)
         }
 
         func userContentController(

@@ -23,13 +23,6 @@
 import SwiftUI
 import Combine
 
-/// Avancement du pré-vol d'inscription (`registrationPreflightState`).
-enum OnbFlowPreflightState: Equatable {
-    case checking
-    case ready
-    case blocked
-}
-
 /// État et transitions du parcours d'inscription.
 final class OnbFlowCoordinator: ObservableObject {
     let mode: OnbDataSteps.Mode
@@ -44,6 +37,11 @@ final class OnbFlowCoordinator: ObservableObject {
     /// qu'aucune puce n'a été touchée. Le repli technique du profil (ECG) ne
     /// vaut jamais un choix.
     @Published var chosenTrack: String?
+    /// `chosenLevel`/`chosenYear`/`chosenOrigin` (`OnboardingScreen.tsx:256-258`) :
+    /// choix explicite de programme, `nil` tant qu'aucune puce n'a été touchée.
+    @Published var chosenLevel: String?
+    @Published var chosenYear: String?
+    @Published var chosenOrigin: String?
     @Published var password = ""
     @Published var showPassword = false
     @Published var biometricVerified = false
@@ -51,7 +49,6 @@ final class OnbFlowCoordinator: ObservableObject {
     @Published var isCompleting = false
     @Published var isCheckingUsername = false
     @Published var isCheckingRegistrationDetails = false
-    @Published var preflightState: OnbFlowPreflightState
     /// Vrai tant que les notifications ne sont pas explicitement refusées.
     @Published var pushNotificationsEnabled = true
     @Published var schoolSuggestionsVisible = false
@@ -119,12 +116,9 @@ final class OnbFlowCoordinator: ObservableObject {
 
     /// `requiresRegistrationPreflight` (surcharge) : force le verdict du
     /// pré-vol. Un parcours ouvert sur une **session déjà ouverte** (profil
-    /// incomplet à compléter, cf. `RootView`) ne crée aucun compte : il n'y a
-    /// rien à pré-voler, et le contrôle répondrait 409 « Un compte existe déjà
-    /// avec cette adresse e-mail » sur l'adresse de l'utilisateur — ce qui
-    /// bloquait définitivement l'avance (`advanceBlocked` inclut
-    /// `!preflightReady`, sans chemin de reprise). `nil` = règle de la source
-    /// (`mode != .guest`).
+    /// incomplet à compléter, cf. `RootView`) ne crée aucun compte : le contrôle
+    /// répondrait 409 « Un compte existe déjà avec cette adresse e-mail ».
+    /// `nil` = règle de la source (`mode != .guest`).
     init(
         mode: OnbDataSteps.Mode,
         initialProfile: UserProfile,
@@ -133,7 +127,6 @@ final class OnbFlowCoordinator: ObservableObject {
         let requiresPreflight = override ?? (mode != .guest)
         self.mode = mode
         self.requiresRegistrationPreflight = requiresPreflight
-        self.preflightState = requiresPreflight ? .checking : .ready
         let path = OnbFlowAcademic.normalizePath(initialProfile)
         self.path = path
         self.profile = OnbFlowAcademic.synchronizedProfile(initialProfile, path: path)
@@ -166,6 +159,42 @@ final class OnbFlowCoordinator: ObservableObject {
     /// `isLyceeFlow` : le parcours lycée remplace filière/option par niveau
     /// puis spécialité (`isLyceeTrack(academicPath.currentTrack)`).
     var isLyceeFlow: Bool { OnbFlowAcademic.isLyceeTrack(path.currentTrack) }
+
+    /// `onboardingRequiresExplicitChoice` (`OnboardingScreen.tsx:343-349`) : sur
+    /// un build natif de développement, un appui explicite est requis pour avancer.
+    var onboardingRequiresExplicitChoice: Bool {
+        #if DEBUG
+        return true
+        #else
+        return false
+        #endif
+    }
+
+    /// `onboardingLevel` : le monde déduit du parcours.
+    var onboardingLevel: String { isLyceeFlow ? "Lycée" : "Prépa" }
+
+    /// `levelChoicePending` : l'étape « TON NIVEAU » reste verrouillée tant que
+    /// le monde affiché n'a pas été choisi explicitement (`chosenOnboardingLevel`).
+    var levelChoicePending: Bool {
+        onboardingRequiresExplicitChoice
+            && currentStep == .level
+            && chosenLevel != onboardingLevel
+    }
+
+    /// `yearChoicePending` : l'année par défaut posée par « TON NIVEAU » ne vaut
+    /// pas un choix explicite.
+    var yearChoicePending: Bool {
+        onboardingRequiresExplicitChoice
+            && currentStep == .year
+            && chosenYear != profile.year
+    }
+
+    /// `originChoicePending` : l'étape « TON PARCOURS » d'un PSI attend un choix.
+    var originChoicePending: Bool {
+        onboardingRequiresExplicitChoice
+            && currentStep == .origin
+            && chosenOrigin != path.firstYearTrack
+    }
 
     /// `onboardingSpecialtyChoices(profile.year)` : choix de la page
     /// « TA SPÉCIALITÉ » (vide en 2de, où la page n'existe pas).
@@ -285,18 +314,22 @@ final class OnbFlowCoordinator: ObservableObject {
             isCompleting: isCompleting,
             isCheckingRegistrationDetails: isCheckingRegistrationDetails,
             isCheckingUsername: isCheckingUsername,
+            levelChoicePending: levelChoicePending,
+            yearChoicePending: yearChoicePending,
             trackChoicePending: trackChoicePending,
+            originChoicePending: originChoicePending,
             mathOptionChoicePending: mathOptionChoicePending,
-            premiumGiftOpenPending: premiumGiftOpenPending,
-            preflightReady: preflightState == .ready,
-            isCheckingPreflight: preflightState == .checking
+            premiumGiftOpenPending: premiumGiftOpenPending
         )
     }
 
     var validationState: OnbFlowValidationState {
         OnbFlowValidationState(
             step: currentStep,
+            levelChoicePending: levelChoicePending,
+            yearChoicePending: yearChoicePending,
             trackChoicePending: trackChoicePending,
+            originChoicePending: originChoicePending,
             asksForMathOption: asksForMathOption,
             currentOption: path.currentOption,
             targetSchool: profile.targetSchool,
@@ -323,18 +356,21 @@ final class OnbFlowCoordinator: ObservableObject {
         profile = OnbFlowAcademic.synchronizedProfile(profile, path: next)
     }
 
-    /// `chooseOnboardingLevel` : le monde choisi sur « TON NIVEAU » repart d'une
-    /// année par défaut propre — la dernière du lycée (Terminale), la première
-    /// de prépa (1re année).
+    /// `chooseOnboardingLevel` : mémorise le monde choisi puis repart d'une année
+    /// par défaut propre (Terminale au lycée, 1re année en prépa) — **sans**
+    /// compter comme un choix (`setChosenLevel` puis `applyYear`,
+    /// `OnboardingScreen.tsx:492-499`) : la page « TON ANNÉE » reste verrouillée.
     func chooseOnboardingLevel(_ level: String) {
-        chooseYear(level == "Lycée" ? "Terminale" : "1re année")
+        chosenLevel = level
+        chooseYear(level == "Lycée" ? "Terminale" : "1re année", explicit: false)
     }
 
-    /// `chooseYear` : change d'année et abandonne une filière devenue invalide.
-    /// Un changement de monde (lycée <-> prépa) repart du monde choisi ; au
-    /// lycée, une spécialité absente du nouveau niveau est vidée (une paire de
-    /// 1re n'est pas une option de terminale).
-    func chooseYear(_ year: String) {
+    /// `chooseYear` : mémorise l'année choisie puis l'applique. `explicit` est
+    /// faux pour l'année par défaut posée par « TON NIVEAU ». Un changement de
+    /// monde repart du monde choisi ; au lycée, une spécialité absente du
+    /// nouveau niveau est vidée (une paire de 1re n'est pas une option de terminale).
+    func chooseYear(_ year: String, explicit: Bool = true) {
+        if explicit { chosenYear = year }
         let choices = OnbFlowAcademic.currentTrackChoices(year: year)
         let kept = choices.contains(path.currentTrack) ? path.currentTrack : nil
         let currentTrack = kept ?? OnbFlowAcademic.fallbackTrack(year: year, previous: path.currentTrack)
@@ -376,8 +412,10 @@ final class OnbFlowCoordinator: ObservableObject {
         ))
     }
 
-    /// `chooseOrigin` : change l'origine en conservant une option valide.
+    /// `chooseOrigin` : mémorise le parcours de 1re année choisi puis le change
+    /// en conservant une option valide.
     func chooseOrigin(_ firstYearTrack: String) {
+        chosenOrigin = firstYearTrack
         let options = OnbFlowAcademic.firstYearOptions[firstYearTrack] ?? []
         let firstYearOption = options.contains(path.firstYearOption)
             ? path.firstYearOption

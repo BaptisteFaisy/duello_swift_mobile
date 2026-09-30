@@ -8,8 +8,9 @@ import Foundation
 //
 // Dans la source, cette logique ne tourne que sur le web (`Platform.OS === 'web'`) ;
 // sur iOS l'application tient le rôle du téléphone (`RemPhotoController`). Le
-// contrôleur est fourni pour parité, avec un démarrage explicite (`start()`),
-// sans la création automatique propre au web (`useReceiverAutoStart`).
+// contrôleur est fourni pour parité : `activate(token:active:)` reprend
+// `useReceiverAutoStart` (ouverture de session automatique quand la vue est
+// active) et `useReceiverPolling` (interrogation gated sur `active`).
 
 /// `RemotePhotoReceiverController` (branche « propriétaire » de la session).
 @MainActor
@@ -28,14 +29,27 @@ final class RemPhotoRxReceiver: ObservableObject {
     private var photoCache: [String: Data] = [:]
     private var pollTask: Task<Void, Never>?
     private var polling = false
+    /// `attempted` (`useReceiverState`) : vrai dès qu'une création a été tentée,
+    /// pour que `useReceiverAutoStart` ne rouvre pas de session en boucle.
+    private var attempted = false
 
     init() {}
 
     /// Démarre la boucle d'interrogation (idempotent tant qu'elle tourne).
-    /// `useReceiverAutoStart` n'est pas repris : la création reste explicite.
-    func activate(token: String?) {
+    ///
+    /// `useReceiverAutoStart` (`useRemotePhotoReceiver.ts:67-80`) : quand la vue
+    /// hôte est active (`active`), une session est **ouverte automatiquement** si
+    /// aucune n'existe encore (`session == nil`, `!creating`, `!attempted`) — sans
+    /// geste, comme le web. La boucle d'interrogation (`useReceiverPolling`) ne
+    /// tourne elle aussi que tant que `active` est vrai.
+    func activate(token: String?, active: Bool = true) {
         accountToken = token
+        guard active else { deactivate(); return }
         guard pollTask == nil else { return }
+        if session == nil && !creating && !attempted {
+            attempted = true
+            Task { [weak self] in await self?.start() }
+        }
         pollTask = Task { [weak self] in await self?.runPollLoop() }
     }
 
@@ -132,6 +146,10 @@ final class RemPhotoRxReceiver: ObservableObject {
         } catch {
             self.error = RemPhotoRxUtils.errorMessage(error)
             if let rem = error as? RemPhotoError, rem.code == "session-not-found" {
+                // `useReceiverRefresh` : la session a été fermée (téléphone
+                // déconnecté ou expiration) — `attempted` retombe à faux pour que
+                // `useReceiverAutoStart` rouvre une liaison par compte.
+                attempted = false
                 session = nil
                 status = nil
                 clearPhotos()

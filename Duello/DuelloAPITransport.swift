@@ -7,10 +7,10 @@ import Foundation
 // Écarts assumés (29/09/2026, écarts 17 #1 à #4) :
 //   - l'adresse de base suit la variante `development` du RN
 //     (`config/duello-development.json` : Tailscale `…:8445/api`) ;
-//   - `Content-Type` n'est plus posé : la source (`adminApi.ts`) ne pose que
-//     `Accept` + `Authorization`. Résidu : `URLSession` n'ajoute aucun
-//     `Content-Type`, là où `fetch` (RN) en pose un `text/plain;charset=UTF-8`
-//     implicite pour un corps texte ;
+//   - `Content-Type` : la source (`adminApi.ts`) ne pose que `Accept` +
+//     `Authorization`, mais `fetch` (RN) ajoute `text/plain;charset=UTF-8`
+//     implicite pour un corps texte — ce que `URLSession` ne fait pas. Cet
+//     en-tête est donc rétabli sur les routes `admin/…` (parité admin) ;
 //   - le délai par défaut est de 10 s (`REQUEST_TIMEOUT` de `adminApi.ts`) ;
 //     il reste surchargeable par appel (`timeout:`), ce dont la transcription
 //     photo a besoin (OCR à effort maximal, 180 s — `mathOcr.ts:76`) ;
@@ -94,6 +94,15 @@ enum DuelloAPI {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
         request.httpBody = body
+        // `Content-Type` : `adminApi.ts` envoie un corps JSON **sans l'annoncer**,
+        // et `fetch` (RN) y pose alors `text/plain;charset=UTF-8` — ce que
+        // `URLSession` ne fait pas. On rétablit cet en-tête sur les routes
+        // d'administration (`admin/…`), seules routes servies par le relais qui
+        // viennent de `fetch` nu (`duelloApiClient.ts`, lui, pose
+        // `application/json` pour les routes sociales).
+        if body != nil, path.hasPrefix("admin") {
+            request.setValue("text/plain;charset=UTF-8", forHTTPHeaderField: "Content-Type")
+        }
 
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse else {

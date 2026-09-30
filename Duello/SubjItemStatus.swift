@@ -170,6 +170,20 @@ struct SubjItemAchiever: Equatable, Identifiable {
     }
 }
 
+extension SubjItemAchiever {
+    /// Depuis l'identité publique servie (`VeryHardExerciseAchiever`) : la photo
+    /// est une URI de chaîne (`photoUri` de `socialApi.ts`). L'initialiseur
+    /// primaire (membre à membre) reste disponible, l'extension ne le supprimant
+    /// pas.
+    init(_ achiever: VeryHardExerciseAchiever) {
+        self.init(
+            id: achiever.id,
+            displayName: achiever.displayName,
+            photoURL: achiever.photoUri.flatMap(URL.init(string:))
+        )
+    }
+}
+
 /// Avancement question par question (`granularProgress`).
 struct SubjGranularProgress: Equatable {
     var completed: Int
@@ -187,6 +201,9 @@ struct SubjGranularProgress: Equatable {
 /// Les rôles (`visibleRoles`) puis les badges visibles (`visibleBadges`) sont
 /// déjà concaténés dans `badges`, dans l'ordre d'affichage de la source.
 struct SubjItemCardModel: Equatable {
+    /// Identifiant d'item `chapitre::exercice::clé` (`ChapterItem['id']`), clé de
+    /// l'avancement local et des réussites très difficiles.
+    var id: String
     var title: String
     var difficulty: Int?
     var badges: [String] = []
@@ -194,7 +211,7 @@ struct SubjItemCardModel: Equatable {
     /// et les annales où la pastille disparaît.
     var themeLabel: String?
     var programStatus: SubjProgramStatus = .auProgramme
-    /// Meilleure note d'un bilan terminé, sur 20.
+    /// Meilleure note d'un bilan terminé, sur 20 (`annaleAttempts[item.id]?.bestSubmittedScore`).
     var bestScore: Double?
     /// Note de prérequis rédigée (`prerequisiteNote`).
     var prerequisiteNote: String?

@@ -30,7 +30,7 @@ extension OfflSync {
         var result = OfflChapterDownloadResult.empty
 
         if let cachedEntries = cachedChapterEntries(store: store, request: request) {
-            let selected = cachedEntries.filter { exerciseEntryMatches($0, itemId: itemId) }
+            let selected = cachedEntries.filter(exerciseEntryMatcher(itemId))
             if !selected.isEmpty, let serialized = OfflContentJSON.string(selected) {
                 applyPartialBundle(request.bundleId, digest: OfflContentHash.hex(serialized), serialized: serialized)
                 result.downloaded.append(request)
@@ -74,7 +74,7 @@ extension OfflSync {
             entries = await verifiedEntriesCooperative(descriptor, serialized: String(decoding: data, as: UTF8.self))
         }
         guard let entries else { return false }
-        let selected = entries.filter { exerciseEntryMatches($0, itemId: itemId) }
+        let selected = entries.filter(exerciseEntryMatcher(itemId))
         guard !selected.isEmpty, let serialized = OfflContentJSON.string(selected) else { return false }
         let digest = OfflContentHash.hex(serialized)
         applyPartialBundle(request.bundleId, digest: digest, serialized: serialized)
@@ -182,7 +182,15 @@ extension OfflSync {
         else { return .empty }
 
         let wanted = Set(bundleIds.map { $0.rawValue })
-        let queue = descriptors.filter { wanted.contains($0.bundleId) }
+        // Le préchargement suit l'ordre de priorité du profil : lire les
+        // descripteurs dans l'ordre du manifeste faisait attendre son propre
+        // programme derrière des filières qu'il n'ouvrira jamais.
+        var rank: [String: Int] = [:]
+        for (index, id) in bundleIds.enumerated() { rank[id.rawValue] = index }
+        let queue = descriptors.enumerated()
+            .filter { wanted.contains($0.element.bundleId) }
+            .sorted { (rank[$0.element.bundleId] ?? Int.max, $0.offset) < (rank[$1.element.bundleId] ?? Int.max, $1.offset) }
+            .map { $0.element }
         var result = OfflChapterDownloadResult.empty
         let workers = max(1, min(max(1, concurrency), max(1, queue.count)))
         var index = 0

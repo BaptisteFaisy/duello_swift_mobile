@@ -340,38 +340,35 @@ struct OnbFlowView: View {
 
     // MARK: Vérifications et complétion
 
-    /// `ensureAccountRegistrationAvailable` au montage (`registrationPreflightState`).
+    /// `ensureAccountRegistrationAvailable` au montage : lève une **alerte
+    /// précoce** en cas de refus définitif, sans verrouiller la navigation
+    /// (`OnboardingScreen.tsx:305-356` — le précontrôle ne bloque plus l'avance
+    /// depuis `871083903`).
     ///
     /// ⚠️ Le montage interroge le pré-vol **sans adresse** : c'est ce que fait la
     /// source (`ensureAccountRegistrationAvailable()`, `OnboardingScreen.tsx:331`).
     /// Transmettre l'adresse du profil — qui survit à une déconnexion — faisait
     /// répondre au serveur 409 « Un compte existe déjà avec cette adresse
-    /// e-mail », et l'avance restait bloquée dès la première étape.
+    /// e-mail ».
     private func runPreflight() async {
-        guard coordinator.requiresRegistrationPreflight else {
-            coordinator.preflightState = .ready
-            return
-        }
-        coordinator.preflightState = .checking
+        guard coordinator.requiresRegistrationPreflight else { return }
         // Boutons de la source (`OnboardingScreen.tsx:335-350`) : « Réessayer »
-        // toujours, « Revenir à l'accueil » seulement quand un retour existe.
+        // toujours, « Revenir à Duello » (mode `upgrade`) / « Revenir à
+        // l'accueil » seulement quand un retour existe.
         var actions: [OnbFlowAlertAction] = [
             OnbFlowAlertAction(title: "Réessayer", kind: .retry)
         ]
         if onCancel != nil {
             actions.append(
                 OnbFlowAlertAction(
-                    title: "Revenir à l’accueil",
+                    title: coordinator.mode == .upgrade ? "Revenir à Duello" : "Revenir à l’accueil",
                     kind: .backToWelcome,
                     isCancel: true
                 )
             )
         }
         if let alert = await OnbFlowSteps.checkRegistrationPreflight(email: nil, actions: actions) {
-            coordinator.preflightState = .blocked
             coordinator.pendingAlert = alert
-        } else {
-            coordinator.preflightState = .ready
         }
     }
 

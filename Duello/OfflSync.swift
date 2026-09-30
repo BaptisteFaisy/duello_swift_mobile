@@ -29,12 +29,34 @@ enum OfflSync {
     static var partialBundles: [OfflContentBundleId: StoredBundle] = [:]
     static var exerciseSolutions: [String: String?] = [:]
     static var listeners: [UUID: () -> Void] = [:]
-    static var revision = 0
+    /// Banque complète ou énoncé ciblé adopté (`servedBanks`).
+    static var servedBanksCount = 0
+    /// Corrigé d'un exercice téléchargé (`corrections`).
+    static var correctionsCount = 0
     /// Semeur unique des URL de relance (`uniqueCacheBuster`).
     static var uniqueCacheBuster = Int(Date().timeIntervalSince1970)
 
-    /// Révision courante (`contentRevision`).
-    static var contentRevision: Int { revision }
+    /// Révision des banques servies, pour un calcul qui ne lit aucun corrigé
+    /// (`servedBanksRevision`) : les annonces et les regroupements d'exercices en
+    /// dépendent, les reconstruire à l'arrivée d'un corrigé jetait la liste des
+    /// annales de l'année entière.
+    static var servedBanksRevision: Int { servedBanksCount }
+
+    /// Révision des banques servies et des corrigés, pour les items de chapitre
+    /// (`chapterItemsRevision`).
+    static var chapterItemsRevision: Int { servedBanksCount + correctionsCount }
+
+    /// Révision de ce que les écrans doivent redessiner (`contentRevision`) :
+    /// les deux compteurs réunis.
+    static var contentRevision: Int { servedBanksCount + correctionsCount }
+
+    /// Compat `applyExerciseSolution` (`OfflSync+Solutions`) : un corrigé unitaire
+    /// n'incrémente que le compteur des corrigés (`noteCorrectionsChanged`), et
+    /// jamais celui des banques servies.
+    static var revision: Int {
+        get { correctionsCount }
+        set { correctionsCount = newValue }
+    }
 
     /// `subscribeToContent` : rend une fonction de désabonnement.
     static func subscribeToContent(_ listener: @escaping () -> Void) -> () -> Void {
@@ -55,7 +77,7 @@ enum OfflSync {
     static func applyBundle(_ id: OfflContentBundleId, digest: String, serialized: String) {
         if bundles[id]?.digest == digest { return }
         bundles[id] = StoredBundle(digest: digest, serialized: serialized)
-        revision += 1
+        servedBanksCount += 1
         announce()
     }
 
@@ -66,18 +88,26 @@ enum OfflSync {
         guard let incoming = OfflContentJSON.array(serialized), !incoming.isEmpty else { return }
         if partialBundles[id]?.digest == digest { return }
         var merged = partialBundles[id].flatMap { OfflContentJSON.array($0.serialized) } ?? []
+        // La recherche d'un emplacement parcourt les entrées avec un index
+        // d'identités : le balayage linéaire qu'elle remplace recalculait
+        // l'identité de chaque entrée à chaque comparaison, donc en cubique sur
+        // une sélection qui s'allonge à chaque sujet ouvert.
+        var positions: [String: Int] = [:]
+        for (index, item) in merged.enumerated() { positions[entryIdentity(item)] = index }
         for item in incoming {
             let key = entryIdentity(item)
-            if let index = merged.firstIndex(where: { entryIdentity($0) == key }) {
+            if let index = positions[key] {
                 merged[index] = item
             } else {
+                positions[key] = merged.count
                 merged.append(item)
             }
         }
         guard let mergedSerialized = OfflContentJSON.string(merged) else { return }
-        let mergedDigest = partialBundles[id].map { "\($0.digest):\(digest)" } ?? digest
-        partialBundles[id] = StoredBundle(digest: mergedDigest, serialized: mergedSerialized)
-        revision += 1
+        // L'empreinte est celle de ce lot, non un cumul des précédents : la chaîne
+        // qu'elle formait (recopiée à chaque sujet ouvert) grossissait sans borne.
+        partialBundles[id] = StoredBundle(digest: digest, serialized: mergedSerialized)
+        servedBanksCount += 1
         announce()
     }
 
@@ -87,7 +117,8 @@ enum OfflSync {
         bundles.removeAll()
         partialBundles.removeAll()
         exerciseSolutions.removeAll()
-        revision += 1
+        servedBanksCount += 1
+        correctionsCount += 1
         announce()
     }
 

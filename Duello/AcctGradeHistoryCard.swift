@@ -2,7 +2,8 @@
 //  AcctGradeHistoryCard.swift
 //  Duello
 //
-//  Historique des notes du profil (lot S04, vague 6).
+//  Historique des notes du profil (lot S04, vague 6 ; bordure et « Tout voir »
+//  vague I7).
 //
 //  Fichier source Expo porté (libellés repris mot pour mot) :
 //    - src/components/GradeHistoryCard.tsx (`GradeHistoryCard`,
@@ -25,6 +26,16 @@ import SwiftUI
 /// 20 et son évolution face à la note précédente.
 struct AcctGradeHistoryCard: View {
     let rows: [GradeHistoryRow]
+    /// `onSeeAll` : ouvre la page dédiée à l'historique complet. Absent sur
+    /// cette page.
+    var onSeeAll: (() -> Void)? = nil
+    /// `hasMore` : vrai lorsqu'au moins une note est masquée par l'aperçu.
+    var hasMore: Bool = false
+    /// `showTitle` : la page dédiée ne répète pas le titre.
+    var showTitle: Bool = true
+    /// `refined` : titre noir capitales sur le développement, gris atténué en
+    /// production.
+    var refined: Bool = false
 
     var body: some View {
         if rows.isEmpty {
@@ -34,20 +45,49 @@ struct AcctGradeHistoryCard: View {
         }
     }
 
-    /// Bandeau « Historique » puis la liste des lignes (`styles.list`, gap 7).
+    /// Bandeau (kicker + « Tout voir ») puis la liste des lignes (`styles.list`).
     private var content: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Historique")
-                .font(.system(size: 11, weight: .bold))
-                .tracking(1.1)
-                .textCase(.uppercase)
-                .foregroundStyle(Theme.inkFaint)
-                .padding(.bottom, 8)
+            header
             VStack(spacing: 7) {
                 ForEach(rows) { row in
                     rowView(row)
                 }
             }
+        }
+    }
+
+    /// `seeAllVisible` : le lien n'apparaît que si l'aperçu masque des notes.
+    private var seeAllVisible: Bool {
+        hasMore && onSeeAll != nil
+    }
+
+    /// `styles.header` : kicker à gauche, « Tout voir » à droite. Le bandeau
+    /// n'existe que si l'un des deux est visible.
+    @ViewBuilder
+    private var header: some View {
+        if showTitle || seeAllVisible {
+            HStack(alignment: .center, spacing: 0) {
+                if showTitle {
+                    Text("Historique")
+                        .font(.system(size: 11, weight: .bold))
+                        .tracking(1.1)
+                        .textCase(.uppercase)
+                        .foregroundStyle(refined ? Theme.ink : Theme.inkFaint)
+                }
+                Spacer(minLength: 0)
+                if seeAllVisible, let onSeeAll {
+                    Button(action: onSeeAll) {
+                        Text("Tout voir")
+                            .font(.system(size: 11.5, weight: .bold))
+                            .foregroundStyle(Theme.inkSoft)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Tout voir")
+                    .contentShape(Rectangle())
+                }
+            }
+            .padding(.bottom, 8)
         }
     }
 
@@ -74,6 +114,10 @@ struct AcctGradeHistoryCard: View {
         .padding(.horizontal, 10)
         .background(Theme.surface)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.radiusMedium)
+                .stroke(Theme.border, lineWidth: 1)
+        )
     }
 
     /// Pastille « Record » (seul aplat noir plein de la ligne) puis appréciation.

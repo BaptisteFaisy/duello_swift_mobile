@@ -81,7 +81,12 @@ struct ConsentAiCard: View {
                     .padding(.leading, 44)
             }
         }
-        .duelloCard()
+        // `card` de `AiConsentCard.tsx:64-69` : carte **plate** (aucune bordure,
+        // aucun rayon), fond blanc, retrait 8 × 8 — et non le gabarit
+        // `duelloCard` (bord + rayon 14 + retrait 16).
+        .padding(.horizontal, 8)
+        .padding(.vertical, 8)
+        .background(Theme.surface)
         .task { accepted = ConsentAiSharing.isGranted }
     }
 
@@ -97,7 +102,9 @@ struct ConsentAiCard: View {
                     .font(.system(size: 13, weight: .heavy))
                     .foregroundStyle(Theme.ink)
                 Text(accepted == true ? ConsentAiSharing.acceptedLabel : CtdAiConsent.declinedLabel)
-                    .font(.system(size: 12, weight: .semibold))
+                    // `description` (`AiConsentCard.tsx:80`) : 12, **sans graisse**
+                    // (400) — la source ne pose aucun `fontWeight`.
+                    .font(.system(size: 12, weight: .regular))
                     .foregroundStyle(Theme.inkSoft)
                     .fixedSize(horizontal: false, vertical: true)
             }

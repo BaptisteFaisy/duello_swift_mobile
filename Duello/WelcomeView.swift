@@ -292,10 +292,14 @@ struct LoginView: View {
 /// est retiré.
 struct DuelloPrimaryButton: ButtonStyle {
     var onDark: Bool = false
+    /// Graisse du libellé. `800` (`.heavy`) est la valeur de la majorité des
+    /// boutons principaux ; `900` (`.black`) est passée par les écrans dont la
+    /// source porte `fontWeight: '900'` (`PasswordResetForm.tsx:188`).
+    var labelWeight: Font.Weight = .heavy
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 15, weight: .heavy))
+            .font(.system(size: 15, weight: labelWeight))
             .foregroundStyle(onDark ? Color.black : Theme.surface)
             .background(onDark ? Color.white : Theme.ink)
             .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))

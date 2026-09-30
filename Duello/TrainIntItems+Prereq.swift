@@ -18,13 +18,15 @@
 //  « à venir ». Les prérequis **de chapitre** sont vides dans la source RN comme
 //  ici : `chaptersByKey` ne sert qu'aux noms.
 //
-//  Carte de sujet (2026-09-30) : `itemCardModel` renseigne désormais le thème
-//  fiable (`themeLabel`, `visibleItemTheme`) et le statut de programme
+//  Carte de sujet (2026-09-30) : `itemCardModel` renseigne le thème fiable
+//  (`themeLabel`, `visibleItemTheme`) et le statut de programme
 //  (`programStatus`) — métadonnées de `ExerciseItemCard`
-//  (`SubjectsScreen.tsx:3185,3313`), servies depuis peu par l'API. Restent à
-//  raccorder la meilleure note (`bestScore`) et le premier réussisseur
-//  (`firstAchiever`) : note absente de `ProgressStore.ItemProgress`, liste des
-//  réussites jamais servie. Aucune donnée n'est inventée ici.
+//  (`SubjectsScreen.tsx:3185,3313`) — puis la meilleure note (`bestScore`,
+//  `annaleAttempts[item.id]?.bestSubmittedScore`, `:9373`) et le premier
+//  réussisseur (`firstAchiever`, `achieversFor(item)` + `difficulty >= 5`,
+//  `:9384,3138`). La note vient de `AnnAttemptStore` (tentatives du compte) ;
+//  les réussites très difficiles de `SubjVeryHardAchievers`, complétées par la
+//  réussite locale optimiste. Aucune donnée n'est inventée ici.
 //
 //  Cible iOS 16, aucune dépendance externe.
 //
@@ -65,16 +67,60 @@ extension TrainingCatalogView {
         TrainContent.programYear(from: session.profile.year) == 2 ? .second : .first
     }
 
+    /// Meilleure note enregistrée d'un sujet
+    /// (`annaleAttempts[item.id]?.bestSubmittedScore`, `SubjectsScreen.tsx:9373`) :
+    /// le bilan de la tentative locale du compte, lu dans `AnnAttemptStore`.
+    private func bestScore(for itemId: String) -> Double? {
+        let accountId = ConsentPremiumGate.accountId(email: session.profile.email)
+        return AnnAttemptStore.loadAnnaleAttempts(accountId: accountId)[itemId]?.bestSubmittedScore
+    }
+
+    /// Premier réussisseur d'un sujet (`achieversFor(item)` puis
+    /// `firstAchiever`, `SubjectsScreen.tsx:9384,3138`) : réservé aux exercices
+    /// très difficiles (`difficulty >= 5`). Le profil local de l'élève est servi
+    /// en tête dès qu'il a réussi le sujet et n'est pas encore publié
+    /// (`progress[item.id]?.bestOutcome === 'success'`), sinon le premier profil
+    /// publié (`SubjVeryHardAchievers`).
+    private func firstAchiever(for exercise: TrainExercise) -> SubjItemAchiever? {
+        guard let difficulty = exercise.difficulty, difficulty >= 5 else { return nil }
+        let published = SubjVeryHardAchievers.shared.byItemId[exercise.id] ?? []
+        let ownId = DuelloAPI.publicProfileId(email: session.profile.email)
+        if progress.items[exercise.id]?.bestOutcome == .success,
+           !published.contains(where: { $0.id == ownId }) {
+            return SubjItemAchiever(
+                id: ownId,
+                displayName: session.profile.displayName,
+                photoURL: nil
+            )
+        }
+        return published.first
+    }
+
+    /// Demande les réussites des exercices très difficiles du chapitre ouvert,
+    /// une seule fois par identifiant (`veryHardAchievements`).
+    private func requestVeryHardAchievers(for chapter: TrackChapter) {
+        let ids = (loadedExercises[chapter.id] ?? [])
+            .filter { ($0.difficulty ?? 0) >= 5 }
+            .map(\.id)
+        guard !ids.isEmpty else { return }
+        SubjVeryHardAchievers.shared.ensureLoaded(exerciseIds: ids, token: session.token)
+    }
+
     /// Modèle de fiche d'un sujet, complété des prérequis de sa revue. Reste
     /// vide (aucun prérequis) quand le sujet n'en porte pas — filière non servie.
     func itemCardModel(
         _ exercise: TrainExercise, chapter: TrackChapter, context: PrerequisiteCardContext
     ) -> SubjItemCardModel {
-        var model = SubjItemCardModel(title: exercise.title, difficulty: exercise.difficulty)
+        var model = SubjItemCardModel(
+            id: exercise.id, title: exercise.title, difficulty: exercise.difficulty
+        )
         model.themeLabel = SubjItemThemeLabel.visible(
             badges: exercise.badges, theme: exercise.theme
         )
         model.programStatus = SubjProgramStatus(rawValue: exercise.programStatus ?? "") ?? .auProgramme
+        model.bestScore = bestScore(for: exercise.id)
+        model.firstAchiever = firstAchiever(for: exercise)
+        requestVeryHardAchievers(for: chapter)
         guard let review = exercise.prerequisiteReview else { return model }
         model.isPrerequisiteReviewPending = review.status == .pending
 
@@ -96,7 +142,21 @@ extension TrainingCatalogView {
         model.missingPrerequisites = state.missingNames
         model.startedPrerequisites = state.startedNames
 
-        let questions = SubjChapterPrerequisites.questionPrerequisiteState(
+        let questions = questionPrerequisiteState(chapterRef, review, context, exercise)
+        model.availableQuestionCount = questions.availableCount
+        model.totalQuestionCount = questions.totalCount
+        return model
+    }
+
+    /// État des prérequis de question d'une revue (`questionPrerequisiteState`) :
+    /// les questions que l'avancement permet réellement de traiter.
+    private func questionPrerequisiteState(
+        _ chapterRef: SubjPrerequisiteChapterRef,
+        _ review: ProgPrereqReview,
+        _ context: PrerequisiteCardContext,
+        _ exercise: TrainExercise
+    ) -> SubjQuestionPrerequisiteState {
+        SubjChapterPrerequisites.questionPrerequisiteState(
             SubjQuestionPrerequisiteRequest(
                 chapter: chapterRef,
                 programYear: context.programYear,
@@ -114,9 +174,6 @@ extension TrainingCatalogView {
                 includeCurrentChapter: true
             )
         )
-        model.availableQuestionCount = questions.availableCount
-        model.totalQuestionCount = questions.totalCount
-        return model
     }
 
     /// Identifiants de question d'un énoncé, dans l'ordre du texte

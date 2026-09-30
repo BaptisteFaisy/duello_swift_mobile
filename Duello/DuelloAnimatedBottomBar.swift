@@ -38,6 +38,9 @@ struct DuelloAnimatedBottomBar<Content: View>: View {
     @State private var rendered: Bool
     /// Progression de l'animation (`progress`, `Animated.Value`).
     @State private var progress: CGFloat
+    /// Sortie verticale de la barre masquée (`hiddenTranslateY`,
+    /// `App.tsx:459-473`) : `max(80, hauteur + 8)` une fois la hauteur mesurée.
+    @State private var hiddenTranslateY: CGFloat = 80
 
     init(visible: Bool = true, @ViewBuilder content: @escaping () -> Content) {
         self.visible = visible
@@ -51,11 +54,26 @@ struct DuelloAnimatedBottomBar<Content: View>: View {
             if rendered {
                 content()
                     .opacity(progress)
-                    .offset(y: (1 - progress) * 80)
+                    .offset(y: (1 - progress) * hiddenTranslateY)
                     .scaleEffect(0.96 + 0.04 * progress)
                     .allowsHitTesting(visible)
                     .accessibilityHidden(!visible)
+                    // `onLayout` (`App.tsx:462-473`) : la hauteur réelle de la
+                    // barre fixe sa sortie — au moins 80, sinon hauteur + 8,
+                    // pour qu'elle finisse entièrement sous l'écran.
+                    .background(
+                        GeometryReader { proxy in
+                            Color.clear.preference(
+                                key: DuelloBottomBarHeightKey.self,
+                                value: proxy.size.height
+                            )
+                        }
+                    )
             }
+        }
+        .onPreferenceChange(DuelloBottomBarHeightKey.self) { height in
+            let next = max(80, (height + 8).rounded(.up))
+            if next != hiddenTranslateY { hiddenTranslateY = next }
         }
         .onChange(of: visible) { newValue in
             if newValue { rendered = true }
@@ -68,6 +86,15 @@ struct DuelloAnimatedBottomBar<Content: View>: View {
                 }
             }
         }
+    }
+}
+
+/// Hauteur mesurée de la barre basse (`onLayout`, `App.tsx:462`), pour calculer
+/// sa sortie verticale masquée.
+private struct DuelloBottomBarHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
     }
 }
 

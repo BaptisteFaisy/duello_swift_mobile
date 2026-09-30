@@ -28,7 +28,7 @@ enum LegalContent {
                     "Contenus choisis : textes, copies, photos, enregistrements vocaux en transit et documents envoyés lorsque tu demandes une transcription, une analyse, une génération ou une correction.",
                     "Communauté et assistance : abonnements, blocages, signalements, feedbacks, défis de classe et éléments nécessaires à la modération.",
                     "Technique : adresse IP observée à l’inscription, empreinte hachée de l’appareil, jeton de notification si tu l’actives, journaux de sécurité et mesures d’usage bornées.",
-                    "Site et liste d’attente : adresse e-mail, prépa facultative, rang, code et relations de parrainage ; le site mesure aussi les ouvertures par nom d’hôte avec une empreinte de navigateur aléatoire, sans conserver cet identifiant en clair ni l’adresse IP.",
+                    "Site et liste d’attente : adresse e-mail, prépa facultative, rang, code et relations de parrainage ; le site mesure aussi les ouvertures par nom d’hôte avec une empreinte de navigateur aléatoire, ainsi que les clics et le temps passé sans cookie ni identifiant persistant, sans conserver d’adresse IP.",
                 ]
             ),
             LegalSection(
@@ -78,7 +78,7 @@ enum LegalContent {
                 title: "8. Notifications et mesures d’usage",
                 paragraphs: [
                     "Si tu actives les notifications, Duello enregistre un jeton d’appareil et passe par Expo, Firebase Cloud Messaging sur Android et Apple Push Notification service sur iOS. Le contenu d’une notification ne contient ni copie, ni réponse, ni document.",
-                    "Les mesures internes couvrent le temps actif, les visites, les actions et les exercices ouverts ou terminés. Sur le site public, elles comptent seulement les ouvertures par nom d’hôte et empreinte de navigateur. Elles ne contiennent aucun brouillon, aucune réponse et aucune copie. Duello n’intègre aucun SDK publicitaire, n’affiche aucune publicité et ne vend ni ne loue les données personnelles.",
+                    "Les mesures internes couvrent le temps actif, les visites, les actions et les exercices ouverts ou terminés. Sur le site public, elles comptent les ouvertures par nom d’hôte et empreinte de navigateur, ainsi que les clics et le temps passé sans cookie ni identifiant persistant. Elles ne contiennent aucun brouillon, aucune réponse et aucune copie. Duello n’intègre aucun SDK publicitaire, n’affiche aucune publicité et ne vend ni ne loue les données personnelles.",
                 ]
             ),
             LegalSection(

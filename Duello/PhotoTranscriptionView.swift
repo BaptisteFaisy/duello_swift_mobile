@@ -72,6 +72,9 @@ struct PhotoTranscriptionView: View {
             .padding(.trailing, 12)
         }
         .onAppear { controller.token = session.token }
+        // `useDismissSheetPan` (`PhotoTranscriptionModal.tsx:91`) : la feuille
+        // est glissable vers le bas pour fermer.
+        .dismissSheetPan(onClose: onClose)
         // `photoTranscriptionAllowed` : l'accord de partage avec l'IA est demandé
         // avant tout envoi (`requestAiDataSharingConsent`).
         .alert(CtdAiConsent.title, isPresented: $controller.consentVisible) {
@@ -86,10 +89,54 @@ struct PhotoTranscriptionView: View {
         switch controller.state.stage {
         case .capture:
             PhotoTxCaptureStage(controller: controller)
+        case .remote:
+            PhotoTxRemoteStage(onCancel: { controller.state.stage = .capture })
         case .reading:
             PhotoTxReadingStage(imageUris: controller.state.imageUris, progress: controller.state.readingProgress)
         case .review:
             PhotoTxReviewStage(controller: controller)
         }
+    }
+}
+
+/// Étape « demande envoyée au téléphone » (`RemoteCaptureWaiting`,
+/// `PhotoCaptureStage.tsx:48-66`) : carte centrée, indicateur d'activité, textes
+/// et bouton d'annulation de la demande. Portée pour la parité ; le RN ne
+/// l'atteint que sur le web (`Platform.OS === 'web'`), l'étape reste donc
+/// **inerte** sur iOS où l'app est elle-même le téléphone.
+struct PhotoTxRemoteStage: View {
+    var onCancel: () -> Void
+
+    var body: some View {
+        VStack(spacing: 10) {
+            ProgressView()
+                .tint(Theme.primary)
+            Text("Demande envoyée au téléphone")
+                .font(.system(size: 15, weight: .black))
+                .multilineTextAlignment(.center)
+                .foregroundStyle(Theme.ink)
+            Text("Ouvre la notification dans l’app Duello, prends la photo, puis garde cette page ouverte : elle sera importée automatiquement.")
+                .font(.system(size: 12, weight: .semibold))
+                .multilineTextAlignment(.center)
+                .foregroundStyle(Theme.inkSoft)
+            Button { onCancel() } label: {
+                Text("Annuler la demande")
+                    .font(.system(size: 12, weight: .heavy))
+                    .foregroundStyle(Theme.primary)
+                    .frame(minWidth: 150, minHeight: 50)
+                    .padding(.horizontal, 18)
+                    .background(Theme.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.primary, lineWidth: 1.5))
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 10)
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity)
+        .background(Theme.primaryLight)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
+        .padding(.top, 18)
+        .padding(.bottom, 8)
     }
 }

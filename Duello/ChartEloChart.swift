@@ -26,6 +26,9 @@ struct ChartEloChart: View {
     let points: [ChartEloSeriesPoint]
     let granularity: ChartTimeGranularity
     var showsDateRange: Bool = true
+    /// `refined` : tracé unique façon Trade Republic (`TrendCurve`), sans
+    /// quadrillage ni axe, bord gauche touché.
+    var refined: Bool = false
 
     /// Amplitude minimale de l'axe (`MIN_ELO_PADDING`).
     private static let minimumPadding = 20.0
@@ -33,7 +36,30 @@ struct ChartEloChart: View {
     private static let tooltipWidth: CGFloat = 104
 
     var body: some View {
-        if points.isEmpty { EmptyView() } else { content }
+        if refined {
+            refinedCurve
+        } else if points.isEmpty {
+            EmptyView()
+        } else {
+            content
+        }
+    }
+
+    /// `refined` d'`EloChart.tsx` : la courbe affinée montre un point à zéro
+    /// plutôt qu'un vide quand aucune mesure n'est disponible.
+    private var refinedCurve: some View {
+        let visible = ChartTimeSeries.windowGroupedPoints(points, granularity)
+        let curvePoints: [TrendCurvePoint] = visible.isEmpty
+            ? [TrendCurvePoint(at: ChartTimeSeries.milliseconds(Date()), value: 0)]
+            : visible.map { TrendCurvePoint(at: $0.at, value: $0.elo) }
+        let first = visible.first?.elo ?? 0
+        let last = visible.last?.elo ?? 0
+        return TrendCurve(
+            points: curvePoints,
+            formatValue: { "\(Int($0.rounded())) Elo" },
+            formatDate: { ChartDateFormat.pointDate($0, granularity) },
+            accessibilityLabel: "Évolution de l’Elo, de \(Int(first.rounded())) à \(Int(last.rounded()))"
+        )
     }
 
     private var content: some View {

@@ -126,6 +126,7 @@ struct MainTabView: View {
         }
         .ignoresSafeArea(.container, edges: .bottom)
         .environmentObject(chrome)
+        .environment(\.rootChromeModel, chrome)
         .overlay(invitationOverlay)
         .onAppear(perform: startRootServices)
         .onDisappear {
@@ -166,6 +167,7 @@ struct MainTabView: View {
                     incomingMatch: incomingChallengeMatch,
                     onIncomingMatchHandled: { incomingChallengeMatch = nil },
                     onBusyChange: { busy in challengeBusy = busy },
+                    onBackToTraining: { selection = Self.trainingTabIndex },
                     tabIndex: Self.challengesTabIndex,
                     onContinueTraining: { target in
                         trainingContinuation = target
@@ -212,10 +214,15 @@ struct MainTabView: View {
 
     /// Préchauffage des classements (~1,5 s puis ~4,5 s, `App.tsx`).
     private func warmRankings() async {
+        // `App.tsx:1216-1221` : la cohorte Elo suit la filière **suivie**
+        // (`academicPath.currentTrack`) et l'option courante prime sur la
+        // spécialité historique (`academicPath.currentOption || specialty`).
+        let option = session.profile.academicPath?.currentOption ?? ""
         let profile = RankingWarmupProfile(
             track: session.profile.track,
             year: session.profile.year,
-            specialty: session.profile.specialty
+            specialty: option.isEmpty ? session.profile.specialty : option,
+            currentTrack: session.profile.academicPath?.currentTrack
         )
         let service = DuelloAPIRankingsWarmupService(token: session.token)
         try? await Task.sleep(nanoseconds: 1_500_000_000)
@@ -312,6 +319,15 @@ final class RootChromeModel: ObservableObject {
         bottomNavigationHiddenByScreen[tab] = hidden
     }
 
+    /// `onMathKeyboardVisibilityChange` (`App.tsx:1572,2831,2885`) : un clavier
+    /// maths visible réserve le geste horizontal de l'onglet Entraînement. Le
+    /// producteur est le clavier lui-même (`MathKeyboardView`, via
+    /// `rootChromeModel`), faute de pouvoir câbler chaque hôte.
+    func setMathKeyboardOpen(_ open: Bool) {
+        if mathKeyboardOpen == open { return }
+        mathKeyboardOpen = open
+    }
+
     /// `tabPagerScrollEnabled` : le ruban balaye si l'onglet affiché n'a pas
     /// verrouillé le geste et qu'aucun clavier de maths ne le réserve.
     func tabPagerScrollEnabled(activeTab tab: Int) -> Bool {
@@ -324,5 +340,27 @@ final class RootChromeModel: ObservableObject {
     /// l'a demandé au défilement.
     func bottomBarHidden(activeTab tab: Int) -> Bool {
         bottomNavigationHiddenByScreen[tab] ?? false
+    }
+}
+
+// MARK: - Accès optionnel au chrome racine
+
+/// Accès **optionnel** au chrome racine depuis un sous-écran profond.
+///
+/// Le clavier maths (`MathKeyboardView`) vit dans des vues qui n'ont pas
+/// toujours `RootChromeModel` dans leur environnement (lecteur d'annale,
+/// outils de défi, revue de flashcards). Contrairement à
+/// `@EnvironmentObject` — qui lève si l'objet est absent — cette clé renvoie
+/// `nil` hors de la hiérarchie de la racine, si bien que le clavier peut
+/// déclarer son ouverture sans risque (`MathKeyboardView`).
+struct RootChromeModelKey: EnvironmentKey {
+    static let defaultValue: RootChromeModel? = nil
+}
+
+extension EnvironmentValues {
+    /// Chrome racine des onglets, `nil` hors de `MainTabView`.
+    var rootChromeModel: RootChromeModel? {
+        get { self[RootChromeModelKey.self] }
+        set { self[RootChromeModelKey.self] = newValue }
     }
 }

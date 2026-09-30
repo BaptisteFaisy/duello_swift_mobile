@@ -57,6 +57,9 @@ struct ChartCorrectionGradeChart: View {
     let points: [ChartCorrectionPeriodPoint]
     let granularity: ChartTimeGranularity
     var showsDateRange: Bool = true
+    /// `refined` : tracé unique façon Trade Republic (`TrendCurve`), sans
+    /// quadrillage ni axe, bord gauche touché.
+    var refined: Bool = false
 
     /// `MAX_POINTS` : la courbe est bornée aux 24 dernières périodes.
     private let maxPoints = 24
@@ -64,7 +67,30 @@ struct ChartCorrectionGradeChart: View {
     private static let tooltipWidth: CGFloat = 168
 
     var body: some View {
-        if visible.isEmpty { EmptyView() } else { content }
+        if refined {
+            refinedCurve
+        } else if visible.isEmpty {
+            EmptyView()
+        } else {
+            content
+        }
+    }
+
+    /// `refined` de `CorrectionGradeChart.tsx` : toute la série (jamais bornée
+    /// aux 24 points) et un point à zéro plutôt qu'un vide sans note.
+    private var refinedCurve: some View {
+        let visiblePoints = ChartTimeSeries.windowGroupedPoints(points, granularity)
+        let curvePoints: [TrendCurvePoint] = visiblePoints.isEmpty
+            ? [TrendCurvePoint(at: ChartTimeSeries.milliseconds(Date()), value: 0)]
+            : visiblePoints.map { TrendCurvePoint(at: $0.at, value: $0.score) }
+        let first = visiblePoints.first?.score ?? 0
+        let last = visiblePoints.last?.score ?? 0
+        return TrendCurve(
+            points: curvePoints,
+            formatValue: { "\(ExGFormat.xp($0))/20" },
+            formatDate: { ChartDateFormat.periodDate($0, granularity) },
+            accessibilityLabel: "Moyenne des notes, de \(ExGFormat.xp(first)) à \(ExGFormat.xp(last)) sur 20"
+        )
     }
 
     private var visible: [ChartCorrectionPeriodPoint] {

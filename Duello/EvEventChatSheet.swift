@@ -53,12 +53,6 @@ struct EvEventChatSheet: View {
             Text("Chat de l’événement")
                 .font(.system(size: 16, weight: .black))
                 .foregroundStyle(Theme.ink)
-
-            Text(eventTitle)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(Theme.inkSoft)
-                .lineLimit(1)
-                .padding(.top, 2)
                 .padding(.bottom, 12)
 
             if closed || !chatOpen {

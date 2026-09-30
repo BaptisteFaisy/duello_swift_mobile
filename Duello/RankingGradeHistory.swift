@@ -41,6 +41,17 @@ enum RankingGradeHistory {
     /// `GRADE_HISTORY_LIMIT` : nombre de notes listées dans l'historique.
     static let gradeHistoryLimit = 5
 
+    /// `GRADE_HISTORY_PREVIEW_LIMIT` : aperçu resserré du développement ; la
+    /// page « Tout voir » montre toutes les notes.
+    static let gradeHistoryPreviewLimit = 3
+
+    /// Limite par défaut de `buildGradeHistory` : l'aperçu du développement
+    /// (`GRADE_HISTORY_PREVIEW_LIMIT`) ou la fenêtre de production
+    /// (`GRADE_HISTORY_LIMIT`), comme `AccountScreen.tsx:2059`.
+    static var defaultHistoryLimit: Int {
+        AcctEvoConstants.useRefinedOverview ? gradeHistoryPreviewLimit : gradeHistoryLimit
+    }
+
     /// `ACTIVITY_LABELS` de `gradeHistoryTimeline.ts` (distinct de
     /// `ChartCorrectionActivity.label`, qui dit « Exercice ou colle » pour
     /// « entrainement »).
@@ -70,7 +81,7 @@ enum RankingGradeHistory {
     /// celle-ci est trop ancienne pour figurer dans la fenêtre affichée.
     static func buildGradeHistory(
         _ entries: [CorrectionGradeEntry],
-        limit: Int = gradeHistoryLimit
+        limit: Int = RankingGradeHistory.defaultHistoryLimit
     ) -> [GradeHistoryRow] {
         var best = -Double.infinity
         var rows: [GradeHistoryRow] = []

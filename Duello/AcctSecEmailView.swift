@@ -103,7 +103,8 @@ struct AcctSecEmailView: View {
                     .keyboardType(.emailAddress)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                    .font(.system(size: 14, weight: .semibold))
+                    // `input` (`AccountEmailScreen.tsx:135`) : 14, sans graisse (400).
+                    .font(.system(size: 14, weight: .regular))
                     .foregroundStyle(Theme.ink)
                     .onSubmit { submit() }
             }
@@ -140,6 +141,9 @@ struct AcctSecEmailView: View {
             .frame(maxWidth: .infinity, minHeight: 52)
         }
         .buttonStyle(DuelloPrimaryButton())
+        // `submitButton.borderRadius: radii.medium` (14) de `AccountEmailScreen.tsx:142`,
+        // là où `DuelloPrimaryButton` (partagé) pose `radii.large` (18).
+        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
         .disabled(isSaving)
     }
 

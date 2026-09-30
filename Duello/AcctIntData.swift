@@ -94,15 +94,19 @@ enum AcctIntData {
         )
     }
 
-    /// Repères généraux de la vitrine (`viewedOverviewStats`).
+    /// `viewedOverviewStats` : repères généraux de la vitrine. En mode affiné
+    /// (`USE_REFINED_OVERVIEW`), la dernière tuile est « EXERCICES » (la tuile
+    /// sœur de « RANG XP / RANG ELO », `AccountScreen.tsx:2694-2698`) au lieu de
+    /// « PROGRAMME ».
     static func overviewStats(
         totalXp: Double,
         elo: Int,
         streakDays: Int,
-        programPercent: Int
+        programPercent: Int,
+        exercisesCompleted: Int = 0
     ) -> [ChartPerformanceOverviewStat] {
         let xpText = ExGFormat.xp(totalXp)
-        return [
+        var stats = [
             ChartPerformanceOverviewStat(
                 icon: "sparkles-outline", value: xpText, label: "XP",
                 accessibilityLabel: "\(xpText) XP",
@@ -115,12 +119,34 @@ enum AcctIntData {
                 icon: "flame-outline", value: "\(streakDays) j", label: "SÉRIE",
                 accessibilityLabel: streakAccessibility(streakDays),
                 color: ChartGoogleGColors.yellow),
-            ChartPerformanceOverviewStat(
-                icon: "pie-chart-outline", value: "\(programPercent) %", label: "PROGRAMME",
-                accessibilityLabel: "\(programPercent) % du programme menant aux concours",
-                color: ChartGoogleGColors.red),
         ]
+        stats.append(
+            AcctEvoConstants.useRefinedOverview
+                ? exercisesTile(exercisesCompleted)
+                : programTile(programPercent)
+        )
+        return stats
     }
+
+    /// Tuile « EXERCICES » (`checkmark-done-outline`).
+    static func exercisesTile(_ completed: Int) -> ChartPerformanceOverviewStat {
+        ChartPerformanceOverviewStat(
+            icon: "checkmark-done-outline", value: "\(completed)", label: "EXERCICES",
+            accessibilityLabel: "\(completed) exercices terminés",
+            color: ChartGoogleGColors.yellow)
+    }
+
+    /// Tuile « PROGRAMME » (`pie-chart-outline`).
+    static func programTile(_ percent: Int) -> ChartPerformanceOverviewStat {
+        ChartPerformanceOverviewStat(
+            icon: "pie-chart-outline", value: "\(percent) %", label: "PROGRAMME",
+            accessibilityLabel: "\(percent) % du programme menant aux concours",
+            color: ChartGoogleGColors.red)
+    }
+
+    /// `formatTrainingHours` (`utils/activity.ts`) vit dans
+    /// `AcctShowRefined.swift` (extension `AcctIntData`) : ce fichier plafonne à
+    /// dix fonctions (ratchet de complexité).
 
     /// Repères détaillés de la vitrine (`viewedDetailStats`).
     ///
@@ -131,9 +157,12 @@ enum AcctIntData {
     static func detailStats(
         level: Int,
         progress: ProgressStore,
-        rankTiles: (xp: ChartPerformanceOverviewStat, elo: ChartPerformanceOverviewStat)? = nil
+        rankTiles: (xp: ChartPerformanceOverviewStat, elo: ChartPerformanceOverviewStat)? = nil,
+        programPercent: Int = 0
     ) -> [ChartPerformanceOverviewStat] {
-        let timeText = ProgressStore.formatTrainingTime(minutes: progress.exerciseMinutes)
+        // `formatTrainingHours` (`AccountScreen.tsx:2190`) : la tuile
+        // ENTRAÎNEMENT se lit toujours en heures.
+        let timeText = formatTrainingHours(minutes: Double(progress.exerciseMinutes))
         let head: [ChartPerformanceOverviewStat]
         if AcctEvoConstants.useRefinedOverview, let rankTiles {
             head = [rankTiles.xp, rankTiles.elo]
@@ -150,12 +179,13 @@ enum AcctIntData {
                     color: ChartGoogleGColors.green),
             ]
         }
+        // En mode affiné, « EXERCICES » remonte dans le bandeau général et
+        // « PROGRAMME » descend ici (`AccountScreen.tsx:2694-2698`).
+        let third = AcctEvoConstants.useRefinedOverview
+            ? programTile(programPercent)
+            : exercisesTile(progress.exercisesCompleted)
         return head + [
-            ChartPerformanceOverviewStat(
-                icon: "checkmark-done-outline", value: "\(progress.exercisesCompleted)",
-                label: "EXERCICES",
-                accessibilityLabel: "\(progress.exercisesCompleted) exercices terminés",
-                color: ChartGoogleGColors.yellow),
+            third,
             ChartPerformanceOverviewStat(
                 icon: "timer-outline", value: timeText, label: "ENTRAÎNEMENT",
                 accessibilityLabel: "\(timeText) d’entraînement",

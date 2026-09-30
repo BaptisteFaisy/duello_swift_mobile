@@ -104,7 +104,8 @@ struct ExtraFeedbackView: View {
         VStack(alignment: .leading, spacing: 16) {
             field(title: "SUJET") {
                 TextField("Ex: Problème de synchronisation", text: $subject)
-                    .font(.system(size: 14, weight: .semibold))
+                    // `textInput` (`FeedbackScreen.tsx:234-243`) : 14, sans graisse (400).
+                    .font(.system(size: 14, weight: .regular))
                     .foregroundStyle(Theme.ink)
                     .padding(.vertical, 10)
                     .padding(.horizontal, 14)
@@ -118,7 +119,7 @@ struct ExtraFeedbackView: View {
             field(title: "MESSAGE") {
                 TextField("Décris ton retour en détail...", text: $message, axis: .vertical)
                     .lineLimit(6...12)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 14, weight: .regular))
                     .foregroundStyle(Theme.ink)
                     .padding(.vertical, 12)
                     .padding(.horizontal, 14)
@@ -136,7 +137,8 @@ struct ExtraFeedbackView: View {
         HStack(alignment: .top, spacing: 9) {
             IonIcon(name: "alert-circle-outline", size: 18, color: Theme.white)
             Text(errorMessage)
-                .font(.system(size: 11, weight: .heavy))
+                // `errorText` (`FeedbackScreen.tsx:262-268`) : 11, `fontWeight: '700'`.
+                .font(.system(size: 11, weight: .bold))
                 .foregroundStyle(Theme.ink)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -165,6 +167,9 @@ struct ExtraFeedbackView: View {
             .frame(maxWidth: .infinity, minHeight: 52)
         }
         .buttonStyle(DuelloPrimaryButton())
+        // `submitButton.borderRadius: radii.medium` (14) de `FeedbackScreen.tsx:276`,
+        // là où `DuelloPrimaryButton` (partagé) pose `radii.large` (18).
+        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
         .disabled(!canSubmit)
         .opacity(canSubmit ? 1 : 0.5)
     }
@@ -190,7 +195,8 @@ struct ExtraFeedbackView: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(title)
-                .font(.system(size: 12, weight: .heavy))
+                // `fieldLabel` (`FeedbackScreen.tsx:228-233`) : 12, `fontWeight: '700'`.
+                .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(Theme.ink)
             content()
         }

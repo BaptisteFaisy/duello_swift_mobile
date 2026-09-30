@@ -171,8 +171,11 @@ struct AcctInfoSettingsView: View {
     /// Retour : catégories depuis une sous-page, sinon sortie des réglages.
     private var backButton: some View {
         Button(action: leaveSettingsOrInformationPage) {
-            // RN `BackButton` : `<Ionicons name="chevron-back" size={21} … />`.
+            // RN `BackButton` : `<Ionicons name="chevron-back" size={21} … />`,
+            // avec `icon: { transform: [{ translateX: -4 }] }`
+            // (`BackButton.tsx:93`) — le chevron est décalé de 4 pt vers la gauche.
             IonIcon(name: "chevron-back", size: 21, color: Theme.ink)
+                .offset(x: -4)
                 .frame(
                     width: AcctInfoSettingsStyle.backButtonSize,
                     height: AcctInfoSettingsStyle.backButtonSize

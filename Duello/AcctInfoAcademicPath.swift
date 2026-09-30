@@ -155,6 +155,8 @@ struct AcctInfoDropdown: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel(accessibilityLabel)
+            // `accessibilityState={{ expanded: … }}` (`AccountScreen.tsx:4231,4321`).
+            .accessibilityValue(open ? "Déplié" : "Replié")
         }
         .frame(minHeight: 64)
         .padding(.horizontal, 8)
@@ -197,5 +199,9 @@ struct AcctInfoDropdown: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        // `accessibilityRole="menuitem"` (`AccountScreen.tsx:4255,4346`) : la
+        // ligne retenue porte l'état sélectionné.
+        .accessibilityLabel(option)
+        .accessibilityAddTraits(selected ? [.isSelected] : [])
     }
 }

@@ -42,11 +42,24 @@ struct ChartTimeBucket: Identifiable, Hashable {
     var id: Double { start }
 }
 
-/// `ActivitySession` de `types.ts` réduit au temps travaillé.
+/// `ActivitySession` de `types.ts` réduit au temps travaillé et aux exercices.
 struct ChartActivitySession: Hashable {
     var at: Double
     var subject: String
     var minutes: Double
+    /// Exercices terminés dans la session (`exercises`). Repli à zéro tant que
+    /// le journal local ne porte pas encore ce compteur.
+    var exercises: Double = 0
+}
+
+/// `ExerciseCountBucket` de `utils/subjectTimeSeries.ts` : exercices terminés
+/// par période.
+struct ChartExerciseBucket: Identifiable, Hashable {
+    /// Début de la période, à minuit : identifie la colonne.
+    var start: Double
+    /// Exercices terminés dans la période.
+    var exercises: Double
+    var id: Double { start }
 }
 
 /// `buildSubjectTimeSeries` et ses dépendances (`utils/subjectTimeSeries.ts`).

@@ -43,11 +43,6 @@ struct EvEventShareSheet: View {
             Text("Partager l’événement")
                 .font(.system(size: 16, weight: .black))
                 .foregroundStyle(Theme.ink)
-            Text(event.title)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(Theme.inkSoft)
-                .lineLimit(2)
-                .padding(.top, 2)
                 .padding(.bottom, 12)
             ForEach(EvShareChannel.allCases) { channel in
                 channelRow(channel)

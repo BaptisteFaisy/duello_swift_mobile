@@ -9,7 +9,7 @@
 //  Fichiers source Expo portés (libellés repris mot pour mot) :
 //    - src/components/correction-summary/useCorrectionCountdown.ts
 //    - src/components/correction-summary/CorrectionTopBar.tsx
-//    - src/components/correction-summary/CorrectionHourglass.tsx
+//    - src/components/correction-summary/AnimatedHourglass.tsx
 //    - src/components/correction-summary/confirmRestartCorrection.ts
 //
 //  Découpé de `ExerciseGradingViews.swift` (1 975 lignes) le 2026-09-21 : contenu
@@ -18,19 +18,15 @@
 //  composants, §6 récapitulatif animations, §7 dépendances non portables).
 //  Cible : iOS 16, aucune API iOS 17.
 //
-//  Écarts assumés (2026-09-29, parité ANIM-01) :
-//    - `react-native-svg` → `Shape` SwiftUI : mêmes points du verre
-//      (`GLASS_POINTS`) et mêmes polygones de sable (`hourglassSand`), portés
-//      dans la boîte 24×32 du `viewBox` puis mis à l'échelle du cadre ;
-//      épaisseurs et motif de tirets multipliés par ce facteur, comme le rendu
-//      SVG du `viewBox`.
-//    - `Reanimated` `withRepeat(withTiming(4.8, 700 ms, linear), -1)` →
-//      `TimelineView(.animation)` + `dashPhase` recalculé par modulo : boucle
-//      linéaire de 700 ms équivalente.
-//    - `useReducedMotion()` → `@Environment(\.accessibilityReduceMotion)` :
-//      filet plein (sans tirets) et animation en pause.
-//    - `strokeDashoffset = -fall` → `StrokeStyle.dashPhase = -phase` (même
-//      convention de signe que SVG : le motif avance du col vers le tas).
+//  Écarts assumés (2026-09-30, parité W7 I7-02) :
+//    - `react-native-svg` → `Shape` SwiftUI : mêmes points du verre (`GLASS`),
+//      du sable (`SAND_TOP`/`SAND_BOTTOM`) et du filet, portés dans le repère
+//      64×64 de `AnimatedHourglass.tsx` puis mis à l'échelle du cadre carré ;
+//    - `Animated.loop(Animated.timing(…, linear), -1)` → `TimelineView(.animation)`
+//      + phase recalculée par modulo : boucles linéaires équivalentes (vidage du
+//      sable 2,6 s, filet 450 ms) ;
+//    - `AccessibilityInfo.isReduceMotionEnabled()` → `@Environment(\.accessibilityReduceMotion)` :
+//      sable plein et filet immobile, comme la boucle jamais démarrée.
 //
 import Foundation
 import SwiftUI
@@ -81,125 +77,141 @@ private enum ExGCorrectionCountdown {
         }
         return (slots.max() ?? 0) / 1000
     }
+}
 
-    /// `correctionHourglassProgress` de `utils/correctionCountdown.ts` : part du
-    /// sablier déjà écoulée, entre 0 et 1. Vaut 1 quand l'estimation est
-    /// dépassée ou sans objet : le sable est alors complètement descendu.
-    static func hourglassProgress(_ progress: ExGCorrectionProgress,
-                                  questionSeconds: Double, now: Double,
-                                  concurrency: Int = 4) -> Double {
-        let elapsed = max(0, now - progress.startedAt)
-        let remaining = remainingSeconds(progress, questionSeconds: questionSeconds,
-                                         now: now, concurrency: concurrency) * 1000
-        let total = elapsed + remaining
-        if !(total > 0) { return 1 }
-        return min(1, elapsed / total)
+// MARK: - Sablier animé de la correction
+
+/// Les tracés du sablier animé (`AnimatedHourglass.tsx`), tous portés dans le
+/// repère 64×64 de la source puis mis à l'échelle du cadre carré : le verre
+/// (`GLASS`), le sable du haut (`AnimatedRect`), le tas du bas (`AnimatedG`) et
+/// le filet (`AnimatedLine`).
+private struct ExGAnimatedHourglassShape: Shape {
+    /// Quel tracé dessiner.
+    enum Kind {
+        /// Le contour de verre, tracé par-dessus le sable.
+        case glass
+        /// Le sable du haut : sa surface descend, ancrée au col (y = 33).
+        case topSand(surfaceY: CGFloat)
+        /// Le tas du bas : triangle du col et rectangle du fond.
+        case bottomSand
+        /// Le filet de sable, du col (y = 31) au fond (y = 52).
+        case stream
+    }
+
+    var kind: Kind
+
+    func path(in rect: CGRect) -> Path {
+        let scale = min(rect.width, rect.height) / 64
+        func p(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
+            CGPoint(x: rect.minX + x * scale, y: rect.minY + y * scale)
+        }
+        var path = Path()
+        switch kind {
+        case .glass:
+            path.move(to: p(17, 8))
+            path.addLine(to: p(47, 8))
+            path.addCurve(to: p(34, 30), control1: p(47, 22), control2: p(37.5, 26.5))
+            path.addLine(to: p(34, 34))
+            path.addCurve(to: p(47, 56), control1: p(37.5, 37.5), control2: p(47, 42))
+            path.addLine(to: p(17, 56))
+            path.addCurve(to: p(30, 34), control1: p(17, 42), control2: p(26.5, 37.5))
+            path.addLine(to: p(30, 30))
+            path.addCurve(to: p(17, 8), control1: p(26.5, 26.5), control2: p(17, 22))
+            path.closeSubpath()
+        case let .topSand(surfaceY):
+            path.move(to: p(12, surfaceY))
+            path.addLine(to: p(52, surfaceY))
+            path.addLine(to: p(52, 33))
+            path.addLine(to: p(12, 33))
+            path.closeSubpath()
+        case .bottomSand:
+            path.move(to: p(32, 32))
+            path.addLine(to: p(37, 41))
+            path.addLine(to: p(27, 41))
+            path.closeSubpath()
+            path.move(to: p(12, 39))
+            path.addLine(to: p(52, 39))
+            path.addLine(to: p(52, 56))
+            path.addLine(to: p(12, 56))
+            path.closeSubpath()
+        case .stream:
+            path.move(to: p(32, 31))
+            path.addLine(to: p(32, 52))
+        }
+        return path
     }
 }
 
-// MARK: - Sablier de la correction
+/// `AnimatedHourglass` (`correction-summary/AnimatedHourglass.tsx`) : le sablier
+/// animé du bilan — le sable noir se verse de l'ampoule haute vers le tas bas,
+/// en boucle, **sans lien avec un temps restant**. Le dessin vit dans le repère
+/// 64×64 de la source, mis à l'échelle du cadre carré demandé.
+struct ExGAnimatedHourglass: View {
+    /// `HOURGLASS_ANIMATED_SIZE` : taille par défaut, comme l'icône remplacée.
+    static let defaultSize: CGFloat = 22
 
-/// `hourglassSand` de `utils/correctionHourglass.ts` : géométrie du sable dans
-/// la boîte 24×32 du SVG. `progress` 0 remplit le haut, 1 remplit le bas.
-private struct ExGHourglassSand {
-    /// Triangle du sable haut, absent quand le sablier est vide.
-    var top: [CGPoint]?
-    /// Trapèze du sable bas, absent quand le sablier est plein.
-    var bottom: [CGPoint]?
-    /// Bas du filet de sable, entre le col et le fond.
-    var streamY2: CGFloat
-
-    // Bornes intérieures du verre, trait déduit.
-    private static let topEdgeY: CGFloat = 3
-    private static let bottomEdgeY: CGFloat = 29
-    private static let topApexY: CGFloat = 15
-    private static let bottomApexY: CGFloat = 17
-    private static let leftEdgeX: CGFloat = 6
-    private static let rightEdgeX: CGFloat = 18
-    private static let neckX: CGFloat = 12
-
-    /// Une progression aberrante montre le sablier plein, comme au début d'une
-    /// correction.
-    init(progress: Double) {
-        let bounded = progress.isFinite ? min(1, max(0, progress)) : 0
-        let amount = CGFloat(bounded)
-        let topSurfaceY = Self.topEdgeY + amount * (Self.topApexY - Self.topEdgeY)
-        let spread = (topSurfaceY - Self.topEdgeY) / (Self.topApexY - Self.topEdgeY)
-        let topLeftX = Self.leftEdgeX + (Self.neckX - Self.leftEdgeX) * spread
-        let topRightX = Self.rightEdgeX - (Self.rightEdgeX - Self.neckX) * spread
-        let bottomSurfaceY = Self.bottomEdgeY - amount * (Self.bottomEdgeY - Self.bottomApexY)
-        let pile = (bottomSurfaceY - Self.bottomApexY) / (Self.bottomEdgeY - Self.bottomApexY)
-        let bottomLeftX = Self.neckX - (Self.neckX - Self.leftEdgeX) * pile
-        let bottomRightX = Self.neckX + (Self.rightEdgeX - Self.neckX) * pile
-        top = bounded >= 0.999 ? nil : [
-            CGPoint(x: topLeftX, y: topSurfaceY),
-            CGPoint(x: topRightX, y: topSurfaceY),
-            CGPoint(x: Self.neckX, y: Self.topApexY),
-        ]
-        bottom = bounded <= 0.001 ? nil : [
-            CGPoint(x: bottomLeftX, y: bottomSurfaceY),
-            CGPoint(x: bottomRightX, y: bottomSurfaceY),
-            CGPoint(x: Self.rightEdgeX, y: Self.bottomEdgeY),
-            CGPoint(x: Self.leftEdgeX, y: Self.bottomEdgeY),
-        ]
-        streamY2 = bottomSurfaceY - 0.4
-    }
-}
-
-/// Port de `components/correction-summary/CorrectionHourglass.tsx` : le sable
-/// suit `progress` (0 plein, 1 vide) et le filet coule en boucle linéaire de
-/// 700 ms tant que la correction dure. Sans mouvement demandé, le filet reste
-/// plein et seul le niveau rend l'attente.
-private struct ExGCorrectionHourglass: View {
-    let progress: Double
-    var size: CGFloat = 22
+    var size: CGFloat = ExGAnimatedHourglass.defaultSize
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    /// Longueur du motif répété : le raccord de boucle reste invisible.
-    private static let loop: Double = 4.8
-    /// Chute du sable : visible sans distraire de la lecture du temps.
-    private static let flowSeconds: Double = 0.7
+    /// `FRAME_STROKE` : épaisseur du contour de verre.
+    private static let frameStroke: CGFloat = 3.4
+    /// `SAND_TOP` / `SAND_BOTTOM` : bornes du sable de l'ampoule haute.
+    private static let sandTop: CGFloat = 9
+    private static let sandBottom: CGFloat = 33
+    /// `DRAIN_CYCLE_MS` : un cycle de vidage dure 2,6 s.
+    private static let drainSeconds: Double = 2.6
+    /// `STREAM_CYCLE_MS` : le filet de sable défile toutes les 450 ms.
+    private static let streamSeconds: Double = 0.45
+    /// Course du filet (`strokeDashoffset` de 0 à −12).
+    private static let streamTravel: CGFloat = 12
 
     var body: some View {
-        let sand = ExGHourglassSand(progress: progress)
-        let scale = size / 32
         TimelineView(.animation(minimumInterval: 1.0 / 60.0, paused: reduceMotion)) { context in
-            drawing(sand: sand, scale: scale, date: context.date)
+            drawing(at: context.date)
         }
-        .frame(width: size * 3 / 4, height: size)
+        .frame(width: size, height: size)
         .accessibilityHidden(true)
     }
 
-    private func drawing(sand: ExGHourglassSand, scale: CGFloat, date: Date) -> some View {
-        ZStack {
-            ExGHourglassGlassShape().fill(Theme.surface)
-            ExGHourglassGlassShape()
-                .stroke(Theme.ink, style: StrokeStyle(lineWidth: 1.6 * scale, lineJoin: .round))
-            if let bottom = sand.bottom {
-                ExGHourglassSandShape(points: bottom).fill(Theme.ink)
+    private func drawing(at date: Date) -> some View {
+        let scale = size / 64
+        // Mouvement réduit : la boucle ne démarre jamais, le sable reste plein
+        // (surface au bord haut) et le filet garde son décalage initial.
+        let surfaceY = reduceMotion
+            ? Self.sandTop
+            : Self.sandTop + (Self.sandBottom - Self.sandTop)
+                * CGFloat(phase(at: date, seconds: Self.drainSeconds))
+        let dashPhase = reduceMotion
+            ? 0
+            : -Self.streamTravel * CGFloat(phase(at: date, seconds: Self.streamSeconds))
+        return ZStack {
+            // Le sable est découpé au verre ; le contour est tracé par-dessus,
+            // sans découpe, comme les `clipPath` de la source.
+            ZStack {
+                ExGAnimatedHourglassShape(kind: .topSand(surfaceY: surfaceY)).fill(Theme.ink)
+                ExGAnimatedHourglassShape(kind: .bottomSand).fill(Theme.ink)
             }
-            if let top = sand.top {
-                ExGHourglassSandShape(points: top).fill(Theme.ink)
-            }
-            ExGHourglassStreamShape(streamY2: sand.streamY2)
-                .stroke(Theme.ink, style: streamStyle(scale: scale, at: date))
+            .clipShape(ExGAnimatedHourglassShape(kind: .glass))
+            ExGAnimatedHourglassShape(kind: .stream)
+                .stroke(Theme.ink, style: streamStyle(scale: scale, dashPhase: dashPhase))
+            ExGAnimatedHourglassShape(kind: .glass)
+                .stroke(Theme.ink, style: StrokeStyle(lineWidth: Self.frameStroke * scale,
+                                                      lineCap: .round, lineJoin: .round))
         }
     }
 
-    private func streamStyle(scale: CGFloat, at date: Date) -> StrokeStyle {
-        let width = 1.4 * scale
-        guard !reduceMotion else { return StrokeStyle(lineWidth: width, lineCap: .round) }
-        return StrokeStyle(lineWidth: width, lineCap: .round,
-                           dash: [2.4 * scale, 2.4 * scale], dashPhase: -phase(at: date) * scale)
+    /// `strokeDashoffset = streamOffset` : le motif avance du col vers le tas ;
+    /// la boucle linéaire de 450 ms reprend à chaque tour.
+    private func streamStyle(scale: CGFloat, dashPhase: CGFloat) -> StrokeStyle {
+        StrokeStyle(lineWidth: 1.7 * scale, lineCap: .round,
+                    dash: [2.6 * scale, 3.4 * scale], dashPhase: dashPhase * scale)
     }
 
-    /// `strokeDashoffset = -fall` : le décalage décroît, les grains descendent du
-    /// col vers le tas ; la boucle linéaire de 700 ms reprend à chaque tour.
-    private func phase(at date: Date) -> CGFloat {
-        let seconds = date.timeIntervalSinceReferenceDate
-        let turn = seconds.truncatingRemainder(dividingBy: Self.flowSeconds) / Self.flowSeconds
-        return CGFloat(turn * Self.loop)
+    /// Part du cycle écoulée, entre 0 et 1 (`Animated.loop` linéaire).
+    private func phase(at date: Date, seconds: Double) -> Double {
+        let elapsed = date.timeIntervalSinceReferenceDate
+        return elapsed.truncatingRemainder(dividingBy: seconds) / seconds
     }
 }
 
@@ -224,16 +236,11 @@ private struct ExGCorrectionCountdownView: View {
                 questionSeconds: correction.questionSeconds,
                 now: now
             ).rounded(.up)
-            let progress = ExGCorrectionCountdown.hourglassProgress(
-                observed,
-                questionSeconds: correction.questionSeconds,
-                now: now
-            )
             let remaining = seconds > 0
                 ? ExGFormat.duration(seconds)
                 : "quelques instants"
             HStack(spacing: 8) {
-                ExGCorrectionHourglass(progress: progress, size: 22)
+                ExGAnimatedHourglass(size: 22)
                 Text(remaining)
                     .font(.system(size: 20, weight: .bold))
                     .monospacedDigit()

@@ -8,6 +8,8 @@ extension OnbFlowSteps {
     /// `validateStep` : l'alerte bloquante de l'étape courante, ou `nil`.
     static func validationAlert(_ state: OnbFlowValidationState) -> OnbFlowAlert? {
         switch state.step {
+        case .level, .year, .origin:
+            return programChoiceAlert(state)
         case .currentTrack:
             return currentTrackAlert(state)
         case .specialty:
@@ -51,6 +53,35 @@ extension OnbFlowSteps {
             break
         }
         return nil
+    }
+
+    /// Étapes « TON NIVEAU », « TON ANNÉE » et « TON PARCOURS » : le choix
+    /// explicite doit avoir été fait. Miroir de `validateStep`
+    /// (`OnboardingScreen.tsx:710-731`) : « Niveau manquant », « Année
+    /// manquante », « Parcours manquant ».
+    private static func programChoiceAlert(_ state: OnbFlowValidationState) -> OnbFlowAlert? {
+        switch state.step {
+        case .level:
+            guard state.levelChoicePending else { return nil }
+            return OnbFlowAlert(
+                title: "Niveau manquant",
+                message: "Choisis ton niveau pour créer ton compte."
+            )
+        case .year:
+            guard state.yearChoicePending else { return nil }
+            return OnbFlowAlert(
+                title: "Année manquante",
+                message: "Choisis ton année pour créer ton compte."
+            )
+        case .origin:
+            guard state.originChoicePending else { return nil }
+            return OnbFlowAlert(
+                title: "Parcours manquant",
+                message: "Choisis ta filière de 1re année pour créer ton compte."
+            )
+        default:
+            return nil
+        }
     }
 
     /// Étape « TA FILIÈRE ACTUELLE » : une filière doit être choisie, le repli

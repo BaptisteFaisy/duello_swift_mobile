@@ -31,7 +31,8 @@
 //
 //  Limite : `item.firstAchiever` est déjà restreint aux exercices très
 //  difficiles par l'appelant (`item.difficulty >= 5`), la carte ne le filtre
-//  pas elle-même.
+//  pas elle-même. Le cache publié (`SubjVeryHardAchievers`) est observé : la
+//  pastille se rafraîchit quand les réussites servies arrivent.
 //  Cible iOS 16, aucune API iOS 17.
 //
 import SwiftUI
@@ -60,6 +61,9 @@ struct SubjItemCard: View {
     var onOpenAchieverProfile: ((String) -> Void)?
 
     @State private var prerequisitesOpen = false
+    /// Réussites « très difficiles » servies : la pastille de premier réussisseur
+    /// se rafraîchit dès que le cache publié (`SubjVeryHardAchievers`) se remplit.
+    @ObservedObject private var veryHardAchievers = SubjVeryHardAchievers.shared
 
     var body: some View {
         ZStack {
@@ -153,6 +157,13 @@ private extension SubjItemCard {
         return ExGFormat.score(score)
     }
 
+    /// Premier réussisseur affiché : le cache publié fait foi dès qu'il est
+    /// servi (`SubjVeryHardAchievers`), sinon la réussite locale optimiste du
+    /// modèle (`achieversFor` de `TrainIntItems+Prereq.swift`).
+    var displayedAchiever: SubjItemAchiever? {
+        veryHardAchievers.firstAchiever(for: model.id) ?? model.firstAchiever
+    }
+
     /// `disabled={!canOpen || downloading}`.
     var isEnabled: Bool { isOpenable && !isDownloading }
 
@@ -204,9 +215,10 @@ private extension SubjItemCard {
                 SubjExerciseBadgeTag(badge: badge)
             }
             SubjProgramStatusTag(status: model.programStatus)
-            if let difficulty = model.difficulty {
-                TrainDifficultyPill(level: difficulty, showsLabel: false)
-            }
+            // La pastille de difficulté est **toujours** rendue : sans niveau
+            // servi, six points creux (`DifficultyPill` de la source,
+            // `SubjectsScreen.tsx:3316`).
+            TrainDifficultyPill(level: model.difficulty ?? 0, showsLabel: false)
             if isDownloading {
                 ProgressView()
                     .controlSize(.small)
@@ -219,7 +231,7 @@ private extension SubjItemCard {
                     .foregroundStyle(Theme.ink)
                     .accessibilityLabel("Meilleure note : \(formattedBestScore)")
             }
-            if let achiever = model.firstAchiever {
+            if let achiever = displayedAchiever {
                 achieverButton(achiever)
             }
         }

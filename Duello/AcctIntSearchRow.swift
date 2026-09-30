@@ -29,13 +29,13 @@
 //  qu'`AcctIntDirectorySheet` (`canProposeChallengeToMember`,
 //  `AccountScreen.tsx:1781-1784`).
 //
+//  V4 (2026-09-30, parité RN dev, écart A7-01 #13) : la cloche et la roue
+//  repassent au gris (`settingsIconButton`, `AccountScreen.tsx:4692-4701`) —
+//  fond `surface`, bord `border`, glyphes `ink` — au lieu du noir absolu.
+//
 //  Cible : iOS 16, aucune API iOS 17.
 //
 import SwiftUI
-
-/// `#000000` des styles `peopleSearchBar` / `settingsIconButton`
-/// (`AccountScreen.tsx:4546-4564`) : noir absolu, distinct de `Theme.ink`.
-private let acctSearchAbsoluteBlack = Color(hex: 0x000000)
 
 /// Ligne de recherche du profil : champ, cloche des notifications, réglages.
 @MainActor
@@ -103,13 +103,13 @@ struct AcctIntSearchRow: View {
             IonIcon(
                 name: unread > 0 ? "notifications" : "notifications-outline",
                 size: 20,
-                color: Theme.white
+                color: Theme.ink
             )
             .frame(width: 40, height: 40)
-            .background(acctSearchAbsoluteBlack)
+            .background(Theme.surface)
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .overlay(
-                RoundedRectangle(cornerRadius: 12).stroke(acctSearchAbsoluteBlack, lineWidth: 1)
+                RoundedRectangle(cornerRadius: 12).stroke(Theme.border, lineWidth: 1)
             )
             .overlay(alignment: .topTrailing) {
                 if unread > 0 { badge }
@@ -149,12 +149,12 @@ struct AcctIntSearchRow: View {
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            IonIcon(name: icon, size: 20, color: Theme.white)
+            IonIcon(name: icon, size: 20, color: Theme.ink)
                 .frame(width: 40, height: 40)
-                .background(acctSearchAbsoluteBlack)
+                .background(Theme.surface)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 12).stroke(acctSearchAbsoluteBlack, lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 12).stroke(Theme.border, lineWidth: 1)
                 )
         }
         .buttonStyle(AcctPressButtonStyle())

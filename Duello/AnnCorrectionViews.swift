@@ -3,12 +3,12 @@
 //  Duello
 //
 //  Atelier de correction du lecteur d'annale (P0 18#2) : la remarque d'une
-//  question corrigée, l'encart du bilan terminé et le dock du prof en relecture
-//  du corrigé.
+//  question corrigée, la fenêtre du bilan terminé et le dock du prof en
+//  relecture du corrigé.
 //
 //  Fichiers source Expo portés (libellés repris mot pour mot) :
-//    - src/components/exercise-correction/QuestionRemark.tsx      (`AnnQuestionRemark`)
-//    - src/components/exercise-correction/ExerciseResultCard.tsx  (`AnnResultCard`)
+//    - src/components/exercise-correction/QuestionRemark.tsx        (`AnnQuestionRemark`)
+//    - src/components/exercise-correction/ExerciseResultModal.tsx   (`AnnResultModal`)
 //    - src/components/AnnaleViewer.tsx (`CorrectionProfDock`, :1039) (`AnnCorrectionProfDock`)
 //
 //  Réutilise sans les redéfinir : `AnnVerdict` (couleur, libellé, icône du
@@ -71,36 +71,64 @@ private struct AnnQuestionNumberBadge: View {
     }
 }
 
-// MARK: - Encart du bilan terminé
+// MARK: - Fenêtre du bilan terminé
 
-/// `ExerciseResultCard` : le bilan posé sur la copie, au-dessus des onglets de
-/// questions — la croix le referme ; retoucher une réponse le fait disparaître
-/// aussi, puisque le bilan ne décrit plus la copie.
-struct AnnResultCard: View {
+/// `ExerciseResultModal` : le bilan au **premier plan**, dans une fenêtre
+/// centrée sur un voile noir 50 %. Elle se ferme par la croix, par un toucher
+/// en dehors, ou par le bouton retour ; retoucher une réponse la referme aussi,
+/// puisque le bilan ne décrit plus la copie.
+///
+/// Les lignes de questions, leurs yeux et les boutons de reprise,
+/// de recommencement et de sortie ne viennent pas ici : les yeux ouvrent un
+/// compte rendu par question, qui se lit sur la copie elle-même, et le
+/// classement et le signalement sont déjà en haut à droite de la page.
+struct AnnResultModal: View {
     let scoreOn20: Double?
     let xp: Double
     let exerciseRank: Int?
     let correction: ExGCorrection
     let onClose: () -> Void
 
+    /// `DIALOG_MARGIN` : marge autour de la fenêtre, ajoutée aux barres système.
+    private static let dialogMargin: CGFloat = 20
+    /// `maxWidth` de la fenêtre.
+    private static let windowMaxWidth: CGFloat = 480
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            ExGCorrectionResultTiles(scoreOn20: scoreOn20, xp: xp, exerciseRank: exerciseRank)
-            ExGCorrectionGeneralReportBlock(correction: correction)
+        GeometryReader { proxy in
+            ZStack {
+                // Voile noir 50 % : un toucher en dehors referme le bilan.
+                Color.black.opacity(0.5)
+                    .ignoresSafeArea()
+                    .onTapGesture(perform: onClose)
+                window(maxHeight: proxy.size.height * 0.9)
+                    .padding(.horizontal, Self.dialogMargin)
+                    .padding(.vertical, Self.dialogMargin)
+            }
+            .frame(width: proxy.size.width, height: proxy.size.height)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 12)
-        .padding(.top, 14)
-        .padding(.bottom, 12)
+    }
+
+    /// La fenêtre centrée : contenu défilable, croix posée en haut à droite.
+    private func window(maxHeight: CGFloat) -> some View {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 12) {
+                ExGCorrectionResultTiles(scoreOn20: scoreOn20, xp: xp, exerciseRank: exerciseRank)
+                ExGCorrectionGeneralReportBlock(correction: correction)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 12)
+            .padding(.top, 14)
+            .padding(.bottom, 12)
+        }
+        .frame(maxWidth: Self.windowMaxWidth)
+        .frame(maxHeight: maxHeight)
         .background(Theme.surface)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
-        .overlay(
-            RoundedRectangle(cornerRadius: Theme.radiusLarge)
-                .stroke(Theme.border, lineWidth: 1)
-        )
-        .overlay(alignment: .topTrailing) { closeButton }
-        .padding(.horizontal, 12)
-        .padding(.bottom, 8)
+        .shadow(color: exgCardShadow, radius: 8, x: 0, y: 2)
+        .overlay(alignment: .topTrailing) {
+            closeButton.padding(4)
+        }
     }
 
     private var closeButton: some View {

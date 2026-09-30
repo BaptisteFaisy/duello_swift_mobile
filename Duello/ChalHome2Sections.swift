@@ -26,19 +26,17 @@
 //  `onBack`, à raccorder par la racine (`MainTabView`) au pager d'onglets
 //  (`yieldBackSwipeToTabPager` de `OrderedTabPager`).
 //
-//  V2 (2026-09-29) — écart U07#12 « barre d'onglets non passée au noir » :
-//  la capsule prend le noir franc `#000000` de la source
-//  (`ChallengesScreen.tsx:3315`, `backgroundColor: '#000000'`) ; l'onglet actif
-//  passe au **fond blanc** avec texte et icône en encre, les inactifs restent
-//  blancs, et la pastille « nouveau » devient blanche (`sectionNewDot: colors.white`).
+//  Retour au gris (2026-09-30) — écart U07#12 inversé par le delta RN
+//  `92e3e639d` « Retour gris » : la capsule reprend le gris `surfaceMuted`
+//  (`ChallengesScreen.tsx:3315`, `backgroundColor: colors.surfaceMuted`) ;
+//  l'onglet actif prend le fond encre `primary` avec icône et texte blancs,
+//  les inactifs passent à l'icône encre douce (`inkSoft`) et au texte
+//  `mutedSurfaceText`, et la pastille « nouveau » devient encre
+//  (`sectionNewDot: colors.ink`).
 //
 //  Cible : iOS 16, aucune API iOS 17.
 //
 import SwiftUI
-
-/// Fond de la capsule Défis / Événements : noir franc de la source
-/// (`challengeSectionTabs`, `#000000`), distinct de `Theme.ink` (0x0A0D0C).
-private let chalHome2SectionCapsule = Color(hex: 0x000000)
 
 /// Espaces en tête d'écran des défis (`ChallengeHomeSection`).
 enum ChalHome2Section: String, Equatable, CaseIterable {
@@ -78,12 +76,12 @@ struct ChalHome2SectionTabs: View {
             }
         }
         .padding(2)
-        .background(chalHome2SectionCapsule)
+        .background(Theme.surfaceMuted)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .accessibilityElement(children: .contain)
     }
 
-    /// Un onglet : icône + libellé, encre pleine quand il est sélectionné.
+    /// Un onglet : icône + libellé, blancs sur fond encre quand il est sélectionné.
     private func tab(_ item: ChalHome2Section) -> some View {
         let selected = section == item
         let showsNewDot = hasUnseenEvents && item == .events && !selected
@@ -91,21 +89,21 @@ struct ChalHome2SectionTabs: View {
             section = item
         } label: {
             HStack(spacing: 4) {
-                IonIcon(name: item.icon, size: 14, color: selected ? Theme.ink : Theme.white)
+                IonIcon(name: item.icon, size: 14, color: selected ? Theme.white : Theme.inkSoft)
                 Text(item.title)
                     .font(.system(size: 12, weight: .heavy))
                 // Pastille « nouveau » : un événement ajouté au catalogue se
                 // repère depuis l'accueil Défis, hors section seulement.
                 if showsNewDot {
                     Circle()
-                        .fill(Theme.white)
+                        .fill(Theme.ink)
                         .frame(width: 8, height: 8)
                 }
             }
-            .foregroundStyle(selected ? Theme.ink : Theme.white)
+            .foregroundStyle(selected ? Theme.white : Theme.mutedSurfaceText)
             .frame(minHeight: 30)
             .padding(.horizontal, 12)
-            .background(selected ? Theme.white : Color.clear)
+            .background(selected ? Theme.primary : Color.clear)
             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         }
         .buttonStyle(.plain)
