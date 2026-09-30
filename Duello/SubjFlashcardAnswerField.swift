@@ -213,6 +213,7 @@ struct SubjFlashcardAnswerField: View {
         .onChange(of: disabled) { value in
             if value { dictation.annuler() }
         }
+        .onChange(of: answer) { dictation.texteCourant = $0 }
         .onChange(of: transcriptionPending) { onTranscriptionStateChange?($0) }
         .sheet(isPresented: $photoModalOpen) {
             PhotoTranscriptionView(
@@ -278,6 +279,9 @@ struct SubjFlashcardAnswerField: View {
     /// `SubjectsScreen.tsx:2202-2205`).
     private func toggleDictation() {
         Task { @MainActor in
+            // `transcriptionContext` : l'énoncé de la carte aide [OI] à lever une
+            // ambiguïté (`SubjectsScreen.tsx:2186`).
+            dictation.contexteTranscription = DictMathContext(subject: subject, exercise: card.question)
             if dictation.isListening {
                 await dictation.toggle(
                     currentText: answer,

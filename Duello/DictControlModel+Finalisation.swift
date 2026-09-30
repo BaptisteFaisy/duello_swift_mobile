@@ -81,7 +81,9 @@ extension DictControlModel {
                 return
             }
             let rendu = LatexToUnicode.toUnicodeMath(resultat.text)
-            apply(DictPolicy.appendTranscript(prefixe, rendu))
+            let next = DictPolicy.appendTranscript(prefixe, rendu)
+            texteCourant = next
+            apply(next)
             notice = Self.noticeAmbiguite(resultat.ambiguities.count)
         } catch {
             guard generation == dictationRequest else { return }

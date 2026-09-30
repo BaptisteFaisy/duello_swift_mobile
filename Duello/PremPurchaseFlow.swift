@@ -67,6 +67,14 @@ final class PremPurchaseFlow: ObservableObject {
                 title: "Connexion requise", message: Self.signInRequiredMessage)
             return
         }
+        // `usePremiumPurchase.ts:88` : la facturation native se configure
+        // **avant** la fenêtre d’achat ; sans configuration, « Achat
+        // indisponible » (jamais un paywall ouvert dans le vide).
+        guard await purchases.ensurePurchasesConfigured() else {
+            alert = PremPurchaseAlert(
+                title: "Achat indisponible", message: Self.paywallUnavailableMessage)
+            return
+        }
         do {
             try await purchases.beginPurchase(offerId: offerId.rawValue)
             alert = PremPurchaseAlert(

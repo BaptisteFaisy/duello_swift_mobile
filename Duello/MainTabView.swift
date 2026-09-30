@@ -38,10 +38,18 @@ import SwiftUI
 /// R01 (2026-09-29, raccords d'hôtes) : la racine alimente `attemptIds` des
 /// défis (`ChalProgress.attemptIds`, écart 07#3/D6) et relaie la reprise d'un
 /// exercice de défi vers l'onglet Entraînement (`onContinueTraining`).
+///
+/// S01 (2026-09-30, producteurs de chrome) : la racine relève **à nouveau** les
+/// invitations de défi au retour au premier plan (`AppState` de
+/// `ChallengeInvitationCoordinator.tsx:104-107`, écart 07#11) au lieu d'attendre
+/// le prochain tour de sonde (10 s).
 @MainActor
 struct MainTabView: View {
     @EnvironmentObject private var session: SessionStore
     @EnvironmentObject private var progress: ProgressStore
+    /// Phase de scène (`scenePhase`) : porte l'équivalent Swift de l'écouteur
+    /// `AppState` de `ChallengeInvitationCoordinator.tsx:104-107` (07#11).
+    @Environment(\.scenePhase) private var scenePhase
 
     /// Publieur du profil public, monté tant que l'écran connecté vit.
     @StateObject private var publisher = ReportPublicProfilePublisher()
@@ -49,10 +57,11 @@ struct MainTabView: View {
     /// `<AnnaleCorrectionMonitor />`) : il sonde les corrections actives (15 s)
     /// même une fois l'onglet Entraînement quitté, et publie les fiches prêtes
     /// dans le magasin de notifications partagé (`AnnCorrectionMonitor.upsert`,
-    /// écart 06#9). Le lecteur d'annale garde encore sa propre instance
-    /// (`TrainingCatalogView+Entry`, `AnnalesScreen`) : le partage d'un
-    /// singleton reste à raccorder, hors de ce fichier.
-    @StateObject private var correctionMonitor = AnnCorrectionMonitor()
+    /// écart 06#9). S01 — la racine et le lecteur d'annale
+    /// (`TrainingCatalogView+Entry`) lisent la **même** sonde de fond
+    /// (`AnnCorrectionMonitor.shared`) au lieu d'en créer une par vue : une
+    /// seule boucle pour toute l'app.
+    @ObservedObject private var correctionMonitor = AnnCorrectionMonitor.shared
     /// Relève racine des invitations de défi (toujours visible, `App.tsx:2628`).
     @StateObject private var challengeInvites = ChalInvitationCoordinator()
     /// L'onglet Défis est occupé par un défi (`challengeBusy`, `App.tsx:665`).
@@ -124,6 +133,16 @@ struct MainTabView: View {
             correctionMonitor.stop()
         }
         .onChange(of: challengeBusy) { _ in startChallengeInvitations() }
+        .onChange(of: scenePhase) { phase in
+            // 07#11 — `AppState.addEventListener('change', …)` de
+            // `ChallengeInvitationCoordinator.tsx:104-107` : au retour au premier
+            // plan, la relève est rejouée tout de suite (le popup d'invitation
+            // apparaît sans attendre le prochain tour de sonde de 10 s). Le
+            // `Task` de sonde reste vivant : iOS le suspend en arrière-plan et le
+            // reprend au retour, la relève périodique n'est donc pas à relancer.
+            guard phase == .active else { return }
+            Task { await challengeInvites.refresh() }
+        }
         .onChange(of: pushRoot.pendingTab, perform: consumePendingTab)
         .onChange(of: pushRoot.pendingMember, perform: consumePendingMember)
         .task { await warmRankings() }

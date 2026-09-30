@@ -90,6 +90,22 @@ final class PushNotifCoordinator: ObservableObject {
         queue.suspend(accountId)
     }
 
+    /// `detachPushNotificationsForLogout` (`pushNotificationSync.ts:106`) :
+    /// suspend la file du compte, révoque le jeton natif et chaque jeton suivi,
+    /// puis révoque la session — le tout en tâche de fond, sans retarder la
+    /// déconnexion déjà affichée. Appelé par `SessionStore.signOut()`
+    /// (`App.tsx:2428`), via `PushNotifRootCoordinator`.
+    func detachForLogout(sessionToken: String?) {
+        PushNotifLogout.detachForLogout(
+            queue: queue,
+            accountId: accountId,
+            store: store,
+            profile: profile,
+            sessionToken: sessionToken,
+            registerRemotely: registerRemotely
+        )
+    }
+
     /// Enregistre un jeton d'appareil reçu du système, puis relance la
     /// synchronisation. Point d'entrée de l'`AppDelegate`.
     func acceptDeviceToken(_ hexToken: String) {

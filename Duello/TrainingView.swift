@@ -3,6 +3,13 @@ import SwiftUI
 /// Onglet « Entraînement » : les matières du parcours, leur programme en
 /// chapitres. Reprend la structure de `src/screens/SubjectsScreen.tsx`
 /// (liste des matières, puis chapitres d'une matière).
+///
+/// S01 (2026-09-30, producteurs de chrome) : l'onglet déclare son verrou de
+/// geste au `RootChromeModel` à partir du classement XP / lecteur d'annale
+/// ouverts (publiés par le catalogue, `TrainSwipeLockKey`) et du parcours de
+/// développement des maths ouvert (`SubjectsScreen.tsx:4164-4185`) ; la carte
+/// des maths ouvre le parcours HEC (`setDevelopmentMathsPageOpen(true)`,
+/// `:10078`).
 struct TrainingView: View {
     @EnvironmentObject private var session: SessionStore
     @EnvironmentObject private var progress: ProgressStore
@@ -16,6 +23,13 @@ struct TrainingView: View {
     /// l'année de l'énoncé est posé (cf. `applyContinuation`).
     var continuation: ChalRunTrainingTarget? = nil
 
+    /// Point d'entrée de l'écran (`entryPoint` de `SubjectsScreen.tsx:3709`) :
+    /// `training` pour l'onglet Entraînement, `journey` pour l'onglet Parcours.
+    /// Porté depuis S01 : il décide de la carte « Ouvrir le parcours HEC »
+    /// (`opensHecJourney`) et de la garde de la surface HEC
+    /// (`shouldShowSurface`).
+    var entryPoint: SubjHecJourneyEntryPoint = .training
+
     /// Producteur de masquage de la barre basse (`useScrollChromeVisibility`) :
     /// l'offset du catalogue le fait basculer (`SubjectsScreen.tsx:4196-4212`).
     @StateObject private var bottomBarChrome = DuelloBottomBarChrome()
@@ -27,11 +41,16 @@ struct TrainingView: View {
     /// `developmentMathsPageOpen` (`SubjectsScreen.tsx:3826`) : vrai quand le
     /// parcours de développement des maths a été ouvert depuis l'en-tête de la
     /// matière. Le déclencheur (`setDevelopmentMathsPageOpen(true)`,
-    /// `SubjectsScreen.tsx:10078`, bouton « Ouvrir le parcours HEC ») appartient
-    /// à l'en-tête du catalogue (`TrainingCatalogView+Entry.swift`, hors lot R01) :
-    /// à raccorder (vague 6). La **fermeture** du parcours, elle, est câblée ici
-    /// (`onBack` de la surface → `false`, `SubjectsScreen.tsx:7653`).
+    /// `SubjectsScreen.tsx:10078`, bouton « Ouvrir le parcours HEC ») est posé
+    /// ici, sur la carte de la matière maths (`subjectCard`, S01). La
+    /// **fermeture** du parcours, elle, est câblée plus bas (`onBack` de la
+    /// surface → `false`, `SubjectsScreen.tsx:7653`).
     @State private var developmentMathsPageOpen = false
+
+    /// Verrou de geste du catalogue, publié par ce dernier (`TrainSwipeLockKey`) :
+    /// vrai quand le classement XP (`rankingOpen`) ou le lecteur d'annale
+    /// (`openAnnale` → `readerEntry`) est ouvert (`SubjectsScreen.tsx:4169-4185`).
+    @State private var catalogueSwipeLock = false
 
     /// Sujets servis par matière (`successSummaries[subject.id].total` de la
     /// source), lus dans le manifeste de contenu.
@@ -72,12 +91,20 @@ struct TrainingView: View {
             .onPreferenceChange(TrainChromeOffsetKey.self) { offset in
                 bottomBarChrome.scroll(offset: Double(offset))
             }
+            // Le catalogue publie son propre verrou (`rankingOpen` / lecteur
+            // d'annale ouvert) : l'onglet l'ajoute à celui du parcours de
+            // développement (`SubjectsScreen.tsx:4169-4185`). La préférence est
+            // relevée **dans** la pile de navigation, comme l'offset du chrome.
+            .onPreferenceChange(TrainSwipeLockKey.self) { locked in
+                catalogueSwipeLock = locked
+                declareTabSwipeLock()
+            }
         }
         .duelloBottomBarChrome(bottomBarChrome, forTab: MainTabView.trainingTabIndex)
         .task(id: programYear) { await loadSubjectTotals() }
         .onChange(of: continuation) { applyContinuation($0) }
-        .onChange(of: developmentMathsPageOpen) { locked in declareTabSwipeLock(locked) }
-        .onAppear { declareTabSwipeLock(developmentMathsPageOpen) }
+        .onChange(of: developmentMathsPageOpen) { _ in declareTabSwipeLock() }
+        .onAppear { declareTabSwipeLock() }
         .onDisappear { unlockTabSwipe() }
     }
 
@@ -123,7 +150,7 @@ struct TrainingView: View {
             isDevelopmentApp: SubjAppVariant.isDevelopmentApp,
             journeyChapterOpen: false,
             developmentMathsPageOpen: developmentMathsPageOpen,
-            entryPoint: .training
+            entryPoint: entryPoint
         )
     }
 
@@ -138,9 +165,12 @@ struct TrainingView: View {
     }
 
     /// Déclare le verrou de geste d'onglet au chrome racine
-    /// (`onTabSwipeLockChange`, `SubjectsScreen.tsx:4164-4185`) : le parcours
-    /// HEC ouvert (variante de développement) fige le balayage.
-    private func declareTabSwipeLock(_ locked: Bool) {
+    /// (`onTabSwipeLockChange`, `SubjectsScreen.tsx:4164-4185`) : le classement
+    /// XP ouvert ou le lecteur d'annale ouvert (publiés par le catalogue,
+    /// `TrainSwipeLockKey`) **ou** le parcours de développement des maths ouvert
+    /// figent le balayage.
+    private func declareTabSwipeLock() {
+        let locked = developmentMathsPageOpen || catalogueSwipeLock
         Task { @MainActor in
             root.setTabSwipeLock(locked, forTab: MainTabView.trainingTabIndex)
         }
@@ -206,24 +236,51 @@ struct TrainingView: View {
         List {
             Section {
                 ForEach(subjects) { subject in
-                    NavigationLink {
-                        TrainingCatalogView(subject: subject)
-                    } label: {
-                        SubjectRow(
-                            subject: subject,
-                            succeeded: succeededCount(subject),
-                            total: subjectTotals[subject.id] ?? 0,
-                            progressLoaded: totalsLoaded
-                        )
-                    }
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
+                    subjectCard(subject)
                 }
             }
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
+    }
+
+    /// Carte d'une matière. La carte des maths mène au **parcours HEC** quand
+    /// l'écran est monté à l'entrée « parcours » dans la variante de
+    /// développement (`opensHecJourney`, `SubjectsScreen.tsx:10072-10079` :
+    /// « Ouvrir le parcours HEC ») ; partout ailleurs, elle pousse le programme
+    /// de la matière.
+    @ViewBuilder
+    private func subjectCard(_ subject: TrackSubject) -> some View {
+        let row = SubjectRow(
+            subject: subject,
+            succeeded: succeededCount(subject),
+            total: subjectTotals[subject.id] ?? 0,
+            progressLoaded: totalsLoaded
+        )
+        if SubjHecJourneyEntry.shouldOpenJourneyOnLaunch(
+            subjectId: subject.id,
+            entryPoint: entryPoint
+        ) {
+            Button {
+                // `setDevelopmentMathsPageOpen(true)` (`SubjectsScreen.tsx:10078`).
+                developmentMathsPageOpen = true
+            } label: {
+                row
+            }
+            .buttonStyle(.plain)
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
+        } else {
+            NavigationLink {
+                TrainingCatalogView(subject: subject)
+            } label: {
+                row
+            }
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
+        }
     }
 }
 
@@ -361,5 +418,16 @@ struct ChapterListView: View {
             buckets[domain, default: []].append(chapter)
         }
         return order.map { ($0, buckets[$0] ?? []) }
+    }
+}
+
+/// Clé de préférence qui publie le verrou de geste du catalogue
+/// (`rankingOpen` / lecteur d'annale ouvert). Le catalogue l'émet
+/// (`TrainingCatalogView+Entry`), l'onglet le consomme et l'ajoute au sien
+/// (`TrainingView.declareTabSwipeLock`, `SubjectsScreen.tsx:4169-4185`).
+struct TrainSwipeLockKey: PreferenceKey {
+    static var defaultValue = false
+    static func reduce(value: inout Bool, nextValue: () -> Bool) {
+        value = value || nextValue()
     }
 }

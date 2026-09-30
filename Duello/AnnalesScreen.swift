@@ -51,9 +51,11 @@ import SwiftUI
 //     données C. `entries` est donc vide par défaut : l'hôte fournit la banque
 //     réelle par `init(…entries:)` (voir « À raccorder » du rapport IMPL-05),
 //     et aucune annale de démonstration n'est plus affichée à sa place.
-//   - écart 06#9 (P2) : `AnnCorrectionMonitor` vit encore dans cette vue
-//     (arrêté à sa sortie) au lieu d'être monté à la racine de l'app
-//     (`App.tsx:2650`, `MainTabView`) — montage racine hors lot.
+//   - écart 06#9 (P2) : `AnnCorrectionMonitor` est une sonde **globale**
+//     partagée (`AnnCorrectionMonitor.shared`, `App.tsx:2650`) : cette vue lit
+//     désormais l'instance partagée au lieu d'en créer une locale. Restent à
+//     raccorder `MainTabView` et `TrainingCatalogView+Entry`, qui montent
+//     encore leur propre instance (autre lot).
 
 // MARK: - Écran des annales
 
@@ -81,7 +83,7 @@ struct AnnalesView: View {
     @EnvironmentObject private var session: SessionStore
     @Environment(\.scenePhase) private var scenePhase
 
-    @StateObject private var monitor = AnnCorrectionMonitor()
+    @StateObject private var monitor = AnnCorrectionMonitor.shared
 
     @State private var openedEntry: AnnEntry?
     @State private var selection: [AnnFilterGroup.Kind: Set<String>] = [:]

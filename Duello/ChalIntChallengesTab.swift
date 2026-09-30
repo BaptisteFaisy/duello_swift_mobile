@@ -40,6 +40,13 @@
 //  depuis `ChalProgress.attemptIds` (brouillons d'essai persistés) ; le
 //  `onContinueTraining` des bilans est transmis depuis la racine.
 //
+//  S01 (2026-09-30, producteurs de chrome) : l'onglet Défis déclare son verrou
+//  de geste au `RootChromeModel` (`onTabSwipeLockChange`) quand le classement
+//  Elo est ouvert (`ChallengesScreen.tsx:680-684`) ; `tabIndex` vient de
+//  `ChallengesView`. S01 porte aussi le volet « défi de classe »
+//  (`ChalClassInviteSheet`) et branche son « Rejoindre » sur
+//  `ChalScheduledRoom.join` (écart 07#15, S05).
+//
 //  Réutilise sans les recréer : `ChalHome2Launch`, `ChalMatchmaking`,
 //  `ChalProgress`, `DuelloExerciseCatalog`, `AcctIntData`, `eloLeague`,
 //  `LeagueBadges`, `ChalRunFormat`, `LeaderboardModalView`.
@@ -55,7 +62,7 @@ import SwiftUI
 /// `ChalInvitationCoordinator`, tous deux isolés sur l'acteur principal.
 @MainActor
 struct ChalIntChallengesTab: View {
-    @EnvironmentObject private var session: SessionStore
+    @EnvironmentObject var session: SessionStore
     @EnvironmentObject private var progress: ProgressStore
     /// Relève racine des invitations, montée par `MainTabView`.
     @ObservedObject var invites: ChalInvitationCoordinator
@@ -74,8 +81,14 @@ struct ChalIntChallengesTab: View {
     /// par la racine, qui seule pilote le pager d'onglets. Absent ⇒ les boutons
     /// « Reprendre / Continuer l'exercice » restent masqués.
     var onContinueTraining: ((ChalRunTrainingTarget) -> Void)? = nil
+    /// Indice de l'onglet Défis dans le pager (`MainTabView.challengesTabIndex`),
+    /// pour déclarer son verrou de geste au `RootChromeModel` (S01).
+    var tabIndex: Int = 2
 
-    @StateObject private var queue = ChalQueueController()
+    @StateObject var queue = ChalQueueController()
+    /// Chrome racine des onglets : l'onglet Défis y déclare son verrou de geste
+    /// quand le classement Elo est ouvert (`ChallengesScreen.tsx:680-684`, S01).
+    @EnvironmentObject private var root: RootChromeModel
     /// Événements déjà vus du compte : allume la pastille « nouveau » de l'onglet
     /// Événements et de chaque carte ajoutée depuis la dernière consultation.
     /// Amorcé à vide (`@StateObject` ne lit pas `@EnvironmentObject` à l'init),
@@ -84,13 +97,16 @@ struct ChalIntChallengesTab: View {
 
     @State private var section: ChalHome2Section = .challenges
     @State private var duelMatch: MatchView?
-    @State private var launchError: String?
+    @State var launchError: String?
     @State private var leaderboardOpen = false
     /// Nature du défi préparé par le volet d'invitation d'un ami, `nil` quand
     /// il est fermé (`inviteChallengeKind` + `inviteModalOpen`, tsx:636/649).
     @State private var inviteKind: SocChallengeKind?
     /// Partie racine déjà consommée (`handledIncomingMatch`, tsx:656).
     @State private var handledIncomingMatchId: String?
+    /// Volet « défi de classe » ouvert (`classInviteModalOpen`, tsx:652) :
+    /// organise un rendez-vous ou rejoint une salle planifiée.
+    @State var classInviteOpen = false
 
     var body: some View {
         NavigationStack {
@@ -113,14 +129,24 @@ struct ChalIntChallengesTab: View {
             })
         }
         .sheet(isPresented: inviteOpen) { inviteSheet }
+        // Volet « défi de classe » (`ClassInviteModal`, tsx:2989-3006) : le
+        // « Rejoindre » d'une salle planifiée remonte par `onJoinChallenge`.
+        .sheet(isPresented: $classInviteOpen) { classInviteSheet }
         .onAppear {
             syncSeenEvents(active: true)
             onBusyChange?(isBusy)
             consumeIncomingMatch()
+            declareTabSwipeLock()
         }
         .onChange(of: section) { _ in syncSeenEvents(active: true) }
         .onChange(of: session.profile) { _ in syncSeenEvents(active: true) }
-        .onDisappear { syncSeenEvents(active: false) }
+        .onDisappear {
+            syncSeenEvents(active: false)
+            root.setTabSwipeLock(false, forTab: tabIndex)
+        }
+        // S01 — verrou de geste de l'onglet Défis (`ChallengesScreen.tsx:680-684`) :
+        // le classement Elo ouvert (`leaderboardOpen`) fige le balayage.
+        .onChange(of: leaderboardOpen) { _ in declareTabSwipeLock() }
         .onChange(of: isBusy) { busy in onBusyChange?(busy) }
         .onChange(of: incomingMatch) { _ in consumeIncomingMatch() }
         .onChange(of: queue.match) { found in
@@ -181,6 +207,7 @@ struct ChalIntChallengesTab: View {
             disabled: !canInvite || queue.status != .idle,
             onOpenExercise: { inviteKind = .exercise },
             onOpenCourse: { inviteKind = .course },
+            onOpenClassChallenge: { classInviteOpen = true },
             onEnter: { Task { await enterQueue() } }
         )
     }
@@ -393,13 +420,22 @@ struct ChalIntChallengesTab: View {
         )
     }
 
+    /// Déclare le verrou de geste de l'onglet Défis au chrome racine
+    /// (`onTabSwipeLockChange`, `ChallengesScreen.tsx:680-684`) : le classement
+    /// Elo ouvert fige le balayage. L'événement ouvert (`openEvent` de la source,
+    /// `:735-737`) est un `fullScreenCover` en Swift (`EventsView`), qui recouvre
+    /// déjà le pager : son verrou est sans objet ici (cf. rapport S01).
+    private func declareTabSwipeLock() {
+        root.setTabSwipeLock(leaderboardOpen, forTab: tabIndex)
+    }
+
     private var isBusy: Bool { duelMatch != nil || queue.status != .idle }
     private var canLaunch: Bool { ChalHome2Launch.canLaunch(profile: session.profile) }
     /// Cote globale affichée en tête (`overallElo`, moyenne des matières).
     private var overallElo: Int { AcctIntData.overallElo(progress) }
     /// Cote de la matière du défi, annoncée au serveur
     /// (`getSubjectElo(subjectElos, subject)`, `ChallengesScreen.tsx:1847`).
-    private var subjectElo: Int {
+    var subjectElo: Int {
         EvEventRewards.getSubjectElo(
             progress.subjectElos,
             subject: ChalHome2Launch.challengeSubjectName
@@ -412,7 +448,7 @@ struct ChalIntChallengesTab: View {
     private var leagueLabel: String { league.label }
     private var badgeURL: URL? { LeagueBadges.badgeURL(forLeague: league.id) }
 
-    private var startedExerciseIds: [String] {
+    var startedExerciseIds: [String] {
         ChalProgress.startedExerciseIds(
             progress: progress.items,
             attemptIds: ChalProgress.attemptIds(

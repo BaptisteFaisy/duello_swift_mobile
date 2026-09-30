@@ -57,6 +57,7 @@ struct PlanTaskComposerCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.bottom, 12)
+        .onChange(of: text) { dictation.texteCourant = $0 }
         .modifier(DictAiConsentAlert(model: dictation))
     }
 

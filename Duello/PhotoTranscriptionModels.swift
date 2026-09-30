@@ -51,8 +51,9 @@ enum PhotoTxText {
 enum PhotoTxStage { case capture, reading, review }
 /// Portée de la capture (`PhotoCaptureScope`).
 enum PhotoTxScope { case question, exercise }
-/// Sélecteur employé pour récupérer la photo.
-enum PhotoTxSource { case camera, library }
+/// Sélecteur employé pour récupérer la photo (`Equatable` : observé par l'étape de
+/// capture pour ouvrir le sélecteur après l'accord de partage IA).
+enum PhotoTxSource: Equatable { case camera, library }
 /// Avancement de la lecture (`readingProgress`).
 struct PhotoTxProgress { var current: Int; var total: Int }
 
@@ -88,7 +89,8 @@ struct PhotoTxRelayResponse: Decodable { let text: String; let source: String?; 
 /// Relais premium (`POST relay/transcribe-photo`). La source résout ce chemin via
 /// `resolveRelayEndpoint` (`utils/relayEndpoint.ts`) : `${DUELLO_API_URL}/relay`,
 /// soit `DuelloAPI.baseURL` suivi de `relay`. **Seul `DuelloAPI.request` est
-/// utilisé.** L'image est relue sur disque puis réencodée en JPEG base64
+/// utilisé**, avec le délai de l'OCR (`RELAY_TIMEOUT_MS` = 180 s, `mathOcr.ts:76`).
+/// L'image est relue sur disque puis réencodée en JPEG base64
 /// (`UIImage.jpegData(compressionQuality:)`), comme `preparePremiumImage` côté Expo.
 ///
 /// `private` retiré lors du déplacement dans ce fichier : `private` en Swift a la
@@ -116,8 +118,11 @@ enum PhotoTxRelay {
         }
         let payload = try JSONSerialization.data(withJSONObject: body, options: [])
         do {
+            // `RELAY_TIMEOUT_MS` (`mathOcr.ts:76`) : l'OCR à effort maximal peut
+            // durer deux minutes ; le délai par défaut (10 s) couperait l'appel.
             return try await DuelloAPI.request(PhotoTxRelayResponse.self, "relay/transcribe-photo",
-                                               method: "POST", token: token, body: payload)
+                                               method: "POST", token: token, body: payload,
+                                               timeout: TimeInterval(PhotoTxPremiumImage.relayTimeoutMs) / 1000)
         } catch let error as DirectoryError where error.status == 401 || error.status == 403 {
             throw DirectoryError(message: "accès premium refusé")
         }

@@ -31,6 +31,14 @@ struct TrainExercise: Identifiable, Hashable {
     let title: String
     let difficulty: Int?
     let solution: String?
+    /// Badges servis (rôles et domaines déjà concaténés), `[]` quand aucun.
+    let badges: [String]
+    /// Thème d'annale déclaré par le sujet (`analyse` / `algebre` /
+    /// `probabilites`), `nil` hors des trois thèmes connus.
+    let theme: String?
+    /// Périmètre par rapport au programme 2026 (`au-programme`, `a-verifier`,
+    /// `hors-programme`), `nil` quand le serveur ne le sert pas.
+    let programStatus: String?
     /// Énoncé servi. Jeté avant la phase 2 : il est nécessaire à la revue de
     /// prérequis (`ProgPrereq.review(_:)` lit le texte du sujet).
     let statement: String
@@ -59,6 +67,9 @@ struct TrainExercise: Identifiable, Hashable {
         title = seed.title
         difficulty = seed.difficulty
         solution = seed.solution
+        badges = seed.badges ?? []
+        theme = seed.theme
+        programStatus = seed.programStatus
         statement = seed.statement
         prerequisiteReview = nil
     }

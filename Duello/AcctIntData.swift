@@ -16,13 +16,11 @@
 //    - Succès par matière : le regroupement item → matière dépend du catalogue
 //      d'exercices, non relié ici → liste vide côté vitrine (la section n'est
 //      toutefois plus rendue, la source la masquant).
-//    - Notes de correction (`correctionGradePeriods`) : aucun store horodaté
-//      local (`prepapp-grades` n'est lu nulle part) → série vide.
-//    - Temps par période (`timeBuckets`) : `ProgressStore` n'expose aucun
-//      cumul horodaté (`exerciseMinutes`/`subjectMinutes` sont des totaux) →
-//      série vide.
-//    - Rang au classement (`profileRankTile`) : sans cohorte Elo/classement
-//      local, le rang est inconnu (`rank === null`) → tiret et « indisponible ».
+//
+//  Vague 6 (lot S04, 2026-09-30) : les notes de correction, le temps par période
+//  et les rangs « Moi » sont désormais fabriqués ailleurs — les deux premiers
+//  dans `AcctIntShowcaseData.swift`, les rangs par `AcctProfileRanksController`
+//  (`AcctIntShowcase.swift`), qui passe les tuiles à `detailStats`.
 //
 //  XP totale, complétion de programme, courbes XP et Elo proviennent de
 //  `ProgressStore` (`totalXp`, `competitionProgramPercent`, `xpHistory`,
@@ -127,25 +125,18 @@ enum AcctIntData {
     /// Repères détaillés de la vitrine (`viewedDetailStats`).
     ///
     /// Sur la variante de développement (`USE_REFINED_OVERVIEW`), les deux
-    /// premières tuiles deviennent les rangs « Moi » (RANG XP, RANG ELO) ; sans
-    /// cohorte locale, `profileRankTile` rend le tiret d'attente.
+    /// premières tuiles deviennent les rangs « Moi » (RANG XP, RANG ELO) : le
+    /// site d'appel les fabrique (`RankingProfileRanks.profileRankTile`) et les
+    /// passe ici ; sans tuiles fournies, le repli reste le niveau et les défis.
     static func detailStats(
         level: Int,
-        progress: ProgressStore
+        progress: ProgressStore,
+        rankTiles: (xp: ChartPerformanceOverviewStat, elo: ChartPerformanceOverviewStat)? = nil
     ) -> [ChartPerformanceOverviewStat] {
         let timeText = ProgressStore.formatTrainingTime(minutes: progress.exerciseMinutes)
         let head: [ChartPerformanceOverviewStat]
-        if AcctEvoConstants.useRefinedOverview {
-            head = [
-                rankTile(
-                    icon: "medal-outline", label: "RANG XP",
-                    leaderboardName: "classement XP de la semaine",
-                    color: ChartGoogleGColors.blue),
-                rankTile(
-                    icon: "podium-outline", label: "RANG ELO",
-                    leaderboardName: "classement Elo",
-                    color: ChartGoogleGColors.green),
-            ]
+        if AcctEvoConstants.useRefinedOverview, let rankTiles {
+            head = [rankTiles.xp, rankTiles.elo]
         } else {
             head = [
                 ChartPerformanceOverviewStat(
@@ -215,23 +206,5 @@ enum AcctIntData {
     /// Libellé VoiceOver de la série (« 1 jour » / « N jours »).
     private static func streakAccessibility(_ days: Int) -> String {
         "\(days) jour\(days > 1 ? "s" : "") de série"
-    }
-
-    /// `profileRankTile` de `utils/profileLeaderboardRanks.ts` (l. 138) : sans
-    /// cohorte locale le rang est inconnu (`rank === null`), la tuile porte
-    /// `PROFILE_RANK_PENDING_VALUE` (« — ») et l'accessibilité « indisponible ».
-    private static func rankTile(
-        icon: String,
-        label: String,
-        leaderboardName: String,
-        color: Color
-    ) -> ChartPerformanceOverviewStat {
-        ChartPerformanceOverviewStat(
-            icon: icon,
-            value: "—",
-            label: label,
-            accessibilityLabel: "Rang au \(leaderboardName) indisponible",
-            color: color
-        )
     }
 }

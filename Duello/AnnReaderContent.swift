@@ -45,7 +45,7 @@ extension AnnReaderView {
         let gradingFailed = gradingErrors[question.id] != nil
         let skin = AnnQuestionChipSkin(selected: selected, verdict: verdict)
         return Button {
-            activeQuestionId = question.id
+            selectQuestion(question)
         } label: {
             questionChipLabel(
                 question,

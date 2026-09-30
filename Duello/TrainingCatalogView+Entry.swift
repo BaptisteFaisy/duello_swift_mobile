@@ -38,6 +38,12 @@ import SwiftUI
 /// `TrainingCatalogView+Loading.swift`. Les membres appelés depuis un autre
 /// fichier du découpage sont `internal` ; ceux d'un seul fichier restent
 /// `private`.
+///
+/// S01 (2026-09-30, producteurs de chrome) : le catalogue publie son verrou de
+/// geste (`TrainSwipeLockKey`) — classement XP ouvert (`rankingOpen`) ou lecteur
+/// d'annale ouvert (`readerEntry`, `openAnnale` de la source,
+/// `SubjectsScreen.tsx:4169-4185`) ; `TrainingView` le consomme et l'ajoute au
+/// sien.
 
 // MARK: - Point d'entrée
 
@@ -149,6 +155,14 @@ struct TrainingCatalogView: View {
         // Ré-indexation au changement d'onglet (`colleCardCatalog` /
         // `chapterCardCatalog`) : la banque servie dépend du mode ouvert.
         .onChange(of: activeMode) { _ in reindexChapters() }
+        // S01 — verrou de geste du catalogue (`SubjectsScreen.tsx:4169-4185`) :
+        // le classement XP ouvert (`rankingOpen`) et le lecteur d'annale ouvert
+        // (`openAnnale` → `readerEntry`) figent le balayage d'onglet. L'onglet
+        // (`TrainingView`) le consomme et l'ajoute au sien.
+        .preference(
+            key: TrainSwipeLockKey.self,
+            value: rankingOpen || readerEntry != nil
+        )
     }
 
     /// Programme de la matière : le catalogue de chapitres, coiffé du chrome
@@ -303,7 +317,9 @@ struct TrainingCatalogView: View {
     }
 
     /// Lecteur d'énoncé plein écran (`AnnaleViewer`, `9156`) : ouvert par les
-    /// fiches (`onOpenSubject` → `openTrainingItemInstantly`).
+    /// fiches (`onOpenSubject` → `openTrainingItemInstantly`). S01 — le lecteur
+    /// partage la **sonde de fond unique** (`AnnCorrectionMonitor.shared`) avec
+    /// la racine (`MainTabView`), au lieu d'en créer une seconde.
     private func readerCover(_ entry: AnnEntry) -> some View {
         NavigationStack {
             AnnReaderView(
@@ -311,7 +327,7 @@ struct TrainingCatalogView: View {
                 subject: subject.name,
                 track: session.profile.track,
                 specialty: session.profile.specialty,
-                monitor: AnnCorrectionMonitor(),
+                monitor: AnnCorrectionMonitor.shared,
                 onClose: { readerEntry = nil }
             )
             .environmentObject(session)

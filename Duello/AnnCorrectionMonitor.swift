@@ -15,6 +15,13 @@ import SwiftUI
 /// `AnnaleCorrectionMonitor.tsx:85-94`) — la ligne d'historique de note n'est
 /// pas portée (voir `AnnCopyCorrection…`).
 final class AnnCorrectionMonitor: ObservableObject {
+    /// Sonde **globale** partagée : une seule boucle de fond pour toute l'app,
+    /// montée à la racine (`App.tsx:2650`), au lieu d'une instance par vue
+    /// (écart 06#9). L'`init` reste accessible : les vues rattachées
+    /// (`MainTabView`, `TrainingCatalogView+Entry`) continuent de l'appeler et
+    /// seront rabattues sur `shared` par leur propre lot.
+    static let shared = AnnCorrectionMonitor()
+
     /// Cadence de re-synchronisation de fond (`AnnaleCorrectionMonitor.tsx`).
     static let backgroundInterval: TimeInterval = 15
 

@@ -4,7 +4,9 @@ import SwiftUI
 //
 // Port de l'atelier d'`AnnaleViewer.tsx` (unité 18) : séparateur, champ de
 // réponse, tableau blanc, console Python et outils (dicter, photo, clavier
-// maths, menu « Effacer » à deux entrées) ; soumission du lecteur hors fichier.
+// maths, menu « Effacer » à deux entrées). La soumission et le bilan (P0 18#2)
+// vivent dans `AnnReaderSubmission.swift`, `AnnReaderGrading.swift`,
+// `AnnReaderDerived.swift` et `AnnReaderSubmitUI.swift`.
 
 /// Outil d'écriture affiché dans l'atelier.
 enum AnnAnswerMode {
@@ -17,6 +19,8 @@ enum AnnAnswerMode {
 
 extension AnnReaderView {
     /// Zone de travail : énoncé (haut), séparateur déplaçable, atelier (bas).
+    /// En relecture du corrigé d'une annale interactive, l'atelier laisse la
+    /// place au prof IA (`CorrectionProfDock`, 18#10) — l'énoncé reste au-dessus.
     var splitArea: some View {
         GeometryReader { proxy in
             let height = proxy.size.height
@@ -29,41 +33,65 @@ extension AnnReaderView {
             VStack(spacing: 0) {
                 statementPane
                     .simultaneousGesture(documentSwipeGesture)
-                    .frame(height: max(0, height * CGFloat(ratio) - AnnSplitterHandle.height / 2))
-                AnnSplitterHandle(
-                    ratio: splitRatio,
-                    bounds: bounds,
-                    contentHeight: height,
-                    onRatio: { splitRatio = $0 },
-                    onCommit: { AnnaleSplit.saveAnnaleSplit(itemId: entry.id, ratio: splitRatio) }
-                )
-                workspacePane
+                    .frame(height: correctionProfDockVisible
+                        ? nil
+                        : max(0, height * CGFloat(ratio) - AnnSplitterHandle.height / 2))
+                if correctionProfDockVisible {
+                    AnnCorrectionProfDock { text in
+                        explainCorrection(text, question: currentQuestionLabel)
+                    }
+                } else {
+                    AnnSplitterHandle(
+                        ratio: splitRatio,
+                        bounds: bounds,
+                        contentHeight: height,
+                        onRatio: { splitRatio = $0 },
+                        onCommit: { AnnaleSplit.saveAnnaleSplit(itemId: entry.id, ratio: splitRatio) }
+                    )
+                    workspacePane
+                }
             }
         }
     }
 
-    /// Atelier du bas : puces de question puis réponse (`AnnaleViewer.tsx:4171-4450`).
+    /// `correctionProfDockVisible` : en relecture du corrigé d'une annale
+    /// interactive, la copie cède la place au champ du prof.
+    var correctionProfDockVisible: Bool {
+        !entry.isWrittenPaper && mode == .solution
+    }
+
+    /// Atelier du bas : bilan, puces de question, remarque, réponse et
+    /// soumission (`AnnaleViewer.tsx:4171-4450`).
     var workspacePane: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
+                if resultCardVisible, let correction = correctionDockCorrection {
+                    AnnResultCard(
+                        scoreOn20: gradingScore.scoreOn20,
+                        xp: 0,
+                        exerciseRank: nil,
+                        correction: correction,
+                        onClose: dismissResultCard
+                    )
+                }
                 questionNavigation
+                if let review = currentReview {
+                    AnnQuestionRemark(label: currentQuestionLabel, review: review)
+                }
                 AnnAnswerWorkspace(
                     draft: $draft,
                     mode: $answerMode,
                     strokes: $whiteboardStrokes,
-                    // `questionDisplayLabel` de la question ouverte.
-                    questionLabel: activeQuestionId
-                        .flatMap { id in entry.questions.first { $0.id == id } }?
-                        .displayLabel ?? entry.questions.first?.displayLabel ?? "",
+                    questionLabel: currentQuestionLabel,
                     subject: subject,
                     prompt: entry.title,
-                    // `clearAllAnswers` : le lecteur ne tient qu'un brouillon, les
-                    // verdicts reçus sont en lecture seule (voir en-tête).
+                    pythonModel: pythonModel,
                     onClearAll: {
                         draft = ""
                         whiteboardStrokes = []
                     }
                 )
+                submitArea
             }
             .padding(.horizontal, 16)
             .padding(.top, 10)
@@ -91,148 +119,15 @@ extension AnnReaderView {
                 }
             }
     }
-
-    /// `checkPythonBeforeCorrection` (`AnnaleViewer.tsx:3445`) : exécute le
-    /// programme Python de la question ouverte avant d'engager sa correction ;
-    /// rend la question qui bloque, `nil` si tout tourne. La soumission du
-    /// lecteur n'est pas portée (écart U18#2) : l'hôte appelle cette garde.
-    func firstBlockingPythonQuestion() async -> String? {
-        await PyConConsoleModel().firstBlockingQuestion([(id: activeQuestionId ?? "", source: draft)])
-    }
-}
-
-// MARK: - Balayage du document
-
-/// Suit la vitesse horizontale d'un glissement, sans provoquer de rendu
-/// (contrairement à un `@State` mis à jour à chaque point).
-final class AnnSwipeTracker {
-    private var lastX: CGFloat = 0
-    private var lastTime: Date = .distantPast
-    private(set) var velocityX: Double = 0
-
-    func sample(_ x: CGFloat) {
-        let now = Date()
-        let interval = now.timeIntervalSince(lastTime)
-        if interval > 0, lastTime != .distantPast {
-            velocityX = Double(x - lastX) / interval
-        }
-        lastX = x
-        lastTime = now
-    }
-}
-
-/// Direction d'un glissement, résolue à l'axe dominant (`horizontalGesture.ts`).
-enum AnnGestureIntent {
-    case pending
-    case horizontal
-    case vertical
-}
-
-/// Seuils et cible du balayage de document, repris de `horizontalGesture.ts`
-/// et `documentModeSwipe.ts`.
-enum AnnDocumentSwipe {
-    /// `HORIZONTAL_ACTIVATION_DISTANCE`.
-    static let activationDistance = 9.0
-    /// `VERTICAL_FAILURE_DISTANCE`.
-    static let verticalFailureDistance = 4.0
-    /// `HORIZONTAL_DOMINANCE_RATIO`.
-    static let dominanceRatio = 1.5
-    /// `SWIPE_COMMIT_DISTANCE`.
-    static let commitDistance = 32.0
-    /// `SWIPE_FLICK_MIN_DISTANCE`.
-    static let flickMinDistance = 12.0
-    /// `SWIPE_FLICK_VELOCITY`.
-    static let flickVelocity = 380.0
-
-    /// `resolveHorizontalGestureIntent` : l'axe vertical garde la main sur un
-    /// défilement, l'axe horizontal n'est réservé que sur une intention nette.
-    static func intent(translationX: Double, translationY: Double) -> AnnGestureIntent {
-        let distanceX = abs(translationX)
-        let distanceY = abs(translationY)
-        if distanceY >= verticalFailureDistance, distanceY >= distanceX { return .vertical }
-        if distanceX >= activationDistance, distanceX > distanceY * dominanceRatio { return .horizontal }
-        return .pending
-    }
-
-    /// `resolveDocumentSwipeTarget` : un geste trop court garde l'onglet courant,
-    /// la gauche va au corrigé déverrouillé, la droite revient à l'énoncé.
-    static func target(
-        current: AnnDocumentMode,
-        translationX: Double,
-        velocityX: Double,
-        canShowSolution: Bool
-    ) -> AnnDocumentMode? {
-        let distance = abs(translationX)
-        let deliberate = distance > commitDistance
-            || (distance > flickMinDistance && abs(velocityX) > flickVelocity)
-        guard deliberate else { return nil }
-        let direction = distance > 2 ? translationX : velocityX
-        if direction >= 0 { return .statement }
-        return canShowSolution ? .solution : nil
-    }
-}
-
-/// Poignée du séparateur : 24 pt de haut, trait `border` 2 pt (`paneSplitter`, `:900-935`).
-struct AnnSplitterHandle: View {
-    /// Hauteur de la zone de préhension (`paneSplitterRoot.height`, `:900`).
-    static let height: CGFloat = 24
-
-    let ratio: Double
-    let bounds: (min: Double, max: Double)
-    let contentHeight: CGFloat
-    let onRatio: (Double) -> Void
-    let onCommit: () -> Void
-
-    /// Position de la ligne au début du geste (`dragOrigin`, `:698`).
-    @State private var dragOrigin: Double?
-
-    var body: some View {
-        Rectangle()
-            .fill(Theme.border)
-            .frame(height: 2)
-            .frame(maxWidth: .infinity, minHeight: Self.height)
-            .background(Theme.background)
-            .contentShape(Rectangle())
-            .gesture(
-                DragGesture(minimumDistance: 2)
-                    .onChanged { value in
-                        let origin = dragOrigin ?? ratio
-                        if dragOrigin == nil { dragOrigin = origin }
-                        guard contentHeight > 0 else { return }
-                        let next = origin + Double(value.translation.height) / Double(contentHeight)
-                        onRatio(min(bounds.max, max(bounds.min, next)))
-                    }
-                    .onEnded { _ in
-                        dragOrigin = nil
-                        onCommit()
-                    }
-            )
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Hauteur de l’énoncé ou du corrigé")
-            .accessibilityHint("Maintiens puis déplace la ligne pour agrandir l’énoncé ou le champ de réponse")
-            .accessibilityAdjustableAction { direction in
-                switch direction {
-                case .increment: nudge(AnnaleSplit.SPLIT_STEP)
-                case .decrement: nudge(-AnnaleSplit.SPLIT_STEP)
-                @unknown default: break
-                }
-            }
-    }
-
-    /// `nudgeRatio` : un cran au clavier/lecteur d'écran, puis enregistrement.
-    private func nudge(_ delta: Double) {
-        onRatio(min(bounds.max, max(bounds.min, ratio + delta)))
-        onCommit()
-    }
 }
 
 // MARK: - Atelier
 
 /// Atelier de réponse (`answerCard` + `answerToolsDock`, `:4270-4712`) : dicter,
 /// photo, clavier maths, tableau blanc, bloc Python, menu de suppression.
-/// Écarts assumés (18#2/18#6) : soumission/correction non portées (hors fichier) ;
-/// « Supprimer toutes les réponses » n'efface que le brouillon ; dictée et photo
-/// insèrent en fin de champ (pas de sélection exposée par SwiftUI).
+/// Écarts assumés (18#2/18#6) : « Supprimer toutes les réponses » n'efface que
+/// le brouillon ; dictée et photo insèrent en fin de champ (pas de sélection
+/// exposée par SwiftUI).
 struct AnnAnswerWorkspace: View {
     @Binding var draft: String
     @Binding var mode: AnnAnswerMode
@@ -243,6 +138,9 @@ struct AnnAnswerWorkspace: View {
     var subject: String = ""
     /// Intitulé du sujet, transmis à la transcription photo.
     var prompt: String = ""
+    /// Console Python partagée avec la garde avant correction (18#5) : le bac à
+    /// sable monté ici est celui que la soumission interroge.
+    var pythonModel: PyConConsoleModel? = nil
     /// `clearAllAnswers` : efface la réponse ouverte (et ses tracés).
     var onClearAll: () -> Void = {}
 
@@ -312,7 +210,7 @@ struct AnnAnswerWorkspace: View {
         case .python:
             VStack(alignment: .leading, spacing: 0) {
                 answerField(placeholder: "Écris ici ton programme Python…")
-                PythonConsoleView(code: draft)
+                PythonConsoleView(code: draft, model: pythonModel)
             }
         case .text:
             answerField(placeholder: "Rédige ici ta réponse, tes calculs et tes justifications…")

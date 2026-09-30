@@ -138,7 +138,15 @@ final class SessionStore: ObservableObject {
     @MainActor
     func signOut() async {
         if let token {
-            await DuelloAPI.logout(token: token)
+            // `detachPushNotificationsForLogout` (`App.tsx:2428`) : la révocation
+            // push et l'appel `/auth/logout` partent en tâche de fond, sans
+            // retarder la déconnexion (attendre l'aller-retour réseau gelait
+            // l'écran hors ligne). Le coordinateur actif porte la file sérialisée
+            // et le journal des jetons ; s'il n'est pas monté, l'appel direct
+            // reste le repli, jamais un silence.
+            if !PushNotifRootCoordinator.shared.detachForLogout(sessionToken: token) {
+                await DuelloAPI.logout(token: token)
+            }
         }
         session = nil
         isSignedIn = false

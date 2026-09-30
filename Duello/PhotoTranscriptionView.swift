@@ -9,8 +9,9 @@ import UIKit
 /// une panne est remontée telle quelle, sans lecture locale de secours. L'étape `remote` (photo
 /// prise depuis un téléphone connecté) est web uniquement, donc non portée. La présentation
 /// (feuille, modale, plein écran) reste à la charge de l'appelant ; le **consentement au partage
-/// avec l'IA** est désormais demandé par le contrôleur (`photoTranscriptionAllowed`,
-/// `usePhotoTranscriptionController.ts:226-233`) avant tout envoi au relais.
+/// avec l'IA** est demandé par le contrôleur (`photoTranscriptionAllowed`) **avant
+/// d'ouvrir le sélecteur** (`usePhotoTranscriptionController.ts:240`), donc avant la
+/// prise de photo et tout envoi au relais.
 ///
 /// Découpage (ratchet de complexité, sans changement de comportement) : libellés et types d'état
 /// dans `PhotoTranscriptionModels.swift`, relais premium idem, contrôleur dans
@@ -52,6 +53,11 @@ struct PhotoTranscriptionView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 22)
         .padding(.top, 8)
+        // `sheet` (`photoTranscriptionStyles.ts:14-21`) : `minHeight: 220`. Le
+        // rayon d'angle haut 30 (`borderTopLeftRadius/RightRadius`) reste **assumé** :
+        // la feuille `.sheet` native impose le sien, et `presentationCornerRadius`
+        // (iOS 16.4) est refusé par le garde-fou iOS 16 du projet.
+        .frame(minHeight: 220, alignment: .top)
         .background(Theme.surface)
         .overlay(alignment: .topTrailing) {
             Button { onClose() } label: {

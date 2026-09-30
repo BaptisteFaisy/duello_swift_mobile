@@ -65,6 +65,13 @@ struct PhotoTxCaptureStage: View {
                                                failure: images.isEmpty ? PhotoTxText.photoUnavailable : nil))
             }
         }
+        // Consentement IA accordé : la source mémorisée est ouverte maintenant,
+        // donc après la fenêtre et non après la photo (`21#3`).
+        .onChange(of: controller.selecteurDemande) { source in
+            guard let source else { return }
+            controller.selecteurDemande = nil
+            ouvrir(source)
+        }
     }
 
     /// Libellé de portée employé par les étiquettes d'accessibilité de la source
@@ -119,6 +126,8 @@ struct PhotoTxCaptureStage: View {
                         .font(.system(size: 12, weight: .heavy))
                         .foregroundStyle(Theme.surface)
                 }
+                // `captureButton` : `paddingHorizontal: 8` interne (`styles:73`).
+                .padding(.horizontal, 8)
                 .frame(maxWidth: .infinity)
                 .frame(minHeight: 50)
                 .background(Theme.primary)
@@ -133,6 +142,8 @@ struct PhotoTxCaptureStage: View {
                         .font(.system(size: 12, weight: .heavy))
                         .foregroundStyle(Theme.primary)
                 }
+                // `captureButton` : `paddingHorizontal: 8` interne (`styles:73`).
+                .padding(.horizontal, 8)
                 .frame(maxWidth: .infinity)
                 .frame(minHeight: 50)
                 .background(Theme.surface)
@@ -146,22 +157,38 @@ struct PhotoTxCaptureStage: View {
     }
 
     private func startCamera() {
-        let status = AVCaptureDevice.authorizationStatus(for: .video)
-        if !UIImagePickerController.isSourceTypeAvailable(.camera) {
-            controller.dispatch(.pickPhoto(from: .camera, scope: controller.state.scope, images: [], failure: PhotoTxText.photoUnavailable))
-        } else if status == .denied || status == .restricted {
-            controller.dispatch(.pickPhoto(from: .camera, scope: controller.state.scope, images: [], failure: PhotoTxText.cameraPermission))
-        } else {
-            isCameraPresented = true
-        }
+        // `photoTranscriptionAllowed` : l'accord de partage IA est demandé AVANT
+        // d'ouvrir la caméra ; le sélecteur n'est ouvert qu'après acceptation.
+        guard controller.autoriserCapture(.camera) else { return }
+        ouvrir(.camera)
     }
 
     private func startLibrary() {
-        let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
-        if status == .denied || status == .restricted {
-            controller.dispatch(.pickPhoto(from: .library, scope: controller.state.scope, images: [], failure: PhotoTxText.libraryPermission))
-        } else {
-            isLibraryPresented = true
+        guard controller.autoriserCapture(.library) else { return }
+        ouvrir(.library)
+    }
+
+    /// Ouvre le sélecteur demandé, une fois l'accord de partage obtenu. Sans
+    /// appareil photo (le simulateur, par exemple) ou sans autorisation, la
+    /// source remonte le message exact plutôt que d'ouvrir un sélecteur vide.
+    private func ouvrir(_ source: PhotoTxSource) {
+        switch source {
+        case .camera:
+            let status = AVCaptureDevice.authorizationStatus(for: .video)
+            if !UIImagePickerController.isSourceTypeAvailable(.camera) {
+                controller.dispatch(.pickPhoto(from: .camera, scope: controller.state.scope, images: [], failure: PhotoTxText.photoUnavailable))
+            } else if status == .denied || status == .restricted {
+                controller.dispatch(.pickPhoto(from: .camera, scope: controller.state.scope, images: [], failure: PhotoTxText.cameraPermission))
+            } else {
+                isCameraPresented = true
+            }
+        case .library:
+            let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
+            if status == .denied || status == .restricted {
+                controller.dispatch(.pickPhoto(from: .library, scope: controller.state.scope, images: [], failure: PhotoTxText.libraryPermission))
+            } else {
+                isLibraryPresented = true
+            }
         }
     }
 }
