@@ -21,6 +21,10 @@
 //  d'un exercice de défi dans l'Entraînement) et déclare le chrome de l'onglet
 //  au `RootChromeModel` (`DuelloBottomBarChrome`).
 //
+//  S01 (2026-09-30, producteurs de chrome) : relaie l'indice d'onglet
+//  (`tabIndex`) vers `ChalIntChallengesTab`, qui déclare alors son verrou de
+//  geste au `RootChromeModel`.
+//
 //  Cible : iOS 16, aucune API iOS 17.
 //
 import SwiftUI
@@ -60,7 +64,8 @@ struct ChallengesView: View {
             onIncomingMatchHandled: onIncomingMatchHandled,
             onBusyChange: onBusyChange,
             onBackToTraining: onBackToTraining,
-            onContinueTraining: onContinueTraining
+            onContinueTraining: onContinueTraining,
+            tabIndex: tabIndex
         )
         .duelloBottomBarChrome(bottomBarChrome, forTab: tabIndex)
     }

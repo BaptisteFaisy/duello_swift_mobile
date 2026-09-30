@@ -54,11 +54,22 @@ enum SubjProgramStatus: String, CaseIterable {
     }
 }
 
-/// Libellés des thèmes d'annales (`ANNALE_THEME_LABELS`).
-///
-/// La résolution d'un thème depuis les badges (`visibleItemTheme`) n'est pas
-/// portée : la banque servie en Swift n'expose pas encore `badges` / `theme`.
+/// Libellés des thèmes d'annales (`ANNALE_THEME_LABELS`) et résolution du thème
+/// fiable d'un sujet depuis ses badges (`visibleItemTheme`).
 enum SubjItemThemeLabel {
+    /// Badges dont le domaine principal est fiable : oraux et QSP ESCP, oraux
+    /// et ESP HEC (`VISIBLE_DOMAIN_TYPES`).
+    private static let visibleDomainTypes: Set<String> = [
+        "Oral ESCP", "QSP ESCP", "Oral HEC", "ESP HEC",
+    ]
+
+    /// Anciens badges de domaine (`THEME_BY_BADGE`).
+    private static let themeByBadge: [String: String] = [
+        "Analyse": "analyse",
+        "Algèbre": "algebre",
+        "Probabilités": "probabilites",
+    ]
+
     /// Libellé d'un thème ; `nil` hors des trois thèmes connus.
     static func label(for theme: String) -> String? {
         switch theme {
@@ -67,6 +78,17 @@ enum SubjItemThemeLabel {
         case "probabilites": return "Probabilités"
         default: return nil
         }
+    }
+
+    /// Domaine fiable d'une annale (`visibleItemTheme`) : `nil` quand aucun
+    /// badge n'annonce un domaine fiable ; sinon le thème déclaré par le sujet,
+    /// sinon le premier badge de domaine reconnu. Le repli par chapitre
+    /// (`annaleTheme(chapterId)`) de la source n'est pas repris : il exige le
+    /// domaine du chapitre porteur, non servi ici.
+    static func visible(badges: [String], theme: String?) -> String? {
+        guard badges.contains(where: visibleDomainTypes.contains) else { return nil }
+        if let theme, let label = label(for: theme) { return label }
+        return badges.compactMap { themeByBadge[$0] }.first.flatMap(label(for:))
     }
 }
 

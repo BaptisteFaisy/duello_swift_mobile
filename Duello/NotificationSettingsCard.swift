@@ -32,6 +32,10 @@ struct NotificationSettingsCard: View {
     @State private var enabled = false
     @State private var permission: PushNotifPermission = .undetermined
     @StateObject private var actions = ConsentPushActionsController()
+    /// Phase de scène : l'état est relu au retour au premier plan
+    /// (`AppState.addEventListener('change')` de
+    /// `usePushNotificationSettings.ts:40-42`).
+    @Environment(\.scenePhase) private var scenePhase
 
     /// Valeur affichée par l'interrupteur (`enabled` du hook) : la préférence
     /// est active **et** la permission autorise encore l'enregistrement.
@@ -54,6 +58,12 @@ struct NotificationSettingsCard: View {
         .padding(.vertical, 8)
         .background(Theme.white)
         .task { await refresh() }
+        // `usePushNotificationSettings.ts:40-42` : l'état (préférence + permission)
+        // est relu chaque fois que l'app revient au premier plan.
+        .onChange(of: scenePhase) { phase in
+            guard phase == .active else { return }
+            Task { await refresh() }
+        }
         .alert(
             ConsentPushActions.unavailableTitle,
             isPresented: Binding(

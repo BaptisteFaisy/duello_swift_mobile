@@ -11,8 +11,9 @@ import Foundation
 //     `Accept` + `Authorization`. Résidu : `URLSession` n'ajoute aucun
 //     `Content-Type`, là où `fetch` (RN) en pose un `text/plain;charset=UTF-8`
 //     implicite pour un corps texte ;
-//   - le délai est de 10 s (`REQUEST_TIMEOUT` de `adminApi.ts`), partagé avec
-//     les autres routes faute de délai par appel ;
+//   - le délai par défaut est de 10 s (`REQUEST_TIMEOUT` de `adminApi.ts`) ;
+//     il reste surchargeable par appel (`timeout:`), ce dont la transcription
+//     photo a besoin (OCR à effort maximal, 180 s — `mathOcr.ts:76`) ;
 //   - le repli HTTP sans `error` exploitable rend « Service indisponible (n). »,
 //     que `AdmAPITransport` remappe vers « Serveur indisponible (n) ».
 
@@ -78,7 +79,8 @@ enum DuelloAPI {
         method: String = "GET",
         token: String? = nil,
         body: Data? = nil,
-        query: [URLQueryItem] = []
+        query: [URLQueryItem] = [],
+        timeout: TimeInterval = 10
     ) async throws -> Data {
         var components = URLComponents(url: baseURL.appendingPathComponent(path), resolvingAgainstBaseURL: false)!
         if !query.isEmpty {
@@ -86,7 +88,7 @@ enum DuelloAPI {
         }
         var request = URLRequest(url: components.url!)
         request.httpMethod = method
-        request.timeoutInterval = 10
+        request.timeoutInterval = timeout
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         if let token {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -113,9 +115,10 @@ enum DuelloAPI {
         method: String = "GET",
         token: String? = nil,
         body: Data? = nil,
-        query: [URLQueryItem] = []
+        query: [URLQueryItem] = [],
+        timeout: TimeInterval = 10
     ) async throws -> T {
-        let data = try await request(path, method: method, token: token, body: body, query: query)
+        let data = try await request(path, method: method, token: token, body: body, query: query, timeout: timeout)
         return try decoder.decode(T.self, from: data)
     }
 

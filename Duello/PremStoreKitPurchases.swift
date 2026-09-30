@@ -49,6 +49,12 @@ struct PremStoreKitPurchases: PremCodePurchases {
     /// `currentPurchaserId()` : `member-…` du compte connecté, ou vide.
     var purchaserId: String { PremCodePurchaser.currentId() }
 
+    /// `ensurePurchasesConfigured(appUserID)` : StoreKit ne demande aucune
+    /// configuration préalable — la couture est prête dès que l’appareil peut
+    /// payer. Le refus éventuel (produit non configuré) est porté par
+    /// `beginPurchase`, pas ici.
+    func ensurePurchasesConfigured() async -> Bool { true }
+
     /// `beginPurchase(offerId:)` : charge le produit StoreKit de l’offre et
     /// lance l’achat ; refuse clairement si aucun produit n’est configuré.
     func beginPurchase(offerId: String) async throws {

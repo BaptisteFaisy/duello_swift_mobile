@@ -46,7 +46,13 @@ extension AnnReaderView {
     /// Actions de l'en-tête (`headerActions` du lecteur Expo) : le classement
     /// du sujet puis le signalement de l'énoncé ou du corrigé.
     var headerActions: some View {
-        AnnReaderHeaderActions(entry: entry, subject: subject, mode: mode)
+        AnnReaderHeaderActions(
+            entry: entry,
+            subject: subject,
+            mode: mode,
+            hasUnreadResult: rankingUnread,
+            onOpen: markRankingSeen
+        )
     }
 
     // MARK: Onglets de document
@@ -138,30 +144,31 @@ extension AnnReaderView {
 /// Classement + signalement de l'en-tête du lecteur (`headerActions`,
 /// `AnnaleViewer.tsx:3802-3824`).
 ///
-/// Sous-vue dédiée : elle seule peut lire `SessionStore` (le champ `session` de
-/// `AnnReaderView` est privé à son fichier), et le signalement a besoin du
-/// profil local (`userId` + `displayName`).
-///
-/// Écart assumé : la pastille « nouveau résultat » du trophée
-/// (`hasUnreadResult`/`rankingUnread`) n'est pas rendue — `ExGTrophy` ne porte
-/// pas encore ce champ (à raccorder dans `ExGExerciseLeaderboard.swift`).
+/// Sous-vue dédiée : elle seule peut lire `SessionStore` pour le signalement,
+/// qui a besoin du profil local (`userId` + `displayName`).
 private struct AnnReaderHeaderActions: View {
     let entry: AnnEntry
     let subject: String
     let mode: AnnDocumentMode
+    /// Pastille « nouveau résultat » du trophée (18#8).
+    let hasUnreadResult: Bool
+    /// Éteint la pastille à l'ouverture du classement.
+    let onOpen: () -> Void
 
     @EnvironmentObject private var session: SessionStore
 
     var body: some View {
         HStack(spacing: 8) {
-            ExGTrophyButton(
+            AnnTrophyButton(
                 trophy: ExGTrophy(
                     itemId: entry.id,
                     subject: subject,
                     title: entry.title,
                     activity: .annale,
                     isAnnale: true
-                )
+                ),
+                hasUnreadResult: hasUnreadResult,
+                onOpen: onOpen
             )
             ReportExerciseButton.make(
                 profile: session.profile,
@@ -172,6 +179,49 @@ private struct AnnReaderHeaderActions: View {
                 subject: subject,
                 compact: true
             )
+        }
+    }
+}
+
+/// Trophée du lecteur d'annale avec la pastille « nouveau résultat » (18#8) :
+/// `ExGTrophyButton` (`ExGExerciseLeaderboard.swift`) n'expose pas
+/// `hasUnreadResult`, donc le déclencheur est rendu ici, aligné sur la source
+/// (`unreadDot` d'`ExerciseTrophyButton.tsx`). L'appui ouvre la fenêtre du
+/// classement et éteint la pastille (`markRankingSeen`).
+private struct AnnTrophyButton: View {
+    let trophy: ExGTrophy
+    let hasUnreadResult: Bool
+    let onOpen: () -> Void
+
+    @State private var visible = false
+
+    var body: some View {
+        Button {
+            visible = true
+            onOpen()
+        } label: {
+            Image(systemName: "trophy")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(Theme.primary)
+                .frame(width: 32, height: 32)
+                .background(Theme.surface)
+                .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
+                .overlay(
+                    RoundedRectangle(cornerRadius: Theme.radiusSmall)
+                        .stroke(Theme.border, lineWidth: 1)
+                )
+                .overlay(alignment: .topTrailing) {
+                    if hasUnreadResult {
+                        CollUnreadResultDot().offset(x: 3, y: -3)
+                    }
+                }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(hasUnreadResult
+            ? "Ouvrir le classement de l’annale, nouveau résultat"
+            : "Ouvrir le classement de l’annale")
+        .sheet(isPresented: $visible) {
+            ExGLeaderboardSheet(trophy: trophy)
         }
     }
 }

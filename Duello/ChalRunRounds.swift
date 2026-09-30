@@ -30,9 +30,10 @@
 //  `ChalIntDuelFlow` (`requestDuelSubmission`), qui les lui transmet pour un
 //  raccord ultérieur. Aucun comportement d'affichage n'est modifié.
 //
-//  Limite assumée : les outils de saisie riches de la source (clavier maths,
-//  dictée, photo de copie, console Python) vivent dans leurs propres lots et ne
-//  sont pas repris ici ; la saisie reste un champ texte multiligne.
+//  Outils de saisie (vague 6, écart 07#5) : la ligne `inputTools` et la console
+//  Python sont désormais montées sous le champ par `ChalRunAnswerTools`
+//  (`ChalRunTools.swift`) — dicter, photo, clavier maths/Python, bloc Python.
+//  La saisie reste un champ texte multiligne ; les outils s'y ajoutent.
 //
 //  Cible : iOS 16, aucune API iOS 17.
 //
@@ -261,6 +262,13 @@ struct ChalRunRounds: View {
             }
             answerEditor
             SubjAnswerComposition(answer: state.answers[state.activeQuestionId] ?? "")
+            ChalRunAnswerTools(
+                subject: match.subject,
+                chapterId: chapterId,
+                exercisePrompt: exercisePrompt,
+                answer: answerBinding,
+                disabled: isSubmitting
+            )
             if let notice {
                 Text(notice)
                     .font(.system(size: 13, weight: .semibold))
@@ -300,6 +308,19 @@ struct ChalRunRounds: View {
             set: { state.answers[state.activeQuestionId] = $0 }
         )
     }
+
+    /// Chapitre porteur de l'exercice (`session.sourceItem.chapterId`) : dernier
+    /// segment de la clé `année:matière:chapitre` du match. Il commande le mode
+    /// de saisie (clavier Python) et les suggestions du clavier maths.
+    private var chapterId: String? {
+        match.chapterKey
+            .split(separator: ":", omittingEmptySubsequences: false)
+            .last.map(String.init)
+    }
+
+    /// Énoncé de l'exercice (`duelExercisePrompt`) : contexte transmis à la
+    /// transcription photo et aux suggestions du clavier maths.
+    private var exercisePrompt: String { duelExercisePrompt(state.exercise) }
 
     // MARK: Remise et attente
 

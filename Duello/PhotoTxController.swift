@@ -19,6 +19,13 @@ final class PhotoTxController: ObservableObject {
     /// partage avec l'IA attend une réponse. Présentée par la vue
     /// (`PhotoTranscriptionView`) via `.alert`.
     @Published var consentVisible = false
+    /// Sélecteur à ouvrir dès l'accord obtenu : `photoTranscriptionAllowed` est
+    /// évalué **avant** le sélecteur (`usePhotoTranscriptionController.ts:240`),
+    /// la source est donc mémorisée puis rejouée. La vue l'observe pour ouvrir
+    /// la caméra ou la photothèque.
+    @Published var selecteurDemande: PhotoTxSource?
+    /// Source mémorisée pendant que la fenêtre de consentement attend une réponse.
+    private var sourceEnAttente: PhotoTxSource?
     /// Jeton de session Duello, injecté par la vue (`SessionStore`) : il authentifie
     /// l'appel au relais premium.
     var token: String?
@@ -28,9 +35,6 @@ final class PhotoTxController: ObservableObject {
     private let onClose: () -> Void
     var exerciseWiring = PhotoTxExerciseWiring()
     private var task: Task<Void, Never>?
-    /// Sélection mémorisée pendant que le consentement est demandé : rejouée dès
-    /// l'accord obtenu, comme la promesse `requestAiDataSharingConsent` de la source.
-    private var pendingPick: (() -> Void)?
     init(subject: String, exercise: String?, onInsert: @escaping (String) -> Void, onClose: @escaping () -> Void) {
         self.subject = subject
         self.exercise = exercise
@@ -41,16 +45,9 @@ final class PhotoTxController: ObservableObject {
     func dispatch(_ action: PhotoTxAction) {
         switch action {
         case let .pickPhoto(from, scope, images, failure):
-            // `photoTranscriptionAllowed` : l'envoi au relais exige l'accord de
-            // partage avec l'IA. Sans accord enregistré, la fenêtre est présentée
-            // d'abord ; la sélection est rejouée après acceptation.
-            guard CtdAiConsent.isGranted else {
-                pendingPick = { [weak self] in
-                    self?.dispatch(.pickPhoto(from: from, scope: scope, images: images, failure: failure))
-                }
-                consentVisible = true
-                return
-            }
+            // `photoTranscriptionAllowed` : l'accord de partage est désormais
+            // demandé **avant** d'ouvrir le sélecteur (`autoriserCapture`) ; la
+            // sélection arrive donc toujours autorisée.
             task?.cancel()
             task = nil
             state.error = ""
@@ -87,20 +84,34 @@ final class PhotoTxController: ObservableObject {
         }
     }
 
+    /// `photoTranscriptionAllowed` : l'accord de partage avec l'IA est évalué
+    /// **avant** d'ouvrir le sélecteur (`usePhotoTranscriptionController.ts:240`,
+    /// `photoTranscriptionAllowed` précède `collectPhotos`). Renvoie vrai si
+    /// l'envoi est déjà autorisé — l'appelant ouvre alors le sélecteur ; sinon la
+    /// fenêtre est présentée et la source mémorisée, ouverte après acceptation.
+    func autoriserCapture(_ source: PhotoTxSource) -> Bool {
+        if CtdAiConsent.isGranted { return true }
+        sourceEnAttente = source
+        consentVisible = true
+        return false
+    }
+
     /// Réponse à la fenêtre de consentement (`photoTranscriptionAllowed`) : accord
-    /// → l'accord est enregistré puis la sélection est rejouée ; refus → la notice
-    /// exacte de la source, sans transmission.
+    /// → l'accord est enregistré puis le sélecteur mémorisé est demandé ; refus →
+    /// la notice exacte de la source, sans transmission.
     func resolveConsent(granted: Bool) {
         consentVisible = false
-        let resume = pendingPick
-        pendingPick = nil
         guard granted else {
+            sourceEnAttente = nil
             state.error = ""
             state.notice = PhotoTxText.photoNotSent
             return
         }
         CtdAiConsent.grant()
-        resume?()
+        if let source = sourceEnAttente {
+            sourceEnAttente = nil
+            selecteurDemande = source
+        }
     }
 
     /// Envoie les images au relais, publie l'avancement puis le texte reconnu. Un

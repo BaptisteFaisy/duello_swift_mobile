@@ -67,6 +67,13 @@ struct SubjFlashcardReviewModal: View {
     @State private var answerVisible = false
     @State private var response = ""
     @State private var mathKeyboardOpen = false
+    /// Curseur logique du champ de réponse (iOS 16 n'expose pas la sélection d'un
+    /// `TextField`) : le clavier maths l'avance/recule pour appliquer le recul
+    /// `back` des touches (`insertStructuredTextAtSelection`).
+    @State private var mathSelection = SubjTextRange.zero
+    /// Valeur posée par le clavier maths, pour distinguer sa frappe d'une saisie
+    /// manuelle (qui, elle, ramène le curseur logique en fin de texte).
+    @State private var keyboardEditValue: String?
     @State private var grading = false
     @State private var verdictPending = false
     @State private var closeConfirmationOpen = false
@@ -98,6 +105,12 @@ struct SubjFlashcardReviewModal: View {
         }
         .onChange(of: card.id) { _ in resetCard() }
         .onChange(of: reviewStep) { _ in resetCard() }
+        .onChange(of: response) { newValue in
+            // Frappe manuelle (hors clavier maths) : le curseur visible n'étant
+            // pas exposé par SwiftUI, le curseur logique repart en fin de texte.
+            if keyboardEditValue == newValue { keyboardEditValue = nil; return }
+            mathSelection = SubjTextRange(start: newValue.utf16.count, end: newValue.utf16.count)
+        }
         .onChange(of: mathKeyboardOpen) { open in
             onMathKeyboardVisibilityChange?(open)
         }
@@ -188,16 +201,27 @@ struct SubjFlashcardReviewModal: View {
         MathKeyboardView(
             mode: .math,
             onInsertWithBack: { text, back in
-                response = SubjFlashcardMathEditing.insert(text, back: back, into: response)
+                applyMathEdit(SubjFlashcardMathEditing.insertStructuredTextAtSelection(
+                    response, selection: mathSelection, inserted: text, cursorBack: back
+                ))
             },
             onBackspace: {
-                response = SubjFlashcardMathEditing.deleteLast(response)
+                applyMathEdit(SubjFlashcardMathEditing.deleteBeforeSelection(response, selection: mathSelection))
             },
             onClose: { mathKeyboardOpen = false },
             suggestions: mathSuggestions
         )
         .padding(.top, SubjFlashcardReviewMetrics.mathKeyboardTop)
         .padding(.horizontal, -SubjFlashcardReviewMetrics.horizontalPadding)
+    }
+
+    /// Applique une édition du clavier maths au champ et mémorise le curseur
+    /// logique qu'elle laisse (`insertStructuredTextAtSelection` /
+    /// `deleteBeforeSelection`), ce qui applique le recul `back` des touches.
+    private func applyMathEdit(_ edit: SubjTextEdit) {
+        keyboardEditValue = edit.value
+        response = edit.value
+        mathSelection = edit.selection
     }
 
     /// Touches proposées pour la carte ouverte (`suggestMathKeys`) : les
@@ -224,6 +248,8 @@ struct SubjFlashcardReviewModal: View {
     private func resetCard() {
         answerVisible = false
         response = ""
+        mathSelection = .zero
+        keyboardEditValue = nil
         mathKeyboardOpen = false
         grading = false
         verdictPending = false

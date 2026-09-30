@@ -122,11 +122,12 @@ struct ReportLocalXpEntry: Decodable {
 /// Implémentation réelle : reconstruit l'instantané public depuis les données
 /// locales (`buildPublicProfileSnapshot` de `utils/publicProfileSnapshot.ts`).
 ///
-/// Repli documenté : faute de store de notes, de tâches de programme et de
-/// sessions d'activité portés côté iOS, `performance.average/trend/gradeCount`
-/// valent le repli (`—`, `—`, 0) et `timeSeries` / `subjectSuccesses` /
-/// `veryHardExerciseSuccessIds` sont vides — le reste (XP, Elo, activité,
-/// complétion, série, série d'XP) est publié réellement.
+/// Repli documenté : faute de store de notes et de tâches de programme portés
+/// côté iOS, `performance.average/trend/gradeCount` valent le repli
+/// (`—`, `—`, 0) et `subjectSuccesses` / `veryHardExerciseSuccessIds` restent
+/// vides (le catalogue d'exercices n'est pas relié ici). `timeSeries` est
+/// désormais bâti depuis les sessions d'entraînement locales ; le reste (XP,
+/// Elo, activité, complétion, série, série d'XP) est publié réellement.
 struct ReportLocalSnapshotProvider: ReportPublicProfileSnapshotProviding {
     func load(
         accountId: String,
@@ -169,9 +170,10 @@ enum ReportLocalSnapshot {
         )
     }
 
-    /// `details` : identité, activité, séries d'Elo (globale + matières) et
-    /// série d'XP. `timeSeries`, `subjectSuccesses` et `veryHardExerciseSuccessIds`
-    /// sont vides (sources non portées, cf. `ReportLocalSnapshotProvider`).
+    /// `details` : identité, activité, séries d'Elo (globale + matières),
+    /// séries temporelles et série d'XP. `subjectSuccesses` et
+    /// `veryHardExerciseSuccessIds` restent vides (catalogue non relié ici, cf.
+    /// `ReportLocalSnapshotProvider`).
     static func details(
         profile: UserProfile,
         local: ReportLocalProgress,
@@ -196,7 +198,7 @@ enum ReportLocalSnapshot {
                 exerciseMinutes: local.exerciseMinutes
             ),
             elo: eloDetails(local: local, registeredAt: registeredAt),
-            timeSeries: ReportPublicTimeSeries(day: [], week: [], month: []),
+            timeSeries: timeSeries(local: local, registeredAt: registeredAt),
             subjectSuccesses: [],
             veryHardExerciseSuccessIds: [],
             xpSeries: xpPoints

@@ -25,6 +25,11 @@ protocol PremCodePurchases {
     var isAvailable: Bool { get }
     /// `member-…` du compte connecté, ou vide hors session.
     var purchaserId: String { get }
+    /// `ensurePurchasesConfigured(appUserID)` : prépare la facturation **avant**
+    /// d’ouvrir la fenêtre d’achat (`usePremiumPurchase.ts:88`). La couture
+    /// StoreKit n’a rien à configurer et répond `true` ; un achat impossible
+    /// reste refusé par `beginPurchase`, jamais en silence.
+    func ensurePurchasesConfigured() async -> Bool
     /// Lance l’achat d’une offre ; lève si la facturation est absente.
     func beginPurchase(offerId: String) async throws
 }

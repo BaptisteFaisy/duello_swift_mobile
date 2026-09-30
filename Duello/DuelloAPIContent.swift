@@ -101,4 +101,15 @@ extension DuelloAPI {
         let data = try await request("content/" + descriptor.file)
         return try decoder.decode([ChapterExercise].self, from: data)
     }
+
+    /// `GET /content/<chemin de la banque>` — sujets d'une banque entière.
+    ///
+    /// Sert les banques qui ne sont pas découpées en chapitres : les annales
+    /// (`ecg-*-annales-*.json`) ne figurent que dans les `bundles` du manifeste
+    /// (`manifest.chapters` ne décrit que les `*-statements`). Le décodage est
+    /// assuré par `AnnServedBank.Item`, qui couvre les trois formes de banque.
+    static func bundleItems(_ descriptor: ContentBundleDescriptor) async throws -> [AnnServedBank.Item] {
+        let data = try await request("content/" + descriptor.file)
+        return try decoder.decode([AnnServedBank.Item].self, from: data)
+    }
 }

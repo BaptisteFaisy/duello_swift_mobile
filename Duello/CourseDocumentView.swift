@@ -12,6 +12,12 @@
 //      même couture de routage que le tap de notification
 //      (`PushNotifRootCoordinator`, `PushNotifRootMount.swift`).
 //
+//  Parité RN↔Swift (vague 6, 2026-09-30) :
+//    - texte du cours joint au prof IA (`useProfCourseText`,
+//      `SubjectsScreen.tsx:4043-4084`) : `CtdDocumentViewer` monte
+//      `ProfCourseTextSession`, le relit à chaque changement de document et
+//      porte le texte dans `ProfDocuments.course` (`courseDocument`).
+//
 //  Écarts assumés :
 //    - PDF.js (~3,3 Mo de JavaScript, `src/utils/courseDocumentPdf.ts`) n'est pas
 //      portable : PDFKit rend les PDF nativement, contrat du lecteur inchangé.
@@ -108,6 +114,11 @@ struct CtdDocumentViewer: View {
     var onReady: (() -> Void)? = nil
     /// `onComplete` : le document est entièrement rendu.
     var onComplete: (() -> Void)? = nil
+    /// Document de cours du chapitre, quand l'hôte le connaît : son texte
+    /// extrait accompagne chaque demande au prof IA (`useProfCourseText`,
+    /// `ProfDocuments.course`). `nil` pour un énoncé de colle ou une feuille de
+    /// TD, qui ne sont pas le cours du chapitre (`storedCourseDocument`).
+    var courseDocument: CtdStoredCourseDocument? = nil
 
     /// Session Duello (injectée à la racine) : fournit le jeton du prof IA.
     @EnvironmentObject private var session: SessionStore
@@ -115,6 +126,9 @@ struct CtdDocumentViewer: View {
     @State private var payload: CtdDocumentPayload?
     @State private var failed = false
     @State private var retryRevision = 0
+    /// Texte du cours du chapitre, prêt pour le prof IA (`useProfCourseText`) :
+    /// relu dès qu'un cours est montré, jamais à la première question.
+    @StateObject private var courseText = ProfCourseTextSession()
     /// Demande du prof IA posée par le pont ; `nil` ferme la feuille.
     @State private var profRequest: ProfTutorRequest?
     /// Demande retenue le temps que l'élève accorde (ou refuse) l'IA.
@@ -136,6 +150,12 @@ struct CtdDocumentViewer: View {
         .background(Theme.surfaceMuted)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
         .task(id: loadKey) { load() }
+        // `useProfCourseText` : le texte du cours est demandé dès que le
+        // document est montré, jamais à la première question ; changer de
+        // document relance la lecture (`useEffect([document, storage])`).
+        .task(id: courseDocument?.id) { @MainActor in
+            courseText.update(document: courseDocument, token: session.token)
+        }
         // `ProfTutorSheet` : `onDismiss` remet l'item à `nil`, indispensable au
         // glissement vers le bas, qui ne passe pas par `onClose`.
         .sheet(item: $profRequest, onDismiss: { profRequest = nil }) { request in
@@ -255,7 +275,12 @@ struct CtdDocumentViewer: View {
         case .explain(let passage, let page):
             presentProf(ProfTutorRequest(
                 quote: passage,
-                context: ProfTutorContext(source: .cours, page: page, student: profStudent)
+                context: ProfTutorContext(
+                    source: .cours,
+                    page: page,
+                    student: profStudent,
+                    documents: profCourseDocuments
+                )
             ))
         case .explainImage(let image, let page):
             // Photo ou page scannée : `quote` est vide, le relais vision lit
@@ -265,7 +290,12 @@ struct CtdDocumentViewer: View {
                 quote: "",
                 image: parsed.base64,
                 mimeType: parsed.mimeType,
-                context: ProfTutorContext(source: .cours, page: page, student: profStudent)
+                context: ProfTutorContext(
+                    source: .cours,
+                    page: page,
+                    student: profStudent,
+                    documents: profCourseDocuments
+                )
             ))
         case .copyBlocked, .noText:
             break
@@ -300,6 +330,22 @@ struct CtdDocumentViewer: View {
             profile: session.profile,
             programYear: HecJourneyProfile.programYear(from: session.profile.year)
         )
+    }
+
+    /// `ProfDocuments` du cours affiché (`profContextBase.course`,
+    /// `SubjectsScreen.tsx:4043-4084`) : texte extrait du cours du chapitre
+    /// (`useProfCourseText`) et nom du fichier, rognés par `profTutorContext`
+    /// (`PROF_COURSE_MAX_CHARS`). `nil` quand l'hôte n'a pas fourni le cours
+    /// (énoncé de colle, feuille de TD) ou qu'aucun texte exploitable n'en a été
+    /// extrait (photo, scan) — le prof s'en tient alors à la page sélectionnée.
+    private var profCourseDocuments: ProfDocuments? {
+        guard let courseDocument else { return nil }
+        let input = ProfContextInput(
+            source: .cours,
+            student: profStudent,
+            course: (name: courseDocument.name, text: courseText.courseText)
+        )
+        return profTutorContext(input).documents
     }
 
     private var loading: some View {

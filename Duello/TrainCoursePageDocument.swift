@@ -24,7 +24,10 @@ extension TrainCoursePage {
                 revision: document.uploadedAt,
                 positioning: positioning,
                 initialPosition: document.classProgress?.position,
-                onPositionChange: { positionDraft = $0 }
+                onPositionChange: { positionDraft = $0 },
+                // Le cours du chapitre accompagne les demandes au prof IA
+                // (`useProfCourseText`, `ProfDocuments.course`).
+                courseDocument: document
             )
             CtdFullscreenButton { fullscreenOpen = true }
         }

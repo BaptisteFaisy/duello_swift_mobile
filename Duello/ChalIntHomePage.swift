@@ -22,6 +22,12 @@
 //  `SocialChallengeInviteModal`) ; `onEnter` ne sert plus que le panneau de
 //  file.
 //
+//  S01 (2026-09-30, producteurs de chrome) : ajoute l'entrée « Défie ta
+//  classe » (`classChallengeButton`, tsx:2879-2900), masquée dans la source,
+//  pour rendre atteignable le volet « défi de classe » (`ChalIntChallengesTab`
+//  → `ChalClassInviteSheet` → `ChalScheduledRoom.join`). Fichier hors liste du
+//  lot, non revendiqué par un autre lot de la vague 6 (cf. rapport S01b).
+//
 //  Cible : iOS 16, aucune API iOS 17.
 //
 import SwiftUI
@@ -45,6 +51,9 @@ struct ChalIntHomePage: View {
     let disabled: Bool
     var onOpenExercise: () -> Void
     var onOpenCourse: () -> Void
+    /// Ouvre le volet « défi de classe » (`setClassInviteModalOpen(true)`,
+    /// `ChallengesScreen.tsx:2884-2887`). Absent ⇒ pas de bouton.
+    var onOpenClassChallenge: (() -> Void)? = nil
     var onEnter: () -> Void
 
     var body: some View {
@@ -66,6 +75,35 @@ struct ChalIntHomePage: View {
                         onOpenExercise: onOpenExercise,
                         onOpenCourse: onOpenCourse
                     )
+
+                    // « Défie ta classe » (`challengeActionButton` +
+                    // `classChallengeButton`, tsx:2879-2900). La source masque
+                    // temporairement ce bouton ; le volet est néanmoins câblé
+                    // (`ChalIntChallengesTab`), on le rétablit pour le rendre
+                    // atteignable.
+                    if let onOpenClassChallenge {
+                        Button(action: onOpenClassChallenge) {
+                            HStack(spacing: 6) {
+                                IonIcon(name: "people-outline", size: 18, color: Theme.primary)
+                                Text("Défie ta classe")
+                                    .font(.system(size: 14, weight: .black))
+                                    .foregroundStyle(Theme.primary)
+                                    .lineLimit(1)
+                            }
+                            .padding(.horizontal, 16)
+                            .frame(width: 260)
+                            .frame(minHeight: 46)
+                            .background(Theme.surface)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(Theme.primary, lineWidth: 1)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Défie ta classe")
+                        .padding(.top, 10)
+                    }
 
                     // Le retour d'invitation vient **après** la carte d'accueil,
                     // comme la source (`queue.inviteOutcome`).

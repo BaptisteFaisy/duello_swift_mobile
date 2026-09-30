@@ -41,10 +41,15 @@ struct AdmReportsScreen: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
+            // Marges par bloc de la source (`AdminExerciseReportsScreen.tsx:349-406`) :
+            // `pageHeader` `marginBottom: 18`, `kindTabs` `marginBottom: 12`
+            // (portée dans `kindTabs`), `searchBar` `marginBottom: 16`.
+            VStack(alignment: .leading, spacing: 0) {
                 header
+                    .padding(.bottom, 18)
                 kindTabs
                 AdmSearchBar(placeholder: searchPlaceholder, text: $query)
+                    .padding(.bottom, 16)
                 content
             }
             .padding(.horizontal, 20)

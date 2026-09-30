@@ -57,6 +57,12 @@ final class DictControlModel: ObservableObject {
     /// (`transcriptionContext`), figé avec la phrase.
     var contexteTranscription: DictMathContext?
 
+    /// Texte vivant du champ, tenu à jour par l'hôte (équivalent de `latestText`
+    /// de `useDictation.ts`) : il porte la garde « le texte a été modifié » de la
+    /// seconde passe. L'hôte l'alimente à chaque frappe ; le modèle l'écrit quand
+    /// il pose lui-même un aperçu.
+    var texteCourant = ""
+
     var moteurActif: DictEngine?
     var transcription = ""
     var phrases = DictTranscriptState.empty
@@ -302,8 +308,13 @@ final class DictControlModel: ObservableObject {
         // La phrase est posée avant la seconde passe ; celle-ci la corrigera
         // sans remplacer les hypothèses mot après mot.
         let apercu = DictPolicy.appendTranscript(currentText, DictPolicy.renderTranscript(brut, math: math))
+        texteCourant = apercu
         apply(apercu)
-        await finaliser(brut: brut, prefixe: currentText, apply: apply)
+        // `apercu` + `lireTexte` portent la garde « le texte a été modifié »
+        // (`useDictation.ts:368-371`) : un résultat tardif n'écrase jamais le
+        // travail manuel fait pendant la seconde passe.
+        await finaliser(brut: brut, prefixe: currentText, apercu: apercu,
+                         lireTexte: { [weak self] in self?.texteCourant ?? "" }, apply: apply)
     }
 
     /// Annule la dictée sans transcription — `cancel`.

@@ -38,6 +38,7 @@ struct AnnCopyCorrectionSheet: View {
     @State var submitting = false
     @State var uploadProgress = 0
     @State var errorMessage = ""
+    @State var consentVisible = false
     @State var activePicker: AnnPickerSheet?
     @State private var refreshTick = 0
     @State var job: AnnCopyJob?
@@ -120,6 +121,19 @@ struct AnnCopyCorrectionSheet: View {
                 }
                 .ignoresSafeArea()
             }
+        }
+        // `requireAiDataSharingConsent` : l'envoi de la copie la transmet au
+        // relais, donc l'accord de l'élève est demandé d'abord.
+        .alert(CtdAiConsent.title, isPresented: $consentVisible) {
+            Button(CtdAiConsent.denyLabel, role: .cancel) {
+                errorMessage = CtdAiConsent.declinedLabel
+            }
+            Button(CtdAiConsent.allowLabel) {
+                CtdAiConsent.grant()
+                Task { await submit() }
+            }
+        } message: {
+            Text(CtdAiConsent.message)
         }
     }
 

@@ -156,11 +156,17 @@ extension AnnCopyCorrectionSheet {
 
     // MARK: Actions
 
-    private func submit() async {
+    func submit() async {
         let trimmed = partLabel.trimmingCharacters(in: .whitespacesAndNewlines)
         if submitting || job != nil || pages.isEmpty { return }
         guard !trimmed.isEmpty else {
             errorMessage = "Indique la partie de l’annale couverte par ces pages."
+            return
+        }
+        // `requireAiDataSharingConsent` : l'envoi de la copie la transmet au
+        // relais, donc l'accord de l'élève est demandé d'abord.
+        guard CtdAiConsent.isGranted else {
+            consentVisible = true
             return
         }
         submitting = true

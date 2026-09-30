@@ -35,9 +35,14 @@ struct AdmPromoCodesScreen: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
+            // Marges par bloc de la source (`AdminPromoCodesScreen.tsx:324-345`) :
+            // `pageHeader` `marginBottom: 16`, `createCard` `marginBottom: 16`
+            // (les messages gardent leur `marginBottom: 10`).
+            VStack(alignment: .leading, spacing: 0) {
                 header
+                    .padding(.bottom, 16)
                 createCard
+                    .padding(.bottom, 16)
                 if !successMessage.isEmpty {
                     HStack(spacing: 6) {
                         IonIcon(name: "checkmark-circle", size: 15, color: Theme.premium)

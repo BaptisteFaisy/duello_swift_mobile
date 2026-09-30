@@ -76,6 +76,19 @@ final class PushNotifRootCoordinator: ObservableObject {
         self.registration = registration
     }
 
+    /// Détache le téléphone du compte à la déconnexion
+    /// (`detachPushNotificationsForLogout`, `App.tsx:2428`) : relais vers le
+    /// coordinateur d'inscription actif, qui révoque les jetons puis la session
+    /// en tâche de fond. Renvoie `false` sans coordinateur monté — l'appelant
+    /// (`SessionStore.signOut`) retombe alors sur la déconnexion serveur
+    /// directe, jamais en silence.
+    @discardableResult
+    func detachForLogout(sessionToken: String?) -> Bool {
+        guard let registration else { return false }
+        registration.detachForLogout(sessionToken: sessionToken)
+        return true
+    }
+
     /// Point d'entrée de l'`AppDelegate` : un jeton APNs vient d'être livré par
     /// le système, il est relayé au coordinateur actif (`acceptDeviceToken(_:)`).
     func acceptDeviceToken(_ hexToken: String) {
@@ -110,6 +123,9 @@ final class PushNotifRootCoordinator: ObservableObject {
 @MainActor
 struct PushNotifRootMount: View {
     @EnvironmentObject private var session: SessionStore
+    /// Phase de scène : le sondage du badge suit le premier plan / arrière-plan
+    /// (`AppState.addEventListener('change')` de `NotificationBadgeSync.tsx:87`).
+    @Environment(\.scenePhase) private var scenePhase
 
     /// Inscription serveur courante, `nil` tant que la racine n'est pas montée
     /// ou que le compte est fermé.
@@ -123,6 +139,11 @@ struct PushNotifRootMount: View {
             .accessibilityHidden(true)
             .onAppear { synchronize() }
             .onChange(of: session.isSignedIn) { _ in synchronize() }
+            // Bascule premier plan / arrière-plan : relance ou coupe le sondage
+            // du badge (`setActive`, `NotificationBadgeSync.tsx:87-95`).
+            .onChange(of: scenePhase) { phase in
+                badgeController?.setActive(phase == .active)
+            }
             .onDisappear { stop() }
     }
 

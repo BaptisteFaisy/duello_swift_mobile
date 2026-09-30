@@ -68,29 +68,27 @@ extension TrainingCatalogView {
     /// `SubjectsScreen.tsx:4493-4510`) : les annales des banques `*-annales-*`
     /// du manifeste de l'année, converties en entrées de lecteur. Chargée à la
     /// première ouverture de l'onglet Annales, puis conservée.
+    ///
+    /// V6 2026-09-30 (écart 06#3) : les banques d'annales ne figurent **que**
+    /// dans les `bundles` du manifeste — `chapters` ne décrit que les
+    /// `*-statements`. La lecture filtre donc `manifest.bundles` par identifiant
+    /// (et non plus `manifest.chapters`, qui ne retenait rien) ; chaque banque
+    /// est servie entière via `DuelloAPI.bundleItems(_:)` puis décodée par
+    /// `AnnServedBank` (formes avancées et appliquées réunies).
     func loadAnnaleItems() async {
         guard annaleItems.isEmpty, let manifest else { return }
         let year = TrainContent.programYear(from: session.profile.year)
-        let bundles = Set(
-            TrainContent.yearBundleIds(
-                track: session.profile.track,
-                specialty: session.profile.specialty,
-                year: year
-            ).filter { $0.contains("annales") }
-        )
-        guard !bundles.isEmpty else { return }
+        let bankIds = TrainContent.yearBundleIds(
+            track: session.profile.track,
+            specialty: session.profile.specialty,
+            year: year
+        ).filter { $0.contains("annales") }
+        guard !bankIds.isEmpty, let banks = manifest.bundles else { return }
         var loaded: [AnnEntry] = []
-        for descriptor in manifest.chapters ?? [] where bundles.contains(descriptor.bundleId) {
-            guard let seeds = try? await DuelloAPI.chapterExercises(descriptor) else { continue }
-            for seed in seeds {
-                loaded.append(
-                    TrainReaderLink.entry(
-                        TrainExercise(seed: seed),
-                        mode: .annales,
-                        chapterName: descriptor.bundleId
-                    )
-                )
-            }
+        for bankId in bankIds {
+            guard let descriptor = banks.first(where: { $0.id == bankId }) else { continue }
+            guard let items = try? await DuelloAPI.bundleItems(descriptor) else { continue }
+            loaded.append(contentsOf: AnnServedBank.entries(items))
         }
         annaleItems = loaded
     }

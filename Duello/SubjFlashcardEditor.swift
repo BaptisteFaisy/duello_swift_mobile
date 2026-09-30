@@ -164,6 +164,7 @@ struct SubjFlashcardEditor: View {
         .onChange(of: focusedSide) { newValue in
             if let newValue { activateSide(newValue) }
         }
+        .onChange(of: activeText) { dictation.texteCourant = $0 }
         .onChange(of: mathPaletteOpen) { onMathKeyboardVisibilityChange?($0) }
         .onDisappear { onMathKeyboardVisibilityChange?(false) }
         .sheet(isPresented: $photoModalOpen) {
@@ -306,6 +307,14 @@ struct SubjFlashcardEditor: View {
     /// `SubjectsScreen.tsx:1928-1932`).
     private func toggleDictation() {
         Task { @MainActor in
+            // `transcriptionContext` (`SubjectsScreen.tsx:1918`) : le verso s'aide
+            // du recto déjà écrit, sinon du nom du chapitre.
+            dictation.contexteTranscription = DictMathContext(
+                subject: subject,
+                exercise: activeSide == .back && !front.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    ? front
+                    : chapterName
+            )
             if dictation.isListening {
                 await dictation.toggle(
                     currentText: activeText,

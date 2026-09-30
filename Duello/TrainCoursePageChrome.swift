@@ -171,7 +171,10 @@ struct TrainCourseFullscreen: View {
                 uri: document.uri,
                 mimeType: document.mimeType,
                 revision: document.uploadedAt,
-                height: .infinity
+                height: .infinity,
+                // Le plein écran montre le même cours : même texte joint au
+                // prof IA que le lecteur de la page.
+                courseDocument: document
             )
         }
         .background(Theme.surfaceMuted)

@@ -7,29 +7,31 @@
 //  Assemble les composants du lot 10-E (`AcctShow*`, `AcctEvo*`) dans l'ordre
 //  de `src/screens/AccountScreen.tsx` : vitrine de ligue (l. 2738-2810),
 //  bandeau de repères (l. 2905), « Évolution de l’XP » (l. 2918), « Évolution
-//  de l’Elo » (l. 3027), « Évolution des notes » (l. 3222) et « Évolution du
-//  temps » (l. 3332).
+//  de l’Elo » (l. 3027), « Évolution des notes » (l. 3222), « Évolution du
+//  temps » (l. 3332) et « Historique des notes » (l. 3653-3698).
 //
-//  Port de src/screens/AccountScreen.tsx (vitrine du profil, l. 2738-3416).
+//  Port de src/screens/AccountScreen.tsx (vitrine du profil, l. 2738-3698).
 //
 //  Composants branchés indirectement : `AcctShowLeagueBadge` (dessiné par
 //  `AcctShowLeagueCard`), `AcctShowGranularityTabs` (dans les sections de
 //  série) et `AcctShowLevelProgress` (dans `AcctShowStatsPanel`).
 //
-//  Écarts assumés (V1, 2026-09-29) — données absentes du portage local, jamais
-//  inventées (cf. `AcctIntData`) :
+//  Vague 6 (lot S04, 2026-09-30) — raccords posés :
+//    - Courbe « Évolution des notes » : `points:` vient du journal local
+//      (`CorrectionGradeStore`, clé `prepapp-correction-grade-history:v1`) via
+//      `AcctIntData.gradePoints`, comme `correctionGradePeriods` de la source.
+//    - Section « Historique des notes » : `RankingGradeHistory.buildGradeHistory`
+//      + `AcctGradeHistoryCard`, réservée au profil propre (l. 3653-3698).
+//    - Courbe « Évolution du temps » : `buckets:` vient des sessions
+//      d'entraînement locales (`ChartActivitySessionStore`) via
+//      `AcctIntData.timeBuckets`, comme `timeBuckets` de la source (l. 1905).
+//    - Tuiles « RANG XP »/« RANG ELO » : rangs « Moi » chargés par
+//      `AcctProfileRanksController` et rendus par `RankingProfileRanks.profileRankTile`.
+//
+//  Écart assumé (donnée absente du portage local, jamais inventée) :
 //    - Succès par matière : le regroupement item → matière dépend du catalogue
 //      d'exercices, non relié ici ; la section n'est plus rendue (la source la
 //      masque : `AccountScreen.tsx`, l. 3418-3456).
-//    - Courbe « Évolution des notes » (`points: []`) : `correctionGradePeriods`
-//      de la source (l. 1924-1933) vient de `prepapp-correction-grade-history:v1`,
-//      qu'aucun store Swift ne lit ni n'écrit ⇒ série vide. Hunk à raccorder
-//      (`ProgressStore.correctionGrades` + producteur), cf. rapport IMPL-14.
-//    - Courbe « Évolution du temps » (`buckets: []`) : `timeBuckets` de la source
-//      (l. 1905) vient de `activity.sessions`, que `ProgressStore` ne stocke pas
-//      (`exerciseMinutes`/`subjectMinutes` sont des cumuls) ⇒ série vide. Hunk à
-//      raccorder (`ProgressStore.activitySessions` + `ChartTimeSeries.build`),
-//      cf. rapport IMPL-14.
 //
 //  L'abonnement Premium se lit sur le drapeau local (`ConsentPremiumGate`, la
 //  même entrée que `PremCodeSync` écrit). La présence en ligne est lue sur
@@ -40,6 +42,11 @@
 import SwiftUI
 
 /// Vitrine de profil de l'onglet « Mon compte » (le compte connecté lui-même).
+///
+/// `@MainActor` : la vue possède `AcctProfileRanksController`, isolé au fil
+/// principal, et l'initialise dans un initialiseur de propriété (non isolé par
+/// défaut) — même motif que `AcctIntDirectorySheet`.
+@MainActor
 struct AcctIntShowcase: View {
     @EnvironmentObject private var session: SessionStore
     @EnvironmentObject private var progress: ProgressStore
@@ -50,6 +57,10 @@ struct AcctIntShowcase: View {
     @State private var eloSubject: String?
     /// Explication du blason retournable, écartée au premier « compris ».
     @State private var photoHintVisible = true
+    /// Rangs « Moi » du profil consulté (`useProfileLeaderboardRanks`).
+    @StateObject private var ranks = AcctProfileRanksController()
+    /// XP de la semaine dans la matière classée, relus du journal d'activité.
+    @State private var weeklyXp: Double?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -62,7 +73,11 @@ struct AcctIntShowcase: View {
                     streakDays: progress.currentStreak(),
                     programPercent: progress.competitionProgramPercent
                 ),
-                details: AcctIntData.detailStats(level: xpSummary.level, progress: progress),
+                details: AcctIntData.detailStats(
+                    level: xpSummary.level,
+                    progress: progress,
+                    rankTiles: rankTiles
+                ),
                 xpSummary: xpSummary
             )
             AcctShowXpSeriesSection(
@@ -81,20 +96,19 @@ struct AcctIntShowcase: View {
                 evolutionAbsolute: eloEvolution.absolute
             )
             AcctShowGradeSeriesSection(
-                // Écart assumé : notes de correction non stockées localement
-                // (`prepapp-correction-grade-history:v1`) — cf. en-tête.
-                points: [],
-                granularity: $granularity
+                points: gradePoints,
+                granularity: $granularity,
+                evolutionPercentage: gradeEvolution.percentage,
+                evolutionAbsolute: gradeEvolution.absolute
             )
             AcctShowTimeSeriesSection(
-                // Écart assumé : `activity.sessions` non stockées par
-                // `ProgressStore` — cf. en-tête.
-                buckets: [],
+                buckets: timeBuckets,
                 granularity: $granularity,
                 // `hasTrainingTime` = `viewedActivity.exerciseMinutes > 0`
                 // (`AccountScreen.tsx:1902`) : gate de la courbe « temps ».
                 hasTrainingTime: progress.exerciseMinutes > 0
             )
+            gradeHistorySection
         }
         .padding(.horizontal, 4)
         .padding(.top, 14)
@@ -103,6 +117,36 @@ struct AcctIntShowcase: View {
         .onChange(of: AcctIntData.eloSubjects(progress)) { subjects in
             if let current = eloSubject, !subjects.contains(current) {
                 eloSubject = nil
+            }
+        }
+        // Rangs « Moi » : les scores locaux d'abord, puis le réseau (`enabled`
+        // n'est vrai qu'en développement, comme `USE_REFINED_OVERVIEW`).
+        .task {
+            await loadWeeklyXp()
+            await ranks.update(rankInput)
+        }
+        .onChange(of: rankInput) { input in
+            ranks.update(input)
+        }
+    }
+
+    /// Section « Historique des notes » (`AccountScreen.tsx:3653-3698`),
+    /// réservée au profil propre : bandeau « Historique » + cinq dernières
+    /// notes, ou état vide.
+    @ViewBuilder
+    private var gradeHistorySection: some View {
+        AcctShowSectionCard(
+            icon: "albums-outline",
+            iconColor: ChartGoogleGColors.blue,
+            title: "Historique des notes"
+        ) {
+            if gradeHistoryRows.isEmpty {
+                AcctShowChartEmpty(
+                    icon: "albums-outline",
+                    message: "Ton historique démarrera dès ta première correction d’exercice, de colle, d’annale ou de défi."
+                )
+            } else {
+                AcctGradeHistoryCard(rows: gradeHistoryRows)
             }
         }
     }
@@ -164,6 +208,77 @@ struct AcctIntShowcase: View {
         AcctIntData.xpSummary(totalXp: progress.totalXp)
     }
 
+    /// Notes de correction du compte, relues du journal local.
+    private var correctionGrades: [CorrectionGradeEntry] {
+        AcctIntData.correctionGrades()
+    }
+
+    /// Courbe des notes, moyennée par période (`correctionGradePeriods`).
+    private var gradePoints: [ChartCorrectionPeriodPoint] {
+        AcctIntData.gradePoints(correctionGrades, granularity: granularity)
+    }
+
+    /// Pastille d'évolution des notes (`gradeEvolutionPercentage`/`Absolute`).
+    private var gradeEvolution: (percentage: Double, absolute: Double) {
+        latestEvolution(gradePoints.map(\.score))
+    }
+
+    /// Lignes de l'historique des notes (`gradeHistoryRows`).
+    private var gradeHistoryRows: [GradeHistoryRow] {
+        AcctIntData.gradeHistoryRows(correctionGrades)
+    }
+
+    /// Colonnes de la courbe du temps (`timeBuckets`).
+    private var timeBuckets: [ChartTimeBucket] {
+        AcctIntData.timeBuckets(progress, granularity: granularity)
+    }
+
+    /// Entrée des rangs « Moi » (`useProfileLeaderboardRanks`).
+    private var rankInput: AcctProfileRanksController.Input {
+        AcctProfileRanksController.Input(
+            enabled: AcctEvoConstants.useRefinedOverview,
+            cohort: eloLeaderboardCohortForProfile(EloLeaderboardAcademicProfile(
+                track: session.profile.track,
+                year: session.profile.year,
+                specialty: session.profile.specialty,
+                currentTrack: session.profile.academicPath?.currentTrack
+            )),
+            week: WeeklyXP.weekKey(),
+            viewed: RankingProfileRanks.Viewed(
+                id: DuelloAPI.publicProfileId(email: session.profile.email),
+                displayName: name,
+                prepName: session.profile.prepName
+            ),
+            hideIdentity: !session.profile.isPublic,
+            mathElo: progress.subjectElos[RankingProfileRanks.subject].map { Double($0) },
+            weeklyXp: weeklyXp,
+            scoresReady: true,
+            token: session.token
+        )
+    }
+
+    /// Tuiles « RANG XP » / « RANG ELO » (`profileRankTile`).
+    private var rankTiles: (xp: ChartPerformanceOverviewStat, elo: ChartPerformanceOverviewStat) {
+        (
+            RankingProfileRanks.profileRankTile(
+                rank: ranks.xpRank,
+                loading: ranks.xpLoading,
+                label: "RANG XP",
+                icon: "medal-outline",
+                color: ChartGoogleGColors.blue,
+                leaderboardName: "classement XP de la semaine"
+            ),
+            RankingProfileRanks.profileRankTile(
+                rank: ranks.eloRank,
+                loading: ranks.eloLoading,
+                label: "RANG ELO",
+                icon: "podium-outline",
+                color: ChartGoogleGColors.green,
+                leaderboardName: "classement Elo"
+            )
+        )
+    }
+
     /// Courbe d'XP cumulée, regroupée par période (`xpSeries` de la source).
     private var xpSeriesPoints: [ChartXpSeriesPoint] {
         let raw = ChartXpSeries.build(
@@ -187,6 +302,22 @@ struct AcctIntShowcase: View {
     /// Pastille d'évolution de l'Elo (`eloEvolutionPercentage`/`Absolute`).
     private var eloEvolution: (percentage: Double, absolute: Double) {
         latestEvolution(eloSeriesPoints.map(\.elo))
+    }
+
+    /// `weeklyActivityXp` : XP réellement gagnés cette semaine dans la matière
+    /// classée, relus dans le journal d'activité du compte
+    /// (`prepapp-xp-activity`), comme `LeaderboardScreen.tsx:106-142`.
+    private func loadWeeklyXp() async {
+        let email = session.profile.email.trimmingCharacters(in: .whitespacesAndNewlines)
+        let accountId = email.isEmpty
+            ? RewStorageScope.onboardingAccountStorageId
+            : RewStorageScope.userStorageId(email)
+        let activity = await EvEventRewardsStore.loadActivity(
+            EvEventRewardsDefaultsStorage(accountId: accountId)
+        )
+        weeklyXp = Double(
+            weeklyActivityXp(activity, subject: RankingProfileRanks.subject, week: WeeklyXP.weekKey())
+        )
     }
 
     /// `latestRelativeEvolutionPercentage` + `latestAbsoluteEvolution`

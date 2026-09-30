@@ -25,9 +25,14 @@ struct AdmFeedbackScreen: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
+            // Marges par bloc de la source (`AdminFeedbackScreen.tsx:189-231`) :
+            // `pageHeader` porte `marginBottom: 18`, `searchBar`
+            // `marginBottom: 16` — plus de `spacing` uniforme.
+            VStack(alignment: .leading, spacing: 0) {
                 header
+                    .padding(.bottom, 18)
                 AdmSearchBar(placeholder: "Rechercher dans les messages…", text: $query)
+                    .padding(.bottom, 16)
                 content
             }
             .padding(.horizontal, 20)
