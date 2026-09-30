@@ -148,6 +148,12 @@ struct Ui2OrderedTabPager<Content: View>: View {
     /// Rend le geste de retour au pager d'onglets parent depuis la première page
     /// (`yieldBackSwipeToTabPager` d'`OrderedTabPager`). Inerte sans pager parent.
     var yieldBackSwipeToTabPager: Bool = false
+    /// Paires de pages qui basculent au relâchement, sans suivre le doigt
+    /// (`instantTransitions`, `OrderedTabPager.tsx:67,246-256,344-358`).
+    var instantTransitions: [SwipeOrderedTabs.InstantTransition] = []
+    /// Position décimale du geste, publiée même lorsque le ruban reste immobile
+    /// (`pageProgress`, `OrderedTabPager.tsx:74,257-261,349-352`).
+    var pageProgress: Ui2OrderedTabPageProgress? = nil
     @ViewBuilder var content: () -> Content
 
     /// Jeton du pager d'onglets parent (`BottomTabSwipeGestureContext`) : le
@@ -168,6 +174,8 @@ struct Ui2OrderedTabPager<Content: View>: View {
         onBack: (() -> Void)? = nil,
         swipeEnabled: Bool = true,
         yieldBackSwipeToTabPager: Bool = false,
+        instantTransitions: [SwipeOrderedTabs.InstantTransition] = [],
+        pageProgress: Ui2OrderedTabPageProgress? = nil,
         @ViewBuilder content: @escaping () -> Content
     ) {
         self.animated = animated
@@ -177,6 +185,8 @@ struct Ui2OrderedTabPager<Content: View>: View {
         self.onBack = onBack
         self.swipeEnabled = swipeEnabled
         self.yieldBackSwipeToTabPager = yieldBackSwipeToTabPager
+        self.instantTransitions = instantTransitions
+        self.pageProgress = pageProgress
         self.content = content
         _settledPage = State(initialValue: Ui2OrderedTabPager.clamp(page, pageCount))
     }
@@ -241,7 +251,7 @@ struct Ui2OrderedTabPager<Content: View>: View {
                     startPage: dragStartPage,
                     leadingBackEnabled: leadingBackEnabled
                 )
-                dragOffset = position + CGFloat(dragStartPage) * width
+                applyDragOffset(translationX: value.translation.width, position: position, width: width)
             }
             .onEnded { value in
                 guard isDragging else { return }
@@ -250,6 +260,33 @@ struct Ui2OrderedTabPager<Content: View>: View {
                 nestedGesture?.releaseNestedPager()
                 settle(value: value)
             }
+    }
+
+    /// Pose le décalage du ruban pendant le geste et publie `pageProgress`.
+    /// Une paire `instantTransitions` ne suit pas le doigt : le ruban reste à sa
+    /// position de départ (`isInstantDragTransition`, `OrderedTabPager.tsx:246-261`).
+    private func applyDragOffset(translationX: CGFloat, position: CGFloat, width: CGFloat) {
+        // Page voisine visée dans le sens du geste (`isInstantDragTransition`).
+        let targetPage: Int
+        if translationX < 0 {
+            targetPage = min(pageCount - 1, dragStartPage + 1)
+        } else if translationX > 0 {
+            targetPage = max(0, dragStartPage - 1)
+        } else {
+            targetPage = dragStartPage
+        }
+        let instant = SwipeOrderedTabs.isInstantTransition(
+            instantTransitions,
+            fromPage: dragStartPage,
+            toPage: targetPage
+        )
+        if instant {
+            dragOffset = 0
+            pageProgress?.value = CGFloat(dragStartPage)
+        } else {
+            dragOffset = position + CGFloat(dragStartPage) * width
+            pageProgress?.value = -position / width
+        }
     }
 
     /// Relâchement : page visée (`resolveOrderedTabSwipeIndex`) ou retour.
@@ -285,8 +322,15 @@ struct Ui2OrderedTabPager<Content: View>: View {
     }
 
     /// Fixe la page et le décalage ; `notify` distingue geste et prop contrôlée.
+    /// Une paire `instantTransitions` bascule sans ressort
+    /// (`OrderedTabPager.tsx:344-358`).
     private func commit(_ index: Int, notify: Bool) {
-        if animated {
+        let instant = SwipeOrderedTabs.isInstantTransition(
+            instantTransitions,
+            fromPage: settledPage,
+            toPage: index
+        )
+        if animated && !instant {
             withAnimation(ui2OrderedPagerSettleSpring) {
                 settledPage = index
                 dragOffset = 0
@@ -295,6 +339,7 @@ struct Ui2OrderedTabPager<Content: View>: View {
             settledPage = index
             dragOffset = 0
         }
+        pageProgress?.value = CGFloat(index)
         if notify { onPageSelected(index) }
     }
 
@@ -307,5 +352,13 @@ struct Ui2OrderedTabPager<Content: View>: View {
         } else {
             dragOffset = 0
         }
+        pageProgress?.value = CGFloat(settledPage)
     }
+}
+
+/// Position décimale du geste (`pageProgress`, `SharedValue<number>`) : le ruban
+/// la publie à chaque mouvement, **même lorsqu'il reste immobile** (transition
+/// instantanée). L'appelant la lit pour animer un chrome lié au geste.
+final class Ui2OrderedTabPageProgress: ObservableObject {
+    @Published var value: CGFloat = 0
 }

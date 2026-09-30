@@ -68,8 +68,9 @@ struct HecJourneyHeaderBar: View {
 /// Sélecteur d'année (`ProgramYearTabs`) : « 1re » / « 2e ».
 ///
 /// Couleurs alignées sur la source (`ProgramYearTabs.tsx:122,148,154,159`) :
-/// le groupe est la barre noire `#000000`, le libellé blanc `#FFFFFF` ; l'onglet
-/// sélectionné inverse en fond blanc `#FFFFFF` + texte encre `#0A0D0C`.
+/// le groupe est le fond gris `colors.surfaceMuted`, le libellé non choisi
+/// `colors.mutedSurfaceText` ; l'onglet sélectionné passe en fond `colors.primary`
+/// (encre) à texte blanc `#FFFFFF`.
 struct HecJourneyYearTabs: View {
     let programYear: Int
     /// Année du profil : l'onglet correspondant porte le hint « année
@@ -85,9 +86,9 @@ struct HecJourneyYearTabs: View {
                 } label: {
                     Text(HecJourneyCopy.yearTabTitles[year] ?? "")
                         .font(.system(size: 11, weight: .black))
-                        .foregroundStyle(year == programYear ? Theme.ink : Theme.surface)
+                        .foregroundStyle(year == programYear ? Color.white : Theme.mutedSurfaceText)
                         .frame(minWidth: 29, minHeight: 30)
-                        .background(year == programYear ? Theme.surface : Color.clear)
+                        .background(year == programYear ? Theme.primary : Color.clear)
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
                 .buttonStyle(HecJourneySheet.PressOpacityStyle(pressed: 0.65))
@@ -97,7 +98,7 @@ struct HecJourneyYearTabs: View {
             }
         }
         .padding(2)
-        .background(Color.black)
+        .background(Theme.surfaceMuted)
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .accessibilityElement(children: .contain)
         .accessibilityLabel(HecJourneyCopy.a11yProgramYear)

@@ -175,21 +175,51 @@ struct AcctInfoToggleRow: View {
                     .foregroundStyle(Theme.ink)
                 if let description {
                     Text(description)
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(Theme.inkFaint)
+                        // `privateAccountDescription` (`AccountScreen.tsx:5882-5887`) :
+                        // `inkSoft`, 12, **sans graisse** (400), interligne 17.
+                        .font(.system(size: 12, weight: .regular))
+                        .foregroundStyle(Theme.inkSoft)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
             Spacer(minLength: 8)
-            Toggle("", isOn: $isOn)
-                .labelsHidden()
-                .tint(Theme.primary)
-                .disabled(isDisabled)
+            // `Switch` de la source : piste `surfaceMuted` / `primaryLight`,
+            // pouce `primary` / `inkFaint` (le `Toggle` natif ne règle ni la
+            // piste éteinte ni la couleur du pouce).
+            AcctInfoSwitch(isOn: $isOn, disabled: isDisabled)
                 .accessibilityLabel(accessibilityLabel ?? title)
         }
         .frame(minHeight: 60)
         .padding(.horizontal, 8)
         .padding(.vertical, 8)
+    }
+}
+
+/// Interrupteur des lignes de réglages (`Switch` de `AccountScreen.tsx`) : piste
+/// `surfaceMuted` (éteint) / `primaryLight` (allumé), pouce `primary` (allumé) /
+/// `inkFaint` (éteint), comme `NotifSwitch` et `AiConsentSwitch`. Mesures iOS de
+/// l'interrupteur (piste 51 × 31, pouce 27).
+private struct AcctInfoSwitch: View {
+    @Binding var isOn: Bool
+    var disabled: Bool = false
+
+    var body: some View {
+        Button { isOn.toggle() } label: {
+            ZStack(alignment: isOn ? .trailing : .leading) {
+                Capsule()
+                    .fill(isOn ? Theme.primaryLight : Theme.surfaceMuted)
+                    .frame(width: 51, height: 31)
+                Circle()
+                    .fill(isOn ? Theme.primary : Theme.inkFaint)
+                    .frame(width: 27, height: 27)
+                    .padding(2)
+                    .shadow(color: Color.black.opacity(0.15), radius: 1, y: 1)
+            }
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .disabled(disabled)
+        .opacity(disabled ? 0.5 : 1)
     }
 }
 

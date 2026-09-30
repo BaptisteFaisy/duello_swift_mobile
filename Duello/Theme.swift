@@ -12,6 +12,9 @@ enum Theme {
     static let inkHex = 0x0A0D0C
     static let inkSoftHex = 0x555B58
     static let inkFaintHex = 0x8B918E
+    /// `tradeGrey` (`theme.ts:15`) : gris de valeur/suffixe de la vitrine
+    /// « refined » (suffixe de valeur, libellés d'onglets de période).
+    static let tradeGreyHex = 0xB7BEC6
     static let primaryLightHex = 0xECEEED
     static let borderHex = 0xE1E4E2
     static let progressHex = 0x16A34A
@@ -31,6 +34,8 @@ enum Theme {
     static var ink: Color { Color(hex: inkHex) }
     static var inkSoft: Color { Color(hex: inkSoftHex) }
     static var inkFaint: Color { Color(hex: inkFaintHex) }
+    /// `colors.tradeGrey` (`theme.ts:15`).
+    static var tradeGrey: Color { Color(hex: tradeGreyHex) }
     static var primary: Color { ink }
     static var primaryLight: Color { Color(hex: primaryLightHex) }
     static var border: Color { Color(hex: borderHex) }
@@ -66,7 +71,17 @@ enum Theme {
     static var providerErrorOnDark: Color { Color(hex: 0xFF8A80) }
 
     /// Prose d'étude : énoncé et corrigé en serif, comme un manuel.
-    static let readingFont: Font = .system(size: 16, weight: .regular, design: .serif)
+    ///
+    /// `readingText` de `theme.ts:76-83` **ne porte aucune taille** — chaque
+    /// bloc pose la sienne (11/14/15). Le portage ne fige donc plus 16 pt :
+    /// `readingFont(size:)` prend la taille de l'appelant, et `readingFont`
+    /// reste le repli des appelants qui n'ont pas encore migré (style de corps,
+    /// donc taille de texte de l'appareil, plus aucune taille figée).
+    static func readingFont(size: CGFloat) -> Font {
+        .system(size: size, weight: .regular, design: .serif)
+    }
+
+    static var readingFont: Font { .system(.body, design: .serif) }
 }
 
 extension Color {

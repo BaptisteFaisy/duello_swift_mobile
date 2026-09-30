@@ -27,7 +27,7 @@ extension AnnReaderView {
             let bounds = AnnaleSplit.annaleSplitBounds(contentHeight: height)
             let ratio = AnnaleSplit.effectiveAnnaleSplit(
                 ratio: splitRatio,
-                keyboardOpen: false,
+                keyboardOpen: whiteboardExpanded ? false : systemKeyboardOpen,
                 contentHeight: height
             )
             VStack(spacing: 0) {
@@ -65,15 +65,6 @@ extension AnnReaderView {
     var workspacePane: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                if resultCardVisible, let correction = correctionDockCorrection {
-                    AnnResultCard(
-                        scoreOn20: gradingScore.scoreOn20,
-                        xp: 0,
-                        exerciseRank: nil,
-                        correction: correction,
-                        onClose: dismissResultCard
-                    )
-                }
                 questionNavigation
                 if let review = currentReview {
                     AnnQuestionRemark(label: currentQuestionLabel, review: review)
@@ -82,10 +73,13 @@ extension AnnReaderView {
                     draft: $draft,
                     mode: $answerMode,
                     strokes: $whiteboardStrokes,
+                    whiteboardExpanded: $whiteboardExpanded,
+                    focused: $answerFieldFocused,
                     questionLabel: currentQuestionLabel,
                     subject: subject,
                     prompt: entry.title,
                     pythonModel: pythonModel,
+                    hasAnyAnswer: hasAnyAnswer,
                     onClearAll: {
                         draft = ""
                         whiteboardStrokes = []
@@ -95,7 +89,10 @@ extension AnnReaderView {
             }
             .padding(.horizontal, 16)
             .padding(.top, 10)
-            .padding(.bottom, 18)
+            // `keyboardOpenWorkspace` : clavier système ouvert, le bouton de
+            // soumission est caché derrière et les points réservés en bas
+            // deviendraient un blanc mort entre la carte et le clavier.
+            .padding(.bottom, systemKeyboardOpen ? 0 : 18)
         }
     }
 
@@ -125,14 +122,19 @@ extension AnnReaderView {
 
 /// Atelier de réponse (`answerCard` + `answerToolsDock`, `:4270-4712`) : dicter,
 /// photo, clavier maths, tableau blanc, bloc Python, menu de suppression.
-/// Écarts assumés (18#2/18#6) : « Supprimer toutes les réponses » n'efface que
-/// le brouillon ; dictée et photo insèrent en fin de champ (pas de sélection
+/// Écarts assumés (18#2/18#6) : « Toutes les réponses » n'efface que le
+/// brouillon ; dictée et photo insèrent en fin de champ (pas de sélection
 /// exposée par SwiftUI).
 struct AnnAnswerWorkspace: View {
     @Binding var draft: String
     @Binding var mode: AnnAnswerMode
     @Binding var strokes: [WbStroke]
-    /// Libellé de la question ouverte, pour « Supprimer réponse X ».
+    /// Repli du tableau blanc, partagé avec le lecteur : le bilan en modale se
+    /// masque quand le tableau occupe l'écran (`whiteboardExpanded`).
+    @Binding var whiteboardExpanded: Bool
+    /// Champ de réponse au premier plan : c'est le clavier système ouvert.
+    var focused: FocusState<Bool>.Binding
+    /// Libellé de la question ouverte, pour « Réponse X ».
     var questionLabel: String = ""
     /// Matière du sujet, transmise à la transcription photo.
     var subject: String = ""
@@ -141,15 +143,17 @@ struct AnnAnswerWorkspace: View {
     /// Console Python partagée avec la garde avant correction (18#5) : le bac à
     /// sable monté ici est celui que la soumission interroge.
     var pythonModel: PyConConsoleModel? = nil
+    /// `hasAnyAnswer` : au moins une réponse subsiste sur le sujet — garde de
+    /// « Toutes les réponses ».
+    var hasAnyAnswer: Bool = false
     /// `clearAllAnswers` : efface la réponse ouverte (et ses tracés).
     var onClearAll: () -> Void = {}
 
     @EnvironmentObject private var session: SessionStore
     @StateObject private var dictation = DictControlModel()
-    @State private var whiteboardExpanded = false
     @State private var photoModalOpen = false
     @State private var mathKeyboardOpen = false
-    @FocusState private var focused: Bool
+    @State private var deleteMenuOpen = false
 
     /// Invite de permission de la dictée (`permissionMessage` de la source).
     private static let dictationPermissionMessage =
@@ -231,7 +235,7 @@ struct AnnAnswerWorkspace: View {
                 .font(.system(size: 15))
                 .foregroundStyle(Theme.ink)
                 .scrollContentBackground(.hidden)
-                .focused($focused)
+                .focused(focused)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 6)
         }
@@ -254,53 +258,89 @@ struct AnnAnswerWorkspace: View {
     /// Barre d'outils (`answerToolsDock` + `MoreAnswerTools`) : dicter, photo,
     /// clavier maths, tableau blanc, bloc Python, menu de suppression.
     private var tools: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                toolButton(dictationLabel, icon: dictationIcon, active: dictation.isListening) {
-                    toggleDictation()
+        VStack(spacing: 0) {
+            if deleteMenuOpen { deleteMenuRow }
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    toolButton(dictationLabel, icon: dictationIcon, active: dictation.isListening) {
+                        toggleDictation()
+                    }
+                    toolButton("Photo", icon: "camera-outline", active: false) {
+                        openPhotoTranscription()
+                    }
+                    toolButton("Clavier maths", icon: "calculator-outline", active: mathKeyboardOpen) {
+                        mathKeyboardOpen.toggle()
+                    }
+                    toolButton("Tableau blanc", icon: "brush-outline", active: mode == .whiteboard) {
+                        mode = mode == .whiteboard ? .text : .whiteboard
+                    }
+                    toolButton("Bloc Python", icon: "logo-python", active: mode == .python) {
+                        mode = mode == .python ? .text : .python
+                    }
+                    deleteMenuTrigger
                 }
-                toolButton("Photo", icon: "camera-outline", active: false) {
-                    openPhotoTranscription()
-                }
-                toolButton("Clavier maths", icon: "calculator-outline", active: mathKeyboardOpen) {
-                    mathKeyboardOpen.toggle()
-                }
-                toolButton("Tableau blanc", icon: "brush-outline", active: mode == .whiteboard) {
-                    mode = mode == .whiteboard ? .text : .whiteboard
-                }
-                toolButton("Bloc Python", icon: "logo-python", active: mode == .python) {
-                    mode = mode == .python ? .text : .python
-                }
-                deleteMenu
+                .padding(.horizontal, 9)
+                .padding(.vertical, 8)
             }
-            .padding(.horizontal, 9)
-            .padding(.vertical, 8)
         }
         .overlay(alignment: .top) {
             Rectangle().fill(Theme.border).frame(height: 1)
         }
     }
 
-    /// Menu de suppression à deux entrées (`deleteMenu`,
-    /// `AnnaleViewer.tsx:4675-4712`) : la réponse ouverte, ou toutes.
-    private var deleteMenu: some View {
-        Menu {
-            Button(deleteCurrentLabel) {
+    /// Déclencheur du menu de suppression (« Effacer », `deleteMenu`).
+    private var deleteMenuTrigger: some View {
+        Button {
+            deleteMenuOpen.toggle()
+        } label: {
+            toolLabel("Effacer", icon: "trash-outline", active: deleteMenuOpen)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Supprimer des réponses")
+        .accessibilityAddTraits(deleteMenuOpen ? [.isSelected] : [])
+    }
+
+    /// `deleteMenu` (`AnnaleViewer.tsx:5970`) : rangée horizontale de deux
+    /// boutons texte seul, posée 14 pt au-dessus de la barre grise — la réponse
+    /// ouverte, ou toutes. Aucune icône corbeille sur les entrées.
+    private var deleteMenuRow: some View {
+        HStack(spacing: 4) {
+            deleteMenuButton(deleteCurrentLabel, disabled: !hasCurrentAnswer) {
+                deleteMenuOpen = false
                 draft = ""
                 strokes = []
             }
-            .disabled(!hasCurrentAnswer)
-            Button("Supprimer toutes les réponses") { onClearAll() }
-                .disabled(!hasCurrentAnswer)
-        } label: {
-            toolLabel("Effacer", icon: "trash-outline", active: false)
+            deleteMenuButton("Toutes les réponses", disabled: !hasAnyAnswer) {
+                deleteMenuOpen = false
+                onClearAll()
+            }
         }
-        .accessibilityLabel("Supprimer des réponses")
+        .frame(minWidth: 280)
+        .frame(maxWidth: .infinity, alignment: .center)
+        .padding(.bottom, 14)
     }
 
-    /// `deleteCurrentLabel` : « Supprimer réponse X », ou « Supprimer réponse ».
+    /// `deleteMenuButton` : `toolButton` réduit à son libellé, centré.
+    private func deleteMenuButton(_ title: String, disabled: Bool,
+                                  action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 11, weight: .heavy))
+                .foregroundStyle(Theme.primary)
+                .padding(.horizontal, 10)
+                .frame(minHeight: 32)
+                .background(Theme.primaryLight)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+        }
+        .buttonStyle(.plain)
+        .disabled(disabled)
+        .opacity(disabled ? 0.38 : 1)
+        .accessibilityLabel(title)
+    }
+
+    /// `deleteCurrentLabel` : « Réponse X », ou « Réponse ».
     private var deleteCurrentLabel: String {
-        questionLabel.isEmpty ? "Supprimer réponse" : "Supprimer réponse \(questionLabel)"
+        questionLabel.isEmpty ? "Réponse" : "Réponse \(questionLabel)"
     }
 
     /// Lignes d'état de la dictée (`dictationStatus` / `dictationNotice`).
@@ -362,7 +402,7 @@ struct AnnAnswerWorkspace: View {
         Task { @MainActor in
             _ = await ConsentPremiumGate.gate(tool: .photoTranscription, accountId: accountId) {
                 dictation.annuler()
-                focused = false
+                focused.wrappedValue = false
                 if mathKeyboardOpen { mathKeyboardOpen = false }
                 photoModalOpen = true
             }

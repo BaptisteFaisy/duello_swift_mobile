@@ -174,6 +174,10 @@ struct MathKeyboardView: View {
     @FocusState var operatorFocus: Int?
     @FocusState var intervalFocus: Int?
 
+    /// Chrome racine des onglets, pour déclarer l'ouverture du clavier
+    /// (`onMathKeyboardVisibilityChange`). `nil` hors de `MainTabView`.
+    @Environment(\.rootChromeModel) private var rootChrome
+
     // MARK: Dérivés
 
     var sections: [MathKbSection] { MathKbLayout.sections(for: mode) }
@@ -217,6 +221,8 @@ struct MathKeyboardView: View {
                 )
             }
 
+            editExistingRow
+
             if let draft = matrixDraft {
                 matrixEditor(draft)
             }
@@ -239,6 +245,12 @@ struct MathKeyboardView: View {
                 .fill(Theme.border)
                 .frame(height: 1)
         }
+        // `onMathKeyboardVisibilityChange` (`App.tsx:1572`) : un clavier maths
+        // visible réserve le geste horizontal de l'onglet Entraînement. Le
+        // clavier déclare lui-même son ouverture (`rootChromeModel`), faute de
+        // pouvoir câbler chaque hôte (lecteur d'annale, outils de défi, revue).
+        .onAppear { Task { @MainActor in rootChrome?.setMathKeyboardOpen(true) } }
+        .onDisappear { Task { @MainActor in rootChrome?.setMathKeyboardOpen(false) } }
     }
 
     // MARK: Frappe
@@ -272,6 +284,12 @@ struct MathKeyboardView: View {
             operatorDraft = operatorDraft(from: kind)
             operatorFocus = 0
         }
+
+        // `MathKeyboard.tsx:509-512` : une case d'éditeur se remplit surtout de
+        // chiffres et d'opérations — la section « Base » est celle qui les porte,
+        // et le mode indice est coupé.
+        sectionId = "base"
+        subscriptMode = false
     }
 
     /// Brouillon de matrice pour l'outil ouvert (`createMatrixDraft`,

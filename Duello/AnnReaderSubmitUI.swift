@@ -22,7 +22,10 @@ extension AnnReaderView {
     var submitArea: some View {
         if correctionDockActive, let correction = correctionDockCorrection, !correction.completed {
             AnnCorrectionDock(correction: correction)
-        } else if wholeExerciseSubmissionOnly || (currentReview == nil && currentGradingError == nil) {
+        } else if !whiteboardExpanded, !systemKeyboardOpen,
+                  wholeExerciseSubmissionOnly || (currentReview == nil && currentGradingError == nil) {
+            // Clavier système ouvert : le bouton reste derrière le clavier, comme
+            // la source (`!systemKeyboardOpen`) — l'élève le referme pour soumettre.
             submitButton
         }
         gradingNotices

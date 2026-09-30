@@ -61,6 +61,8 @@ struct AcctIntShowcase: View {
     @StateObject private var ranks = AcctProfileRanksController()
     /// XP de la semaine dans la matière classée, relus du journal d'activité.
     @State private var weeklyXp: Double?
+    /// Page dédiée « Tout voir » de l'historique des notes (`setPage('history')`).
+    @State private var historyOpen = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -71,21 +73,27 @@ struct AcctIntShowcase: View {
                     totalXp: progress.totalXp,
                     elo: elo,
                     streakDays: progress.currentStreak(),
-                    programPercent: progress.competitionProgramPercent
+                    programPercent: progress.competitionProgramPercent,
+                    exercisesCompleted: progress.exercisesCompleted
                 ),
                 details: AcctIntData.detailStats(
                     level: xpSummary.level,
                     progress: progress,
-                    rankTiles: rankTiles
+                    rankTiles: rankTiles,
+                    programPercent: progress.competitionProgramPercent
                 ),
                 xpSummary: xpSummary
             )
+            // Ordre refondu (`AccountScreen.tsx:3272-3648`) : l'historique passe
+            // en tête, puis XP, Elo, Temps, Exos et Moyenne des notes.
+            gradeHistorySection
             AcctShowXpSeriesSection(
                 points: xpSeriesPoints,
                 granularity: $granularity,
                 evolutionPercentage: xpEvolution.percentage,
                 evolutionAbsolute: xpEvolution.absolute,
-                name: name
+                name: name,
+                refined: refined
             )
             AcctShowEloSeriesSection(
                 points: eloSeriesPoints,
@@ -93,22 +101,34 @@ struct AcctIntShowcase: View {
                 subjects: AcctIntData.eloSubjects(progress),
                 subject: $eloSubject,
                 evolutionPercentage: eloEvolution.percentage,
-                evolutionAbsolute: eloEvolution.absolute
-            )
-            AcctShowGradeSeriesSection(
-                points: gradePoints,
-                granularity: $granularity,
-                evolutionPercentage: gradeEvolution.percentage,
-                evolutionAbsolute: gradeEvolution.absolute
+                evolutionAbsolute: eloEvolution.absolute,
+                refined: refined
             )
             AcctShowTimeSeriesSection(
                 buckets: timeBuckets,
                 granularity: $granularity,
                 // `hasTrainingTime` = `viewedActivity.exerciseMinutes > 0`
                 // (`AccountScreen.tsx:1902`) : gate de la courbe « temps ».
-                hasTrainingTime: progress.exerciseMinutes > 0
+                hasTrainingTime: progress.exerciseMinutes > 0,
+                evolutionPercentage: timeEvolution.percentage,
+                evolutionAbsolute: timeEvolution.absolute,
+                refined: refined
             )
-            gradeHistorySection
+            if refined {
+                AcctShowExosSeriesSection(
+                    buckets: exosBuckets,
+                    granularity: $granularity,
+                    evolutionPercentage: exosEvolution.percentage,
+                    evolutionAbsolute: exosEvolution.absolute
+                )
+            }
+            AcctShowGradeSeriesSection(
+                points: gradePoints,
+                granularity: $granularity,
+                evolutionPercentage: gradeEvolution.percentage,
+                evolutionAbsolute: gradeEvolution.absolute,
+                refined: refined
+            )
         }
         .padding(.horizontal, 4)
         .padding(.top, 14)
@@ -128,26 +148,53 @@ struct AcctIntShowcase: View {
         .onChange(of: rankInput) { input in
             ranks.update(input)
         }
+        .fullScreenCover(isPresented: $historyOpen) {
+            GradeHistoryScreen(rows: fullGradeHistoryRows) {
+                historyOpen = false
+            }
+        }
     }
 
-    /// Section « Historique des notes » (`AccountScreen.tsx:3653-3698`),
-    /// réservée au profil propre : bandeau « Historique » + cinq dernières
-    /// notes, ou état vide.
+    /// `USE_REFINED_OVERVIEW` : variante de développement, qui porte le mode
+    /// affiné « Trade Republic » de la vitrine.
+    private var refined: Bool { AcctEvoConstants.useRefinedOverview }
+
+    /// Section « Historique des notes » (`AccountScreen.tsx:3272-3325`),
+    /// réservée au profil propre. En affiné, l'en-tête disparaît : seule la
+    /// carte flotte sur la page (`historySection`), avec son lien « Tout voir ».
     @ViewBuilder
     private var gradeHistorySection: some View {
-        AcctShowSectionCard(
-            icon: "albums-outline",
-            iconColor: ChartGoogleGColors.blue,
-            title: "Historique des notes"
-        ) {
-            if gradeHistoryRows.isEmpty {
-                AcctShowChartEmpty(
-                    icon: "albums-outline",
-                    message: "Ton historique démarrera dès ta première correction d’exercice, de colle, d’annale ou de défi."
-                )
-            } else {
-                AcctGradeHistoryCard(rows: gradeHistoryRows)
+        if refined {
+            historyBody
+                .padding(.vertical, 14)
+                .padding(.top, 28)
+                .padding(.horizontal, 12)
+        } else {
+            AcctShowSectionCard(
+                icon: "albums-outline",
+                iconColor: ChartGoogleGColors.blue,
+                title: "Historique des notes"
+            ) {
+                historyBody
             }
+        }
+    }
+
+    /// Le contenu de l'historique : état vide, ou carte d'aperçu avec « Tout voir ».
+    @ViewBuilder
+    private var historyBody: some View {
+        if gradeHistoryRows.isEmpty {
+            AcctShowChartEmpty(
+                icon: "albums-outline",
+                message: "Ton historique démarrera dès ta première correction d’exercice, de colle, d’annale ou de défi."
+            )
+        } else {
+            AcctGradeHistoryCard(
+                rows: gradeHistoryRows,
+                onSeeAll: refined ? { historyOpen = true } : nil,
+                hasMore: refined && fullGradeHistoryRows.count > gradeHistoryRows.count,
+                refined: refined
+            )
         }
     }
 
@@ -228,9 +275,38 @@ struct AcctIntShowcase: View {
         AcctIntData.gradeHistoryRows(correctionGrades)
     }
 
+    /// `gradeHistoryFullRows` : toutes les notes, pour la page « Tout voir ».
+    private var fullGradeHistoryRows: [GradeHistoryRow] {
+        RankingGradeHistory.buildGradeHistory(correctionGrades, limit: correctionGrades.count)
+    }
+
     /// Colonnes de la courbe du temps (`timeBuckets`).
     private var timeBuckets: [ChartTimeBucket] {
         AcctIntData.timeBuckets(progress, granularity: granularity)
+    }
+
+    /// `timeEvolutionPercentage`/`Absolute` : variation des minutes par période.
+    private var timeEvolution: (percentage: Double, absolute: Double) {
+        latestEvolution(timeBuckets.map(\.minutes))
+    }
+
+    /// `exosBuckets` : exercices terminés par période (`buildExerciseCountSeries`).
+    private var exosBuckets: [ChartExerciseBucket] {
+        let sessions = ChartActivitySessionStore.load()
+        let dates = sessions.map(\.at)
+            + progress.eloHistory.map(\.at)
+            + progress.xpHistory.map(\.at)
+        let start = dates.filter { $0.isFinite && $0 > 0 }.min()
+        return ChartTimeSeries.buildExerciseCountSeries(
+            sessions: sessions,
+            granularity: granularity,
+            registeredAt: start
+        )
+    }
+
+    /// `exosEvolutionPercentage`/`Absolute` : variation des exos par période.
+    private var exosEvolution: (percentage: Double, absolute: Double) {
+        latestEvolution(exosBuckets.map(\.exercises))
     }
 
     /// Entrée des rangs « Moi » (`useProfileLeaderboardRanks`).

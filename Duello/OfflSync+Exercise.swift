@@ -5,7 +5,7 @@
 //  Téléchargement ciblé d'un exercice et de son corrigé unitaire.
 //
 //  Fichier source Expo porté : `src/content/contentSync.ts`
-//  (`exerciseEntryMatches`, `parsedExerciseSolution`,
+//  (`exerciseEntryMatcher`, `parsedExerciseSolution`,
 //  `refreshRemoteExerciseSolution`, `refreshRemoteExerciseOnce`,
 //  `refreshRemoteExercise`, `cachedChapterEntries`).
 //
@@ -18,18 +18,25 @@
 import Foundation
 
 extension OfflSync {
-    /// `exerciseEntryMatches` : l'entrée désigne-t-elle cet exercice ?
-    static func exerciseEntryMatches(_ entry: Any, itemId: String) -> Bool {
+    /// `exerciseEntryMatcher` : comparateur d'exercice, clé calculée une seule fois.
+    ///
+    /// Calculer `itemId.split('::')` pour chaque entrée comparée produisait autant
+    /// de découpages que la banque compte de fiches — six mille pour ouvrir un
+    /// sujet — alors que la clé ne change pas. L'appelant construit donc le
+    /// comparateur une fois et le réutilise sur toute la sélection.
+    static func exerciseEntryMatcher(_ itemId: String) -> (Any) -> Bool {
         let exerciseKey = itemId.components(separatedBy: "::").last ?? itemId
-        if let array = entry as? [Any], let first = array.first as? String {
-            return first == itemId || first == exerciseKey
+        return { entry in
+            if let array = entry as? [Any], let first = array.first as? String {
+                return first == itemId || first == exerciseKey
+            }
+            guard let object = entry as? [String: Any] else { return false }
+            if object["id"] as? String == itemId { return true }
+            guard let chapterId = object["chapterId"] as? String,
+                  let key = object["key"] as? String
+            else { return false }
+            return "\(chapterId)::exercice::\(key)" == itemId || "\(chapterId)::colle::\(key)" == itemId
         }
-        guard let object = entry as? [String: Any] else { return false }
-        if object["id"] as? String == itemId { return true }
-        guard let chapterId = object["chapterId"] as? String,
-              let key = object["key"] as? String
-        else { return false }
-        return "\(chapterId)::exercice::\(key)" == itemId || "\(chapterId)::colle::\(key)" == itemId
     }
 
     /// `parsedExerciseSolution` : charge utile cohérente, ou `nil`.
@@ -77,6 +84,7 @@ extension OfflSync {
               let bundles = manifestBundles(manifestData)
         else { return result }
 
+        let matches = exerciseEntryMatcher(itemId)
         for (position, id) in bundleIds.enumerated() {
             guard let descriptor = bundles.first(where: { $0.id == id.rawValue }) else {
                 result.rejected.append(id)
@@ -88,7 +96,7 @@ extension OfflSync {
                 guard let entries = await verifiedEntriesCooperative(descriptor, serialized: serialized) else {
                     throw OfflContentError.integrity
                 }
-                let selected = entries.filter { exerciseEntryMatches($0, itemId: itemId) }
+                let selected = entries.filter(matches)
                 // Seule la banque principale doit impérativement retrouver l'exercice.
                 if selected.isEmpty {
                     if position == 0 { throw OfflContentError.missing }
@@ -103,6 +111,10 @@ extension OfflSync {
                 _ = store.writePartial(id, OfflPartialContentCacheEntry(
                     sourceDigest: descriptor.sha256, digest: partialDigest, serialized: partialSerialized
                 ))
+                // La passe s'arrête à la banque qui porte le sujet : la continuer
+                // vérifiait, hachait et décodait les sept banques annuelles d'un
+                // profil ECG pour n'en garder qu'une entrée.
+                return result
             } catch {
                 result.rejected.append(id)
             }

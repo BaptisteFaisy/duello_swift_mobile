@@ -57,6 +57,8 @@ struct AdmHomeTab: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text("ESPACE D’ADMINISTRATION")
                     .font(.system(size: 11, weight: .black))
+                    // `eyebrow` (`AdminApp.tsx:570-574`) : `letterSpacing: 1`.
+                    .tracking(1)
                     .foregroundStyle(Theme.primary)
                 Text(account.profile.displayName)
                     .font(.system(size: 24, weight: .black))

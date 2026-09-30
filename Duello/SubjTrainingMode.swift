@@ -2,9 +2,12 @@
 // Porté de `src/screens/SubjectsScreen.tsx` (lignes 397-421, 570-663) et
 // `src/utils/installedDesktopNavigation.ts` (`InstalledDesktopTrainingSection`).
 //
-// Écarts assumés (29/09/2026) : aucun. Barre d'onglets passée en noir
-// (`modeTabs` `#000000`, pastille choisie blanche à texte/icône encre,
-// non-choisie à texte/icône blancs), comme le delta dev `423b1039c`.
+// « Retour gris » (2026-09-30, delta `92e3e639d`) : la barre d'onglets reprend
+// le fond gris de la source — `modeTabs` `colors.surfaceMuted`, pastille
+// choisie `colors.primary` (encre) à texte/icône blancs (`modeTabTextSelected`,
+// icône `colors.white`), non-choisie à texte `colors.mutedSurfaceText` et icône
+// `colors.inkSoft` (`SubjectsScreen.tsx:10442,10476,10481,10491`, icône `:658`).
+// Le delta dev `423b1039c` (barre noire) est annulé.
 
 import SwiftUI
 
@@ -163,7 +166,7 @@ struct SubjTrainingModeTabs: View {
 
     var body: some View {
         GeometryReader { proxy in
-            HStack(spacing: compact ? 2 : 6) {
+            HStack(spacing: compact ? 2 : 5) {
                 ForEach(availableModes) { option in
                     tab(option, width: tabWidth(for: option, total: proxy.size.width))
                 }
@@ -171,7 +174,7 @@ struct SubjTrainingModeTabs: View {
         }
         .frame(height: compact ? 42 : 52)
         .padding(compact ? 3 : 4)
-        .background(Color(hex: 0x000000))
+        .background(Theme.surfaceMuted)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .onChange(of: mode) { newValue in
             if displayedMode != newValue { displayedMode = newValue }
@@ -193,18 +196,19 @@ struct SubjTrainingModeTabs: View {
     /// au prorata des poids.
     private func tabWidth(for option: SubjTrainingModeOption, total: CGFloat) -> CGFloat {
         guard !availableModes.isEmpty else { return total }
-        let gaps = CGFloat(availableModes.count - 1) * (compact ? 2 : 6)
+        let gaps = CGFloat(availableModes.count - 1) * (compact ? 2 : 5)
         let usable = max(0, total - gaps)
         let sum = availableModes.reduce(CGFloat(0)) { $0 + weight(for: $1) }
         guard sum > 0 else { return usable / CGFloat(availableModes.count) }
         return usable * weight(for: option) / sum
     }
 
-    /// Un onglet : `modeTab` de la source — icône + libellé centrés, capsule
-    /// noire, pastille choisie blanche (`modeTabSelected`) à texte/icône encre,
-    /// non-choisie à texte/icône blancs (`modeTabText`). L'icône est bridée à
-    /// 18 points (les symboles SF sont plus larges que les Ionicons d'origine)
-    /// et le libellé se réduit (`minimumScaleFactor` 0,7) plutôt que d'être
+    /// Un onglet : `modeTab` de la source — icône + libellé centrés, pastille
+    /// choisie `primary` (`modeTabSelected`) à texte/icône blancs
+    /// (`modeTabTextSelected`, icône `colors.white`), non-choisie à texte
+    /// `mutedSurfaceText` (`modeTabText`) et icône `inkSoft`. L'icône est bridée
+    /// à 18 points (les symboles SF sont plus larges que les Ionicons d'origine)
+    /// et le libellé se réduit (`minimumScaleFactor` 0,75) plutôt que d'être
     /// coupé, comme `adjustsFontSizeToFit` de la source.
     private func tab(_ option: SubjTrainingModeOption, width: CGFloat) -> some View {
         let selected = displayedMode == option.mode
@@ -217,17 +221,17 @@ struct SubjTrainingModeTabs: View {
                 IonIcon(
                     name: option.ionName,
                     size: compact ? 14 : 16,
-                    color: selected ? Theme.ink : Color.white
+                    color: selected ? Color.white : Theme.inkSoft
                 )
                 Text(option.label)
                     .font(.system(size: compact ? 11 : 13, weight: .heavy))
                     .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                    .foregroundStyle(selected ? Theme.ink : Color.white)
+                    .minimumScaleFactor(0.75)
+                    .foregroundStyle(selected ? Color.white : Theme.mutedSurfaceText)
             }
             .padding(.horizontal, compact ? 1 : 4)
             .frame(width: width, height: compact ? 36 : 44)
-            .background(selected ? Color.white : Color.clear)
+            .background(selected ? Theme.primary : Color.clear)
             .clipShape(RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(.plain)

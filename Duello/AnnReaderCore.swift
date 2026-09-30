@@ -50,6 +50,9 @@ struct AnnReaderView: View {
     var unavailableQuestionIds: Set<String> = []
 
     @EnvironmentObject var session: SessionStore
+    /// `AppState` : le brouillon visible est persisté dès que l'app quitte le
+    /// premier plan (`persistVisibleDraft`).
+    @Environment(\.scenePhase) private var scenePhase
 
     // Lecture
     @State var mode: AnnDocumentMode = .statement
@@ -63,6 +66,17 @@ struct AnnReaderView: View {
     @State var answerMode: AnnAnswerMode = .text
     /// Brouillon du tableau blanc de la question ouverte.
     @State var whiteboardStrokes: [WbStroke] = []
+    /// Repli du tableau blanc, remonté du champ pour que le bilan en modale et
+    /// le dock de correction en tiennent compte (`whiteboardExpanded`).
+    @State var whiteboardExpanded = false
+    /// Champ de réponse au premier plan : c'est le clavier système ouvert
+    /// (`useSystemKeyboardOpen`).
+    @FocusState var answerFieldFocused: Bool
+    /// Item dont le brouillon a été chargé (`loadedDraftItemId`) : garde la
+    /// sauvegarde différée tant que le sujet n'a pas été restauré.
+    @State var draftLoadedItemId: String?
+    /// Sauvegarde différée du brouillon (`setTimeout(…, 450)`).
+    @State var draftSaveTask: Task<Void, Never>?
     /// Hauteur relative de l'énoncé au-dessus de l'atelier (`useAnnaleSplit`).
     @State var splitRatio: Double = AnnaleSplit.DEFAULT_ANNALE_SPLIT
     /// Demande du prof IA ouverte par « ✦ Expliquer » sur un corrigé.
@@ -130,19 +144,34 @@ struct AnnReaderView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            header
-            tabs
-            Divider().overlay(Theme.border)
-            splitArea
-            footer
+        ZStack {
+            VStack(alignment: .leading, spacing: 0) {
+                header
+                tabs
+                Divider().overlay(Theme.border)
+                splitArea
+                footer
+            }
+            .background(Theme.background)
+            // Fenêtre du bilan : premier plan sur téléphone, fermée par la
+            // croix, par un toucher en dehors ou à la première retouche. Ni
+            // tableau blanc, ni corrigé en plein écran : le bilan en page garde
+            // ces parcours (`AnnaleViewer.tsx:5043-5060`).
+            if resultModalVisible, let correction = correctionDockCorrection {
+                AnnResultModal(
+                    scoreOn20: gradingScore.scoreOn20,
+                    xp: resultXp,
+                    exerciseRank: resultRank,
+                    correction: correction,
+                    onClose: dismissResultCard
+                )
+            }
         }
-        .background(Theme.background)
         .onAppear {
             loadAttempt()
             loadRankingSeen()
             activeQuestionId = entry.questions.first?.id
-            draft = attempt?.answers[activeQuestionId ?? ""] ?? ""
+            restoreDraft()
             splitRatio = AnnaleSplit.loadAnnaleSplit(itemId: entry.id)
             reloadCopyJob()
         }
@@ -150,19 +179,26 @@ struct AnnReaderView: View {
             mode = .statement
             loadAttempt()
             activeQuestionId = entry.questions.first?.id
-            draft = attempt?.answers[activeQuestionId ?? ""] ?? ""
+            restoreDraft()
             dsUnlocked = false
             copySheetOpen = false
             answerMode = .text
             whiteboardStrokes = []
+            whiteboardExpanded = false
             splitRatio = AnnaleSplit.loadAnnaleSplit(itemId: entry.id)
             reloadCopyJob()
+        }
+        .onChange(of: draft) { _ in scheduleDraftSave() }
+        .onChange(of: scenePhase) { phase in
+            if phase != .active { persistVisibleDraft() }
         }
         .task(id: courseDocument?.id) { @MainActor in
             courseText.update(document: courseDocument, token: session.token)
         }
-        // `closeViewer` : la dernière tentative est persistée à la fermeture.
+        // `closeViewer` : la dernière tentative est persistée à la fermeture, et
+        // le brouillon visible l'est aussi (`persistVisibleDraft`).
         .onDisappear {
+            persistVisibleDraft()
             flushDraftToAttempt()
             Task { @MainActor in await persistAttempt() }
         }
@@ -211,6 +247,55 @@ struct AnnReaderView: View {
             Button(CtdAiConsent.allowLabel) { resolveCorrectionConsent(granted: true) }
         } message: {
             Text(CtdAiConsent.message)
+        }
+    }
+}
+
+// MARK: - Brouillon persisté
+
+extension AnnReaderView {
+    /// `systemKeyboardOpen` : le clavier système est ouvert quand le champ de
+    /// réponse a le focus — le bouton « Soumettre » reste alors derrière, comme
+    /// la source (`useSystemKeyboardOpen`).
+    var systemKeyboardOpen: Bool { answerFieldFocused }
+
+    /// `annaleDraftStorageKey` : brouillon de copie du sujet, dans les
+    /// préférences locales (clé logique conservée à l'identique).
+    private var draftStorageKey: String {
+        RewStorageKeys.annaleDraftStorageKey(entry.id)
+    }
+
+    /// Restaure le brouillon visible du sujet : le texte enregistré prime sur
+    /// la réponse de la question ouverte (`loadedDraftItemId`).
+    func restoreDraft() {
+        let stored = UserDefaults.standard.string(forKey: draftStorageKey)
+        if let stored, !stored.isEmpty {
+            draft = stored
+        } else {
+            draft = attempt?.answers[activeQuestionId ?? ""] ?? ""
+        }
+        draftLoadedItemId = entry.id
+    }
+
+    /// `setTimeout(…, 450)` : la sauvegarde attend que la frappe se pose.
+    func scheduleDraftSave() {
+        guard draftLoadedItemId == entry.id else { return }
+        draftSaveTask?.cancel()
+        draftSaveTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 450_000_000)
+            guard !Task.isCancelled else { return }
+            persistVisibleDraft()
+        }
+    }
+
+    /// `persistVisibleDraft` : un brouillon vide retire la clé au lieu
+    /// d'écrire une chaîne vide.
+    func persistVisibleDraft() {
+        guard draftLoadedItemId == entry.id else { return }
+        if draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            UserDefaults.standard.removeObject(forKey: draftStorageKey)
+        } else {
+            UserDefaults.standard.set(draft, forKey: draftStorageKey)
         }
     }
 }

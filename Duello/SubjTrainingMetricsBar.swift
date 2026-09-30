@@ -15,13 +15,15 @@
 //
 //  Cible : iOS 16, aucune API iOS 17.
 //
-//  V2 (2026-09-29, écart 06#5) : la barre passe en noir comme la source —
-//  `trainingMetricsBar` `backgroundColor: '#000000'` (`SubjectsScreen.tsx:10794-10798`),
-//  compteur `trainingProgressTextOnDark` blanc (`:12150-12152`, `renderTrainingProgressControl(true)`),
-//  pastille de classement `PerformanceMetricIcon` noire cerclée de blanc avec
-//  `sparkles` blanc (`:9803-9808`). Le sélecteur d'année (`ProgramYearTabs`,
-//  `tabs` `#000000` / `tabSelected` blanc / `tabText` blanc) suit la même bascule,
-//  sans quoi la capsule claire resterait visible sur la barre noire.
+//  V3 (2026-09-30, « retour gris » `92e3e639d`) : la barre reprend le gris de la
+//  source — `trainingMetricsBar` `backgroundColor: colors.surfaceMuted`
+//  (`SubjectsScreen.tsx:10794-10798`), compteur `trainingProgressText`
+//  `mutedSurfaceText` (`:12150-12152`), pastille de classement
+//  `PerformanceMetricIcon` `surfaceMuted` cerclée d'encre avec `sparkles` encre
+//  (`:9817-9824`). Le sélecteur d'année (`ProgramYearTabs`, `tabs`
+//  `surfaceMuted` / `tabSelected` `primary` / `tabText` `mutedSurfaceText`)
+//  suit la même bascule. La zone d'en-tête de 60 pt (`trainingMetricsHeader`,
+//  `:10800-10803`) est rétablie autour de la barre de 48 pt.
 //
 import SwiftUI
 
@@ -38,23 +40,34 @@ struct SubjTrainingMetricsBar: View {
     let onOpenRanking: () -> Void
 
     var body: some View {
-        HStack(spacing: 8) {
+        // `trainingMetricsHeader` (60 pt) coiffe `trainingMetricsBar` (48 pt) :
+        // la zone réserve la hauteur exacte du bandeau de la source
+        // (`SubjectsScreen.tsx:10800-10803`), la barre grise restant centrée
+        // dedans — sans quoi le squelette (qui réserve déjà 60) sautait de 12 pt
+        // à la fin du chargement.
+        HStack(spacing: 0) {
             yearTabs
+            Spacer(minLength: 8)
             progress
+                .padding(.leading, 6)
+                .padding(.trailing, 12)
+            Spacer(minLength: 8)
             rankingButton
         }
         .padding(.horizontal, 4)
         .frame(height: 48)
-        .background(Color.black)
+        .background(Theme.surfaceMuted)
         .clipShape(RoundedRectangle(cornerRadius: 16))
+        .frame(height: 60)
     }
 
     // MARK: Sélecteur d'année (`ProgramYearTabs.tsx`)
 
-    /// Deux puces `1re` / `2e` dans une capsule noire, l'année choisie sur fond
-    /// blanc à libellé encre — `compactTabs` + `matchedTabs` de la source
-    /// (`ProgramYearTabs.tsx:116-160` : `tabs` `#000000`, `tabSelected` blanc,
-    /// `tabText` blanc, `tabTextSelected` encre).
+    /// Deux puces `1re` / `2e` dans une capsule grise, l'année choisie sur fond
+    /// `primary` à libellé blanc — `compactTabs` + `matchedTabs` de la source
+    /// (`ProgramYearTabs.tsx:122,148,154,159` : `tabs` `surfaceMuted`,
+    /// `tabSelected` `primary`, `tabText` `mutedSurfaceText`, `tabTextSelected`
+    /// blanc).
     private var yearTabs: some View {
         HStack(spacing: 2) {
             ForEach([1, 2], id: \.self) { value in
@@ -63,7 +76,7 @@ struct SubjTrainingMetricsBar: View {
         }
         .padding(2)
         .frame(height: 40)
-        .background(Color.black)
+        .background(Theme.surfaceMuted)
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Année du programme")
@@ -77,9 +90,9 @@ struct SubjTrainingMetricsBar: View {
         } label: {
             Text(value == 1 ? "1re" : "2e")
                 .font(.system(size: 11, weight: .black))
-                .foregroundStyle(selected ? Theme.ink : Color.white)
+                .foregroundStyle(selected ? Color.white : Theme.mutedSurfaceText)
                 .frame(minWidth: 29, minHeight: 36)
-                .background(selected ? Color.white : Color.clear)
+                .background(selected ? Theme.primary : Color.clear)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
         }
         .buttonStyle(.plain)
@@ -89,15 +102,15 @@ struct SubjTrainingMetricsBar: View {
 
     // MARK: Avancement de la matière (`trainingProgressControl`)
 
-    /// « X/Y sujets réussis » puis la piste d'avancement — texte centré blanc
-    /// (`trainingProgressTextOnDark`), piste de 6 points sur fond blanc,
-    /// remplissage à l'encre.
+    /// « X/Y sujets réussis » puis la piste d'avancement — texte centré
+    /// `mutedSurfaceText` (`trainingProgressText`), piste de 6 points sur fond
+    /// blanc, remplissage à l'encre.
     private var progress: some View {
         VStack(spacing: 4) {
             Text("\(succeeded)/\(total) sujets réussis")
                 .font(.system(size: 11, weight: .heavy))
                 .monospacedDigit()
-                .foregroundStyle(Color.white)
+                .foregroundStyle(Theme.mutedSurfaceText)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity)
 
@@ -125,16 +138,17 @@ struct SubjTrainingMetricsBar: View {
 
     // MARK: Accès au classement XP
 
-    /// Pastille `sparkles` de la barre (`PerformanceMetricIcon`, `:9803-9808`) :
-    /// cercle 40 pt noir cerclé de blanc (1,5 pt), icône `sparkles` blanche 21 —
-    /// ouvre le classement XP, comme `setRankingOpen(true)` de la source.
+    /// Pastille `sparkles` de la barre (`PerformanceMetricIcon`, `:9817-9824`) :
+    /// cercle 40 pt `surfaceMuted` cerclé d'encre (1,5 pt), icône `sparkles`
+    /// encre 21 — ouvre le classement XP, comme `setRankingOpen(true)` de la
+    /// source.
     private var rankingButton: some View {
         Button(action: onOpenRanking) {
-            IonIcon(name: "sparkles", size: 21, color: Color.white)
+            IonIcon(name: "sparkles", size: 21, color: Theme.ink)
                 .frame(width: 40, height: 40)
-                .background(Color.black)
+                .background(Theme.surfaceMuted)
                 .clipShape(Circle())
-                .overlay(Circle().stroke(Color.white, lineWidth: 1.5))
+                .overlay(Circle().stroke(Theme.ink, lineWidth: 1.5))
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)

@@ -16,9 +16,9 @@
 //  location-outline (15), open-outline (14), chevron-forward (18), comme la
 //  source — plus de substitution SF Symbol.
 //
-//  V1 (29/09/2026, écart 14#4) : la pastille de date des cartes passe au noir
-//  `#000000` à libellés blancs (`EventsList.tsx:241-270`), au lieu de
-//  `surfaceMuted` à libellés d'encre.
+//  Retour au gris (30/09/2026, écart 14#4 inversé) : la pastille de date des
+//  cartes reprend le gris `surfaceMuted` à libellés encre/encre douce
+//  (`EventsList.tsx:241-270`), au lieu du noir `#000000` à libellés blancs.
 //
 //  Cible : iOS 16.
 //
@@ -156,25 +156,26 @@ private struct EvEventCard: View {
         }
     }
 
-    /// Pastille de date à la manière d'un agenda papier : fond noir `#000000`,
-    /// les trois libellés en blanc (`EventsList.tsx:241-270`).
+    /// Pastille de date à la manière d'un agenda papier : fond gris
+    /// `surfaceMuted`, jour en encre et semaine/mois en encre douce
+    /// (`EventsList.tsx:241-270`).
     private var dateBadge: some View {
         VStack(spacing: 1) {
             Text(EvEventDateFormatting.weekdayLabel(event.date))
                 .font(.system(size: 10, weight: .heavy))
-                .foregroundStyle(.white)
+                .foregroundStyle(Theme.inkSoft)
             Text("\(EvEventDateFormatting.dayNumber(event.date))")
                 .font(.system(size: 22, weight: .black))
-                .foregroundStyle(.white)
+                .foregroundStyle(Theme.ink)
             Text(EvEventDateFormatting.monthLabel(event.date))
                 .font(.system(size: 11, weight: .heavy))
                 .textCase(.uppercase)
-                .foregroundStyle(.white)
+                .foregroundStyle(Theme.inkSoft)
         }
         .frame(width: 54)
         .frame(minHeight: 58)
         .padding(.vertical, 5)
-        .background(Color(hex: 0x000000))
+        .background(Theme.surfaceMuted)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
     }
 

@@ -23,12 +23,13 @@
 //     « Ajoute tes horaires de cours… » s'affiche, comme dans la source ;
 //   • le `console.log` de repli (EnhancedPlanScreen ligne 168) n'est pas porté :
 //     aucun `print` dans ce fichier ;
-//   • Écart assumé (2026-09-29) — le fond du détail de séance est posé sur le
+//   • Écart (2026-09-30) — le fond du détail de séance est posé en `overlay` du
 //     `ScrollView` de `PlanView`, pas à la racine (`MainTabView.swift` porte la
-//     barre d'onglets) : le voile s'arrête au-dessus de la barre, et les marges
-//     de `PlanSessionDetail.swift:29-30` sont fixes (insets non lus). Corriger
-//     exige `MainTabView.swift` / `PlanSessionDetail.swift`, hors lot — cf.
-//     « À raccorder » du rapport IMPL-07.
+//     barre d'onglets) : le voile défile jusqu'au bas de la fenêtre (safe area
+//     comprise), mais **la barre d'onglets reste au-dessus du voile**. Corriger
+//     vraiment exige de monter l'overlay à la racine (`MainTabView.swift`), hors
+//     périmètre : une `fullScreenCover` transparente rendrait la `Modal` Expo
+//     mais `presentationBackground` (iOS 16.4+) est interdit par `check-ios16.sh`.
 //
 //  Extensions locales exigées par le contrat du lot, absentes de l'écran Expo :
 //  coche d'une tâche (`isDone`), report d'un jour (`postponedDays`), liste des
@@ -169,6 +170,10 @@ struct PlanView: View {
         .overlay {
             if let session = selectedSession {
                 PlanSessionDetailOverlay(session: session) { selectedSession = nil }
+                    // `modalBackdrop` (`EnhancedPlanScreen.tsx:298-305`) couvre
+                    // toute la fenêtre : le voile doit donc déborder de la zone
+                    // de contenu, safe area basse comprise.
+                    .ignoresSafeArea(.container, edges: .bottom)
                     .transition(.opacity)
             }
         }

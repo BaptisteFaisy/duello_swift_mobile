@@ -6,7 +6,7 @@
 //
 //  Fichiers source Expo portés :
 //    - src/screens/OnboardingScreen.tsx (`validateStep`, `stepAdvanceBlocked`,
-//      `registrationPreflightState`, `continueButtonText`, `progressTrack` /
+//      `continueButtonText`, `progressTrack` /
 //      `progressFill`, `ensureUsernameAvailable` + `usernameAvailabilityAlertTitle`,
 //      `ensureAccountRegistrationAvailable` + `accountRegistrationAlertTitle`)
 //    - src/utils/onboardingSteps.ts (`STEP_COPY`, via `OnbDataSteps`)
@@ -68,22 +68,33 @@ struct OnbFlowAlert: Identifiable, Equatable {
 }
 
 /// État lu par les règles de blocage d'avance (`stepAdvanceBlocked`).
+///
+/// Le précontrôle d'inscription (`ensureAccountRegistrationAvailable`) n'y
+/// figure **plus** : depuis `871083903`, il tourne en tâche de fond et ne
+/// verrouille jamais la navigation (`OnboardingScreen.tsx:384-393`).
 struct OnbFlowGateState {
     var isCompleting = false
     var isCheckingRegistrationDetails = false
     var isCheckingUsername = false
+    /// L'étape « TON NIVEAU » attend un choix explicite (`levelChoicePending`).
+    var levelChoicePending = false
+    /// L'étape « TON ANNÉE » attend un choix explicite (`yearChoicePending`).
+    var yearChoicePending = false
     var trackChoicePending = false
+    /// L'étape « TON PARCOURS » (PSI) attend un choix explicite (`originChoicePending`).
+    var originChoicePending = false
     /// L'étape « option » attend un choix de niveau de maths (`mathOptionChoicePending`).
     var mathOptionChoicePending = false
     var premiumGiftOpenPending = false
-    var preflightReady = true
-    var isCheckingPreflight = false
 }
 
 /// État lu par la validation d'étape (`validateStep`).
 struct OnbFlowValidationState {
     var step: OnbDataSteps.Step = .year
+    var levelChoicePending = false
+    var yearChoicePending = false
     var trackChoicePending = false
+    var originChoicePending = false
     var asksForMathOption = false
     var currentOption = ""
     var targetSchool = ""
@@ -129,8 +140,12 @@ enum OnbFlowSteps {
     }
 
     /// Libellé du bouton principal (`continueButtonText`).
+    ///
+    /// « Vérification… » n'est réservé qu'aux contrôles de l'étape courante
+    /// (pseudo, inscription) : le précontrôle du montage, non bloquant, ne le
+    /// déclenche plus (`OnboardingScreen.tsx:1704-1705`).
     static func continueLabel(step: Int, total: Int, gate: OnbFlowGateState) -> String {
-        if gate.isCheckingRegistrationDetails || gate.isCheckingUsername || gate.isCheckingPreflight {
+        if gate.isCheckingRegistrationDetails || gate.isCheckingUsername {
             return "Vérification…"
         }
         if gate.isCompleting { return "Ouverture…" }
@@ -142,16 +157,20 @@ enum OnbFlowSteps {
     }
 
     /// `stepAdvanceBlocked` : l'avance est verrouillée tant qu'une vérification
-    /// ou la création de compte est en cours, qu'une filière ou une option
-    /// n'est pas choisie, ou que le cadeau n'est pas ouvert.
+    /// ou la création de compte est en cours, qu'un choix de programme
+    /// (niveau, année, filière, parcours, option) n'est pas fait, ou que le
+    /// cadeau n'est pas ouvert. Le précontrôle d'inscription, non bloquant, est
+    /// **hors** de ce verrou (`OnboardingScreen.tsx:384-393`).
     static func advanceBlocked(_ state: OnbFlowGateState) -> Bool {
         state.isCompleting
             || state.isCheckingRegistrationDetails
             || state.isCheckingUsername
+            || state.levelChoicePending
+            || state.yearChoicePending
             || state.trackChoicePending
+            || state.originChoicePending
             || state.mathOptionChoicePending
             || state.premiumGiftOpenPending
-            || !state.preflightReady
     }
 
     /// `ensureUsernameAvailable` : vérifie qu'un pseudo est libre avant de

@@ -180,5 +180,150 @@ enum EvEventSubjectCatalog {
                 ),
             ]
         ),
+        // ——— Défis test 22h/minuit du 29/09 au 01/10 (sans public) ———
+        EvEventSubject(
+            id: "test-soustractions-22h00-2026-09-29",
+            eventId: "test-soustractions-22h00-2026-09-29",
+            title: "Soustractions faciles",
+            durationMinutes: 5,
+            questions: [
+                EvEventQuestion(
+                    id: "q1",
+                    label: "Question 1",
+                    points: 2,
+                    statement: "Calcule 19 - 7.",
+                    solution: "19 - 7 = 12."
+                ),
+                EvEventQuestion(
+                    id: "q2",
+                    label: "Question 2",
+                    points: 2,
+                    statement: "Calcule 45 - 23.",
+                    solution: "45 - 23 = 22."
+                ),
+                EvEventQuestion(
+                    id: "q3",
+                    label: "Question 3",
+                    points: 2,
+                    statement: "Calcule 100 - 14.",
+                    solution: "100 - 14 = 86."
+                ),
+                EvEventQuestion(
+                    id: "q4",
+                    label: "Question 4",
+                    points: 2,
+                    statement: "Calcule 62 - 37.",
+                    solution: "62 - 37 = 25."
+                ),
+            ]
+        ),
+        EvEventSubject(
+            id: "test-multiplications-00h00-2026-09-30",
+            eventId: "test-multiplications-00h00-2026-09-30",
+            title: "Multiplications faciles",
+            durationMinutes: 5,
+            questions: [
+                EvEventQuestion(
+                    id: "q1",
+                    label: "Question 1",
+                    points: 2,
+                    statement: "Calcule 12 x 3.",
+                    solution: "12 x 3 = 36."
+                ),
+                EvEventQuestion(
+                    id: "q2",
+                    label: "Question 2",
+                    points: 2,
+                    statement: "Calcule 7 x 8.",
+                    solution: "7 x 8 = 56."
+                ),
+                EvEventQuestion(
+                    id: "q3",
+                    label: "Question 3",
+                    points: 2,
+                    statement: "Calcule 15 x 4.",
+                    solution: "15 x 4 = 60."
+                ),
+                EvEventQuestion(
+                    id: "q4",
+                    label: "Question 4",
+                    points: 2,
+                    statement: "Calcule 9 x 6.",
+                    solution: "9 x 6 = 54."
+                ),
+            ]
+        ),
+        EvEventSubject(
+            id: "test-divisions-22h00-2026-09-30",
+            eventId: "test-divisions-22h00-2026-09-30",
+            title: "Divisions faciles",
+            durationMinutes: 5,
+            questions: [
+                EvEventQuestion(
+                    id: "q1",
+                    label: "Question 1",
+                    points: 2,
+                    statement: "Calcule 36 : 4.",
+                    solution: "36 : 4 = 9."
+                ),
+                EvEventQuestion(
+                    id: "q2",
+                    label: "Question 2",
+                    points: 2,
+                    statement: "Calcule 56 : 7.",
+                    solution: "56 : 7 = 8."
+                ),
+                EvEventQuestion(
+                    id: "q3",
+                    label: "Question 3",
+                    points: 2,
+                    statement: "Calcule 100 : 5.",
+                    solution: "100 : 5 = 20."
+                ),
+                EvEventQuestion(
+                    id: "q4",
+                    label: "Question 4",
+                    points: 2,
+                    statement: "Calcule 72 : 9.",
+                    solution: "72 : 9 = 8."
+                ),
+            ]
+        ),
+        EvEventSubject(
+            id: "test-operations-mixtes-00h00-2026-10-01",
+            eventId: "test-operations-mixtes-00h00-2026-10-01",
+            title: "Operations mixtes faciles",
+            durationMinutes: 5,
+            questions: [
+                EvEventQuestion(
+                    id: "q1",
+                    label: "Question 1",
+                    points: 2,
+                    statement: "Calcule 12 + 8 - 5.",
+                    solution: "12 + 8 - 5 = 15."
+                ),
+                EvEventQuestion(
+                    id: "q2",
+                    label: "Question 2",
+                    points: 2,
+                    statement: "Calcule 7 x 3 - 2.",
+                    solution: "7 x 3 - 2 = 19."
+                ),
+                EvEventQuestion(
+                    id: "q3",
+                    label: "Question 3",
+                    points: 2,
+                    statement: "Calcule 100 : 4 + 5.",
+                    solution: "100 : 4 + 5 = 30."
+                ),
+                EvEventQuestion(
+                    id: "q4",
+                    label: "Question 4",
+                    points: 2,
+                    statement: "Calcule 45 - 18 + 3.",
+                    solution: "45 - 18 + 3 = 30."
+                ),
+            ]
+        ),
     ] + EvEventSubjectFixtures.all
 }

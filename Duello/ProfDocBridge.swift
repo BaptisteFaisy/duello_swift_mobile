@@ -34,12 +34,20 @@ enum ProfBridgeEvent: Equatable {
     case explainImage(image: String, page: Int?)
     case copyBlocked
     case noText(page: Int?)
+    /// `text-layer` : mots exposés par le document et mots effectivement
+    /// sélectionnables. `items > 0` avec `spans == 0` est la signature d'un
+    /// cours que le prof IA ne peut pas lire (`profSelectionBridge.ts:9,129-137`).
+    case textLayer(page: Int?, items: Int, spans: Int, error: String?)
 }
 
 // MARK: - Calque de texte
 
 /// `PROF_TEXT_LAYER_CLASS` : classe des calques posés sur les pages PDF.
 let PROF_TEXT_LAYER_CLASS = "duello-prof-layer"
+
+/// `PROF_TEXT_LAYER_REPORT_TYPE` : type du rapport publié par le calque de
+/// texte (`profTextLayer.ts:13`).
+let PROF_TEXT_LAYER_REPORT_TYPE = "duello-prof-text-layer"
 
 /// `profTextLayerCss` : styles du calque (texte transparent, sélection active).
 func profTextLayerCss() -> String {
@@ -109,6 +117,14 @@ func parseProfBridgeMessage(_ raw: String) -> ProfBridgeEvent? {
     if type == "duello-prof-copy-blocked" { return .copyBlocked }
     let page = profBridgePage(dictionary["page"])
     if type == "duello-prof-no-text" { return .noText(page: page) }
+    if type == PROF_TEXT_LAYER_REPORT_TYPE {
+        return .textLayer(
+            page: page,
+            items: profBridgeCount(dictionary["items"]),
+            spans: profBridgeCount(dictionary["spans"]),
+            error: dictionary["error"] as? String
+        )
+    }
     if type == "duello-prof-explain-image" {
         guard let image = dictionary["image"] as? String, !image.isEmpty else { return nil }
         return .explainImage(image: image, page: page)
@@ -125,6 +141,13 @@ func parseProfBridgeMessage(_ raw: String) -> ProfBridgeEvent? {
 private func profBridgePage(_ raw: Any?) -> Int? {
     guard let number = raw as? Double, number.isFinite else { return nil }
     return max(1, Int(number.rounded(.down)))
+}
+
+/// `typeof x === 'number' && Number.isFinite(x) ? x : 0` : compte du calque de
+/// texte, ramené à 0 quand il n'est pas un nombre fini.
+private func profBridgeCount(_ raw: Any?) -> Int {
+    guard let number = raw as? Double, number.isFinite else { return 0 }
+    return Int(number)
 }
 
 // MARK: - Scripts injectés (verbatim de la source)
@@ -300,32 +323,40 @@ private let profExplainImageJavascript = """
 private let profTextLayerJavascript = """
 (function(){
   if (window.__duelloProfTextLayer) return;
+  var report = function (page, items, spans, error) {
+    if (!window.ReactNativeWebView) return;
+    var payload = { type: '\(PROF_TEXT_LAYER_REPORT_TYPE)', items: items, spans: spans };
+    if (page) payload.page = page;
+    if (error) payload.error = error;
+    window.ReactNativeWebView.postMessage(JSON.stringify(payload));
+  };
   window.__duelloProfTextLayer = function (page, viewport, cssWidth, layer, topOffsetPx) {
     var offset = topOffsetPx || 0;
+    var pageAttr = layer.parentElement
+      ? layer.parentElement.getAttribute('data-prof-page')
+      : null;
+    var pageNumber = pageAttr ? Number(pageAttr) : undefined;
     return page.getTextContent().then(function (textContent) {
       var items = (textContent.items || []).filter(function (item) {
         return item && typeof item.str === 'string' && item.str.length > 0;
       });
       if (items.length === 0) {
         if (window.ReactNativeWebView) {
-          var pageAttr = layer.parentElement
-            ? layer.parentElement.getAttribute('data-prof-page')
-            : null;
           window.ReactNativeWebView.postMessage(JSON.stringify({
             type: 'duello-prof-no-text',
-            page: pageAttr ? Number(pageAttr) : undefined,
+            page: pageNumber,
           }));
         }
         if (window.__duelloProfImage && layer.parentElement) {
-          var holderEl = layer.parentElement;
-          var holderPage = holderEl.getAttribute('data-prof-page');
-          window.__duelloProfImage.pageButton(holderEl, holderPage ? Number(holderPage) : undefined);
+          window.__duelloProfImage.pageButton(layer.parentElement, pageNumber);
         }
+        report(pageNumber, 0, 0);
         return;
       }
       var scale = cssWidth / viewport.width;
       var cssHeight = layer.getBoundingClientRect().height
         || (viewport.height * scale - offset * scale);
+      var spans = 0;
       items.forEach(function (item) {
         var tx = pdfjsLib.Util.transform(viewport.transform, item.transform);
         var fontHeight = Math.sqrt(tx[2] * tx[2] + tx[3] * tx[3]) * scale;
@@ -339,7 +370,9 @@ private let profTextLayerJavascript = """
         span.style.fontSize = fontHeight + 'px';
         span.style.lineHeight = '1';
         layer.appendChild(span);
+        spans += 1;
       });
+      report(pageNumber, items.length, spans);
     });
   };
 })();

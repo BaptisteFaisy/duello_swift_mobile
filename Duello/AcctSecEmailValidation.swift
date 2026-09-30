@@ -1,8 +1,13 @@
 import Foundation
 
 /// Contrôle d'adresse e-mail, aligné sur `validEmail` de
-/// `ForgotPasswordScreen.tsx` : au plus 320 caractères, sans espace, de la
-/// forme `local@domaine.tld`.
+/// `ForgotPasswordScreen.tsx:28-30` : au plus 320 caractères et la forme
+/// `^\S+@\S+\.\S+$` — au moins un caractère de chaque côté de l'arobase, puis
+/// un point suivi d'au moins un caractère, sans espace.
+///
+/// ⚠️ La source n'exige **pas** un unique `@` : `\S+` peut couvrir un `@`
+/// supplémentaire (`a@b@c.d` est valide). L'ancien contrôle « exactement un
+/// arobase » (`split == 2`) divergeait donc de la référence.
 ///
 /// Trois écrans de mot de passe refaisaient ce contrôle. Deux le portaient en
 /// privé (`AccountPasswordResetView.swift:125`,
@@ -13,15 +18,9 @@ import Foundation
 /// périmètre de la correction.
 enum AcctSecEmailValidation {
 
-    /// Vrai si l'adresse a la forme `local@domaine.tld`.
+    /// `validEmail` de la source : `value.length <= 320 && /^\S+@\S+\.\S+$/.test(value)`.
     static func isPlausibleEmail(_ value: String) -> Bool {
-        guard !value.isEmpty, value.count <= 320 else { return false }
-        guard !value.contains(where: { $0.isWhitespace }) else { return false }
-        let parts = value.split(separator: "@", omittingEmptySubsequences: false)
-        guard parts.count == 2, !parts[0].isEmpty else { return false }
-        let domain = parts[1]
-        guard let dot = domain.firstIndex(of: ".") else { return false }
-        let afterDot = domain.index(after: dot)
-        return dot != domain.startIndex && afterDot < domain.endIndex
+        guard value.count <= 320 else { return false }
+        return value.range(of: "^\\S+@\\S+\\.\\S+$", options: .regularExpression) != nil
     }
 }

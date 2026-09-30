@@ -200,7 +200,7 @@ enum CtdDocumentHtml {
                 }
                 image.addEventListener('error', function () {
                   status.textContent = 'La photo du cours n’a pas pu être affichée.';
-                  notify('error', {});
+                  notify('error', { message: 'image' });
                 });
 
         """

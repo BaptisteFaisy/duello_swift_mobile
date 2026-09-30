@@ -150,11 +150,48 @@ extension AnnReaderView {
         return resultCardDismissedId != correction.submissionId
     }
 
-    /// `correctionDockActive` : le dock prend la place du bouton de soumission
-    /// pendant la correction d'un exercice entier, hors corrigé plein écran.
-    /// Écart assumé : le repli du tableau blanc n'est pas lu depuis le lecteur.
+    /// `resultModalVisible` : la fenêtre du bilan s'affiche au premier plan
+    /// tant qu'aucun contexte prioritaire ne l'écarte — le tableau blanc et le
+    /// corrigé en plein écran gardent le bilan en page.
+    var resultModalVisible: Bool {
+        resultCardVisible && !whiteboardExpanded && !correctionProfDockVisible
+    }
+
+    /// `successSummary?.xp ?? gainedXp.current` : l'XP du dernier bilan terminé,
+    /// relu dans l'historique des métriques de la tentative.
+    var resultXp: Double {
+        attempt?.metricHistory?.last?.xp ?? 0
+    }
+
+    /// `exerciseResult?.rank` : le rang du dernier bilan terminé, relu dans le
+    /// même historique.
+    var resultRank: Int? {
+        attempt?.metricHistory?.last?.rank
+    }
+
+    /// `hasAnyAnswer` : au moins une réponse subsiste sur le sujet — garde de
+    /// l'entrée « Toutes les réponses » du menu de suppression.
+    var hasAnyAnswer: Bool {
+        let answers = (attempt?.answers ?? [:]).values
+        if answers.contains(where: { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) {
+            return true
+        }
+        return !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !whiteboardStrokes.isEmpty
+    }
+
+    /// `correctionDockActive` (`correctionDockVisible`) : le dock prend la place
+    /// du bouton de soumission pendant la correction d'un exercice entier, hors
+    /// tableau blanc, corrigé plein écran et disposition ordinateur. La
+    /// disposition ordinateur (`desktopAnswerSplit`) n'est pas portée : le
+    /// lecteur iOS compose toujours en une colonne, elle vaut donc `false`.
     var correctionDockActive: Bool {
-        wholeExerciseSubmissionOnly && correction != nil && mode != .solution
+        ExGCorrectionDock.visible(ExGCorrectionDockOptions(
+            wholeExerciseSubmissionOnly: wholeExerciseSubmissionOnly,
+            correctionStarted: correction != nil,
+            whiteboardExpanded: whiteboardExpanded,
+            documentOnSolution: mode == .solution,
+            desktopAnswerSplit: false
+        ))
     }
 
     /// `showSupplementalWholeSubmit` : bouton d'exercice entier, seulement s'il

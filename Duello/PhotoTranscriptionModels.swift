@@ -46,9 +46,11 @@ enum PhotoTxText {
 
 // MARK: - Types d'état
 
-/// Étapes portées de `PhotoTranscriptionStage`. L'étape `remote` de la source
-/// (photo prise depuis un téléphone connecté) est web uniquement : non portée.
-enum PhotoTxStage { case capture, reading, review }
+/// Étapes portées de `PhotoTranscriptionStage`. L'étape `remote` (photo prise
+/// depuis un téléphone connecté, `PhotoCaptureStage.tsx:69`) n'est atteinte que
+/// sur le web côté RN (`Platform.OS === 'web'`) : sur iOS l'app est le téléphone,
+/// l'étape reste donc **inerte** ici, mais elle est portée pour la parité.
+enum PhotoTxStage { case capture, remote, reading, review }
 /// Portée de la capture (`PhotoCaptureScope`).
 enum PhotoTxScope { case question, exercise }
 /// Sélecteur employé pour récupérer la photo (`Equatable` : observé par l'étape de
@@ -99,13 +101,22 @@ struct PhotoTxRelayResponse: Decodable { let text: String; let source: String?; 
 /// et signature inchangés.
 enum PhotoTxRelay {
     static func transcribe(uris: [String], subject: String, exercise: String?, mode: String, pageNumber: Int?, pageCount: Int, token: String?, questionLabels: [String]? = nil) async throws -> PhotoTxRelayResponse {
+        // `mathOcr.ts:249,285-296` : chaque image passe par `preparePremiumImage`,
+        // qui la compresse sous le budget. Une seule page vise
+        // `MATHPIX_BASE64_TARGET_BYTES` (1,8 Mo) ; l'exercice entier répartit
+        // `FULL_EXERCISE_BASE64_TARGET_BYTES` (18 Mio) sur ses pages, plafonné au
+        // budget par image (`targetPerImage = min(1,8 Mo, 18 Mio / n)`).
+        let targetPerImage = mode == "full-exercise"
+            ? min(PhotoTxPremiumImage.mathpixBase64TargetBytes,
+                  PhotoTxPremiumImage.fullExerciseBase64TargetBytes / max(uris.count, 1))
+            : PhotoTxPremiumImage.mathpixBase64TargetBytes
         var images: [[String: Any]] = []
         for uri in uris {
-            guard let data = FileManager.default.contents(atPath: uri), let image = UIImage(data: data),
-                  let jpeg = image.jpegData(compressionQuality: 0.88) else {
+            guard let data = FileManager.default.contents(atPath: uri), let image = UIImage(data: data) else {
                 throw DirectoryError(message: PhotoTxText.photoUnavailable)
             }
-            images.append(["image": jpeg.base64EncodedString(), "mimeType": "image/jpeg"])
+            let base64 = try PhotoTxPremiumImage.preparePremiumImage(image, targetBytes: targetPerImage)
+            images.append(["image": base64, "mimeType": "image/jpeg"])
         }
         var body: [String: Any] = ["action": "transcribe-photo", "subject": subject,
                                    "transcriptionMode": mode, "pageCount": pageCount]

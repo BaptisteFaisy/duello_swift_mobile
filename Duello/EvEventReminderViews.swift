@@ -88,7 +88,9 @@ struct EvEventReminderOptIn: View {
         }
     }
 
-    /// Bouton noir, cloche et libellé, dans l'esprit d'`AppPressable` d'Expo.
+    /// Bouton noir, cloche et libellé, dans l'esprit d'`AppPressable` d'Expo :
+    /// à l'appui, l'opacité tombe à 0,82 (`buttonPressed`) ; pendant l'attente,
+    /// à 0,6 (`buttonBusy`, prioritaire).
     private var enableButton: some View {
         Button { Task { await enable() } } label: {
             HStack(spacing: 8) {
@@ -101,12 +103,22 @@ struct EvEventReminderOptIn: View {
             .padding(.horizontal, 22)
             .background(Theme.ink)
             .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium))
-            .opacity(busy ? 0.6 : 1)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(EvEventReminderOptInStyle(busy: busy))
         .disabled(busy)
         .accessibilityLabel("Me prévenir 10 minutes avant")
         .accessibilityHint("Autorise les notifications puis planifie les rappels de l'événement")
+    }
+}
+
+/// État d'appui de l'opt-in (`buttonPressed` `opacity: 0.82` de la source) :
+/// l'attente (`buttonBusy`, 0,6) prime sur l'appui.
+private struct EvEventReminderOptInStyle: ButtonStyle {
+    let busy: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(busy ? 0.6 : (configuration.isPressed ? 0.82 : 1))
     }
 }
 
