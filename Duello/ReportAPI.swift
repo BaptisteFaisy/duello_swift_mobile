@@ -49,8 +49,9 @@ struct ReportPublicProfilePayload: Encodable {
 ///
 /// Toute la forme de l'instantané est reproduite : identité, activité, séries
 /// d'Elo (globale et par matière), séries temporelles, succès par matière,
-/// exercices très durs réussis et série d'XP. `weeklyXp` (classement hebdo par
-/// matière) reste absent : aucune source locale ne l'alimente encore.
+/// exercices très durs réussis, série d'XP et dernières notes de corrections.
+/// `weeklyXp` (classement hebdo par matière) reste absent : aucune source locale
+/// ne l'alimente encore.
 struct ReportPublicProfileDetails: Encodable {
     var currentTrack: String
     var specialty: String
@@ -61,6 +62,9 @@ struct ReportPublicProfileDetails: Encodable {
     var subjectSuccesses: [ReportPublicSubjectSuccess]
     var veryHardExerciseSuccessIds: [String]
     var xpSeries: [ReportPublicXpPoint]?
+    /// `correctionGrades` : dernières notes de corrections, pour l'historique
+    /// des visiteurs (`PublicProfileDetails.correctionGrades`).
+    var correctionGrades: [CorrectionGradeEntry]?
 }
 
 /// `PublicProfileDetails.activity` : compteurs d'entraînement publiés.

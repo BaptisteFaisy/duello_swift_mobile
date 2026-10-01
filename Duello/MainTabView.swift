@@ -159,7 +159,15 @@ struct MainTabView: View {
             initialPage: selection,
             scrollEnabled: chrome.tabPagerScrollEnabled(activeTab: selection),
             onPageSelected: { selection = $0 },
-            page0: { AccountView(publisher: publisher) },
+            page0: {
+                AccountView(
+                    publisher: publisher,
+                    onOpenTraining: { target in
+                        trainingContinuation = target
+                        selection = Self.trainingTabIndex
+                    }
+                )
+            },
             page1: { TrainingView(continuation: trainingContinuation) },
             page2: {
                 ChallengesView(
@@ -254,7 +262,10 @@ struct MainTabView: View {
             profile: session.profile,
             busy: challengeBusy,
             token: session.token,
-            subjectElo: AcctIntData.overallElo(progress),
+            // Cote **par matière** du défi, résolue à la construction de la cible
+            // (`getSubjectElo(subjectElos, subject)`, `subjectElo.ts:198`), au
+            // lieu de la moyenne globale (`AcctIntData.overallElo`).
+            subjectEloFor: { progress.subjectElo(for: $0) },
             startedExerciseIds: ChalProgress.startedExerciseIds(
                 progress: progress.items,
                 attemptIds: ChalProgress.attemptIds(

@@ -52,11 +52,13 @@ struct AcctShowStatsPanel: View {
 
             AcctShowLevelProgress(summary: xpSummary)
         }
-        .background(Theme.background)
+        // `refinedMetricsPanel` (dev) : `borderWidth: 0, backgroundColor: 'transparent'`
+        // — les huit métriques et la barre de niveau flottent sans carte.
+        .background(AcctEvoConstants.useRefinedOverview ? Color.clear : Theme.background)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
         .overlay(
             RoundedRectangle(cornerRadius: Theme.radiusLarge)
-                .stroke(Theme.border, lineWidth: 1)
+                .stroke(AcctEvoConstants.useRefinedOverview ? Color.clear : Theme.border, lineWidth: 1)
         )
         .padding(.top, 12)
     }
@@ -163,7 +165,7 @@ struct AcctShowPeriodFooter: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            ForEach(ChartTimeGranularity.allCases, id: \.self) { period in
+            ForEach([ChartTimeGranularity.day, .week, .month], id: \.self) { period in
                 periodButton(period)
             }
         }

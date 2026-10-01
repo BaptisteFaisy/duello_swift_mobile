@@ -25,10 +25,10 @@ enum DuelloProgram {
                 mathsApplied: Self.normalize(specialty).contains("applique")
             )
         }
-        if normalized.contains("mpsi") { return mpsiSubjects() }
+        if normalized.contains("mpsi") { return mpsiSubjects(specialty: specialty) }
         if normalized.contains("psi") { return psiSubjects() }
         if normalized == "mp" || normalized.contains("mp2") || normalized.contains("mpi") {
-            return mpSubjects()
+            return mpSubjects(specialty: specialty)
         }
         // Sans parcours connu, l'ECG 1re année s'affiche : le parcours le plus
         // courant, aucune matière du programme ECG n'est masquée.

@@ -22,7 +22,7 @@ enum ChartDateFormat {
     static func pointDate(_ at: Double, _ granularity: ChartTimeGranularity) -> String {
         if at <= 0 { return "Départ" }
         switch granularity {
-        case .month: return monthYear(at)
+        case .month, .year, .max: return monthYear(at)
         case .week: return "Sem. \(shortDate(ChartTimeSeries.date(at)))"
         case .day: return shortDate(ChartTimeSeries.date(at))
         }
@@ -36,7 +36,7 @@ enum ChartDateFormat {
     /// `periodDate` de `CorrectionGradeChart.tsx` : « juil. 2026 », « Sem. 15 juil. » ou « 15 juil. ».
     static func periodDate(_ at: Double, _ granularity: ChartTimeGranularity) -> String {
         switch granularity {
-        case .month: return monthYear(at)
+        case .month, .year, .max: return monthYear(at)
         case .week: return "Sem. \(shortDate(ChartTimeSeries.date(at)))"
         case .day: return shortDate(ChartTimeSeries.date(at))
         }

@@ -34,6 +34,9 @@ enum CorrectionGradeActivity: String, Codable, CaseIterable {
     case annale
     case defi
     case entrainement
+    /// Les événements filtrent la moyenne : aucune écriture ne les produit
+    /// encore (`correctionGradeHistory.ts:15`).
+    case evenement
 }
 
 /// `CorrectionGradeEntry` : note définitive rendue par une correction, toujours
@@ -143,13 +146,14 @@ enum CorrectionGradeHistory {
     }
 
     /// `chronologicalCorrectionGrades` : du plus ancien au plus récent, à rang
-    /// stable (départage par identifiant).
+    /// stable (départage par identifiant, comparaison sensible à la locale,
+    /// comme `id.localeCompare` de la source).
     static func chronological(_ entries: [CorrectionGradeEntry]) -> [CorrectionGradeEntry] {
         entries.sorted { first, second in
             if first.submittedAt != second.submittedAt {
                 return first.submittedAt < second.submittedAt
             }
-            return first.id < second.id
+            return first.id.localizedCompare(second.id) == .orderedAscending
         }
     }
 

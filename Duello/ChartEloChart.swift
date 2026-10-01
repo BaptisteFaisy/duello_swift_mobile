@@ -58,8 +58,14 @@ struct ChartEloChart: View {
             points: curvePoints,
             formatValue: { "\(Int($0.rounded())) Elo" },
             formatDate: { ChartDateFormat.pointDate($0, granularity) },
-            accessibilityLabel: "Évolution de l’Elo, de \(Int(first.rounded())) à \(Int(last.rounded()))"
+            accessibilityLabel: "Évolution de l’Elo, de \(rawText(first)) à \(rawText(last))"
         )
+    }
+
+    /// `${value}` de la source : un Elo entier s'écrit sans décimale
+    /// (« 1200 »), sinon avec (« 1200.5 »), comme un gabarit JS.
+    private func rawText(_ value: Double) -> String {
+        value == value.rounded() ? String(Int(value)) : String(value)
     }
 
     private var content: some View {

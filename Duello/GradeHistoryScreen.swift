@@ -16,16 +16,20 @@ import SwiftUI
 /// `GradeHistoryScreen` de `src/screens/GradeHistoryScreen.tsx` : un chevron
 /// retour seul en haut, sans titre, puis toutes les lignes.
 struct GradeHistoryScreen: View {
-    /// Toutes les notes du compte, de la plus récente à la plus ancienne.
-    let rows: [GradeHistoryRow]
+    /// Toutes les notes du compte, de la plus récente à la plus ancienne,
+    /// rattachées au programme du spectateur (`resolveHistoryRow`).
+    let rows: [ResolvedGradeHistoryRow]
     /// Ferme la page et revient au profil.
     let onBack: () -> Void
+    /// Rouvre le sujet d'une ligne lorsque le spectateur y a accès
+    /// (`onOpenItem`, `GradeHistoryScreen.tsx:14`).
+    var onOpenItem: ((ChalRunTrainingTarget) -> Void)? = nil
 
     var body: some View {
         VStack(spacing: 0) {
             header
             ScrollView {
-                AcctGradeHistoryCard(rows: rows, showTitle: false)
+                AcctGradeHistoryCard(rows: rows, onOpenItem: onOpenItem, showTitle: false)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 24)
                     .padding(.top, 8)

@@ -26,6 +26,9 @@ struct GradeHistoryRow: Identifiable, Equatable {
     /// Intitulé de la catégorie, mis en majuscules à l'affichage.
     var category: String
     var title: String
+    /// Premier sujet noté, pour retrouver son chapitre et le rouvrir
+    /// (`itemIds[0]`, `gradeHistoryTimeline.ts:76`).
+    var itemId: String?
     /// Note sur 20.
     var score: Double
     /// Taux d'évolution face à la note immédiatement antérieure, `nil` pour la
@@ -62,16 +65,22 @@ enum RankingGradeHistory {
         case .annale: return "Annale"
         case .defi: return "Défi"
         case .entrainement: return "Entraînement"
+        case .evenement: return "Événement"
         }
     }
 
-    /// `rowTitle` : titre de la note, replié sur la matière puis la catégorie.
+    /// `rowTitle` : titre de la note. Les sujets d'annales n'appartiennent à
+    /// aucun chapitre : leur intitulé de copie reste l'identité de la ligne.
+    /// Partout ailleurs, la matière remplace le nom de l'exercice.
     static func rowTitle(_ entry: CorrectionGradeEntry, category: String) -> String {
         let title = entry.title?.trimmingCharacters(in: .whitespacesAndNewlines)
         let subject = entry.subject?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let label = (title?.isEmpty == false ? title : nil)
-            ?? (subject?.isEmpty == false ? subject : nil)
-        return label ?? category
+        if entry.activity == .annale {
+            let label = (title?.isEmpty == false ? title : nil)
+                ?? (subject?.isEmpty == false ? subject : nil)
+            return label ?? category
+        }
+        return (subject?.isEmpty == false ? subject : nil) ?? category
     }
 
     /// `buildGradeHistory` : les dernières notes rendues, de la plus récente à
@@ -94,6 +103,7 @@ enum RankingGradeHistory {
                     id: entry.id,
                     category: category,
                     title: rowTitle(entry, category: category),
+                    itemId: entry.itemIds.first,
                     score: entry.score,
                     evolutionPercentage: nil,
                     record: isRecord

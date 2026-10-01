@@ -16,9 +16,15 @@
 //     réduction que les sujets non PDF de la source ;
 //   - la file bornée (`MAX_CONCURRENT_QUESTION_CORRECTIONS`) n'est pas portée :
 //     chaque question du lot part indépendamment, sans plafond de concurrence ;
-//   - `finishSubmittedBatch` s'arrête au bilan : le calcul des XP, du rang et du
-//     résultat de classement (`completeTrainingSubmission`, `recordExerciseResult`)
-//     reste à raccorder hors lot.
+//   - `finishSubmittedBatch` produit le bilan (XP des questions validées du lot →
+//     `recordAnnaleScoreSubmission` qui remplit `metricHistory`) puis relève le
+//     rang du sujet (`recordExerciseResult` → `recordAnnaleMetricRank`), comme
+//     `AnnaleViewer.tsx:3092-3121`. Réductions assumées : le lecteur n'accumule
+//     pas l'XP question par question pendant la session (pas de `gainedXp.current`)
+//     et n'a pas le magasin d'activité qui dédoublonne une question déjà primée ;
+//     le bonus de fin d'exercice (`recordExerciseCompletionReward`, réservé à
+//     l'activité « exercice » côté source) n'est pas appliqué — le lecteur iOS est
+//     le parcours annale.
 //
 //  Cible : iOS 16.
 //
@@ -124,12 +130,108 @@ extension AnnReaderView {
         }
     }
 
-    /// `finishSubmittedBatch` : marque la copie corrigée et persiste la tentative.
+    /// `finishSubmittedBatch` : marque la copie corrigée, produit le bilan (XP du
+    /// lot → `metricHistory`) puis relève le rang du sujet (`recordExerciseResult`
+    /// → `recordAnnaleMetricRank`), comme `AnnaleViewer.tsx:3092-3121`. Sans note
+    /// définitive (`scoreOn20` nul), la copie est simplement persistée.
     func finishSubmittedBatch() async {
         guard var current = correction else { return }
         current.completed = true
         correction = current
+
+        guard let scoreOn20 = gradingScore.scoreOn20 else {
+            await persistAttempt()
+            return
+        }
+        let before = attempt ?? emptyAnnaleAttempt(itemId: entry.id)
+        // `firstTry` se lit sur la tentative **avant** l'enregistrement du bilan
+        // (`completeTrainingSubmission`).
+        let firstTry = CollTrainingSummary.firstTry(
+            submissionCount: before.scoreSubmissionCount ?? 0,
+            wrongAnswers: before.wrongAnswers ?? 0
+        )
+        let local = recordBatchSummary(
+            current: current,
+            scoreOn20: scoreOn20,
+            firstTry: firstTry,
+            before: before
+        )
+        attempt = local.attempt
         await persistAttempt()
+        await refreshBatchRank(
+            current: current,
+            scoreOn20: scoreOn20,
+            firstTry: firstTry,
+            fallbackAttempt: local.attempt
+        )
+    }
+
+    /// `completeTrainingSubmission` : XP des questions + bonus, puis
+    /// `recordAnnaleScoreSubmission` qui remplit `metricHistory`.
+    private func recordBatchSummary(
+        current: AnnCorrectionState,
+        scoreOn20: Double,
+        firstTry: Bool,
+        before: AnnAttempt
+    ) -> AnnScoreSubmission {
+        let summary = CollTrainingSummary.summary(
+            questionXp: submittedQuestionXp(current),
+            bonusXp: 0,
+            seconds: Double(current.spentSeconds),
+            xpProgress: nil
+        )
+        return recordAnnaleScoreSubmission(
+            attempt: before,
+            metrics: AnnScoreMetrics(
+                submissionId: current.submissionId,
+                submittedAt: annNowISOString(),
+                score: scoreOn20,
+                spentSeconds: current.spentSeconds,
+                wrongAnswers: before.wrongAnswers ?? 0,
+                submissionCounts: before.submissionCounts ?? [:],
+                xp: summary.xp,
+                firstTry: firstTry
+            )
+        )
+    }
+
+    /// `recordExerciseResult` : la place de la meilleure note, relevée après la
+    /// publication du bilan, puis posée sur l'entrée d'historique
+    /// (`recordAnnaleMetricRank`).
+    private func refreshBatchRank(
+        current: AnnCorrectionState,
+        scoreOn20: Double,
+        firstTry: Bool,
+        fallbackAttempt: AnnAttempt
+    ) async {
+        guard let result = try? await SocialApiEndpoints.recordExerciseResult(
+            subject: subject,
+            itemId: entry.id,
+            activity: .annale,
+            score: scoreOn20,
+            submissionId: current.submissionId,
+            firstTry: firstTry,
+            token: session.token
+        ) else { return }
+        attempt = recordAnnaleMetricRank(
+            attempt: attempt ?? fallbackAttempt,
+            submissionId: current.submissionId,
+            rank: result.rank
+        )
+        await persistAttempt()
+    }
+
+    /// XP des questions validées du lot (`recordCorrectQuestionXp`,
+    /// `AnnaleViewer.tsx:2993-2999`, au barème `questionXpForDifficulty` de
+    /// `xp.ts`). Une question du lot dont le verdict est validé compte une fois,
+    /// au barème de la difficulté du sujet (facteur de rejeu quand la copie est
+    /// un rejeu). Voir l'écart assumé en tête de fichier.
+    private func submittedQuestionXp(_ submitted: AnnCorrectionState) -> Double {
+        let replay = attempt?.replay == true
+        return submitted.submittedQuestionIds.reduce(0) { total, id in
+            guard attempt?.reviews[id]?.verdict.isValidated == true else { return total }
+            return total + annaleQuestionXp(difficulty: entry.difficulty, replay: replay)
+        }
     }
 
     /// `saveAnnaleAttempt` : écrit la tentative du sujet sous le compte courant.

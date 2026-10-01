@@ -63,6 +63,22 @@ extension AcctIntData {
         RankingGradeHistory.buildGradeHistory(entries)
     }
 
+    /// `resolvedGradeHistoryRows` : lignes de l'historique rattachées au
+    /// programme du spectateur (`resolveHistoryRow` de `historyExerciseAccess.ts`) —
+    /// nom de chapitre affiché et cible de reprise dans l'entraînement.
+    static func resolvedGradeHistoryRows(
+        _ rows: [GradeHistoryRow],
+        profile: UserProfile
+    ) -> [ResolvedGradeHistoryRow] {
+        rows.map {
+            HistoryExerciseAccess.resolveHistoryRow(
+                $0,
+                viewer: profile,
+                ownerTrack: profile.track
+            )
+        }
+    }
+
     /// `timeBuckets` : minutes travaillées par période, bâties depuis les
     /// sessions d'entraînement locales (`buildSubjectTimeSeries`). La fenêtre
     /// démarre au premier instant connu (`graphStartedAt` de la source : plus

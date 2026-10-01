@@ -166,11 +166,9 @@ struct AcctShowRefinedDeltaPill: View {
 }
 
 /// `ChartPeriodTabs` en mode affiné (`refinedChartPeriodTabs`) : lettres seules
-/// espacées, sans fond segmenté ; actif en encre, inactif en `tradeGrey`.
-///
-/// ⚠️ Les niveaux `year` (« A ») et `max` (« MAX ») de la source ne sont pas
-/// portés : `ChartTimeGranularity` ne les expose pas et trois fichiers hors
-/// périmètre commutent dessus (cf. rapport I7-06, « Hors périmètre »).
+/// espacées (`justifyContent: 'space-between'`), sans fond segmenté ; actif en
+/// encre, inactif en `tradeGrey`. Les cinq périodes `VISIBLE_CHART_PERIOD_OPTIONS`
+/// du développement : « J », « S », « M », « A » (année) et « MAX ».
 struct AcctShowRefinedPeriodTabs: View {
     let value: ChartTimeGranularity
     let onChange: (ChartTimeGranularity) -> Void
@@ -182,6 +180,10 @@ struct AcctShowRefinedPeriodTabs: View {
             tab(.week, "S")
             Spacer(minLength: 0)
             tab(.month, "M")
+            Spacer(minLength: 0)
+            tab(.year, "A")
+            Spacer(minLength: 0)
+            tab(.max, "MAX")
         }
         .padding(.horizontal, 2)
         .padding(.top, 16)

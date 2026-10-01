@@ -33,6 +33,15 @@ import SwiftUI
 /// (un `Theme.inkBar` global appartiendrait à `Theme.swift`, hors lot).
 private let inkBar = Color(hex: 0x000000)
 
+/// Fond translucide de la barre en variante de développement
+/// (`TRANSLUCENT_BAR_BACKGROUND = 'rgba(255, 255, 255, 0.72)'`,
+/// `BottomNavigation.tsx:60`). La production reste opaque (`colors.surface`).
+private let translucentBarBackground = Color(hex: 0xFFFFFF, alpha: 0.72)
+
+/// Hauteur de la bande de fondu de la variante de développement
+/// (`FADE_BAND_HEIGHT = 40`, `BottomNavigation.tsx:61`).
+private let fadeBandHeight: CGFloat = 40
+
 /// Cellule de la barre (`tab` de `BottomNavigation.tsx:39-52`).
 private struct DuelloBottomTabSpec {
     let key: String
@@ -78,7 +87,41 @@ struct DuelloBottomBar: View {
         .padding(.top, 7)
         .padding(.bottom, max(bottomSafeAreaInset, 5))
         .frame(minHeight: 72)
-        .background(Theme.surface, ignoresSafeAreaEdges: .bottom)
+        // Conteneur : fond translucide `rgba(255,255,255,0.72)` en variante de
+        // développement, opaque `colors.surface` sinon (`BottomNavigation.tsx:81`
+        // `styles.container` + `:301` `styles.opaqueContainer`).
+        .background(
+            SubjAppVariant.isDevelopmentApp ? translucentBarBackground : Theme.surface,
+            ignoresSafeAreaEdges: .bottom
+        )
+        // Bande de fondu dev (`fadeBand`, `BottomNavigation.tsx:83-95,306-312`) :
+        // dégradé blanc 0 → 0,72 posé juste au-dessus de la barre translucide.
+        .overlay(alignment: .top) {
+            if SubjAppVariant.isDevelopmentApp {
+                DuelloBottomBarFadeBand(height: fadeBandHeight)
+                    .offset(y: -fadeBandHeight)
+            }
+        }
+    }
+}
+
+/// Bande de fondu au-dessus de la barre translucide de développement
+/// (`fadeBand` / `LinearGradient` `bottomNavigationFade`, `:83-95`) : blanc
+/// opaque 0 en haut → 0,72 en bas, sur 40 pt (`FADE_BAND_HEIGHT`).
+private struct DuelloBottomBarFadeBand: View {
+    let height: CGFloat
+
+    var body: some View {
+        LinearGradient(
+            gradient: Gradient(stops: [
+                .init(color: Color(hex: 0xFFFFFF, alpha: 0), location: 0),
+                .init(color: Color(hex: 0xFFFFFF, alpha: 0.72), location: 1),
+            ]),
+            startPoint: .top,
+            endPoint: .bottom
+        )
+        .frame(height: height)
+        .allowsHitTesting(false)
     }
 }
 

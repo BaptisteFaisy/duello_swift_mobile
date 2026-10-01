@@ -60,7 +60,7 @@ enum ChartTimeNavigation {
         switch granularity {
         case .day: unit = "jours"
         case .week: unit = "semaines"
-        case .month: unit = "mois"
+        case .month, .year, .max: unit = "mois"
         }
         return "Il y a \(count) \(unit)"
     }

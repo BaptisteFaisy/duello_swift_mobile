@@ -19,9 +19,10 @@
 //      « liste injoignable » ;
 //    - la feuille reçoit le jeton de session explicitement (l'API Swift n'a pas
 //      de session globale implicite), là où la source lit la session courante ;
-//    - l'avatar réutilise `LeaderboardAvatar` : l'initiale est dessinée à
-//      `taille × 0,4` (12 pt pour 30 pt) au lieu des 14 pt de la source, écart
-//      d'un pixel et demi.
+//    - l'avatar réutilise `LeaderboardAvatar`, mais les initiales sont passées
+//      explicitement (`initialFontSize`) pour coller aux `avatarInitial` de la
+//      source : 14 pt pour l'avatar 30 pt du rail (`EventPresenceStrip`), 15 pt
+//      pour l'avatar 32 pt de la feuille (`EventViewersSheet`).
 //
 //  Cible : iOS 16.
 //
@@ -79,7 +80,8 @@ struct EvEventPresencePerson: View {
                     photoUri: viewer.photoUri,
                     size: 30,
                     background: Theme.border,
-                    foreground: Theme.inkSoft
+                    foreground: Theme.inkSoft,
+                    initialFontSize: 14
                 )
             }
             Text(viewer.displayName)
@@ -230,7 +232,8 @@ struct EvEventViewersSheet: View {
                         photoUri: viewer.photoUri,
                         size: 32,
                         background: Theme.border,
-                        foreground: Theme.inkSoft
+                        foreground: Theme.inkSoft,
+                        initialFontSize: 15
                     )
                 }
                 Text(viewer.id == ownId ? "\(viewer.displayName) (toi)" : viewer.displayName)
