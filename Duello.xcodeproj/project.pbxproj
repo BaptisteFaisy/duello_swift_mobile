@@ -942,6 +942,8 @@
 		D466488F4B54F9DBF49AFAE3 /* ProfTutorFab.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEEB64BE40B30D0C0F379161 /* ProfTutorFab.swift */; };
 		6D92323E5B7F5952A9926926 /* SubjVeryHardAchievers.swift in Sources */ = {isa = PBXBuildFile; fileRef = D050CBCCF7C2EB0849450AF6 /* SubjVeryHardAchievers.swift */; };
 		71E9B7535BE3F9E898193B7D /* TrendCurve.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D9EC67B65ED2CE1000CE1BE /* TrendCurve.swift */; };
+		D21F22A8549090022CA3FC4F /* HistoryExerciseAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = C294B8F926BA016EE3DC9511 /* HistoryExerciseAccess.swift */; };
+		24DB53FE2BBEFE37FEA248B0 /* AnnStatementPdfView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27AE36B10D1216B0E1A0E3EB /* AnnStatementPdfView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -1881,6 +1883,8 @@
 		AEEB64BE40B30D0C0F379161 /* ProfTutorFab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfTutorFab.swift; sourceTree = "<group>"; };
 		D050CBCCF7C2EB0849450AF6 /* SubjVeryHardAchievers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjVeryHardAchievers.swift; sourceTree = "<group>"; };
 		5D9EC67B65ED2CE1000CE1BE /* TrendCurve.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrendCurve.swift; sourceTree = "<group>"; };
+		C294B8F926BA016EE3DC9511 /* HistoryExerciseAccess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryExerciseAccess.swift; sourceTree = "<group>"; };
+		27AE36B10D1216B0E1A0E3EB /* AnnStatementPdfView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnStatementPdfView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -2841,6 +2845,8 @@
 				AEEB64BE40B30D0C0F379161 /* ProfTutorFab.swift */,
 				D050CBCCF7C2EB0849450AF6 /* SubjVeryHardAchievers.swift */,
 				5D9EC67B65ED2CE1000CE1BE /* TrendCurve.swift */,
+				C294B8F926BA016EE3DC9511 /* HistoryExerciseAccess.swift */,
+				27AE36B10D1216B0E1A0E3EB /* AnnStatementPdfView.swift */,
 			);
 			path = Duello;
 			sourceTree = "<group>";
@@ -3857,6 +3863,8 @@
 				D466488F4B54F9DBF49AFAE3 /* ProfTutorFab.swift in Sources */,
 				6D92323E5B7F5952A9926926 /* SubjVeryHardAchievers.swift in Sources */,
 				71E9B7535BE3F9E898193B7D /* TrendCurve.swift in Sources */,
+				D21F22A8549090022CA3FC4F /* HistoryExerciseAccess.swift in Sources */,
+				24DB53FE2BBEFE37FEA248B0 /* AnnStatementPdfView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

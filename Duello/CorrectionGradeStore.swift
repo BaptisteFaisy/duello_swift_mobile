@@ -28,12 +28,29 @@ enum CorrectionGradeStore {
     static let storageKey = "prepapp-correction-grade-history:v1"
 
     /// `parseCorrectionGradeHistory` : relit le journal sérialisé ; une réponse
-    /// illisible rend un journal vide, jamais une erreur.
+    /// illisible rend un journal vide, jamais une erreur. Le décodage est
+    /// **tolérant entrée par entrée** (`normalizeCorrectionGradeEntry` de la
+    /// source) : une seule entrée d'activité inconnue n'efface plus tout le
+    /// tableau.
     static func parse(_ raw: String?) -> [CorrectionGradeEntry] {
-        guard let raw, let data = raw.data(using: .utf8),
-              let decoded = try? JSONDecoder().decode([CorrectionGradeEntry].self, from: data)
-        else { return [] }
-        return CorrectionGradeHistory.merge([decoded])
+        guard let raw, let data = raw.data(using: .utf8) else { return [] }
+        return CorrectionGradeHistory.merge([decodeEntries(data)])
+    }
+
+    /// Décodage entrée par entrée : chaque élément illisible (ou d'activité
+    /// inconnue) est écarté sans faire échouer le reste du journal.
+    private static func decodeEntries(_ data: Data) -> [CorrectionGradeEntry] {
+        guard let object = try? JSONSerialization.jsonObject(with: data),
+              let elements = object as? [Any] else {
+            return []
+        }
+        let decoder = JSONDecoder()
+        return elements.compactMap { element in
+            guard let elementData = try? JSONSerialization.data(withJSONObject: element) else {
+                return nil
+            }
+            return try? decoder.decode(CorrectionGradeEntry.self, from: elementData)
+        }
     }
 
     /// `loadCorrectionGradeHistory` : relit les notes enregistrées.

@@ -38,8 +38,6 @@ final class EvEventSession: ObservableObject {
     /// Seconde courante, partagée par le décompte et les seuils.
     @Published private(set) var now: Date
     @Published private(set) var phase: EvEventPhase
-    /// Compteur de la salle d'attente, relu du serveur.
-    @Published private(set) var waitingCount: Int?
     /// `nil` = inconnu, `false` = non inscrit, `true` = inscription posée.
     @Published private(set) var joined: Bool?
     @Published private(set) var joinError = ""
@@ -115,9 +113,8 @@ final class EvEventSession: ObservableObject {
         let name = displayName
         Task {
             do {
-                let state = try await EvEventAPI.join(eventId: eventId, displayName: name, token: token)
+                _ = try await EvEventAPI.join(eventId: eventId, displayName: name, token: token)
                 await MainActor.run {
-                    self.waitingCount = state.participants
                     self.joined = true
                     self.joinError = ""
                 }
@@ -214,15 +211,12 @@ final class EvEventSession: ObservableObject {
         submit()
     }
 
-    /// Salle d'attente : compteur relu sans s'inscrire, et reconnaissance d'un
-    /// passage déjà enregistré via l'état de correction du serveur.
+    /// Salle d'attente : reconnaissance d'un passage déjà enregistré via l'état
+    /// de correction du serveur. Les présents se voient sur le rail d'icônes.
     private func refreshWaitingRoom() {
         let eventId = event.id
         let token = self.token
         Task {
-            if let count = try? await EvEventAPI.participants(eventId: eventId, token: token) {
-                await MainActor.run { self.waitingCount = count }
-            }
             if let state = try? await EvEventAPI.results(eventId: eventId, token: token) {
                 await MainActor.run { self.joined = state.own != nil }
             }

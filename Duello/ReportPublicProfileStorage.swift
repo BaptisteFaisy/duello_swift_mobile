@@ -55,6 +55,10 @@ enum ReportPublicProfileStorage {
     /// `ACCOUNT_STORAGE_KEYS.subjectXp` : total d'XP publié.
     static let subjectXpStorageKey = "prepapp-subject-xp:v1"
 
+    /// `ACCOUNT_STORAGE_KEYS.correctionGradeHistory` : une note enregistrée
+    /// republie aussi le profil public.
+    static let correctionGradeHistoryStorageKey = "prepapp-correction-grade-history:v1"
+
     /// `ACCOUNT_STORAGE_PREFIXES.subjects` : les statuts de chapitres font aussi
     /// évoluer le pourcentage public.
     static let subjectsPrefix = "prepapp-subjects:"
@@ -70,6 +74,7 @@ enum ReportPublicProfileStorage {
         subjectEloHistoryStorageKey,
         subscriptionStorageKey,
         subjectXpStorageKey,
+        correctionGradeHistoryStorageKey,
     ]
 
     /// `isPublicProfileStorageKey` : la clé logique modifie-t-elle une donnée

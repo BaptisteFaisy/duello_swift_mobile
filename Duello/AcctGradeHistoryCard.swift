@@ -25,10 +25,13 @@ import SwiftUI
 /// catégorie, son intitulé, son appréciation, son éventuel record, sa note sur
 /// 20 et son évolution face à la note précédente.
 struct AcctGradeHistoryCard: View {
-    let rows: [GradeHistoryRow]
+    let rows: [ResolvedGradeHistoryRow]
     /// `onSeeAll` : ouvre la page dédiée à l'historique complet. Absent sur
     /// cette page.
     var onSeeAll: (() -> Void)? = nil
+    /// `onOpenItem` : rouvre le sujet d'une ligne lorsque le spectateur y a
+    /// accès (`onOpenItem` de `GradeHistoryCard.tsx`). Absent ⇒ lignes inertes.
+    var onOpenItem: ((ChalRunTrainingTarget) -> Void)? = nil
     /// `hasMore` : vrai lorsqu'au moins une note est masquée par l'aperçu.
     var hasMore: Bool = false
     /// `showTitle` : la page dédiée ne répète pas le titre.
@@ -92,7 +95,27 @@ struct AcctGradeHistoryCard: View {
     }
 
     /// Une ligne : intitulé à gauche, note et évolution à droite (`styles.row`).
-    private func rowView(_ row: GradeHistoryRow) -> some View {
+    /// Toute ligne dont la cible est connue devient un bouton (« Ouvrir le sujet
+    /// dans l'entraînement »), à `opacity: 0.6` à l'appui (`styles.rowPressed`).
+    @ViewBuilder
+    private func rowView(_ row: ResolvedGradeHistoryRow) -> some View {
+        if let target = row.target, let onOpenItem {
+            Button {
+                onOpenItem(target)
+            } label: {
+                rowBody(row)
+            }
+            .buttonStyle(HistoryRowPressStyle())
+            .accessibilityLabel("\(row.displayTitle), \(ExGFormat.score(row.score))")
+            .accessibilityHint("Ouvrir le sujet dans l'entraînement")
+        } else {
+            rowBody(row)
+        }
+    }
+
+    /// Le corps de la ligne, partagé par la version inerte et la version
+    /// pressable.
+    private func rowBody(_ row: ResolvedGradeHistoryRow) -> some View {
         HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 1) {
                 Text(row.category)
@@ -100,7 +123,7 @@ struct AcctGradeHistoryCard: View {
                     .tracking(0.8)
                     .textCase(.uppercase)
                     .foregroundStyle(Theme.ink)
-                Text(row.title)
+                Text(row.displayTitle)
                     .font(.system(size: 13.5, weight: .bold))
                     .tracking(-0.14)
                     .foregroundStyle(Theme.ink)
@@ -121,8 +144,9 @@ struct AcctGradeHistoryCard: View {
     }
 
     /// Pastille « Record » (seul aplat noir plein de la ligne) puis appréciation.
-    private func remarks(_ row: GradeHistoryRow) -> some View {
-        HStack(spacing: 6) {
+    /// Les deux pastilles s'enroulent si la largeur manque (`flexWrap: 'wrap'`).
+    private func remarks(_ row: ResolvedGradeHistoryRow) -> some View {
+        AcctShowWrapLayout(spacing: 6) {
             if row.record {
                 Text("Record")
                     .font(.system(size: 10, weight: .bold))
@@ -131,6 +155,9 @@ struct AcctGradeHistoryCard: View {
                     .padding(.vertical, 2)
                     .background(Theme.ink)
                     .clipShape(Capsule())
+                    // `marginRight: 2` de la source : 2 points de plus que le
+                    // `gap: 6` commun aux deux pastilles.
+                    .padding(.trailing, 2)
                     .accessibilityLabel("Record")
             }
             ExGRemarkBadge(score: row.score)
@@ -139,7 +166,7 @@ struct AcctGradeHistoryCard: View {
     }
 
     /// Note sur 20 et pastille d'évolution (`styles.figure`).
-    private func figure(_ row: GradeHistoryRow) -> some View {
+    private func figure(_ row: ResolvedGradeHistoryRow) -> some View {
         VStack(alignment: .trailing, spacing: 3) {
             Text(ExGFormat.score(row.score))
                 .font(.system(size: 13, weight: .heavy))
@@ -149,5 +176,12 @@ struct AcctGradeHistoryCard: View {
                 ChartGradeEvolutionBadge(percentage: percentage)
             }
         }
+    }
+}
+
+/// `styles.rowPressed` : la ligne s'éclaircit à l'appui (`opacity: 0.6`).
+private struct HistoryRowPressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label.opacity(configuration.isPressed ? 0.6 : 1)
     }
 }

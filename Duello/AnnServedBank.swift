@@ -51,6 +51,15 @@ enum AnnServedBank {
         /// Badge de durée des DS Legendre (`duration` : « DS 2h » / « DS 4h »).
         var duration: String?
         var sourceUrl: String?
+        /// PDF d'énoncé embarqué dans l'application (`ChapterItem.sourceAsset`,
+        /// identifiant d'asset Metro/Expo — un entier, `chapterItems.ts:697`).
+        var sourceAsset: Int?
+        /// Page du PDF qui contient uniquement l'énoncé (`ChapterItem.sourcePage`,
+        /// `chapterItems.ts:699`).
+        var sourcePage: Int?
+        /// Bande de la page à afficher (`ChapterItem.sourceRegion`, `{ haut, bas }`
+        /// en fractions de hauteur depuis le haut, `chapterItems.ts:705`).
+        var sourceRegion: AnnSourceRegion?
         var solutionUrl: String?
         var markingSchemeUrl: String?
         var commentsUrl: String?
@@ -85,7 +94,10 @@ enum AnnServedBank {
             comments: item.comments,
             questions: questions(of: item),
             programStatus: AnnProgramStatus(rawValue: item.programStatus ?? ""),
-            sourceUrl: item.sourceUrl
+            sourceUrl: item.sourceUrl,
+            sourceAsset: item.sourceAsset,
+            sourcePage: item.sourcePage,
+            sourceRegion: item.sourceRegion
         )
     }
 
@@ -140,3 +152,9 @@ enum AnnServedBank {
         }
     }
 }
+
+/// `ChapterItem.sourceRegion` (`{ haut, bas }`, `chapterItems.ts:705`) : la
+/// bande de page se décode telle que la banque la sert, en fractions de hauteur.
+/// La conformance `Decodable` est déclarée sur `AnnSourceRegion` elle-même
+/// (`AnnAnnalesModels.swift`) — une extension hors du fichier déclarant la
+/// struct empêcherait la synthèse automatique des clés `haut`/`bas`.

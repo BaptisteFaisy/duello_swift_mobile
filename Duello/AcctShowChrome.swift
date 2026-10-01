@@ -20,7 +20,8 @@
 import SwiftUI
 
 /// Onglets de période d'une courbe de la vitrine (`chartPeriodTabs`) : un
-/// contrôle segmenté Jours / Semaines / Mois.
+/// contrôle segmenté Jours / Semaines / Mois (la production garde ces trois
+/// périodes ; le développement expose en plus l'année et le maximum).
 struct AcctShowGranularityTabs: View {
     /// Période retenue.
     let value: ChartTimeGranularity
@@ -28,18 +29,29 @@ struct AcctShowGranularityTabs: View {
     let onChange: (ChartTimeGranularity) -> Void
 
     /// Libellé français d'une période
-    /// (`[['day','Jours'], ['week','Semaines'], ['month','Mois']]`).
+    /// (`[['day','Jours'], ['week','Semaines'], ['month','Mois'], ['year','A'], ['max','MAX']]`).
     static func label(for period: ChartTimeGranularity) -> String {
         switch period {
         case .day: return "Jours"
         case .week: return "Semaines"
         case .month: return "Mois"
+        case .year: return "A"
+        case .max: return "MAX"
         }
+    }
+
+    /// `VISIBLE_CHART_PERIOD_OPTIONS` : la production garde ses trois périodes
+    /// (jour, semaine, mois), le développement expose aussi l'année (« A ») et
+    /// le maximum (« MAX »).
+    static var visiblePeriods: [ChartTimeGranularity] {
+        AcctEvoConstants.useRefinedOverview
+            ? [.day, .week, .month, .year, .max]
+            : [.day, .week, .month]
     }
 
     var body: some View {
         HStack(spacing: 3) {
-            ForEach(ChartTimeGranularity.allCases, id: \.self) { period in
+            ForEach(Self.visiblePeriods, id: \.self) { period in
                 tab(period)
             }
         }

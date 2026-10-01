@@ -51,6 +51,12 @@ struct AcctIntShowcase: View {
     @EnvironmentObject private var session: SessionStore
     @EnvironmentObject private var progress: ProgressStore
 
+    /// `onOpenItem` : rouvre le sujet d'une ligne de l'historique dans
+    /// l'entraînement (`onOpenExercise` → `continueChallengeInTraining`,
+    /// `App.tsx:2787,1504`). Fourni par l'hôte (onglet « Mon compte »), qui le
+    /// relaie à la racine (`MainTabView.trainingContinuation`).
+    var onOpenItem: ((ChalRunTrainingTarget) -> Void)? = nil
+
     /// Période commune aux deux courbes (`xpGranularity`/`eloGranularity`).
     @State private var granularity: ChartTimeGranularity = .day
     /// Matière suivie par la courbe d'Elo ; `nil` = « Toutes ».
@@ -148,9 +154,16 @@ struct AcctIntShowcase: View {
         .onChange(of: rankInput) { input in
             ranks.update(input)
         }
+        // `AccountScreen.tsx:2616-2619` : la page `'history'` est une page
+        // poussée dans un `SwipeBackScreen` (geste de retour intégré), pas une
+        // feuille modale — `Ui2SwipeBackContainer` rend ce geste.
         .fullScreenCover(isPresented: $historyOpen) {
-            GradeHistoryScreen(rows: fullGradeHistoryRows) {
-                historyOpen = false
+            Ui2SwipeBackContainer(onBack: { historyOpen = false }) {
+                GradeHistoryScreen(
+                    rows: resolvedFullGradeHistoryRows,
+                    onBack: { historyOpen = false },
+                    onOpenItem: onOpenItem
+                )
             }
         }
     }
@@ -168,7 +181,10 @@ struct AcctIntShowcase: View {
             historyBody
                 .padding(.vertical, 14)
                 .padding(.top, 28)
-                .padding(.horizontal, 12)
+                // `historyBody { paddingHorizontal: 0 }` (`AccountScreen.tsx:5174`) :
+                // les lignes touchent les bords de la section, à la largeur des
+                // tuiles — aucun retrait horizontal en affiné.
+                .padding(.horizontal, 0)
         } else {
             AcctShowSectionCard(
                 icon: "albums-outline",
@@ -190,9 +206,10 @@ struct AcctIntShowcase: View {
             )
         } else {
             AcctGradeHistoryCard(
-                rows: gradeHistoryRows,
+                rows: resolvedGradeHistoryRows,
                 onSeeAll: refined ? { historyOpen = true } : nil,
-                hasMore: refined && fullGradeHistoryRows.count > gradeHistoryRows.count,
+                onOpenItem: onOpenItem,
+                hasMore: refined && resolvedFullGradeHistoryRows.count > resolvedGradeHistoryRows.count,
                 refined: refined
             )
         }
@@ -278,6 +295,19 @@ struct AcctIntShowcase: View {
     /// `gradeHistoryFullRows` : toutes les notes, pour la page « Tout voir ».
     private var fullGradeHistoryRows: [GradeHistoryRow] {
         RankingGradeHistory.buildGradeHistory(correctionGrades, limit: correctionGrades.count)
+    }
+
+    /// `resolvedGradeHistoryRows` (`AccountScreen.tsx:2080-2085`) : l'aperçu,
+    /// chaque ligne rattachée au programme du spectateur — nom de chapitre
+    /// affiché et cible de reprise dans l'entraînement.
+    private var resolvedGradeHistoryRows: [ResolvedGradeHistoryRow] {
+        AcctIntData.resolvedGradeHistoryRows(gradeHistoryRows, profile: session.profile)
+    }
+
+    /// `resolvedGradeHistoryFullRows` (`AccountScreen.tsx:2087-2092`) : toutes
+    /// les notes résolues, pour la page « Tout voir ».
+    private var resolvedFullGradeHistoryRows: [ResolvedGradeHistoryRow] {
+        AcctIntData.resolvedGradeHistoryRows(fullGradeHistoryRows, profile: session.profile)
     }
 
     /// Colonnes de la courbe du temps (`timeBuckets`).

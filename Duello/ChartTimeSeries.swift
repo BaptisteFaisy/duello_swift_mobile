@@ -20,13 +20,18 @@ enum ChartTimeGranularity: String, CaseIterable, Hashable {
     case day
     case week
     case month
+    case year
+    case max
 
     /// Adjectif repris dans les libellés d'accessibilité (« quotidienne »…).
+    /// La source ne distingue que le jour et la semaine : au-delà, elle retombe
+    /// sur « mensuelle » (`granularityName` de `SubjectTimeTrendChart.tsx`,
+    /// ternaire `day ? … : week ? … : 'mensuelle'` des trois `…Chart.tsx`).
     var name: String {
         switch self {
         case .day: return "quotidienne"
         case .week: return "hebdomadaire"
-        case .month: return "mensuelle"
+        case .month, .year, .max: return "mensuelle"
         }
     }
 }
@@ -64,8 +69,9 @@ struct ChartExerciseBucket: Identifiable, Hashable {
 
 /// `buildSubjectTimeSeries` et ses dépendances (`utils/subjectTimeSeries.ts`).
 enum ChartTimeSeries {
-    /// `BUCKET_COUNTS` : sept colonnes pour chaque niveau de lecture.
-    static let bucketCounts = 7
+    /// `MIN_MAX_BUCKETS` : le maximum montre au moins sept mois, sinon un point
+    /// seul ne se lit pas comme une courbe.
+    static let minMaxBuckets = 7
 
     private static let weekdayInitials = ["L", "M", "M", "J", "V", "S", "D"]
     private static let weekdays = [
@@ -107,7 +113,7 @@ enum ChartTimeSeries {
             return milliseconds(calendar.startOfDay(for: date(at)))
         case .week:
             return milliseconds(startOfWeek(at))
-        case .month:
+        case .month, .year, .max:
             let components = calendar.dateComponents([.year, .month], from: date(at))
             return milliseconds(calendar.date(from: components) ?? date(at))
         }
@@ -121,7 +127,7 @@ enum ChartTimeSeries {
     ) -> Double {
         let component: Calendar.Component = {
             switch granularity {
-            case .month: return .month
+            case .month, .year, .max: return .month
             case .week: return .weekOfYear
             case .day: return .day
             }
@@ -138,18 +144,23 @@ enum ChartTimeSeries {
         sessions: [ChartActivitySession],
         granularity: ChartTimeGranularity,
         at: Double? = nil,
-        count: Int = 7,
+        count: Int? = nil,
         registeredAt: Double? = nil
     ) -> [ChartTimeBucket] {
-        let columns = max(1, count)
+        let columns = max(1, count ?? bucketCount(granularity))
         let reference = at ?? milliseconds(Date())
         let current = bucketStart(reference, granularity)
         let registered = registeredAt ?? 0
         let hasRegistration = registered.isFinite && registered > 0
-        let defaultStart = shift(current, granularity, -(columns - 1))
-        var start = hasRegistration
-            ? min(bucketStart(registered, granularity), defaultStart)
-            : defaultStart
+        var start = startBucket(
+            sessions: sessions,
+            granularity: granularity,
+            current: current,
+            columns: columns,
+            hasRegistration: hasRegistration,
+            registered: registered,
+            weight: { $0.minutes }
+        )
 
         var buckets: [ChartTimeBucket] = []
         var byStart: [Double: Int] = [:]
@@ -159,6 +170,9 @@ enum ChartTimeSeries {
             let next = shift(start, granularity, 1)
             if next <= start { break }
             start = next
+        }
+        if granularity == .max && buckets.count > columns {
+            capToColumns(&buckets, &byStart, columns, startOf: { $0.start })
         }
 
         for session in sessions {
@@ -190,7 +204,7 @@ enum ChartTimeSeries {
         )
         let month = (components.month ?? 1) - 1
         switch granularity {
-        case .month:
+        case .month, .year, .max:
             return monthAbbreviations[month]
         case .week:
             let day = String(format: "%02d", components.day ?? 1)
@@ -210,7 +224,7 @@ enum ChartTimeSeries {
         let month = (components.month ?? 1) - 1
         let day = "\(components.day ?? 1) \(months[month])"
         switch granularity {
-        case .month:
+        case .month, .year, .max:
             let name = months[month]
             let capitalized = name.prefix(1).uppercased() + String(name.dropFirst())
             return "\(capitalized) \(components.year ?? 0)"
@@ -224,7 +238,9 @@ enum ChartTimeSeries {
     /// Étendue couverte par le graphique, pour titrer le détail par matière.
     static func windowLabel(_ count: Int, _ granularity: ChartTimeGranularity) -> String {
         switch granularity {
-        case .month:
+        case .max:
+            return "Tout l’historique"
+        case .month, .year:
             return count > 1 ? "\(count) derniers mois" : "Ce mois-ci"
         case .week:
             return count > 1 ? "\(count) dernières semaines" : "Cette semaine"

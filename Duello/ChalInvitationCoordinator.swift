@@ -17,8 +17,12 @@
 //  source ne sont pas rejoués ici (le premier relève est fait au démarrage de la
 //  boucle, l'appelant peut rappeler `refresh()` au retour au premier plan). Le
 //  lot `PushNotif` couvre les notifications. La cible de défi reçoit les
-//  exercices déjà commencés (`startedExerciseIds`) et la cote matière
-//  (`subjectElo`) de l'appelant, faute d'`AccountStorage`/`useSubjectElo` ici.
+//  exercices déjà commencés (`startedExerciseIds`) et un résolveur de cote par
+//  matière (`subjectEloFor`), faute d'`AccountStorage`/`useSubjectElo` ici.
+//
+//  V1 (2026-10-02, écart A8-07 P1) : la cible porte la cote **de la matière du
+//  défi** (`getSubjectElo(subjectElos, challenge.subject)`,
+//  `ChallengeInvitationCoordinator.tsx:198`) et non plus la moyenne globale.
 //
 //  Cible : iOS 16, aucune API iOS 17.
 //
@@ -41,7 +45,10 @@ final class ChalInvitationCoordinator: ObservableObject {
     private var profile = UserProfile()
     private var token: String?
     private var busy = false
-    private var subjectElo = ProgressStore.initialElo
+    /// Résout la cote d'une matière (`getSubjectElo`, `subjectElo.ts:198` =
+    /// `subjectElos[subject] ?? INITIAL_SUBJECT_ELO`). Fourni par l'appelant,
+    /// faute d'`AccountStorage`/`useSubjectElo` ici.
+    private var subjectEloFor: (String) -> Int = { _ in ProgressStore.initialElo }
     private var startedExerciseIds: [String] = []
     private var onAccepted: ((MatchView) -> Void)?
 
@@ -50,7 +57,7 @@ final class ChalInvitationCoordinator: ObservableObject {
         profile: UserProfile,
         busy: Bool,
         token: String?,
-        subjectElo: Int = ProgressStore.initialElo,
+        subjectEloFor: @escaping (String) -> Int = { _ in ProgressStore.initialElo },
         startedExerciseIds: [String] = [],
         onAccepted: @escaping (MatchView) -> Void
     ) {
@@ -58,7 +65,7 @@ final class ChalInvitationCoordinator: ObservableObject {
         self.profile = profile
         self.busy = busy
         self.token = token
-        self.subjectElo = subjectElo
+        self.subjectEloFor = subjectEloFor
         self.startedExerciseIds = startedExerciseIds
         self.onAccepted = onAccepted
         generation += 1
@@ -191,7 +198,9 @@ final class ChalInvitationCoordinator: ObservableObject {
             startedExerciseIds: startedExerciseIds,
             allowStartedExercises: false,
             maxExercises: nil,
-            elo: subjectElo
+            // Cote de la **matière du défi** (`getSubjectElo(subjectElos,
+            // challenge.subject)`, `ChallengeInvitationCoordinator.tsx:198`).
+            elo: subjectEloFor(current.challenge.subject)
         )
     }
 

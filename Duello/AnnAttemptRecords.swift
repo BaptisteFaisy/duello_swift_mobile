@@ -4,11 +4,27 @@
 //
 //  Port de `src/utils/annaleAttempt.ts` — bilans :
 //  `recordAnnaleScoreSubmission`, `recordAnnaleMetricRank`,
-//  `haveSameAnnaleVerdicts`.
+//  `haveSameAnnaleVerdicts` — et de `src/utils/xp.ts`
+//  (`questionXpForDifficulty`, consommé par le bilan du lecteur).
 //
 //  Cible : iOS 16, aucune API iOS 17.
 //
 import Foundation
+
+/// `questionXpForDifficulty` (`xp.ts`) : gain d'une question juste selon la
+/// difficulté du sujet ; une réussite en rejeu en rapporte un cinquième.
+///
+/// `XP_RULES.questionCorrectByDifficulty` de `xp.ts` n'est porté nulle part
+/// ailleurs (`ExGXpFoundation.swift` ne porte que la courbe de niveaux et le
+/// barème des bonus) : le barème des questions vit ici, près du bilan qui le
+/// consomme (`finishSubmittedBatch`).
+func annaleQuestionXp(difficulty: Int, replay: Bool = false) -> Double {
+    let byDifficulty: [Int: Double] = [1: 10, 2: 15, 3: 25, 4: 40, 5: 60, 6: 60]
+    let initial = byDifficulty[difficulty] ?? byDifficulty[3] ?? 25
+    guard replay else { return initial }
+    // `Math.round(initial * questionReplayFactor * 10) / 10`.
+    return (initial * 0.2 * 10).rounded() / 10
+}
 
 /// Variation de note en pourcentage (`improvementPercentage`).
 func annaleImprovementPercentage(previous: Double?, next: Double) -> Int? {

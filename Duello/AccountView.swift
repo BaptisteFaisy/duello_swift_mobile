@@ -42,6 +42,12 @@ struct AccountView: View {
     /// comportement d'avant ce câblage — jamais un plantage.
     @ObservedObject var publisher = ReportPublicProfilePublisher()
 
+    /// Ouvre un sujet dans l'entraînement depuis une ligne d'historique
+    /// (`App.tsx:2787` `onOpenExercise={continueChallengeInTraining}`). Fourni
+    /// par `MainTabView` ; le repli `nil` laisse les lignes inertes — jamais un
+    /// plantage.
+    var onOpenTraining: ((ChalRunTrainingTarget) -> Void)? = nil
+
     /// Réglages ouverts. En mode capture, `ScreenshotTour` les fige d'emblée
     /// pour photographier un écran de réglages sans tap.
     @State private var settingsOpen = ScreenshotTour.opensAccountSettings
@@ -71,7 +77,7 @@ struct AccountView: View {
                     // comme `resolveViewedProfile(profile, selectedMember)` de
                     // la source : le bloc de recherche reste, le corps change.
                     if search.selectedMemberId == nil {
-                        AcctIntShowcase()
+                        AcctIntShowcase(onOpenItem: onOpenTraining)
                     }
                 }
                 .padding(.horizontal, 24)

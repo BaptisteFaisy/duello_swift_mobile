@@ -191,7 +191,7 @@ struct AnnQuestion: Identifiable, Hashable {
 /// Une feuille d'exercices en aligne plusieurs : sans découpe, ouvrir un exercice
 /// montrerait aussi ses voisins. La page entière est rendue quand la bande est
 /// absente.
-struct AnnSourceRegion: Hashable {
+struct AnnSourceRegion: Hashable, Decodable {
     var haut: Double
     var bas: Double
 }

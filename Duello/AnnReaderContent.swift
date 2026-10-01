@@ -141,11 +141,7 @@ extension AnnReaderView {
     private var documentBody: some View {
         switch mode {
         case .statement:
-            documentCard(
-                title: nil,
-                text: entry.statement,
-                empty: "Énoncé indisponible"
-            )
+            statementBody
         case .markingScheme:
             documentCard(
                 title: "Barème",
@@ -161,6 +157,32 @@ extension AnnReaderView {
         case .solution:
             solutionBody
         }
+    }
+
+    /// Onglet « Énoncé » (`documentMode === 'statement'`) : l'énoncé retranscrit
+    /// s'il existe, sinon la **page PDF** du sujet découpée à `sourceRegion`
+    /// (`AnnaleViewer.tsx:2287-2297` + `pdfPageHtml`), sinon l'état
+    /// d'indisponibilité.
+    @ViewBuilder
+    private var statementBody: some View {
+        if let text = entry.statement,
+           !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            documentCard(title: nil, text: text, empty: "Énoncé indisponible")
+        } else if let url = statementPdfURL, let page = entry.sourcePage {
+            AnnStatementPdfView(url: url, pageNumber: page, region: entry.sourceRegion)
+        } else {
+            documentCard(title: nil, text: entry.statement, empty: "Énoncé indisponible")
+        }
+    }
+
+    /// `statementSource` (`sourceAsset ?? sourceUrl`, `AnnaleViewer.tsx:1856`) :
+    /// le lecteur iOS n'a pas de registre d'assets de module Expo, il part donc
+    /// de `sourceUrl` (`ChapterItem`). L'absence d'`URL` valide écarte le chemin
+    /// PDF, comme la garde `displayedSource === undefined` de la source.
+    private var statementPdfURL: URL? {
+        guard let raw = entry.sourceUrl?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !raw.isEmpty else { return nil }
+        return URL(string: raw)
     }
 
     @ViewBuilder

@@ -157,6 +157,10 @@ typealias ReportUnwiredSnapshotProvider = ReportLocalSnapshotProvider
 /// `utils/subjectElo.ts`, `utils/xpSeries.ts`).
 enum ReportLocalSnapshot {
 
+    /// `GRADE_HISTORY_SNAPSHOT_LIMIT` (`utils/publicProfileSnapshot.ts`) : les
+    /// visiteurs voient les cinquante dernières notes, jamais plus.
+    static let gradeHistorySnapshotLimit = 50
+
     /// `performance` : XP, série et complétion locales ; moyenne et tendance de
     /// notes restent au repli (aucun store de notes porté).
     static func performance(_ local: ReportLocalProgress) -> ReportPublicPerformance {
@@ -171,9 +175,9 @@ enum ReportLocalSnapshot {
     }
 
     /// `details` : identité, activité, séries d'Elo (globale + matières),
-    /// séries temporelles et série d'XP. `subjectSuccesses` et
-    /// `veryHardExerciseSuccessIds` restent vides (catalogue non relié ici, cf.
-    /// `ReportLocalSnapshotProvider`).
+    /// séries temporelles, série d'XP et dernières notes de corrections.
+    /// `subjectSuccesses` et `veryHardExerciseSuccessIds` restent vides
+    /// (catalogue non relié ici, cf. `ReportLocalSnapshotProvider`).
     static func details(
         profile: UserProfile,
         local: ReportLocalProgress,
@@ -201,7 +205,10 @@ enum ReportLocalSnapshot {
             timeSeries: timeSeries(local: local, registeredAt: registeredAt),
             subjectSuccesses: [],
             veryHardExerciseSuccessIds: [],
-            xpSeries: xpPoints
+            xpSeries: xpPoints,
+            correctionGrades: Array(
+                CorrectionGradeStore.load().suffix(gradeHistorySnapshotLimit)
+            )
         )
     }
 

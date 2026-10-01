@@ -65,7 +65,7 @@ enum ChartPerformanceWindow {
         page: Int,
         now: Double
     ) -> ChartPerformanceWindowRange {
-        let count = ChartTimeSeries.bucketCounts
+        let count = ChartTimeSeries.bucketCount(granularity)
         let end = ChartTimeSeries.shift(
             ChartTimeSeries.bucketStart(now, granularity),
             granularity,
