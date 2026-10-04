@@ -772,6 +772,18 @@ public struct TimelineView<Schedule: TimelineSchedule, Content: View>: _ShimLeaf
 
 /// Attributs SwiftUI d'un `AttributedString` (`run.foregroundColor = …`,
 /// `run.underlineStyle = …`) : ils vivent dans `AttributeScopes.SwiftUIAttributes`.
+///
+/// macOS : le SDK natif expose DÉJÀ `AttributeScopes.SwiftUIAttributes`.
+/// Redéclarer ce type rend la recherche de nom ambiguë :
+/// « 'SwiftUIAttributes' is ambiguous for type lookup ». Le code de Duello
+/// (`Duello/OnbGiftLegalNotice.swift`) attend `run.foregroundColor = …` et
+/// `run.underlineStyle = .single` : sur macOS, ces écritures restent valides
+/// via le `subscript` d'`AttributeDynamicLookup` plus bas, qui reste ACTIF dans
+/// les deux cas. Seul le type en double doit être désactivé.
+///
+/// Même mécanisme que `Never` dans SwiftUI.swift : flag posé par le script,
+/// pas `canImport` (faux positif dès qu'un .swiftmodule est dans le `-I`).
+#if !DUELLO_SHIM_NATIVE_SDK
 extension AttributeScopes {
     public struct SwiftUIAttributes: AttributeScope {
         public struct ForegroundColorAttribute: AttributedStringKey {
@@ -808,11 +820,18 @@ extension AttributeScopes {
 
     public var swiftUI: SwiftUIAttributes { SwiftUIAttributes() }
 }
+#endif // !DUELLO_SHIM_NATIVE_SDK
 
 
 /// Foundation résout `attributedString.foregroundColor` par une recherche
 /// dynamique : déclarer la portée `SwiftUIAttributes` ne suffit pas, il faut
 /// aussi le `subscript` correspondant sur `AttributeDynamicLookup`.
+///
+/// Ce subscript reste HORS du #if ci-dessus : sous macOS il pointe vers la
+/// `SwiftUIAttributes` NATIVE, et `Duello/OnbGiftLegalNotice.swift` écrit
+/// `run.foregroundColor = …`. Le désactiver casse cette ligne en
+/// « reference to member 'foregroundColor' cannot be resolved without a
+/// contextual type ».
 extension AttributeDynamicLookup {
     public subscript<T: AttributedStringKey>(
         dynamicMember keyPath: KeyPath<AttributeScopes.SwiftUIAttributes, T>

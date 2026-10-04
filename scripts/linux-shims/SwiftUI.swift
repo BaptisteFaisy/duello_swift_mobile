@@ -58,7 +58,20 @@ public protocol View {
 public protocol _ShimLeaf: View where Body == _ShimView {}
 extension _ShimLeaf { public var body: _ShimView { _ShimView() } }
 
+// Sous macOS, le SDK natif déclare DÉJÀ `extension Never: View` avec
+// `Body == Never`. Le redéclarer en `_ShimLeaf` (qui exige `Body == _ShimView`)
+// produit « '_ShimLeaf' requires the types 'Never.Body' and '_ShimView' to be
+// equivalent ». Sous Linux `Never: View` n'existe pas.
+//
+// Le test se fait par le flag `-D DUELLO_SHIM_NATIVE_SDK` posé par
+// scripts/verify-swift-macos.sh, et NON par `canImport(FoundationNetworking)` :
+// la présence d'un .swiftmodule dans le `-I` suffit à rendre ce canImport VRAI
+// sur macOS, ce qui réactivait la ligne et faisait échouer la compilation.
+// Le code de Duello n'utilise `Never` que comme `Task<Void, Never>`, jamais
+// comme vue : la conformance native suffit.
+#if !DUELLO_SHIM_NATIVE_SDK
 extension Never: _ShimLeaf {}
+#endif
 
 extension Optional: View where Wrapped: View {
     public var body: _ShimView { _ShimView() }
@@ -760,14 +773,29 @@ public struct EnvironmentObject<ObjectType: ObservableObject>: DynamicProperty {
 
 @propertyWrapper
 public struct FocusState<Value: Hashable>: DynamicProperty {
-    public typealias Binding = SwiftUI.Binding<Value>
+    // `FocusState.Binding` doit exister : `focused(_:)` et
+    // `accessibilityFocused(_:)` (SwiftUI+Modifiers.swift) le prennent en
+    // paramètre.
+    //
+    // `public typealias Binding = SwiftUI.Binding<Value>` ne convient pas sous
+    // macOS : le SDK natif expose déjà un module `SwiftUI`, donc `SwiftUI.…`
+    // devient ambigu et swift-frontend plante (signal 6). Un type STRUCT
+    // imbriqué porte le même nom vu de l'extérieur sans s'auto-référencer.
+    public struct Binding: DynamicProperty {
+        public nonisolated init() {}
+        public var wrappedValue: Value {
+            get { fatalError("shim SwiftUI : @FocusState n'a pas de valeur") }
+            nonmutating set {}
+        }
+        public var projectedValue: Self { self }
+    }
     public nonisolated init() {}
     public nonisolated init(wrappedValue: Value) {}
     public var wrappedValue: Value {
         get { fatalError("shim SwiftUI : @FocusState n'a pas de valeur") }
         nonmutating set {}
     }
-    public var projectedValue: FocusState<Value>.Binding { .constant(wrappedValue) }
+    public var projectedValue: FocusState<Value>.Binding { FocusState<Value>.Binding() }
 }
 
 @propertyWrapper
