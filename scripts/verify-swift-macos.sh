@@ -83,7 +83,36 @@ for m in $MODS; do
     done
     [ -z "$files" ] && continue
     # shellcheck disable=SC2086
-    if ! swiftc -emit-module -module-name "$m" $files -I "$WORK" \
+    # `-D DUELLO_SHIM_NATIVE_SDK` SANS valeur : en Swift, `-D X=1` ne rend pas
+    # le define vrai (`#if X` reste faux, `#if !X` reste vrai) — vérifié.
+    # Le flag sert à ne PAS redéclarer ce que le SDK natif fournit déjà
+    # (`Never: View`, `AttributeScopes.SwiftUIAttributes`). Le test se fait par
+    # ce flag et NON par `canImport(FoundationNetworking)`, qui devient VRAI
+    # dès qu'un .swiftmodule est présent dans le -I — donc ici systématiquement.
+    if [ "$m" = "SwiftUI" ]; then
+        # swift-frontend plante (signal 6, SILDeserializer) quand le module
+        # local s'appelle `SwiftUI` et masque le module SwiftUI du SDK, dès
+        # qu'un autre .swiftmodule est présent dans le -I. Le code de Duello
+        # fait `import SwiftUI` : on compile donc le shim sous un nom interne,
+        # puis un module `SwiftUI` d'une ligne qui le réexporte.
+        if ! swiftc -emit-module -module-name DuelloSwiftUIShim $files \
+                -D DUELLO_SHIM_NATIVE_SDK -I "$WORK" \
+                -emit-module-path "$WORK/DuelloSwiftUIShim.swiftmodule" \
+                2>"$WORK/shim-$m.txt"; then
+            echo "erreur : le shim $m ne compile pas" >&2
+            grep "error:" "$WORK/shim-$m.txt" | head -20 >&2
+            exit 1
+        fi
+        printf '@_exported import DuelloSwiftUIShim\n' > "$WORK/$m-wrapper.swift"
+        if ! swiftc -emit-module -module-name "$m" "$WORK/$m-wrapper.swift" -I "$WORK" \
+                -emit-module-path "$WORK/$m.swiftmodule" 2>>"$WORK/shim-$m.txt"; then
+            echo "erreur : le module $m ne compile pas" >&2
+            grep "error:" "$WORK/shim-$m.txt" | head -20 >&2
+            exit 1
+        fi
+        continue
+    fi
+    if ! swiftc -emit-module -module-name "$m" $files -D DUELLO_SHIM_NATIVE_SDK -I "$WORK" \
             -emit-module-path "$WORK/$m.swiftmodule" 2>"$WORK/shim-$m.txt"; then
         echo "erreur : le shim $m ne compile pas" >&2
         grep "error:" "$WORK/shim-$m.txt" | head -20 >&2
