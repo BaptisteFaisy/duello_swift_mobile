@@ -40,7 +40,7 @@ name: hermes-watchdog
 #   hermes-gate au lieu d'être annulé.
 #
 # Comportement :
-#   - par sécurité : rate-limit 1 dispatch / 10 min (état daté persisté dans
+#   - par sécurité : rate-limit 1 dispatch / 3 min (état daté persisté dans
 #     la cache d'actions du runner self-hosted), sauf si FORCER_DISPATCH=1 ;
 #   - si un run hermes.yml est déjà en cours/attente : ne fait rien ;
 #   - échoue bruyamment si le dispatch est refusé (visible dans l'onglet Actions).
@@ -97,7 +97,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           # Fin de CI : le gate precedent a pu se suspendre JUSTE avant (il voyait
-          # la CI `pending`), donc le rate-limit de 10 min ne doit pas nous faire
+          # la CI `pending`), donc le rate-limit de 3 min ne doit pas nous faire
           # patienter — on force le dispatch. Le cron, lui, garde le rate-limit.
           FORCER: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' || inputs.forcer }}
           # [HERMES-UTF8] Meme correctif que hermes.yml : le label `duello` est aussi
@@ -113,7 +113,7 @@ jobs:
           REPO = os.environ["GITHUB_REPOSITORY"]
           API = "https://api.github.com"
           FORCER = (os.environ.get("FORCER") or "").lower() in ("true", "1", "yes")
-          RATE_MIN = 10            # minutes entre deux dispatchs du watchdog
+          RATE_MIN = 3             # minutes entre deux dispatchs du watchdog
           STAMP = os.path.join(
               os.environ.get("RUNNER_TEMP", "."),
               "hermes-watchdog-last-dispatch.txt")

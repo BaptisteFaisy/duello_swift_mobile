@@ -10,7 +10,8 @@ name: hermes
 #   Règle 1 : la PR doit être basée sur la DERNIÈRE version de sa base (main).
 #             fraîche -> check vert + revue IA + merge auto (rebase)
 #             en retard -> check rouge + label + sous-agent de résolution des conflits
-#   Règle 2 : la batterie (`Batterie`, cf. .github/workflows/ci.yml) doit être verte
+#   Règle 2 : la batterie (jobs Syntaxe/Coherence, cf. .github/workflows/ci.yml)
+#             doit être verte
 #             sur le SHA de tête. Pending -> merge suspendu ; fail -> retour à l'agent.
 #   Règle 3 : une PR ne meurt jamais — le gardien rouvre toute fermeture sans merge
 #             dont le contenu n'est pas dans la base.
@@ -37,13 +38,13 @@ name: hermes
 # puis pousse (force-with-lease). Hermes re-evalue ensuite automatiquement
 # (evenement synchronize + veille) et merge si tout est vert.
 # Veille : assuree EXCLUSIVEMENT par hermes-watchdog.yml (cron */5, groupe de
-# concurrence PROPRE, re-dispatch de ce workflow par l'API toutes les 10 min au
+# concurrence PROPRE, re-dispatch de ce workflow par l'API toutes les 3 min au
 # besoin). Le cron interne hermes.yml a ete SUPPRIME : dans hermes-gate, un run
 # schedule en attente est remplace par le run suivant du groupe (annulation
 # silencieuse — cf. runs schedule #337/#465 du 17/09), donc il ne fiabilisait
 # rien.
-# Regle 2 : la batterie CI doit etre VERTE sur le SHA de la PR (checks "Batterie"
-# et "Batterie de tests (npm test)", definis dans ci.yml). En attente -> merge
+# Regle 2 : la batterie CI doit etre VERTE sur le SHA de la PR (checks "Syntaxe"
+# et "Coherence", definis dans ci.yml). En attente -> merge
 # suspendu ; en echec -> retour a l'agent (corriger les tests avant de merger).
 # Actif 24/7 : chaque evenement PR + balayage cron toutes les 15 min.
 
@@ -56,16 +57,17 @@ on:
   # :00/:15/:30/:45 étaient quasi systématiquement remplacés : runs schedule
   # #337 et #465 annulés après 8 s et 66 s, sans exécuter une ligne de code).
   # La veille est assurée par hermes-watchdog.yml (cron */5, groupe PROPRE,
-  # dispatch API toutes les 10 min au besoin).
+  # dispatch API toutes les 3 min au besoin).
   workflow_dispatch:
 
-# Sérialisation des runs : les PR en rafale s'empilent au lieu de courir en
-# parallèle. Sans ceci, deux runs simultanés peuvent merger chacun une PR,
-# faisant bouger main sous les pieds de l'autre (behind_by > 0 → renvoi à
-# l'agent alors que la PR était à jour à l'ouverture). La veille cron 15 min
-# rattrape toute PR éventuellement annulée pendant l'attente.
+# Evenements PR (une seule PR traitee) : groupes PARALLELES par PR, pour ne pas
+# faire la queue derriere un balayage. Balayages (sweeps dispatchés, toutes les
+# PR) : groupe UNIQUE `hermes-gate-sweep`, toujours serialise (deux sweeps en
+# parallele mergraient chacun une PR et feraient bouger main sous les pieds de
+# l'autre). Course residuelle sweep-vs-event : le merge relit l'etat live
+# (try_merge) et la veille re-evalue au cycle suivant.
 concurrency:
-  group: hermes-gate
+  group: hermes-gate-${{ github.event_name == 'pull_request' && github.event.pull_request.number || 'sweep' }}
   cancel-in-progress: false
 
 permissions:
@@ -384,11 +386,11 @@ jobs:
 
           def battery_status(head_sha, touches_desktop=False):
               # Verdict de la CI sur ce SHA de PR :
-              # - "Batterie" (ci.yml) toujours requis sur PR ;
+              # - jobs paralleles de ci.yml (Syntaxe/Coherence) toujours requis sur PR ;
               # - "Desktop CI" (desktop-ci.yml) requis EN PLUS quand la PR touche
               #   desktop-app/** (le workflow est filtre par paths : le check
               #   n'existe pas pour une PR mobile/tablette).
-              names = ("Batterie",)
+              names = ("Syntaxe", "Coherence")
               if touches_desktop:
                   names = names + ("Desktop CI",)
               r = api("GET", "/repos/%s/commits/%s/check-runs?per_page=100" % (REPO, head_sha))
@@ -538,7 +540,7 @@ jobs:
               les checks requis : la PR reste bloqueable indefiniment (cas de la PR #187,
               head pousse par un bot, zero check-run, etat `pending` definitif). On re-arme
               ci.yml nous-memes. Idempotent : des que le check existe, plus de dispatch."""
-              if has_check_named(head_sha, "Batterie"):
+              if any(has_check_named(head_sha, n) for n in ("Syntaxe", "Coherence")):
                   return
               r = api("POST", "/repos/%s/actions/workflows/ci.yml/dispatches" % REPO,
                       {"ref": pr["head"]["ref"]})

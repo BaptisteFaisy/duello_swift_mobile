@@ -39,10 +39,10 @@ defaults:
     shell: bash
 
 jobs:
-  batterie:
-    name: Batterie
+  syntaxe:
+    name: Syntaxe
     runs-on: [self-hosted, macmini]
-    timeout-minutes: 25
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -62,9 +62,17 @@ jobs:
           fi
           # -parse = analyse syntaxique uniquement (aucun SDK requis, donc viable
           # sous Linux). Les fichiers sont passés par paquets pour que la sortie
-          # reste lisible et pour ne pas dépendre d'ARG_MAX.
-          find Duello -name '*.swift' -print0 | xargs -0 -n 25 swiftc -parse
+          # reste lisible et pour ne pas dépendre d'ARG_MAX. -P 4 : 4 paquets en
+          # parallèle (8 coeurs du Mac mini, marge pour un 2e job simultané).
+          find Duello -name '*.swift' -print0 | xargs -0 -n 25 -P 4 swiftc -parse
           echo "OK : $(find Duello -name '*.swift' | wc -l) fichiers .swift analysés"
+
+  coherence:
+    name: Coherence
+    runs-on: [self-hosted, macmini]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
 
       - name: Projet Xcode cohérent avec Duello/ (pbxproj)
         run: |
